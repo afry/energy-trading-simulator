@@ -50,4 +50,9 @@ Once energy requirements are know, the agent can make a bid toward the market. A
 
 Do we support multi-party bid resolution? Say, if a building has a higher power requirement that any single provider can meet, can it be filled by multiple providers? And vice versa, can a large producer supply multiple consumers with a single bid, or should these be split into multiple bids?
 
-How do we implement bid flexibility?
+How do we implement bid flexibility? 
+
+## Grid agents
+Grid agents seem to be fundamentally different it two key ways
+1. They don't have a fixed amount of energy they can offer/accept, but rather act as an energy reservoir.
+2. As a result of this, they have no need to make prognosis for their production or absorbtion capacity.
