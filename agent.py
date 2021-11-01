@@ -40,9 +40,9 @@ class PVAgent(IAgent):
         pass
 
 
-class GridAgent(IAgent):
+class ElectricityGridAgent(IAgent):
     nordpool_data: pd.DataFrame
-    MAX_TRANSFER_PER_HOUR = 4000  # kW (placeholder value: same limit as FED)
+    MAX_TRANSFER_PER_HOUR = 10000  # kW (placeholder value: same limit as FED)
 
     def __init__(self, external_price_csv='data/nordpool_area_grid_el_price.csv'):
         self.nordpool_data = pd.read_csv(external_price_csv, index_col=0)
