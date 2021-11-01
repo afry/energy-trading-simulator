@@ -59,3 +59,13 @@ Should agents keep some sort of state based on the outcome of the prognosis, or 
 Grid agents seem to be fundamentally different it two key ways
 1. They don't have a fixed amount of energy they can offer/accept, but rather act as an energy reservoir.
 2. As a result of this, they have no need to make prognosis for their production or absorbtion capacity.
+
+## <span style="color:SkyBlue">Discussion takeaways </span>
+
+Transfer capacity to consider - maybe not this iteration?
+
+No dependencies for this iteration
+
+Include storage - buy/sell based on current capacity
+
+Single grid agent
