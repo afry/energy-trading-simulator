@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
-import pandas as pd
+
+from bid import Bid, Action, Resource
+from data_store import DataStore
 
 
 class IAgent(ABC):
@@ -75,15 +77,10 @@ class BatteryStorageAgent(IAgent):
 
 
 class ElectricityGridAgent(IAgent):
-    nordpool_data: pd.DataFrame
     MAX_TRANSFER_PER_HOUR = 10000  # kW (placeholder value: same limit as FED)
 
-    def __init__(self, external_price_csv='data/nordpool_area_grid_el_price.csv'):
-        self.nordpool_data = pd.read_csv(external_price_csv, index_col=0)
-        if self.nordpool_data.mean()[0] > 100:
-            # convert price from SEK per MWh to SEK per kWh
-            self.nordpool_data = self.nordpool_data / 1000
-        self.nordpool_data.columns = ['price_sek_kwh']
+    def __init__(self, data_store: DataStore):
+        self.data_store = data_store
 
     def make_bids(self, period):
         # Submit 2 bids here
@@ -99,41 +96,14 @@ class ElectricityGridAgent(IAgent):
     def calculate_retail_price(self, period):
         """Returns the price at which the agent is willing to sell electricity, in SEK/kWh"""
         # Per https://doc.afdrift.se/pages/viewpage.action?pageId=17072325
-        return self.nordpool_data.loc[period].iloc[0] + 0.48
+        return self.data_store.get_nordpool_price_for_period(period) + 0.48
 
     def calculate_wholesale_price(self, period):
         """Returns the price at which the agent is willing to buy electricity, in SEK/kWh"""
         # Per https://doc.afdrift.se/pages/viewpage.action?pageId=17072325
-        return self.nordpool_data.loc[period].iloc[0] + 0.05
+        return self.data_store.get_nordpool_price_for_period(period) + 0.05
 
     def make_prognosis(self, period):
         # Not sure what this method should return
         pass
 
-
-class Bid:
-    """The bid model for our trading platform.
-
-    Parameters:
-        action: Buy/sell
-        resource: Electricity
-        quantity: Amount in kWh
-        price: SEK/kWh
-    """
-
-    def __init__(self, action, resource, quantity, price):
-        self.action = action
-        self.resource = resource
-        self.quantity = quantity
-        self.price = price
-
-
-class Action:
-    BUY = 0
-    SELL = 1
-
-
-class Resource:
-    ELECTRICITY = 0
-    HEATING = 1
-    COOLING = 2
