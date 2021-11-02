@@ -45,10 +45,22 @@ class PVAgent(IAgent):
 
 
 class BatteryStorageAgent(IAgent):
+
+    current_charge_kwh: float  # [kWh] - should never exceed max_capacity
+    max_capacity: float  # [kWh]
+
+    def __init__(self, max_capacity, current_charge_level=0.0):
+        self.max_capacity = max_capacity
+        self.current_charge_level = current_charge_level
+
     # TODO: Implement
     def make_bids(self, period):
-        # The Battery storage should generally buy if capacity is low and sell if capacity is high
-        # Logic sketch:
+        # The Battery storage should generally submit two bids; buy at a low price, sell at a high price. Those prices
+        # will be affected by the current_charge_kwh: Willing to buy at higher prices when current_charge_level is
+        # low, and willing to sell at lower prices when current_charge_level is high.
+        # To be able to implement this, the StorageAgent will need to predict what will happen to the price in coming
+        # trading periods, but we will omit this for now.
+        # For starters, the logic could work like this:
         # 1. Start empty
         # 2. Buy until capacity exceeds some threshold
         # 3. Sell until below some other threshold
@@ -103,10 +115,10 @@ class Bid:
     """The bid model for our trading platform.
 
     Parameters:
-        Action: Buy/sell
-        Resource: Electricity
-        Quantity: Amount in kWh
-        Price: SEK/kWh
+        action: Buy/sell
+        resource: Electricity
+        quantity: Amount in kWh
+        price: SEK/kWh
     """
 
     def __init__(self, action, resource, quantity, price):
