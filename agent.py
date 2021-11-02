@@ -22,7 +22,9 @@ class BuildingAgent(IAgent):
     # TODO: Implement
     def make_bid(self, period):
         # The buidling should make a bid for purchasing energy
-        pass
+        bids = []
+
+        return bids
 
     def make_prognosis(self, period):
         # The building should make a prognosis for how much energy will be required
@@ -33,10 +35,31 @@ class PVAgent(IAgent):
     # TODO: Implement
     def make_bid(self, period):
         # The PV park should make a bid to sell energy
-        pass
+        bids = []
+
+        return bids
 
     def make_prognosis(self, period):
         # The PV park should make a prognosis for how much energy will be produced
+        pass
+
+
+class BatteryStorageAgent(IAgent):
+    # TODO: Implement
+    def make_bid(self, period):
+        # The Battery storage should generally buy if capacity is low and sell if capacity is high
+        # Logic sketch:
+        # 1. Start empty
+        # 2. Buy until capacity exceeds some threshold
+        # 3. Sell until below some other threshold
+        # 4. GOTO 2
+        bids = []
+
+        return bids
+
+
+    def make_prognosis(self, period):
+        # Get the current capacity of the battery storage
         pass
 
 
@@ -56,7 +79,9 @@ class ElectricityGridAgent(IAgent):
         # Sell up to MAX_TRANSFER_PER_HOUR kWh at calculate_retail_price(period)
         # Buy up to MAX_TRANSFER_PER_HOUR kWh at calculate_wholesale_price(period)
         # TODO: Build bid
-        pass
+        bids = []
+
+        return bids
 
     def calculate_retail_price(self, period):
         """Returns the price at which the agent is willing to sell electricity, in SEK/kWh"""
@@ -71,3 +96,19 @@ class ElectricityGridAgent(IAgent):
     def make_prognosis(self, period):
         # Not sure what this method should return
         pass
+
+
+class Bid():
+    """The bid model for our trading platform.
+
+    Parameters:
+        Action: Buy/sell
+        Resource: Electricity
+        Quantity: Amount in kWh
+        Price: SEK/kWh
+    """
+    def __init__(self, action, resource, quantity, price):
+        self.action = action
+        self.resource = resource
+        self.quantity = quantity
+        self.price = price
