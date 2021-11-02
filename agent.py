@@ -8,7 +8,7 @@ class IAgent(ABC):
     # def __init__(self):
 
     @abstractmethod
-    def make_bid(self, period):
+    def make_bids(self, period):
         # Make a bid for produced or needed energy for next time step
         pass
 
@@ -20,7 +20,7 @@ class IAgent(ABC):
 
 class BuildingAgent(IAgent):
     # TODO: Implement
-    def make_bid(self, period):
+    def make_bids(self, period):
         # The buidling should make a bid for purchasing energy
         bids = []
 
@@ -33,7 +33,7 @@ class BuildingAgent(IAgent):
 
 class PVAgent(IAgent):
     # TODO: Implement
-    def make_bid(self, period):
+    def make_bids(self, period):
         # The PV park should make a bid to sell energy
         bids = []
 
@@ -46,7 +46,7 @@ class PVAgent(IAgent):
 
 class BatteryStorageAgent(IAgent):
     # TODO: Implement
-    def make_bid(self, period):
+    def make_bids(self, period):
         # The Battery storage should generally buy if capacity is low and sell if capacity is high
         # Logic sketch:
         # 1. Start empty
@@ -56,7 +56,6 @@ class BatteryStorageAgent(IAgent):
         bids = []
 
         return bids
-
 
     def make_prognosis(self, period):
         # Get the current capacity of the battery storage
@@ -74,13 +73,15 @@ class ElectricityGridAgent(IAgent):
             self.nordpool_data = self.nordpool_data / 1000
         self.nordpool_data.columns = ['price_sek_kwh']
 
-    def make_bid(self, period):
+    def make_bids(self, period):
         # Submit 2 bids here
         # Sell up to MAX_TRANSFER_PER_HOUR kWh at calculate_retail_price(period)
         # Buy up to MAX_TRANSFER_PER_HOUR kWh at calculate_wholesale_price(period)
-        # TODO: Build bid
-        bids = []
-
+        retail_price = self.calculate_retail_price(period)
+        wholesale_price = self.calculate_wholesale_price(period)
+        bid_to_sell = Bid(Action.SELL, Resource.ELECTRICITY, self.MAX_TRANSFER_PER_HOUR, retail_price)
+        bid_to_buy = Bid(Action.BUY, Resource.ELECTRICITY, self.MAX_TRANSFER_PER_HOUR, wholesale_price)
+        bids = [bid_to_sell, bid_to_buy]
         return bids
 
     def calculate_retail_price(self, period):
@@ -98,7 +99,7 @@ class ElectricityGridAgent(IAgent):
         pass
 
 
-class Bid():
+class Bid:
     """The bid model for our trading platform.
 
     Parameters:
@@ -107,8 +108,20 @@ class Bid():
         Quantity: Amount in kWh
         Price: SEK/kWh
     """
+
     def __init__(self, action, resource, quantity, price):
         self.action = action
         self.resource = resource
         self.quantity = quantity
         self.price = price
+
+
+class Action:
+    BUY = 0
+    SELL = 1
+
+
+class Resource:
+    ELECTRICITY = 0
+    HEATING = 1
+    COOLING = 2
