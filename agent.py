@@ -1,48 +1,48 @@
 from abc import ABC, abstractmethod
 import math
 
+from bid import Bid, Action, Resource
+from data_store import DataStore
+
 
 class IAgent(ABC):
     """Interface for agents to implement"""
 
     @abstractmethod
-    def make_bid():
+    def make_bids(self, period):
         # Make a bid for produced or needed energy for next time step
         pass
-    
 
     @abstractmethod
-    def make_prognosis():
+    def make_prognosis(self, period):
         # Make resource prognosis for the trading horizon
         pass
 
 
 class BuildingAgent(IAgent):
-    #TODO: Implement
-    def make_bid():
+    # TODO: Implement
+    def make_bids(self, period):
         # The buidling should make a bid for purchasing energy
         bids = []
         # Whats the pricing logic? Always lowest possible price?
 
         return bids
 
-
-    def make_prognosis():
+    def make_prognosis(self, period):
         # The building should make a prognosis for how much energy will be required
         pass
 
 
 class PVAgent(IAgent):
-    #TODO: Implement
-    def make_bid():
+    # TODO: Implement
+    def make_bids(self, period):
         # The PV park should make a bid to sell energy
         bids = []
         # Pricing logic - Highest possible price?
 
         return bids
 
-
-    def make_prognosis():
+    def make_prognosis(self, period):
         # The PV park should make a prognosis for how much energy will be produced
         pass
 
@@ -65,7 +65,7 @@ class BatteryStorageAgent(IAgent):
         self.lower_threshold = 0.2
 
 
-    def make_bid(self):
+    def make_bid(self, period):
         bids = []
 
         action, quantity = self.make_prognosis(self)
@@ -82,7 +82,7 @@ class BatteryStorageAgent(IAgent):
         return bids
 
 
-    def make_prognosis(self):
+    def make_prognosis(self, period):
         # Determine if we want to sell or buy
         if self.capacity < self.lower_threshold*self.max_capacity:
             self.charging = True
@@ -97,31 +97,34 @@ class BatteryStorageAgent(IAgent):
             return "Sell", self.capacity
 
 
-class GridAgent(IAgent):
-    #TODO: Implement
-    def make_bid():
-        # Always make one bid to buy at wholesale price, and one bid to sell att market price
-        bids = []
+class ElectricityGridAgent(IAgent):
+    MAX_TRANSFER_PER_HOUR = 10000  # kW (placeholder value: same limit as FED)
 
+    def __init__(self, data_store: DataStore):
+        self.data_store = data_store
+
+    def make_bids(self, period):
+        # Submit 2 bids here
+        # Sell up to MAX_TRANSFER_PER_HOUR kWh at calculate_retail_price(period)
+        # Buy up to MAX_TRANSFER_PER_HOUR kWh at calculate_wholesale_price(period)
+        retail_price = self.calculate_retail_price(period)
+        wholesale_price = self.calculate_wholesale_price(period)
+        bid_to_sell = Bid(Action.SELL, Resource.ELECTRICITY, self.MAX_TRANSFER_PER_HOUR, retail_price)
+        bid_to_buy = Bid(Action.BUY, Resource.ELECTRICITY, self.MAX_TRANSFER_PER_HOUR, wholesale_price)
+        bids = [bid_to_sell, bid_to_buy]
         return bids
 
+    def calculate_retail_price(self, period):
+        """Returns the price at which the agent is willing to sell electricity, in SEK/kWh"""
+        # Per https://doc.afdrift.se/pages/viewpage.action?pageId=17072325
+        return self.data_store.get_nordpool_price_for_period(period) + 0.48
 
-    def make_prognosis():
-        # Get the grid selling price
+    def calculate_wholesale_price(self, period):
+        """Returns the price at which the agent is willing to buy electricity, in SEK/kWh"""
+        # Per https://doc.afdrift.se/pages/viewpage.action?pageId=17072325
+        return self.data_store.get_nordpool_price_for_period(period) + 0.05
+
+    def make_prognosis(self, period):
+        # Not sure what this method should return
         pass
 
-
-class Bid():
-    """The bid model for our trading platform.
-    
-    Parameters:
-        Action: Buy/sell
-        Resource: Electricity
-        Quantity: Amount in kWh
-        Price: SEK/kWh
-    """
-    def __init__(self, action, quantity, price, resource="Electricity"):
-        self.action = action
-        self.resource = resource
-        self.quantity = quantity
-        self.price = price
