@@ -1,21 +1,25 @@
 import unittest
+from unittest import TestCase
+
 import agent
 import bid
 import data_store
 
+data_store_entity = data_store.DataStore('../data/nordpool_area_grid_el_price.csv',
+                                         '../data/full_mock_energy_data.csv')
+
 
 class TestGridAgent(unittest.TestCase):
-    gridAgent = agent.ElectricityGridAgent(data_store.DataStore('../data/nordpool_area_grid_el_price.csv',
-                                                                '../data/full_mock_energy_data.csv'))
+    grid_agent = agent.ElectricityGridAgent(data_store_entity)
 
     def test_retail_price(self):
-        self.assertEqual(0.99871, self.gridAgent.calculate_retail_price("2019-02-01 01:00:00"))
+        self.assertEqual(0.99871, self.grid_agent.calculate_retail_price("2019-02-01 01:00:00"))
 
     def test_wholesale_price(self):
-        self.assertEqual(0.56871, self.gridAgent.calculate_wholesale_price("2019-02-01 01:00:00"))
+        self.assertEqual(0.56871, self.grid_agent.calculate_wholesale_price("2019-02-01 01:00:00"))
 
     def test_make_bids(self):
-        bids = self.gridAgent.make_bids("2019-02-01 01:00:00")
+        bids = self.grid_agent.make_bids("2019-02-01 01:00:00")
         self.assertEqual(2, len(bids))
         self.assertEqual(bid.Resource.ELECTRICITY, bids[0].resource)
         self.assertEqual(bid.Resource.ELECTRICITY, bids[1].resource)
@@ -27,11 +31,10 @@ class TestGridAgent(unittest.TestCase):
 
 
 class TestBatteryStorageAgent(unittest.TestCase):
-
-    batteryAgent = agent.BatteryStorageAgent(1000)
+    battery_agent = agent.BatteryStorageAgent(1000)
 
     def test_make_bids(self):
-        bids = self.batteryAgent.make_bids("")
+        bids = self.battery_agent.make_bids("")
         self.assertEqual(bids[0].resource, bid.Resource.ELECTRICITY)
         self.assertEqual(bids[0].action, bid.Action.BUY)
         self.assertTrue(bids[0].quantity > 0)
@@ -41,3 +44,14 @@ class TestBatteryStorageAgent(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class TestBuildingAgent(TestCase):
+    building_agent = agent.BuildingAgent(data_store_entity)
+
+    def test_make_bids(self):
+        bids = self.building_agent.make_bids("2019-02-01 01:00:00")
+        self.assertEqual(bids[0].resource, bid.Resource.ELECTRICITY)
+        self.assertEqual(bids[0].action, bid.Action.BUY)
+        self.assertTrue(bids[0].quantity > 0)
+        self.assertTrue(bids[0].price > 0)

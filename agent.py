@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import math
 
+import bid
 from bid import Bid, Action, Resource
 from data_store import DataStore
 
@@ -20,17 +21,20 @@ class IAgent(ABC):
 
 
 class BuildingAgent(IAgent):
-    # TODO: Implement
-    def make_bids(self, period):
-        # The buidling should make a bid for purchasing energy
-        bids = []
-        # Whats the pricing logic? Always lowest possible price?
 
+    def __init__(self, data_store: DataStore):
+        self.data_store = data_store
+
+    def make_bids(self, period):
+        # The building should make a bid for purchasing energy
+        bids = [Bid(Action.BUY, Resource.ELECTRICITY, self.make_prognosis(period), math.inf)]
+        # This demand must be fulfilled - therefore price is inf
         return bids
 
     def make_prognosis(self, period):
         # The building should make a prognosis for how much energy will be required
-        pass
+        electricity_demand = self.data_store.get_tornet_household_electricity_consumed(period)
+        return electricity_demand
 
 
 class PVAgent(IAgent):
