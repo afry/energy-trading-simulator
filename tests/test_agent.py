@@ -26,5 +26,18 @@ class TestGridAgent(unittest.TestCase):
         self.assertTrue(bids[0].price > bids[1].price)
 
 
+class TestBatteryStorageAgent(unittest.TestCase):
+
+    batteryAgent = agent.BatteryStorageAgent(1000)
+
+    def test_make_bids(self):
+        bids = self.batteryAgent.make_bids("")
+        self.assertEqual(bids[0].resource, bid.Resource.ELECTRICITY)
+        self.assertEqual(bids[0].action, bid.Action.BUY)
+        self.assertTrue(bids[0].quantity > 0)
+        self.assertTrue(bids[0].quantity <= 1000)
+        self.assertTrue(bids[0].price > 0)
+
+
 if __name__ == '__main__':
     unittest.main()
