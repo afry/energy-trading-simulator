@@ -51,7 +51,7 @@ class BatteryStorageAgent(IAgent):
     """The agent for a battery storage actor.
     
     The battery works on the logic that it tries to keep it capacity between an upper and a lower bound, 80% and 20% for instance.
-    Starting empty, the battery will fill until at or above the upper threshold. It will then empty until at or below the lower threshold.
+    Starting empty, the battery will charge until at or above the upper threshold. It will then discharge until at or below the lower threshold.
     """
     def __init__(self, max_capacity = 1000):
         # Initialize with a capacity of zero
@@ -63,17 +63,22 @@ class BatteryStorageAgent(IAgent):
         # Upper and lower thresholds
         self.upper_threshold = 0.8
         self.lower_threshold = 0.2
+        # Maximun charge per time step
+        self.charge_limit = self.max_capacity*0.1
 
 
     def make_bid(self, period):
         bids = []
 
         action, quantity = self.make_prognosis(self)
-        if action is "Buy":
+        if action is Action.BUY:
             price = math.inf # Inf as upper bound for buying price
-        elif action is "Sell":
+        elif action is Action.SELL:
             price = 0.0
-        bid = Bid(action=action, quantity=quantity, price=price) # What should price be here?
+        bid = Bid(action=action, 
+                quantity=quantity, 
+                price=price, 
+                resource=Resource.ELECTRICITY) # What should price be here?
         # We need to express that the battery will buy at any price but prefers the lowest
         # And that it will buy up-to the specified amount but never more
        
@@ -91,10 +96,11 @@ class BatteryStorageAgent(IAgent):
             
         
         if self.charging:
-            capacity_to_fill = self.max_capacity - self.capacity
-            return "Buy", capacity_to_fill
+            capacity_to_charge = min([self.max_capacity - self.capacity, self.charge_limit])
+            return Action.BUY, capacity_to_charge
         else:
-            return "Sell", self.capacity
+            capacity_to_deliver = min([self.capacity, self.charge_limit])
+            return Action.SELL, capacity_to_deliver
 
 
 class ElectricityGridAgent(IAgent):
@@ -110,7 +116,10 @@ class ElectricityGridAgent(IAgent):
         retail_price = self.calculate_retail_price(period)
         wholesale_price = self.calculate_wholesale_price(period)
         bid_to_sell = Bid(Action.SELL, Resource.ELECTRICITY, self.MAX_TRANSFER_PER_HOUR, retail_price)
-        bid_to_buy = Bid(Action.BUY, Resource.ELECTRICITY, self.MAX_TRANSFER_PER_HOUR, wholesale_price)
+        bid_to_buy = Bid(action=Action.BUY, 
+                        resource=Resource.ELECTRICITY, 
+                        quantity=self.MAX_TRANSFER_PER_HOUR, 
+                        price=wholesale_price)
         bids = [bid_to_sell, bid_to_buy]
         return bids
 
