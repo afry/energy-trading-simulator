@@ -64,17 +64,33 @@ class GroceryStoreAgent(IAgent):
 
 
 class PVAgent(IAgent):
-    # TODO: Implement
+
+    def __init__(self, data_store: DataStore):
+        self.data_store = data_store
+
     def make_bids(self, period):
         # The PV park should make a bid to sell energy
-        bids = []
-        # Pricing logic - Highest possible price?
-
-        return bids
+        # Pricing logic:
+        # If the agent represents only solar panels and no storage, then the electricity must be sold.
+        # However, the agent could always sell to the external grid, if the local price is too low.
+        return [Bid(Action.SELL,
+                    Resource.ELECTRICITY,
+                    self.make_prognosis(period),
+                    self.get_external_grid_buy_price(period))]
 
     def make_prognosis(self, period):
         # The PV park should make a prognosis for how much energy will be produced
-        pass
+        return self.data_store.get_tornet_pv_produced(period)
+
+    def get_external_grid_buy_price(self, period):
+        spot_price = self.data_store.get_nordpool_price_for_period(period)
+
+        # Per https://doc.afdrift.se/pages/viewpage.action?pageId=17072325, Varberg Energi can pay an extra
+        # remuneration on top of the Nordpool spot price. This can vary, "depending on for example membership".
+        # Might make sense to make this number configurable.
+        extra_remuneration = 0.05
+
+        return spot_price + extra_remuneration
 
 
 class BatteryStorageAgent(IAgent):
