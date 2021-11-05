@@ -27,7 +27,7 @@ class MarketSolver:
                 # Found an acceptable price!
                 return price_point
 
-        raise Exception("No acceptable price found!")
+        raise RuntimeError("No acceptable price found!")
 
     @staticmethod
     def get_price_points(bids):
