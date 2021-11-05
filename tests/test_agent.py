@@ -35,8 +35,8 @@ class TestBatteryStorageAgent(unittest.TestCase):
 
     def test_make_bids(self):
         bids = self.battery_agent.make_bids("")
-        self.assertEqual(bids[0].resource, bid.Resource.ELECTRICITY)
-        self.assertEqual(bids[0].action, bid.Action.BUY)
+        self.assertEqual(bid.Resource.ELECTRICITY, bids[0].resource)
+        self.assertEqual(bid.Action.BUY, bids[0].action)
         self.assertTrue(bids[0].quantity > 0)
         self.assertTrue(bids[0].quantity <= 1000)
         self.assertTrue(bids[0].price > 0)
@@ -62,7 +62,18 @@ class TestGroceryStoreAgent(TestCase):
 
     def test_make_bids(self):
         bids = self.grocery_store_agent.make_bids("2019-07-07 11:00:00")
-        self.assertEqual(bids[0].resource, bid.Resource.ELECTRICITY)
-        self.assertEqual(bids[0].action, bid.Action.BUY)
-        self.assertTrue(bids[0].quantity > 0)
-        self.assertTrue(bids[0].price > 0)
+        self.assertEqual(bid.Resource.ELECTRICITY, bids[0].resource)
+        self.assertEqual(bid.Action.BUY, bids[0].action)
+        self.assertEqual(bids[0].quantity, 190.95254204748102)
+        self.assertTrue(bids[0].price > 1000)
+
+
+class TestPVAgent(TestCase):
+    tornet_pv_agent = agent.PVAgent(data_store_entity)
+
+    def test_make_bids(self):
+        bids = self.tornet_pv_agent.make_bids("2019-07-07 11:00:00")
+        self.assertEqual(bid.Resource.ELECTRICITY, bids[0].resource)
+        self.assertEqual(bid.Action.SELL, bids[0].action)
+        self.assertEqual(271.5033816, bids[0].quantity)
+        self.assertEqual(0.34389, bids[0].price)
