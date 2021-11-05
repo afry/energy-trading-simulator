@@ -39,3 +39,17 @@ class TestMarketSolver(TestCase):
         # Clearing price should be 1.5 SEK/kWh
         clearing_price = self.ms.resolve_bids(bids)
         self.assertEqual(1.5, clearing_price)
+
+    def test_resolve_bids_4(self):
+        bids = [Bid(Action.SELL, Resource.ELECTRICITY, 10000, 2),
+                Bid(Action.BUY, Resource.ELECTRICITY, 10000, 0.25),
+                Bid(Action.SELL, Resource.ELECTRICITY, 100, 0.75),
+                Bid(Action.SELL, Resource.ELECTRICITY, 100, 1),
+                Bid(Action.BUY, Resource.ELECTRICITY, 200, math.inf)]
+        # Top 2 bids being typical for external grid
+        # Someone willing to sell 100 kWh at 0.75 SEK/kWh,
+        # someone willing to sell 100 kWh at 1 SEK/kWh,
+        # someone willing to buy 200 kWh at Inf SEK/kWh.
+        # Clearing price should be 1 SEK/kWh
+        clearing_price = self.ms.resolve_bids(bids)
+        self.assertEqual(1, clearing_price)

@@ -6,7 +6,8 @@ class MarketSolver:
     """An entity that resolves bids towards the market in a way that fulfills the constraints of the bidding entities"""
 
     def resolve_bids(self, bids: List[Bid]):
-        """Function for resolving all bids for the next trading period"""
+        """Function for resolving all bids for the next trading period.
+        Will try to find the lowest price where supply equals or exceeds demand."""
 
         price_points = self.get_price_points(bids)
 
@@ -30,7 +31,4 @@ class MarketSolver:
 
     @staticmethod
     def get_price_points(bids):
-        price_points = set()
-        for bid in bids:
-            price_points.add(bid.price)
-        return price_points
+        return set([x.price for x in bids])
