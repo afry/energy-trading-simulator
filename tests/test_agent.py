@@ -55,3 +55,14 @@ class TestBuildingAgent(TestCase):
         self.assertEqual(bids[0].action, bid.Action.BUY)
         self.assertTrue(bids[0].quantity > 0)
         self.assertTrue(bids[0].price > 0)
+
+
+class TestGroceryStoreAgent(TestCase):
+    grocery_store_agent = agent.GroceryStoreAgent(data_store_entity)
+
+    def test_make_bids(self):
+        bids = self.grocery_store_agent.make_bids("2019-07-07 11:00:00")
+        self.assertEqual(bids[0].resource, bid.Resource.ELECTRICITY)
+        self.assertEqual(bids[0].action, bid.Action.BUY)
+        self.assertTrue(bids[0].quantity > 0)
+        self.assertTrue(bids[0].price > 0)

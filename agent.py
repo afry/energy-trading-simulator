@@ -37,6 +37,32 @@ class BuildingAgent(IAgent):
         return electricity_demand
 
 
+class GroceryStoreAgent(IAgent):
+    """Currently very similar to BuildingAgent. May in the future sell excess heat."""
+
+    def __init__(self, data_store: DataStore):
+        self.data_store = data_store
+
+    def make_bids(self, period):
+        # The building should make a bid for purchasing energy
+        electricity_needed = self.make_prognosis(period)
+        bids = []
+        if electricity_needed > 0:
+            bids.append(Bid(Action.BUY, Resource.ELECTRICITY, electricity_needed, math.inf))
+            # This demand must be fulfilled - therefore price is inf
+        elif electricity_needed < 0:
+            bids.append(Bid(Action.SELL, Resource.ELECTRICITY, -electricity_needed, 0))
+            # If the store doesn't have it's own battery, then surplus electricity must be sold, so price is 0
+        return bids
+
+    def make_prognosis(self, period):
+        # The building should make a prognosis for how much energy will be required.
+        # If negative, it means there is a surplus
+        electricity_demand = self.data_store.get_coop_electricity_consumed(period)
+        electricity_supply = self.data_store.get_coop_pv_produced(period)
+        return electricity_demand - electricity_supply
+
+
 class PVAgent(IAgent):
     # TODO: Implement
     def make_bids(self, period):

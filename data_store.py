@@ -6,7 +6,7 @@ class DataStore:
     tornet_household_elec_cons: pd.Series
     coop_elec_cons: pd.Series  # Electricity used for cooling included
     tornet_pv_prod: pd.Series
-    coop_pv_prod: pd.Series
+    coop_pv_prod: pd.Series  # Rooftop PV production
 
     def __init__(self, external_price_csv_path='data/nordpool_area_grid_el_price.csv',
                  energy_data_csv_path='data/full_mock_energy_data.csv'):
