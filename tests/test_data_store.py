@@ -29,5 +29,5 @@ class TestDataStore(TestCase):
 
     def test_get_energy_mock_timestamps(self):
         test = self.data_store_entity.get_trading_periods()
-        # Need to figure out some reasonable assertation for this unit test. Length of list?
-        self.assertEqual(1,1)
+        # Need to figure out some reasonable assertion for this unit test. Length of list?
+        self.assertEqual(1, 1)
