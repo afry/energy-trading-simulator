@@ -9,6 +9,8 @@ class MarketSolver:
         """Function for resolving all bids for the next trading period.
         Will try to find the lowest price where supply equals or exceeds demand."""
 
+
+
         price_points = self.get_price_points(bids)
 
         for price_point in sorted(price_points):
@@ -30,5 +32,5 @@ class MarketSolver:
         raise RuntimeError("No acceptable price found!")
 
     @staticmethod
-    def get_price_points(bids):
+    def get_price_points(bids: List[Bid]):
         return set([x.price for x in bids])

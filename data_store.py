@@ -47,3 +47,10 @@ class DataStore:
 
     def get_coop_electricity_consumed(self, period):
         return self.coop_elec_cons.loc[period]
+    
+    def get_trading_periods(self):
+        tornet_household_times = self.tornet_household_elec_cons.index.tolist()
+        nordpool_times = self.nordpool_data.index.tolist()
+        timestamps = [time for time in tornet_household_times if time in nordpool_times]
+
+        return timestamps
