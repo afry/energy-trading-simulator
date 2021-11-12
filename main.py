@@ -34,7 +34,7 @@ def main():
     market_solver = MarketSolver()
 
     # Main loop
-    trading_periods = data_store_entity.get_energy_mock_timestamps()
+    trading_periods = data_store_entity.get_trading_periods()
     for period in trading_periods:
         # Get all bids
         bids = [agent.make_bids(period) for agent in agents]
