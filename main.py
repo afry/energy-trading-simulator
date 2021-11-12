@@ -24,11 +24,7 @@ def main():
     # Keep a list of all agents to iterate over later
     agents: List[IAgent] = []
 
-    # Building agents
-    for i in range(10):
-        agents.append(BuildingAgent(data_store_entity))
-
-    # Other agents
+    agents.append(BuildingAgent(data_store_entity))
     agents.append(BatteryStorageAgent())
     agents.append(PVAgent(data_store_entity))
     agents.append(GroceryStoreAgent(data_store_entity))
@@ -47,7 +43,10 @@ def main():
         bids_flat: List[Bid] = [bid for sublist in bids for bid in sublist]
 
         # Resolve bids
-        result = market_solver.resolve_bids(bids_flat)
+        try:
+            result = market_solver.resolve_bids(bids_flat)
+        except RuntimeError as e:
+            result = e.args
         # What do we do with results? Do we feed them back do the agents? Needs a method in the interface.
         log_entry = 'Time period: {}, price: {} \n'.format(period, result)
         log_file.write(log_entry)
