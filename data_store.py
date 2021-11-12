@@ -47,3 +47,6 @@ class DataStore:
 
     def get_coop_electricity_consumed(self, period):
         return self.coop_elec_cons.loc[period]
+    
+    def get_energy_mock_timestamps(self):
+        return self.tornet_household_elec_cons.index.tolist()
