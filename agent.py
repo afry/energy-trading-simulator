@@ -9,6 +9,9 @@ from data_store import DataStore
 class IAgent(ABC):
     """Interface for agents to implement"""
 
+    def __init__(self, guid: str):
+        self.guid = guid
+
     @abstractmethod
     def make_bids(self, period):
         # Make a bid for produced or needed energy for next time step
@@ -19,15 +22,19 @@ class IAgent(ABC):
         # Make resource prognosis for the trading horizon
         pass
 
+    def construct_bid(self, action, resource, quantity, price):
+        return Bid(action, resource, quantity, price, self.guid)
+
 
 class BuildingAgent(IAgent):
 
-    def __init__(self, data_store: DataStore):
+    def __init__(self, data_store: DataStore, guid="BuildingAgent"):
+        super().__init__(guid)
         self.data_store = data_store
 
     def make_bids(self, period):
         # The building should make a bid for purchasing energy
-        bids = [Bid(Action.BUY, Resource.ELECTRICITY, self.make_prognosis(period), math.inf)]
+        bids = [self.construct_bid(Action.BUY, Resource.ELECTRICITY, self.make_prognosis(period), math.inf)]
         # This demand must be fulfilled - therefore price is inf
         return bids
 
@@ -40,7 +47,8 @@ class BuildingAgent(IAgent):
 class GroceryStoreAgent(IAgent):
     """Currently very similar to BuildingAgent. May in the future sell excess heat."""
 
-    def __init__(self, data_store: DataStore):
+    def __init__(self, data_store: DataStore, guid="GroceryStoreAgent"):
+        super().__init__(guid)
         self.data_store = data_store
 
     def make_bids(self, period):
@@ -48,10 +56,10 @@ class GroceryStoreAgent(IAgent):
         electricity_needed = self.make_prognosis(period)
         bids = []
         if electricity_needed > 0:
-            bids.append(Bid(Action.BUY, Resource.ELECTRICITY, electricity_needed, math.inf))
+            bids.append(self.construct_bid(Action.BUY, Resource.ELECTRICITY, electricity_needed, math.inf))
             # This demand must be fulfilled - therefore price is inf
         elif electricity_needed < 0:
-            bids.append(Bid(Action.SELL, Resource.ELECTRICITY, -electricity_needed, 0))
+            bids.append(self.construct_bid(Action.SELL, Resource.ELECTRICITY, -electricity_needed, 0))
             # If the store doesn't have it's own battery, then surplus electricity must be sold, so price is 0
         return bids
 
@@ -65,7 +73,8 @@ class GroceryStoreAgent(IAgent):
 
 class PVAgent(IAgent):
 
-    def __init__(self, data_store: DataStore):
+    def __init__(self, data_store: DataStore, guid="PVAgent"):
+        super().__init__(guid)
         self.data_store = data_store
 
     def make_bids(self, period):
@@ -73,10 +82,10 @@ class PVAgent(IAgent):
         # Pricing logic:
         # If the agent represents only solar panels and no storage, then the electricity must be sold.
         # However, the agent could always sell to the external grid, if the local price is too low.
-        return [Bid(Action.SELL,
-                    Resource.ELECTRICITY,
-                    self.make_prognosis(period),
-                    self.get_external_grid_buy_price(period))]
+        return [self.construct_bid(Action.SELL,
+                                   Resource.ELECTRICITY,
+                                   self.make_prognosis(period),
+                                   self.get_external_grid_buy_price(period))]
 
     def make_prognosis(self, period):
         # The PV park should make a prognosis for how much energy will be produced
@@ -101,7 +110,8 @@ class BatteryStorageAgent(IAgent):
     discharge until at or below the lower threshold.
     """
 
-    def __init__(self, max_capacity=1000):
+    def __init__(self, max_capacity=1000, guid="BatteryStorageAgent"):
+        super().__init__(guid)
         # Initialize with a capacity of zero
         self.capacity = 0
         # Set max capacity in kWh, default = 1000
@@ -122,10 +132,10 @@ class BatteryStorageAgent(IAgent):
             price = math.inf  # Inf as upper bound for buying price
         elif action is Action.SELL:
             price = 0.0
-        bid = Bid(action=action,
-                  quantity=quantity,
-                  price=price,
-                  resource=Resource.ELECTRICITY)  # What should price be here?
+        bid = self.construct_bid(action=action,
+                                 quantity=quantity,
+                                 price=price,
+                                 resource=Resource.ELECTRICITY)  # What should price be here?
         # We need to express that the battery will buy at any price but prefers the lowest
         # And that it will buy up-to the specified amount but never more
 
@@ -153,7 +163,8 @@ class BatteryStorageAgent(IAgent):
 class ElectricityGridAgent(IAgent):
     MAX_TRANSFER_PER_HOUR = 10000  # kW (placeholder value: same limit as FED)
 
-    def __init__(self, data_store: DataStore):
+    def __init__(self, data_store: DataStore, guid="ElectricityGridAgent"):
+        super().__init__(guid)
         self.data_store = data_store
 
     def make_bids(self, period):
@@ -162,11 +173,11 @@ class ElectricityGridAgent(IAgent):
         # Buy up to MAX_TRANSFER_PER_HOUR kWh at calculate_wholesale_price(period)
         retail_price = self.calculate_retail_price(period)
         wholesale_price = self.calculate_wholesale_price(period)
-        bid_to_sell = Bid(Action.SELL, Resource.ELECTRICITY, self.MAX_TRANSFER_PER_HOUR, retail_price)
-        bid_to_buy = Bid(action=Action.BUY,
-                         resource=Resource.ELECTRICITY,
-                         quantity=self.MAX_TRANSFER_PER_HOUR,
-                         price=wholesale_price)
+        bid_to_sell = self.construct_bid(Action.SELL, Resource.ELECTRICITY, self.MAX_TRANSFER_PER_HOUR, retail_price)
+        bid_to_buy = self.construct_bid(action=Action.BUY,
+                                        resource=Resource.ELECTRICITY,
+                                        quantity=self.MAX_TRANSFER_PER_HOUR,
+                                        price=wholesale_price)
         bids = [bid_to_sell, bid_to_buy]
         return bids
 

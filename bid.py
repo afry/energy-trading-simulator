@@ -6,13 +6,15 @@ class Bid:
         resource: Electricity
         quantity: Amount in kWh
         price: SEK/kWh
+        source: String specifying which entity created the bid (used for debugging)
     """
 
-    def __init__(self, action, resource, quantity, price):
+    def __init__(self, action, resource, quantity, price, source):
         self.action = action
         self.resource = resource
         self.quantity = quantity
         self.price = price
+        self.source = source
 
 
 class Action:
