@@ -13,6 +13,12 @@ class TestDataStore(TestCase):
     def test_get_nordpool_price_for_period(self):
         self.assertEqual(0.51871, self.data_store_entity.get_nordpool_price_for_period("2019-02-01 01:00:00"))
 
+    def test_retail_price(self):
+        self.assertEqual(0.99871, self.data_store_entity.get_retail_price("2019-02-01 01:00:00"))
+
+    def test_wholesale_price(self):
+        self.assertEqual(0.56871, self.data_store_entity.get_wholesale_price("2019-02-01 01:00:00"))
+
     def test_get_tornet_household_electricity_consumed(self):
         self.assertEqual(230.18767338928367,
                          self.data_store_entity.get_tornet_household_electricity_consumed("2019-02-01 01:00:00"))

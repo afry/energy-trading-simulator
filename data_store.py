@@ -36,6 +36,16 @@ class DataStore:
     def get_nordpool_price_for_period(self, period):
         return self.nordpool_data.loc[period]
 
+    def get_retail_price(self, period):
+        """Returns the price at which the external grid operator is willing to sell electricity, in SEK/kWh"""
+        # Per https://doc.afdrift.se/pages/viewpage.action?pageId=17072325
+        return self.get_nordpool_price_for_period(period) + 0.48
+
+    def get_wholesale_price(self, period):
+        """Returns the price at which the external grid operator is willing to buy electricity, in SEK/kWh"""
+        # Per https://doc.afdrift.se/pages/viewpage.action?pageId=17072325
+        return self.get_nordpool_price_for_period(period) + 0.05
+
     def get_tornet_household_electricity_consumed(self, period):
         return self.tornet_household_elec_cons.loc[period]
 
@@ -47,7 +57,7 @@ class DataStore:
 
     def get_coop_electricity_consumed(self, period):
         return self.coop_elec_cons.loc[period]
-    
+
     def get_trading_periods(self):
         tornet_household_times = self.tornet_household_elec_cons.index.tolist()
         nordpool_times = self.nordpool_data.index.tolist()

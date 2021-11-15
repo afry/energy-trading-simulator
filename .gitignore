@@ -26,6 +26,9 @@ coverage.xml
 # Runtime log
 log.txt
 
+# Output CSV (quite big)
+trades.csv
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
