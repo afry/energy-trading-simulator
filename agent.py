@@ -330,8 +330,8 @@ class ElectricityGridAgent(IAgent):
                     # consumers could be to blame - producers may have produced less than they thought they would, and
                     # consumers may have consumed more than they thought they would. We'll have to work out some
                     # proportional way of distributing the extra cost.
-                    raise RuntimeWarning("Warning: External grid sells at {} SEK/kWh to the local market, but the "
-                                         "clearing price was {}".format(retail_price, local_clearing_price))
+                    print("External grid sells at {} SEK/kWh to the local market, but the clearing price was {} "
+                          "SEK/kWh.".format(retail_price, local_clearing_price))
                 elif local_clearing_price > retail_price:
                     raise RuntimeError("Unexpected result: Local clearing price higher than external retail price")
         elif sum_buys < sum_sells:
@@ -347,8 +347,8 @@ class ElectricityGridAgent(IAgent):
                     # between themselves, in some way. Both producers and consumers could be to blame - producers may
                     # have produced more than they thought they would, and consumers may have consumed less than they
                     # thought they would. We'll have to work out some proportional way of distributing the extra cost.
-                    raise RuntimeWarning("Warning: External grid buys at {} SEK/kWh from the local market, but the "
-                                         "clearing price was {}". format(wholesale_price, local_clearing_price))
+                    print("External grid buys at {} SEK/kWh from the local market, but the clearing price was {} "
+                          "SEK/kWh". format(wholesale_price, local_clearing_price))
                 elif local_clearing_price < wholesale_price:
                     raise RuntimeError("Unexpected result: Local clearing price lower than external wholesale price")
 
