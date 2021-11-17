@@ -1,17 +1,22 @@
 import unittest
 from unittest import TestCase
 
-import agent
-import data_store
-from trade import Trade, Market
-from bid import Action, Resource
+from tradingplatformpoc import data_store, agent
+from tradingplatformpoc.bid import Resource, Action
+from tradingplatformpoc.trade import Trade, Market
+
+import tradingplatformpoc.agent.building_agent
+import tradingplatformpoc.agent.grid_agent
+import tradingplatformpoc.agent.grocery_store_agent
+import tradingplatformpoc.agent.pv_agent
+import tradingplatformpoc.agent.storage_agent
 
 data_store_entity = data_store.DataStore('../data/nordpool_area_grid_el_price.csv',
                                          '../data/full_mock_energy_data.csv')
 
 
 class TestGridAgent(unittest.TestCase):
-    grid_agent = agent.ElectricityGridAgent(data_store_entity)
+    grid_agent = tradingplatformpoc.agent.grid_agent.ElectricityGridAgent(data_store_entity)
 
     def test_make_bids(self):
         bids = self.grid_agent.make_bids("2019-02-01 01:00:00")
@@ -89,7 +94,7 @@ class TestGridAgent(unittest.TestCase):
 
 
 class TestBatteryStorageAgent(unittest.TestCase):
-    battery_agent = agent.BatteryStorageAgent(1000)
+    battery_agent = tradingplatformpoc.agent.storage_agent.BatteryStorageAgent(1000)
 
     def test_make_bids(self):
         bids = self.battery_agent.make_bids("")
@@ -105,7 +110,7 @@ if __name__ == '__main__':
 
 
 class TestBuildingAgent(TestCase):
-    building_agent = agent.BuildingAgent(data_store_entity)
+    building_agent = agent.building_agent.BuildingAgent(data_store_entity)
 
     def test_make_bids(self):
         bids = self.building_agent.make_bids("2019-02-01 01:00:00")
@@ -116,7 +121,7 @@ class TestBuildingAgent(TestCase):
 
 
 class TestGroceryStoreAgent(TestCase):
-    grocery_store_agent = agent.GroceryStoreAgent(data_store_entity)
+    grocery_store_agent = tradingplatformpoc.agent.grocery_store_agent.GroceryStoreAgent(data_store_entity)
 
     def test_make_bids(self):
         bids = self.grocery_store_agent.make_bids("2019-07-07 11:00:00")
@@ -127,7 +132,7 @@ class TestGroceryStoreAgent(TestCase):
 
 
 class TestPVAgent(TestCase):
-    tornet_pv_agent = agent.PVAgent(data_store_entity)
+    tornet_pv_agent = tradingplatformpoc.agent.pv_agent.PVAgent(data_store_entity)
 
     def test_make_bids(self):
         bids = self.tornet_pv_agent.make_bids("2019-07-07 11:00:00")

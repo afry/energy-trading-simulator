@@ -1,4 +1,4 @@
-from bid import Action, Resource
+from tradingplatformpoc.bid import Action, Resource
 
 
 class Trade:

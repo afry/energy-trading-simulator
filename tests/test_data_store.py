@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-import data_store
+from tradingplatformpoc import data_store
 
 
 class TestDataStore(TestCase):

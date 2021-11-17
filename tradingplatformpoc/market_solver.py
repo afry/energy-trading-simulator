@@ -1,4 +1,4 @@
-from bid import Bid, Action
+from tradingplatformpoc.bid import Bid, Action
 from typing import List
 
 
@@ -8,8 +8,6 @@ class MarketSolver:
     def resolve_bids(self, bids: List[Bid]):
         """Function for resolving all bids for the next trading period.
         Will try to find the lowest price where supply equals or exceeds demand."""
-
-
 
         price_points = self.get_price_points(bids)
 
