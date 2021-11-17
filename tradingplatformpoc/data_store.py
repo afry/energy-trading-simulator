@@ -8,8 +8,8 @@ class DataStore:
     tornet_pv_prod: pd.Series
     coop_pv_prod: pd.Series  # Rooftop PV production
 
-    def __init__(self, external_price_csv_path='data/nordpool_area_grid_el_price.csv',
-                 energy_data_csv_path='data/full_mock_energy_data.csv'):
+    def __init__(self, external_price_csv_path='../data/nordpool_area_grid_el_price.csv',
+                 energy_data_csv_path='../data/full_mock_energy_data.csv'):
         self.nordpool_data = self.__read_nordpool_data(external_price_csv_path)
         self.tornet_household_elec_cons, self.coop_elec_cons, self.tornet_pv_prod, self.coop_pv_prod = \
             self.__read_energy_data(energy_data_csv_path)

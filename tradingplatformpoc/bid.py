@@ -1,5 +1,5 @@
 class Bid:
-    """The bid model for our trading platform.
+    """The bid model for our trading tradingplatformpoc.
 
     Parameters:
         action: Buy/sell

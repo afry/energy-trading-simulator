@@ -1,13 +1,13 @@
 from typing import List
-from agent import IAgent
-from agent import BuildingAgent
-from agent import PVAgent
-from agent import GroceryStoreAgent
-from agent import BatteryStorageAgent
-from agent import ElectricityGridAgent
-from bid import Bid, Action
+from bid import Bid
 from market_solver import MarketSolver
 from data_store import DataStore
+from tradingplatformpoc.agent.building_agent import BuildingAgent
+from tradingplatformpoc.agent.grid_agent import ElectricityGridAgent
+from tradingplatformpoc.agent.grocery_store_agent import GroceryStoreAgent
+from tradingplatformpoc.agent.iagent import IAgent
+from tradingplatformpoc.agent.pv_agent import PVAgent
+from tradingplatformpoc.agent.storage_agent import BatteryStorageAgent
 from trade import write_rows
 
 
@@ -15,12 +15,12 @@ def main():
     """The core loop of the simulation, running through the desired time period and performing trades."""
 
     # Log file
-    log_file = open('log.txt', 'w')
-    trades_text_file = open('trades.csv', 'w')
+    log_file = open('../log.txt', 'w')
+    trades_text_file = open('../trades.csv', 'w')
 
     # Initialize data store
-    data_store_entity = DataStore('data/nordpool_area_grid_el_price.csv',
-                                  'data/full_mock_energy_data.csv')
+    data_store_entity = DataStore('../data/nordpool_area_grid_el_price.csv',
+                                  '../data/full_mock_energy_data.csv')
 
     # Register all agents
     # Keep a list of all agents to iterate over later
