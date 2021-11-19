@@ -47,7 +47,7 @@ class PVAgent(IAgent):
         if usage < 0:
             wholesale_price = self.get_external_grid_buy_price(period)
             price_to_use, market_to_use = get_price_and_market_to_use_when_selling(clearing_price, wholesale_price)
-            return self.construct_trade(Action.SELL, Resource.ELECTRICITY, usage, price_to_use,
+            return self.construct_trade(Action.SELL, Resource.ELECTRICITY, -usage, price_to_use,
                                         market_to_use, period)
         else:
             return None
