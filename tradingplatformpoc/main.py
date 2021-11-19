@@ -17,6 +17,7 @@ def main():
     # Log file
     log_file = open('../log.txt', 'w')
     trades_text_file = open('../trades.csv', 'w')
+    trades_text_file.write('period,agent,action,resource,market,quantity,price\n')
 
     # Initialize data store
     data_store_entity = DataStore('../data/nordpool_area_grid_el_price.csv',
