@@ -20,7 +20,7 @@ class ElectricityGridAgent(IAgent):
         # for the market solver to know that such a bid doesn't _have to_ be filled. Not sure how this was handled in
         # FED. For us, the "wholesale price" comes into the pricing through the other selling agents: They check what
         # the wholesale price is, and then set that as a lowest-allowed asking price for their sell bids (since if the
-        # local price where to be lower than that, those agents would just sell directly to the external grid instead).
+        # local price was to be lower than that, those agents would just sell directly to the external grid instead).
         return [bid_to_sell]
 
     def make_prognosis(self, period):
