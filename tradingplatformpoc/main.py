@@ -28,7 +28,7 @@ def main():
     agents: List[IAgent] = []
 
     agents.append(BuildingAgent(data_store_entity))
-    storage_agent = BatteryStorageAgent()
+    storage_agent = BatteryStorageAgent(data_store_entity)
     agents.append(storage_agent)
     agents.append(PVAgent(data_store_entity))
     agents.append(GroceryStoreAgent(data_store_entity))

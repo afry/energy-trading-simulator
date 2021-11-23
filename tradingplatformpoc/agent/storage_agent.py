@@ -2,6 +2,7 @@ import math
 
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.bid import Action, Resource
+from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.trade import Market
 
 
@@ -13,8 +14,9 @@ class BatteryStorageAgent(IAgent):
     discharge until at or below the lower threshold.
     """
 
-    def __init__(self, max_capacity=1000, guid="BatteryStorageAgent"):
+    def __init__(self, data_store: DataStore, max_capacity=1000, guid="BatteryStorageAgent"):
         super().__init__(guid)
+        self.data_store = data_store
         # Initialize with a capacity of zero
         self.capacity = 0
         # Set max capacity in kWh, default = 1000
@@ -34,7 +36,9 @@ class BatteryStorageAgent(IAgent):
         if action is Action.BUY:
             price = math.inf  # Inf as upper bound for buying price
         elif action is Action.SELL:
-            price = 0.0
+            # Wants at least the external wholesale price, if local price would be lower than that,
+            # the agent would just sell directly to external
+            price = self.data_store.get_wholesale_price(period)
         bid = self.construct_bid(action=action,
                                  quantity=quantity,
                                  price=price,

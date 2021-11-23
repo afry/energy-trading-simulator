@@ -42,7 +42,6 @@ class TestMarketSolver(TestCase):
 
     def test_resolve_bids_4(self):
         bids = [Bid(Action.SELL, Resource.ELECTRICITY, 10000, 2, "Grid"),
-                Bid(Action.BUY, Resource.ELECTRICITY, 10000, 0.25, "Grid"),
                 Bid(Action.SELL, Resource.ELECTRICITY, 100, 0.75, "Seller1"),
                 Bid(Action.SELL, Resource.ELECTRICITY, 100, 1, "Seller2"),
                 Bid(Action.BUY, Resource.ELECTRICITY, 200, math.inf, "Buyer1")]
@@ -55,19 +54,17 @@ class TestMarketSolver(TestCase):
         self.assertEqual(1, clearing_price)
 
     def test_resolve_bids_5(self):
-        bids = [Bid(Action.BUY, Resource.ELECTRICITY, 10000, 0.25, "Grid"),
-                Bid(Action.SELL, Resource.ELECTRICITY, 100, 0.75, "Seller1"),
+        bids = [Bid(Action.SELL, Resource.ELECTRICITY, 100, 0.75, "Seller1"),
                 Bid(Action.BUY, Resource.ELECTRICITY, 200, math.inf, "Buyer1")]
         with self.assertRaises(RuntimeError):
             self.ms.resolve_bids(bids)
 
     def test_resolve_bids_with_local_surplus(self):
         bids = [Bid(Action.BUY, Resource.ELECTRICITY, 192.76354849517332, math.inf, 'BuildingAgent'),
-                Bid(Action.SELL, Resource.ELECTRICITY, 100, 0, 'BatteryStorageAgent'),
+                Bid(Action.SELL, Resource.ELECTRICITY, 100, 0.46069, 'BatteryStorageAgent'),
                 Bid(Action.SELL, Resource.ELECTRICITY, 275.3113968, 0.46069, 'PVAgent'),
                 Bid(Action.BUY, Resource.ELECTRICITY, 100.8875027389364, math.inf, 'GroceryStoreAgent'),
-                Bid(Action.SELL, Resource.ELECTRICITY, 10000, 0.89069, 'ElectricityGridAgent'),
-                Bid(Action.BUY, Resource.ELECTRICITY, 10000, 0.46069, 'ElectricityGridAgent')]
+                Bid(Action.SELL, Resource.ELECTRICITY, 10000, 0.89069, 'ElectricityGridAgent')]
         # Local surplus
         # Clearing price should be 0.46069 SEK/kWh
         clearing_price = self.ms.resolve_bids(bids)
