@@ -12,18 +12,16 @@ class ElectricityGridAgent(IAgent):
         self.data_store = data_store
 
     def make_bids(self, period):
-        # Submit 2 bids here
+        # Submit a bid to sell electricity
         # Sell up to MAX_TRANSFER_PER_HOUR kWh at calculate_retail_price(period)
-        # Buy up to MAX_TRANSFER_PER_HOUR kWh at calculate_wholesale_price(period)
         retail_price = self.data_store.get_retail_price(period)
-        wholesale_price = self.data_store.get_wholesale_price(period)
         bid_to_sell = self.construct_bid(Action.SELL, Resource.ELECTRICITY, self.MAX_TRANSFER_PER_HOUR, retail_price)
-        bid_to_buy = self.construct_bid(action=Action.BUY,
-                                        resource=Resource.ELECTRICITY,
-                                        quantity=self.MAX_TRANSFER_PER_HOUR,
-                                        price=wholesale_price)
-        bids = [bid_to_sell, bid_to_buy]
-        return bids
+        # Note: In FED, this agent also submits a BUY bid at "wholesale price". To implement this, we'd need a way
+        # for the market solver to know that such a bid doesn't _have to_ be filled. Not sure how this was handled in
+        # FED. For us, the "wholesale price" comes into the pricing through the other selling agents: They check what
+        # the wholesale price is, and then set that as a lowest-allowed asking price for their sell bids (since if the
+        # local price was to be lower than that, those agents would just sell directly to the external grid instead).
+        return [bid_to_sell]
 
     def make_prognosis(self, period):
         # FUTURE: Make prognoses of the price, instead of using actual? Although we are already using the day-ahead?
