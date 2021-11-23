@@ -69,4 +69,3 @@ class TestMarketSolver(TestCase):
         # Clearing price should be 0.46069 SEK/kWh
         clearing_price = self.ms.resolve_bids(bids)
         self.assertEqual(0.46069, clearing_price)
-        # Market solver tries to fulfill the electricity grid's buy bid!
