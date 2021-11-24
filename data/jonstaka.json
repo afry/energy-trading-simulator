@@ -1,0 +1,9 @@
+{
+  "Agents": [
+    "BuildingAgent",
+    "GroceryStoreAgent",
+    "BatteryStorageAgent",
+    "PVAgent",
+    "ElectricityGridAgent"
+  ]
+}

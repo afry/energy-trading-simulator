@@ -1,3 +1,5 @@
+import json
+
 from typing import List
 from bid import Bid
 from market_solver import MarketSolver
@@ -27,13 +29,25 @@ def main():
     # Keep a list of all agents to iterate over later
     agents: List[IAgent] = []
 
-    agents.append(BuildingAgent(data_store_entity))
-    storage_agent = BatteryStorageAgent(data_store_entity)
-    agents.append(storage_agent)
-    agents.append(PVAgent(data_store_entity))
-    agents.append(GroceryStoreAgent(data_store_entity))
-    grid_agent = ElectricityGridAgent(data_store_entity)
-    agents.append(grid_agent)
+    with open("../data/jonstaka.json", "r") as jsonfile:
+        config_data = json.load(jsonfile)
+
+    for agentType in config_data["Agents"]:
+        if agentType == "BuildingAgent":
+            agents.append(BuildingAgent(data_store_entity))
+        elif agentType == "BatteryStorageAgent":
+            storage_agent = BatteryStorageAgent(data_store_entity)
+            agents.append(storage_agent)
+        elif agentType == "PVAgent":
+            agents.append(PVAgent(data_store_entity))
+        elif agentType == "GroceryStoreAgent":
+            agents.append(GroceryStoreAgent(data_store_entity))
+        elif agentType == "ElectricityGridAgent":
+            grid_agent = ElectricityGridAgent(data_store_entity)
+            agents.append(grid_agent)
+
+    # TODO: As of right now, grid and storage agents are treated as configurable, but the code is hard coded with the
+    # TODO: assumption that they'll always exist. Needs to be refactored.
 
     # Get a market solver
     market_solver = MarketSolver()
