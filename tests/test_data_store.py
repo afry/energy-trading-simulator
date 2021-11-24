@@ -28,10 +28,10 @@ class TestDataStore(TestCase):
                          self.data_store_entity.get_coop_electricity_consumed("2019-02-01 01:00:00"))
 
     def test_get_tornet_pv_produced(self):
-        self.assertEqual(521.4550176, self.data_store_entity.get_tornet_pv_produced("2019-08-01 11:00:00"))
+        self.assertEqual(4458.980690596963, self.data_store_entity.get_tornet_pv_produced("2019-08-01 11:00:00"))
 
     def test_get_coop_pv_produced(self):
-        self.assertEqual(33.98208, self.data_store_entity.get_coop_pv_produced("2019-08-01 11:00:00"))
+        self.assertEqual(29.27232, self.data_store_entity.get_coop_pv_produced("2019-08-01 11:00:00"))
 
     def test_get_energy_mock_timestamps(self):
         test = self.data_store_entity.get_trading_periods()
