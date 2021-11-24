@@ -1,4 +1,5 @@
 import unittest
+import json
 from unittest import TestCase
 
 from tradingplatformpoc import data_store, agent
@@ -11,8 +12,9 @@ import tradingplatformpoc.agent.grocery_store_agent
 import tradingplatformpoc.agent.pv_agent
 import tradingplatformpoc.agent.storage_agent
 
-data_store_entity = data_store.DataStore('../data/nordpool_area_grid_el_price.csv',
-                                         '../data/full_mock_energy_data.csv')
+with open("../data/jonstaka.json", "r") as jsonfile:
+    config_data = json.load(jsonfile)
+data_store_entity = data_store.DataStore(config_data=config_data["AreaInfo"])
 
 
 class TestGridAgent(unittest.TestCase):
@@ -134,5 +136,5 @@ class TestPVAgent(TestCase):
         bids = self.tornet_pv_agent.make_bids("2019-07-07 11:00:00")
         self.assertEqual(Resource.ELECTRICITY, bids[0].resource)
         self.assertEqual(Action.SELL, bids[0].action)
-        self.assertEqual(4812.06375754719, bids[0].quantity)
+        self.assertEqual(4812.0622836, bids[0].quantity)
         self.assertEqual(0.34389, bids[0].price)

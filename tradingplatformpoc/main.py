@@ -16,33 +16,37 @@ from trade import write_rows
 def main():
     """The core loop of the simulation, running through the desired time period and performing trades."""
 
+    with open("../data/jonstaka.json", "r") as jsonfile:
+        config_data = json.load(jsonfile)
+
+    # Initialize data store
+    data_store_entity = DataStore(config_data=config_data["AreaInfo"])
+
     # Log file
     log_file = open('../log.txt', 'w')
     trades_text_file = open('../trades.csv', 'w')
     trades_text_file.write('period,agent,action,resource,market,quantity,price\n')
 
-    # Initialize data store
-    data_store_entity = DataStore('../data/nordpool_area_grid_el_price.csv',
-                                  '../data/full_mock_energy_data.csv')
+
 
     # Register all agents
     # Keep a list of all agents to iterate over later
     agents: List[IAgent] = []
 
-    with open("../data/jonstaka.json", "r") as jsonfile:
-        config_data = json.load(jsonfile)
 
-    for agentType in config_data["Agents"]:
-        if agentType == "BuildingAgent":
+
+    for agent in config_data["Agents"]:
+        agent_type = agent["Name"]
+        if agent_type == "BuildingAgent":
             agents.append(BuildingAgent(data_store_entity))
-        elif agentType == "BatteryStorageAgent":
+        elif agent_type == "BatteryStorageAgent":
             storage_agent = BatteryStorageAgent(data_store_entity)
             agents.append(storage_agent)
-        elif agentType == "PVAgent":
+        elif agent_type == "PVAgent":
             agents.append(PVAgent(data_store_entity))
-        elif agentType == "GroceryStoreAgent":
+        elif agent_type == "GroceryStoreAgent":
             agents.append(GroceryStoreAgent(data_store_entity))
-        elif agentType == "ElectricityGridAgent":
+        elif agent_type == "ElectricityGridAgent":
             grid_agent = ElectricityGridAgent(data_store_entity)
             agents.append(grid_agent)
 
