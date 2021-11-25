@@ -5,17 +5,18 @@ from tradingplatformpoc.trade import Market, Trade
 
 
 class ElectricityGridAgent(IAgent):
-    MAX_TRANSFER_PER_HOUR = 10000  # kW (placeholder value: same limit as FED)
+    #MAX_TRANSFER_PER_HOUR = 10000  # kW (placeholder value: same limit as FED)
 
-    def __init__(self, data_store: DataStore, guid="ElectricityGridAgent"):
+    def __init__(self, data_store: DataStore, guid="ElectricityGridAgent", max_transfer_per_hour = 10000):
         super().__init__(guid)
         self.data_store = data_store
+        self.max_transfer_per_hour = max_transfer_per_hour
 
     def make_bids(self, period):
         # Submit a bid to sell electricity
         # Sell up to MAX_TRANSFER_PER_HOUR kWh at calculate_retail_price(period)
         retail_price = self.data_store.get_retail_price(period)
-        bid_to_sell = self.construct_bid(Action.SELL, Resource.ELECTRICITY, self.MAX_TRANSFER_PER_HOUR, retail_price)
+        bid_to_sell = self.construct_bid(Action.SELL, Resource.ELECTRICITY, self.max_transfer_per_hour, retail_price)
         # Note: In FED, this agent also submits a BUY bid at "wholesale price". To implement this, we'd need a way
         # for the market solver to know that such a bid doesn't _have to_ be filled. Not sure how this was handled in
         # FED. For us, the "wholesale price" comes into the pricing through the other selling agents: They check what

@@ -40,14 +40,15 @@ def main():
         if agent_type == "BuildingAgent":
             agents.append(BuildingAgent(data_store_entity))
         elif agent_type == "BatteryStorageAgent":
-            storage_agent = BatteryStorageAgent(data_store_entity)
+            storage_agent = BatteryStorageAgent(data_store_entity, max_capacity=agent["Capacity"],
+                                                charge_rate=agent["ChargeRate"])
             agents.append(storage_agent)
         elif agent_type == "PVAgent":
             agents.append(PVAgent(data_store_entity))
         elif agent_type == "GroceryStoreAgent":
             agents.append(GroceryStoreAgent(data_store_entity))
         elif agent_type == "ElectricityGridAgent":
-            grid_agent = ElectricityGridAgent(data_store_entity)
+            grid_agent = ElectricityGridAgent(data_store_entity, max_transfer_per_hour=agent["TransferRate"])
             agents.append(grid_agent)
 
     # TODO: As of right now, grid and storage agents are treated as configurable, but the code is hard coded with the

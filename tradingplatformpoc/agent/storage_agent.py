@@ -14,7 +14,7 @@ class BatteryStorageAgent(IAgent):
     discharge until at or below the lower threshold.
     """
 
-    def __init__(self, data_store: DataStore, max_capacity=1000, guid="BatteryStorageAgent"):
+    def __init__(self, data_store: DataStore, max_capacity=1000, charge_rate=0.1, guid="BatteryStorageAgent"):
         super().__init__(guid)
         self.data_store = data_store
         # Initialize with a capacity of zero
@@ -27,7 +27,7 @@ class BatteryStorageAgent(IAgent):
         self.upper_threshold = 0.8
         self.lower_threshold = 0.2
         # Maximum charge per time step
-        self.charge_limit = self.max_capacity * 0.1
+        self.charge_limit = self.max_capacity * charge_rate
 
     def make_bids(self, period):
         bids = []

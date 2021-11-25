@@ -3,7 +3,9 @@
         "Name": "BuildingAgent"
       },
       {
-        "Name": "BatteryStorageAgent"
+        "Name": "BatteryStorageAgent",
+        "Capacity": 1000,
+        "ChargeRate": 0.1
       },
       {
         "Name": "PVAgent"
@@ -12,7 +14,8 @@
         "Name": "GroceryStoreAgent"
       },
       {
-        "Name": "ElectricityGridAgent"
+        "Name": "ElectricityGridAgent",
+        "TransferRate": 10000
       }
 	],
   "AreaInfo": {
