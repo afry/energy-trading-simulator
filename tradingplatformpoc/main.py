@@ -27,32 +27,14 @@ def main():
     trades_text_file = open('../trades.csv', 'w')
     trades_text_file.write('period,agent,action,resource,market,quantity,price\n')
 
-
-
     # Register all agents
     # Keep a list of all agents to iterate over later
-    agents: List[IAgent] = []
-
-
-
-    for agent in config_data["Agents"]:
-        agent_type = agent["Name"]
-        if agent_type == "BuildingAgent":
-            agents.append(BuildingAgent(data_store_entity))
-        elif agent_type == "BatteryStorageAgent":
-            storage_agent = BatteryStorageAgent(data_store_entity, max_capacity=agent["Capacity"],
-                                                charge_rate=agent["ChargeRate"])
-            agents.append(storage_agent)
-        elif agent_type == "PVAgent":
-            agents.append(PVAgent(data_store_entity))
-        elif agent_type == "GroceryStoreAgent":
-            agents.append(GroceryStoreAgent(data_store_entity))
-        elif agent_type == "ElectricityGridAgent":
-            grid_agent = ElectricityGridAgent(data_store_entity, max_transfer_per_hour=agent["TransferRate"])
-            agents.append(grid_agent)
-
-    # TODO: As of right now, grid and storage agents are treated as configurable, but the code is hard coded with the
-    # TODO: assumption that they'll always exist. Needs to be refactored.
+    agents: List[IAgent]
+    try:
+        agents, grid_agent = initialize_agents(data_store_entity, config_data)
+    except RuntimeError as e:
+        log_file.write(e.args)
+        exit(1)
 
     # Get a market solver
     market_solver = MarketSolver()
@@ -72,8 +54,8 @@ def main():
         except RuntimeError as e:
             clearing_price = e.args
 
-        log_entry = 'Time period: {}, price: {}, battery charge level: {}\n'.\
-            format(period, clearing_price, storage_agent.capacity)
+        log_entry = 'Time period: {}, price: {}\n'. \
+            format(period, clearing_price)
         log_file.write(log_entry)
 
         # Send clearing price back to agents, allow them to "make trades", i.e. decide if they want to buy/sell
@@ -85,10 +67,40 @@ def main():
         external_trades = grid_agent.calculate_external_trades(trades_excl_external, clearing_price)
         all_trades = trades_excl_external + external_trades
         trades_text_file.write(write_rows(all_trades))
-    
+
     # Exit gracefully
     log_file.close()
     trades_text_file.close()
+
+
+def initialize_agents(data_store_entity, config_data):
+    # Register all agents
+    # Keep a list of all agents to iterate over later
+    agents: List[IAgent] = []
+
+    for agent in config_data["Agents"]:
+        agent_type = agent["Name"]
+        if agent_type == "BuildingAgent":
+            agents.append(BuildingAgent(data_store_entity))
+        elif agent_type == "BatteryStorageAgent":
+            agents.append(BatteryStorageAgent(data_store_entity, max_capacity=agent["Capacity"],
+                                              charge_rate=agent["ChargeRate"]))
+        elif agent_type == "PVAgent":
+            agents.append(PVAgent(data_store_entity))
+        elif agent_type == "GroceryStoreAgent":
+            agents.append(GroceryStoreAgent(data_store_entity))
+        elif agent_type == "ElectricityGridAgent":
+            grid_agent = ElectricityGridAgent(data_store_entity, max_transfer_per_hour=agent["TransferRate"])
+            agents.append(grid_agent)
+
+    # TODO: As of right now, grid agents are treated as configurable, but the code is hard coded with the
+    # TODO: assumption that they'll always exist. Should probably be refactored
+
+    # Verify that we have a Grid Agent
+    if not any(isinstance(agent, ElectricityGridAgent) for agent in agents):
+        raise RuntimeError("No grid agent initialized")
+
+    return agents, grid_agent
 
 
 if __name__ == '__main__':
