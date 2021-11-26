@@ -1,0 +1,27 @@
+{
+  "Agents": [{
+        "Name": "BuildingAgent"
+      },
+      {
+        "Name": "BatteryStorageAgent",
+        "Capacity": 1000,
+        "ChargeRate": 0.1
+      },
+      {
+        "Name": "PVAgent"
+      },
+      {
+        "Name": "GroceryStoreAgent"
+      },
+      {
+        "Name": "ElectricityGridAgent",
+        "TransferRate": 10000
+      }
+	],
+  "AreaInfo": {
+    "RooftopPVArea": 24420.5,
+    "ParkPVArea": 24324.3,
+    "StorePVArea": 320,
+    "PVEfficiency": 0.165
+  }
+}
