@@ -23,7 +23,7 @@ class TestDataStore(TestCase):
         self.assertEqual(0.56871, self.data_store_entity.get_wholesale_price("2019-02-01 01:00:00"))
 
     def test_get_tornet_household_electricity_consumed(self):
-        self.assertEqual(230.18767338928367,
+        self.assertEqual(206.2577964869327,
                          self.data_store_entity.get_tornet_household_electricity_consumed("2019-02-01 01:00:00"))
 
     def test_get_coop_electricity_consumed(self):
