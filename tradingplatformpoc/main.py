@@ -25,7 +25,7 @@ def main():
     # Log file
     log_file = open('../log.txt', 'w')
     trades_text_file = open('../trades.csv', 'w')
-    trades_text_file.write('period,agent,action,resource,market,quantity,price\n')
+    trades_text_file.write('period,agent,by_external,action,resource,market,quantity,price\n')
 
     # Register all agents
     # Keep a list of all agents to iterate over later

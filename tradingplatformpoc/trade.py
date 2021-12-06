@@ -10,22 +10,26 @@ class Trade:
         quantity: Amount in kWh
         price: SEK/kWh
         source: String specifying which entity that did the trade (used for debugging)
+        by_external: True if trade is made by an external grid agent, False otherwise. Needed for example when
+            calculating extra cost distribution in balance_manager
         market: LOCAL or EXTERNAL (agents can decide to buy/sell directly to external grids)
         period: What period the trade happened
     """
 
-    def __init__(self, action, resource, quantity, price, source, market, period):
+    def __init__(self, action, resource, quantity, price, source, by_external, market, period):
         self.action = action
         self.resource = resource
         self.quantity = quantity
         self.price = price
         self.source = source
+        self.by_external = by_external
         self.market = market
         self.period = period
 
     def __str__(self):
-        return "{},{},{},{},{},{},{}".format(self.period,
+        return "{},{},{},{},{},{},{},{}".format(self.period,
                                              self.source,
+                                             self.by_external,
                                              action_string(self.action),
                                              resource_string(self.resource),
                                              market_string(self.market),

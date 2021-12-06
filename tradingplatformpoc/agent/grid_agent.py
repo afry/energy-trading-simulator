@@ -1,5 +1,5 @@
 from tradingplatformpoc.agent.iagent import IAgent
-from tradingplatformpoc.bid import Action, Resource
+from tradingplatformpoc.bid import Action, Resource, Bid
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.trade import Market, Trade
 
@@ -23,6 +23,9 @@ class ElectricityGridAgent(IAgent):
         # the wholesale price is, and then set that as a lowest-allowed asking price for their sell bids (since if the
         # local price was to be lower than that, those agents would just sell directly to the external grid instead).
         return [bid_to_sell]
+
+    def construct_bid(self, action, resource, quantity, price):
+        return Bid(action, resource, quantity, price, self.guid, True)
 
     def make_prognosis(self, period):
         # FUTURE: Make prognoses of the price, instead of using actual? Although we are already using the day-ahead?
@@ -64,7 +67,7 @@ class ElectricityGridAgent(IAgent):
             [trade.quantity for trade in trades_for_this_resource_and_market if trade.action == Action.SELL])
         if sum_buys > sum_sells:
             trades_to_add.append(
-                Trade(Action.SELL, resource, sum_buys - sum_sells, retail_price, self.guid, market, period))
+                Trade(Action.SELL, resource, sum_buys - sum_sells, retail_price, self.guid, True, market, period))
             if market == Market.LOCAL:
                 if local_clearing_price < retail_price:
                     # This isn't necessarily a problem, per se, but when we move away from perfect predictions,
@@ -81,7 +84,7 @@ class ElectricityGridAgent(IAgent):
                     raise RuntimeError("Unexpected result: Local clearing price higher than external retail price")
         elif sum_buys < sum_sells:
             trades_to_add.append(
-                Trade(Action.BUY, resource, sum_sells - sum_buys, wholesale_price, self.guid, market, period))
+                Trade(Action.BUY, resource, sum_sells - sum_buys, wholesale_price, self.guid, True, market, period))
             if market == Market.LOCAL:
                 if local_clearing_price > wholesale_price:
                     # This isn't necessarily a problem, per se, but when we move away from perfect predictions,
