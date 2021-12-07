@@ -3,7 +3,7 @@ from tradingplatformpoc.trade import Trade
 from typing import List
 
 
-def calculate_extra_cost(external_bids, external_trades, clearing_price):
+def calculate_extra_cost(external_bids, external_trades, clearing_price, external_wholesale_price):
     if len(external_bids) != 1:
         raise RuntimeError("Expected 1 and only 1 external grid bid for a single trading period")
     else:
@@ -11,22 +11,20 @@ def calculate_extra_cost(external_bids, external_trades, clearing_price):
 
     if external_retail_price < clearing_price:
         raise RuntimeError("Unexpected state: External retail price < local clearing price")
-    elif external_retail_price == clearing_price:
-        return 0  # No extra costs in this scenario
-    # So here we know that external_retail_price > clearing_price, and we didn't expect to have to import anything
 
     if len(external_trades) == 0:
-        external_actual_import = 0
+        return 0
     elif len(external_trades) > 1:
         raise RuntimeError("Unexpected state: More than 1 external grid trade for a single trading period")
     else:
         if external_trades[0].action == Action.BUY:
-            external_actual_import = 0
+            external_actual_export = external_trades[0].quantity
+            price_difference = clearing_price - external_wholesale_price
+            return external_actual_export * price_difference
         else:
             external_actual_import = external_trades[0].quantity
-
-    extra_price = external_retail_price - clearing_price
-    return external_actual_import * extra_price
+            price_difference = external_retail_price - clearing_price
+            return external_actual_import * price_difference
 
 
 def was_bid_accepted(bid, clearing_price):
@@ -34,7 +32,7 @@ def was_bid_accepted(bid, clearing_price):
            ((bid.action == Action.BUY) & (bid.price >= clearing_price))
 
 
-def calculate_costs(bids: List[Bid], trades: List[Trade], clearing_price: float):
+def calculate_costs(bids: List[Bid], trades: List[Trade], clearing_price: float, external_wholesale_price: float):
     """
     All bids and trades should be for the same trading period
     """
@@ -43,7 +41,7 @@ def calculate_costs(bids: List[Bid], trades: List[Trade], clearing_price: float)
 
     external_bids = [x for x in bids if x.by_external]
     external_trades = [x for x in trades if x.by_external]
-    extra_cost = calculate_extra_cost(external_bids, external_trades, clearing_price)
+    extra_cost = calculate_extra_cost(external_bids, external_trades, clearing_price, external_wholesale_price)
 
     error_by_agent = calculate_error_by_agent(accepted_bids, agent_ids, trades)
     cost_to_be_paid_by_agent = calculate_cost(error_by_agent, extra_cost)
