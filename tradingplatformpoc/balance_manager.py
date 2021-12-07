@@ -3,6 +3,23 @@ from tradingplatformpoc.trade import Trade
 from typing import List
 
 
+def calculate_costs(bids: List[Bid], trades: List[Trade], clearing_price: float, external_wholesale_price: float):
+    """
+    All bids and trades should be for the same trading period
+    """
+    accepted_bids = [x for x in bids if was_bid_accepted(x, clearing_price)]
+    agent_ids = set([x.source for x in accepted_bids] + [x.source for x in trades])
+
+    external_bids = [x for x in bids if x.by_external]
+    external_trades = [x for x in trades if x.by_external]
+    extra_cost = calculate_extra_cost(external_bids, external_trades, clearing_price, external_wholesale_price)
+    # Now we know how much extra cost that need to be covered. Now we'll figure out how to distribute it.
+
+    error_by_agent = calculate_error_by_agent(accepted_bids, agent_ids, trades)
+    cost_to_be_paid_by_agent = distribute_cost(error_by_agent, extra_cost)
+    return cost_to_be_paid_by_agent
+
+
 def calculate_extra_cost(external_bids, external_trades, clearing_price, external_wholesale_price):
     if len(external_bids) != 1:
         raise RuntimeError("Expected 1 and only 1 external grid bid for a single trading period")
@@ -32,23 +49,11 @@ def was_bid_accepted(bid, clearing_price):
            ((bid.action == Action.BUY) & (bid.price >= clearing_price))
 
 
-def calculate_costs(bids: List[Bid], trades: List[Trade], clearing_price: float, external_wholesale_price: float):
+def distribute_cost(error_by_agent, extra_cost):
     """
-    All bids and trades should be for the same trading period
+    Proportional to the absolute error of an agent's prediction, i.e. the difference between bid quantity and actual
+    consumption/production.
     """
-    accepted_bids = [x for x in bids if was_bid_accepted(x, clearing_price)]
-    agent_ids = set([x.source for x in accepted_bids] + [x.source for x in trades])
-
-    external_bids = [x for x in bids if x.by_external]
-    external_trades = [x for x in trades if x.by_external]
-    extra_cost = calculate_extra_cost(external_bids, external_trades, clearing_price, external_wholesale_price)
-
-    error_by_agent = calculate_error_by_agent(accepted_bids, agent_ids, trades)
-    cost_to_be_paid_by_agent = calculate_cost(error_by_agent, extra_cost)
-    return cost_to_be_paid_by_agent
-
-
-def calculate_cost(error_by_agent, extra_cost):
     if extra_cost == 0.0:
         return {k: 0 for (k, v) in error_by_agent.items()}
     sum_of_abs_errors = sum([abs(v) for (k, v) in error_by_agent.items()])
@@ -57,6 +62,8 @@ def calculate_cost(error_by_agent, extra_cost):
 
 
 def is_agent_external(accepted_bids_for_agent, trades_for_agent):
+    """Helper method to figure out whether an agent represents an external grid, based on bids and trades for the agent.
+    """
     if len(trades_for_agent) > 0:
         if trades_for_agent[0].by_external:
             return True
@@ -67,6 +74,10 @@ def is_agent_external(accepted_bids_for_agent, trades_for_agent):
 
 
 def calculate_error_by_agent(accepted_bids, agent_ids, trades):
+    """
+    The error being the difference between the projected (i.e. the bid quantity) usage and the actual usage for the
+    trading period. Usage is negative if the agent is a supplier.
+    """
     error_by_agent = {}
     for agent_id in agent_ids:
         accepted_bids_for_agent = [x for x in accepted_bids if x.source == agent_id]
@@ -80,6 +91,7 @@ def calculate_error_by_agent(accepted_bids, agent_ids, trades):
 
 
 def get_bid_usage(accepted_bids_for_agent, agent_id):
+    """Usage is negative if the agent is a supplier of energy"""
     if len(accepted_bids_for_agent) > 1:
         raise RuntimeError("More than 1 bid accepted for agent " + agent_id + " in a single trading period")
     elif len(accepted_bids_for_agent) == 0:
@@ -90,6 +102,7 @@ def get_bid_usage(accepted_bids_for_agent, agent_id):
 
 
 def get_actual_usage(trades_for_agent, agent_id):
+    """Usage is negative if the agent is a supplier of energy"""
     if len(trades_for_agent) > 1:
         raise RuntimeError("More than 1 trade for agent " + agent_id + " in a single trading period")
     elif len(trades_for_agent) == 0:
