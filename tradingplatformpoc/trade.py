@@ -28,13 +28,20 @@ class Trade:
 
     def __str__(self):
         return "{},{},{},{},{},{},{},{}".format(self.period,
-                                             self.source,
-                                             self.by_external,
-                                             action_string(self.action),
-                                             resource_string(self.resource),
-                                             market_string(self.market),
-                                             self.quantity,
-                                             self.price)
+                                                self.source,
+                                                self.by_external,
+                                                action_string(self.action),
+                                                resource_string(self.resource),
+                                                market_string(self.market),
+                                                self.quantity,
+                                                self.price)
+
+    def get_cost_of_trade(self):
+        """Negative if it is an income, i.e. if the trade is a SELL"""
+        if self.action == Action.BUY:
+            return self.quantity * self.price
+        else:
+            return -self.quantity * self.price
 
 
 class Market:
@@ -60,5 +67,3 @@ def write_rows(trades):
     for trade in trades:
         full_string = full_string + str(trade) + "\n"
     return full_string
-
-

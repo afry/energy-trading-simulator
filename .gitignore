@@ -28,6 +28,7 @@ log.txt
 
 # Output CSV (quite big)
 trades.csv
+extra_costs.csv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

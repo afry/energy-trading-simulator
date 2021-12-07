@@ -45,10 +45,12 @@ def calculate_costs(bids: List[Bid], trades: List[Trade], clearing_price: float,
 
     error_by_agent = calculate_error_by_agent(accepted_bids, agent_ids, trades)
     cost_to_be_paid_by_agent = calculate_cost(error_by_agent, extra_cost)
-    print(cost_to_be_paid_by_agent)
+    return cost_to_be_paid_by_agent
 
 
 def calculate_cost(error_by_agent, extra_cost):
+    if extra_cost == 0.0:
+        return {k: 0 for (k, v) in error_by_agent.items()}
     sum_of_abs_errors = sum([abs(v) for (k, v) in error_by_agent.items()])
     perc_of_cost_to_be_paid_by_agent = {k: abs(v) / sum_of_abs_errors for (k, v) in error_by_agent.items()}
     return {k: extra_cost * v for (k, v) in perc_of_cost_to_be_paid_by_agent.items()}
