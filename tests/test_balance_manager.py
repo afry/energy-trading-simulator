@@ -61,3 +61,22 @@ class Test(TestCase):
         self.assertAlmostEqual(0, costs["Seller1"], places=3)
         self.assertAlmostEqual(50, costs["Buyer1"], places=3)
         self.assertAlmostEqual(0, costs["Buyer2"], places=3)
+
+    def test_no_bid_from_seller(self):
+        """
+        Expected: Locally produced electricity won't cover local demand, so clearing price gets set to 1.0. 'Seller1'
+            doesn't anticipate to produce anything, so doesn't make a bid.
+        Actual: Locally produced electricity does cover local demand, surplus needs to be exported (100 kWh) at a lower
+            price (0.5) than the local clearing price. Loss of revenue (1-0.5)*100=50 need to be distributed.
+        """
+        bids = [Bid(Action.BUY, Resource.ELECTRICITY, 2000, math.inf, "Buyer1", False),
+                Bid(Action.BUY, Resource.ELECTRICITY, 100, math.inf, "Buyer2", False),
+                Bid(Action.SELL, Resource.ELECTRICITY, 10000, 1, "Grid", True)]
+        trades = [Trade(Action.SELL, Resource.ELECTRICITY, 2000, 1, "Seller1", False, Market.LOCAL, None),
+                  Trade(Action.BUY, Resource.ELECTRICITY, 1800, 1, "Buyer1", False, Market.LOCAL, None),
+                  Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Buyer2", False, Market.LOCAL, None),
+                  Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Grid", True, Market.LOCAL, None)]
+        costs = calculate_costs(bids, trades, 1.0, 0.5)
+        self.assertAlmostEqual(45.4545, costs["Seller1"], places=3)
+        self.assertAlmostEqual(4.54545, costs["Buyer1"], places=3)
+        self.assertAlmostEqual(0, costs["Buyer2"], places=3)
