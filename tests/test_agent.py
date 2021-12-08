@@ -30,7 +30,7 @@ class TestGridAgent(unittest.TestCase):
     def test_calculate_trades_1(self):
         retail_price = 0.99871
         trades_excl_external = [
-            Trade(Action.BUY, Resource.ELECTRICITY, 100, retail_price, "BuildingAgent", Market.LOCAL,
+            Trade(Action.BUY, Resource.ELECTRICITY, 100, retail_price, "BuildingAgent", False, Market.LOCAL,
                   "2019-02-01 01:00:00")
         ]
         external_trades = self.grid_agent.calculate_external_trades(trades_excl_external, retail_price)
@@ -46,9 +46,10 @@ class TestGridAgent(unittest.TestCase):
     def test_calculate_trades_local_equilibrium(self):
         retail_price = 0.99871
         trades_excl_external = [
-            Trade(Action.BUY, Resource.ELECTRICITY, 100, retail_price, "BuildingAgent", Market.LOCAL,
+            Trade(Action.BUY, Resource.ELECTRICITY, 100, retail_price, "BuildingAgent", False, Market.LOCAL,
                   "2019-02-01 01:00:00"),
-            Trade(Action.SELL, Resource.ELECTRICITY, 100, retail_price, "PVAgent", Market.LOCAL, "2019-02-01 01:00:00")
+            Trade(Action.SELL, Resource.ELECTRICITY, 100, retail_price, "PVAgent", False, Market.LOCAL,
+                  "2019-02-01 01:00:00")
         ]
         external_trades = self.grid_agent.calculate_external_trades(trades_excl_external, retail_price)
         self.assertEqual(0, len(external_trades))
@@ -56,7 +57,7 @@ class TestGridAgent(unittest.TestCase):
     def test_calculate_trades_price_not_matching(self):
         local_price = 1
         trades_excl_external = [
-            Trade(Action.BUY, Resource.ELECTRICITY, 100, local_price, "BuildingAgent", Market.LOCAL,
+            Trade(Action.BUY, Resource.ELECTRICITY, 100, local_price, "BuildingAgent", False, Market.LOCAL,
                   "2019-02-01 01:00:00")
         ]
         with self.assertRaises(RuntimeError):
@@ -65,7 +66,7 @@ class TestGridAgent(unittest.TestCase):
     def test_calculate_trades_price_not_matching_2(self):
         local_price = 0.5
         trades_excl_external = [
-            Trade(Action.BUY, Resource.ELECTRICITY, 100, local_price, "BuildingAgent", Market.LOCAL,
+            Trade(Action.BUY, Resource.ELECTRICITY, 100, local_price, "BuildingAgent", False, Market.LOCAL,
                   "2019-02-01 01:00:00")
         ]
         # Should log a line about external grid and market clearing price being different
@@ -76,9 +77,9 @@ class TestGridAgent(unittest.TestCase):
         wholesale_price = 0.56871
         period = "2019-02-01 01:00:00"
         trades_excl_external = [
-            Trade(Action.BUY, Resource.ELECTRICITY, 100, wholesale_price, "BuildingAgent", Market.LOCAL, period),
-            Trade(Action.BUY, Resource.ELECTRICITY, 200, wholesale_price, "GSAgent", Market.LOCAL, period),
-            Trade(Action.SELL, Resource.ELECTRICITY, 400, wholesale_price, "PvAgent", Market.LOCAL, period)
+            Trade(Action.BUY, Resource.ELECTRICITY, 100, wholesale_price, "BuildingAgent", False, Market.LOCAL, period),
+            Trade(Action.BUY, Resource.ELECTRICITY, 200, wholesale_price, "GSAgent", False, Market.LOCAL, period),
+            Trade(Action.SELL, Resource.ELECTRICITY, 400, wholesale_price, "PvAgent", False, Market.LOCAL, period)
         ]
         external_trades = self.grid_agent.calculate_external_trades(trades_excl_external, wholesale_price)
         self.assertEqual(1, len(external_trades))
@@ -92,7 +93,7 @@ class TestGridAgent(unittest.TestCase):
 
 
 class TestBatteryStorageAgent(unittest.TestCase):
-    battery_agent = tradingplatformpoc.agent.storage_agent.BatteryStorageAgent(1000)
+    battery_agent = tradingplatformpoc.agent.storage_agent.BatteryStorageAgent(data_store_entity, max_capacity=1000)
 
     def test_make_bids(self):
         bids = self.battery_agent.make_bids("")

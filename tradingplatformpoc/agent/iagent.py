@@ -33,10 +33,10 @@ class IAgent(ABC):
         pass
 
     def construct_bid(self, action, resource, quantity, price):
-        return Bid(action, resource, quantity, price, self.guid)
+        return Bid(action, resource, quantity, price, self.guid, False)
 
     def construct_trade(self, action, resource, quantity, price, market, period):
-        return Trade(action, resource, quantity, price, self.guid, market, period)
+        return Trade(action, resource, quantity, price, self.guid, False, market, period)
 
 
 def get_price_and_market_to_use_when_buying(clearing_price, retail_price):
