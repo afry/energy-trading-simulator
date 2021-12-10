@@ -3,6 +3,7 @@ import math
 from tradingplatformpoc.agent.iagent import IAgent, get_price_and_market_to_use_when_buying
 from tradingplatformpoc.bid import Action, Resource
 from tradingplatformpoc.data_store import DataStore
+from tradingplatformpoc.trading_platform_utils import minus_n_hours
 
 
 class BuildingAgent(IAgent):
@@ -19,9 +20,13 @@ class BuildingAgent(IAgent):
 
     def make_prognosis(self, period):
         # The building should make a prognosis for how much energy will be required
-        electricity_demand = self.data_store.get_tornet_household_electricity_consumed(period)
-        # FUTURE: Make a prognosis, instead of using the actual
-        return electricity_demand
+        prev_trading_period = minus_n_hours(period, 1)
+        try:
+            electricity_demand_prev = self.data_store.get_tornet_household_electricity_consumed(prev_trading_period)
+        except KeyError:
+            # First time step, haven't got a previous value to use. Will go with a perfect prediction here
+            electricity_demand_prev = self.data_store.get_tornet_household_electricity_consumed(period)
+        return electricity_demand_prev
 
     def get_actual_usage(self, period):
         actual_usage = self.data_store.get_tornet_household_electricity_consumed(period)

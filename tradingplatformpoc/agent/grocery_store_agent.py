@@ -4,6 +4,7 @@ from tradingplatformpoc.agent.iagent import IAgent, get_price_and_market_to_use_
     get_price_and_market_to_use_when_selling
 from tradingplatformpoc.bid import Action, Resource
 from tradingplatformpoc.data_store import DataStore
+from tradingplatformpoc.trading_platform_utils import minus_n_hours
 
 
 class GroceryStoreAgent(IAgent):
@@ -28,9 +29,14 @@ class GroceryStoreAgent(IAgent):
     def make_prognosis(self, period):
         # The building should make a prognosis for how much energy will be required.
         # If negative, it means there is a surplus
-        electricity_demand = self.data_store.get_coop_electricity_consumed(period)
-        electricity_supply = self.data_store.get_coop_pv_produced(period)
-        # FUTURE: Make a prognosis, instead of using the actual
+        prev_trading_period = minus_n_hours(period, 1)
+        try:
+            electricity_demand = self.data_store.get_coop_electricity_consumed(prev_trading_period)
+            electricity_supply = self.data_store.get_coop_pv_produced(prev_trading_period)
+        except KeyError:
+            # First time step, haven't got a previous value to use. Will go with a perfect prediction here
+            electricity_demand = self.data_store.get_coop_electricity_consumed(period)
+            electricity_supply = self.data_store.get_coop_pv_produced(period)
         return electricity_demand - electricity_supply
 
     def get_actual_usage(self, period):

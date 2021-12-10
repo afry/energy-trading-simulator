@@ -125,5 +125,5 @@ def write_extra_costs_rows(period, extra_costs):
     full_string = ""
     for k, v in extra_costs.items():
         if v != 0:
-            full_string = full_string + period + "," + k + "," + str(v) + "\n"
+            full_string = full_string + str(period) + "," + k + "," + str(v) + "\n"
     return full_string
