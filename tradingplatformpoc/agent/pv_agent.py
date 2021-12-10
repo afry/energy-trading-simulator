@@ -1,6 +1,7 @@
 from tradingplatformpoc.agent.iagent import IAgent, get_price_and_market_to_use_when_selling
 from tradingplatformpoc.bid import Action, Resource
 from tradingplatformpoc.data_store import DataStore
+from tradingplatformpoc.trading_platform_utils import minus_n_hours
 
 
 class PVAgent(IAgent):
@@ -25,8 +26,13 @@ class PVAgent(IAgent):
 
     def make_prognosis(self, period):
         # The PV park should make a prognosis for how much energy will be produced
-        # FUTURE: Make a prognosis, instead of using the actual
-        return self.data_store.get_tornet_pv_produced(period)
+        prev_trading_period = minus_n_hours(period, 1)
+        try:
+            electricity_prod_prev = self.data_store.get_tornet_pv_produced(prev_trading_period)
+        except KeyError:
+            # First time step, haven't got a previous value to use. Will go with a perfect prediction here
+            electricity_prod_prev = self.data_store.get_tornet_pv_produced(period)
+        return electricity_prod_prev
 
     def get_external_grid_buy_price(self, period):
         wholesale_price = self.data_store.get_wholesale_price(period)
