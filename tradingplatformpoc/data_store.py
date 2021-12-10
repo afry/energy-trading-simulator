@@ -52,11 +52,13 @@ class DataStore:
         if price_data.mean() > 100:
             # convert price from SEK per MWh to SEK per kWh
             price_data = price_data / 1000
+        price_data.index = pd.to_datetime(price_data.index)
         return price_data
 
     @staticmethod
     def __read_energy_data(energy_csv_path):
         energy_data = pd.read_csv(energy_csv_path, index_col=0)
+        energy_data.index = pd.to_datetime(energy_data.index)
         return energy_data['tornet_electricity_consumed_household_kwh'], \
                energy_data['coop_electricity_consumed_cooling_kwh'] + energy_data['coop_electricity_consumed_other_kwh']
 
@@ -64,7 +66,9 @@ class DataStore:
     def __read_solar_irradiation(irradiation_csv_path):
         """Return solar irradiation, according to SMHI, in Watt per square meter"""
         irradiation_data = pd.read_csv(irradiation_csv_path, index_col=0)
-        return irradiation_data['irradiation']
+        irradiation_series = irradiation_data['irradiation']
+        irradiation_series.index = pd.to_datetime(irradiation_series.index)
+        return irradiation_series
 
     def get_nordpool_price_for_period(self, period):
         return self.nordpool_data.loc[period]
