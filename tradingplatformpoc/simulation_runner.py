@@ -1,10 +1,11 @@
+import datetime
 import json
 
 from typing import List
 
 from tradingplatformpoc.market_solver import MarketSolver
 from tradingplatformpoc.data_store import DataStore
-from tradingplatformpoc import balance_manager
+from tradingplatformpoc import balance_manager, results_calculator
 from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.grid_agent import ElectricityGridAgent
 from tradingplatformpoc.agent.grocery_store_agent import GroceryStoreAgent
@@ -88,6 +89,8 @@ def run_trading_simulations():
     trades_csv_file.close()
     extra_costs_file.close()
 
+    results_calculator.print_basic_results(agents, all_trades_list, all_extra_costs_dict, data_store_entity)
+
     return clearing_prices_dict, all_trades_list, all_extra_costs_dict
 
 
@@ -121,7 +124,7 @@ def initialize_agents(data_store_entity, config_data):
     return agents, grid_agent
 
 
-def write_extra_costs_rows(period, extra_costs):
+def write_extra_costs_rows(period: datetime.datetime, extra_costs: dict):
     full_string = ""
     for k, v in extra_costs.items():
         if v != 0:
