@@ -10,7 +10,7 @@ Tested on:
 ## Setup a virtual environment
 Consider setting up a virtual environment for the repository. Use conda or venv, as follows:
 
-        virtualenv -p python3.7 venv
+        virtualenv -p python3.9 venv
 
 *Note:* don't forget to activate the virtual environment. Depending on your IDE, you can probably choose to set the 
 default interpretor to your venv.
@@ -20,7 +20,9 @@ default interpretor to your venv.
         pip install --upgrade pip
         pip install -r requirements.txt
 
-
+Install package as editable (command automatically searches for the setup.py file): 
+        
+        pip install -e .
 
 ## Agents
 Info about agent design
