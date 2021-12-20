@@ -2,6 +2,26 @@
 
 A POC for the trading platform system including agents and market solver.
 
+## Preliminaries
+Tested on:
+- Ubuntu 18.04, bionic using Python=3.9.0
+- Windows OS ?
+
+## Setup a virtual environment
+Consider setting up a virtual environment for the repository. Use conda or venv, as follows:
+
+        virtualenv -p python3.7 venv
+
+*Note:* don't forget to activate the virtual environment. Depending on your IDE, you can probably choose to set the 
+default interpretor to your venv.
+
+## Install dependencies
+
+        pip install --upgrade pip
+        pip install -r requirements.txt
+
+
+
 ## Agents
 Info about agent design
 
