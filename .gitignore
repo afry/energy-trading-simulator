@@ -25,9 +25,10 @@ coverage.xml
 .hypothesis/
 
 # Runtime log
-log.txt
+trading-platform-poc.log
 
 # Output CSV (quite big)
+clearing_prices.csv
 trades.csv
 extra_costs.csv
 
