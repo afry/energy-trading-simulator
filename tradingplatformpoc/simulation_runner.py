@@ -1,5 +1,6 @@
 import datetime
 import json
+import logging
 
 from typing import List
 
@@ -15,9 +16,13 @@ from tradingplatformpoc.agent.storage_agent import BatteryStorageAgent
 from tradingplatformpoc.trade import write_rows
 from tradingplatformpoc.bid import Bid
 
+logger = logging.getLogger(__name__)
+
 
 def run_trading_simulations():
     """The core loop of the simulation, running through the desired time period and performing trades."""
+
+    logger.info("Starting trading simulations")
 
     with open("../data/jonstaka.json", "r") as jsonfile:
         config_data = json.load(jsonfile)
@@ -26,7 +31,8 @@ def run_trading_simulations():
     data_store_entity = DataStore(config_data=config_data["AreaInfo"])
 
     # Output files
-    log_file = open('../log.txt', 'w')
+    clearing_prices_file = open('../clearing_prices.csv', 'w')
+    clearing_prices_file.write('period,price\n')
     trades_csv_file = open('../trades.csv', 'w')
     trades_csv_file.write('period,agent,by_external,action,resource,market,quantity,price\n')
     extra_costs_file = open('../extra_costs.csv', 'w')
@@ -42,7 +48,7 @@ def run_trading_simulations():
     try:
         agents, grid_agent = initialize_agents(data_store_entity, config_data)
     except RuntimeError as e:
-        log_file.write(e.args)
+        clearing_prices_file.write(e.args)
         exit(1)
 
     # Get a market solver
@@ -64,9 +70,7 @@ def run_trading_simulations():
             clearing_price = e.args
         clearing_prices_dict[period] = clearing_price
 
-        log_entry = 'Time period: {}, price: {}\n'. \
-            format(period, clearing_price)
-        log_file.write(log_entry)
+        clearing_prices_file.write('{},{}\n'.format(period, clearing_price))
 
         # Send clearing price back to agents, allow them to "make trades", i.e. decide if they want to buy/sell
         # energy, from/to either the local market or directly from/to the external grid.
@@ -85,7 +89,7 @@ def run_trading_simulations():
         all_extra_costs_dict[period] = extra_costs
 
     # Exit gracefully
-    log_file.close()
+    clearing_prices_file.close()
     trades_csv_file.close()
     extra_costs_file.close()
 
