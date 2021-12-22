@@ -4,6 +4,7 @@ import logging
 
 from typing import List
 
+from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.market_solver import MarketSolver
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc import balance_manager, results_calculator
@@ -30,6 +31,9 @@ def run_trading_simulations():
     # Initialize data store
     data_store_entity = DataStore(config_data=config_data["AreaInfo"])
 
+    # Initialize digital twins
+    digital_twins = initialize_digital_twins(data_store_entity)
+
     # Output files
     clearing_prices_file = open('../clearing_prices.csv', 'w')
     clearing_prices_file.write('period,price\n')
@@ -46,7 +50,7 @@ def run_trading_simulations():
     # Keep a list of all agents to iterate over later
     agents: List[IAgent]
     try:
-        agents, grid_agent = initialize_agents(data_store_entity, config_data)
+        agents, grid_agent = initialize_agents(data_store_entity, digital_twins, config_data)
     except RuntimeError as e:
         clearing_prices_file.write(e.args)
         exit(1)
@@ -98,22 +102,44 @@ def run_trading_simulations():
     return clearing_prices_dict, all_trades_list, all_extra_costs_dict
 
 
-def initialize_agents(data_store_entity, config_data):
+def initialize_digital_twins(data_store_entity: DataStore):
+    """
+    This method will change quite a lot in the future, for example in RES-138.
+    @param data_store_entity: A data store from which to read some data
+    @return: A dict with digital twins per guid
+    """
+    digital_twins = {}
+    building_digital_twin = StaticDigitalTwin(electricity_usage=data_store_entity.tornet_household_elec_cons,
+                                              heating_usage=data_store_entity.tornet_heat_cons)
+    grocery_store_digital_twin = StaticDigitalTwin(electricity_usage=data_store_entity.coop_elec_cons,
+                                                   heating_usage=data_store_entity.coop_heat_cons,
+                                                   electricity_production=data_store_entity.coop_pv_prod)
+    pv_digital_twin = StaticDigitalTwin(electricity_production=data_store_entity.tornet_pv_prod)
+    digital_twins['BuildingAgent1'] = building_digital_twin
+    digital_twins['GroceryStoreAgent1'] = grocery_store_digital_twin
+    digital_twins['PVAgent1'] = pv_digital_twin
+    return digital_twins
+
+
+def initialize_agents(data_store_entity, digital_twins, config_data):
     # Register all agents
     # Keep a list of all agents to iterate over later
     agents: List[IAgent] = []
 
     for agent in config_data["Agents"]:
-        agent_type = agent["Name"]
+        agent_type = agent["Type"]
         if agent_type == "BuildingAgent":
-            agents.append(BuildingAgent(data_store_entity))
+            agents.append(BuildingAgent(data_store_entity,
+                                        get_corresponding_digital_twin(agent["Name"], digital_twins)))
         elif agent_type == "BatteryStorageAgent":
             agents.append(BatteryStorageAgent(data_store_entity, max_capacity=agent["Capacity"],
                                               charge_rate=agent["ChargeRate"]))
         elif agent_type == "PVAgent":
-            agents.append(PVAgent(data_store_entity))
+            agents.append(PVAgent(data_store_entity,
+                                  get_corresponding_digital_twin(agent["Name"], digital_twins)))
         elif agent_type == "GroceryStoreAgent":
-            agents.append(GroceryStoreAgent(data_store_entity))
+            agents.append(GroceryStoreAgent(data_store_entity,
+                                            get_corresponding_digital_twin(agent["Name"], digital_twins)))
         elif agent_type == "ElectricityGridAgent":
             grid_agent = ElectricityGridAgent(data_store_entity, max_transfer_per_hour=agent["TransferRate"])
             agents.append(grid_agent)
@@ -126,6 +152,12 @@ def initialize_agents(data_store_entity, config_data):
         raise RuntimeError("No grid agent initialized")
 
     return agents, grid_agent
+
+
+def get_corresponding_digital_twin(agent_name, digital_twins):
+    if agent_name not in digital_twins:
+        raise RuntimeError("No digital twin found for agent {}".format(agent_name))
+    return digital_twins[agent_name]
 
 
 def write_extra_costs_rows(period: datetime.datetime, extra_costs: dict):

@@ -1,20 +1,25 @@
 {
   "Agents": [{
-        "Name": "BuildingAgent"
+        "Type": "BuildingAgent",
+        "Name": "BuildingAgent1"
       },
       {
-        "Name": "BatteryStorageAgent",
+        "Type": "BatteryStorageAgent",
+        "Name": "BatteryStorageAgent1",
         "Capacity": 1000,
         "ChargeRate": 0.1
       },
       {
-        "Name": "PVAgent"
+        "Type": "PVAgent",
+        "Name": "PVAgent1"
       },
       {
-        "Name": "GroceryStoreAgent"
+        "Type": "GroceryStoreAgent",
+        "Name": "GroceryStoreAgent1"
       },
       {
-        "Name": "ElectricityGridAgent",
+        "Type": "ElectricityGridAgent",
+        "Name": "ElectricityGridAgent1",
         "TransferRate": 10000
       }
 	],

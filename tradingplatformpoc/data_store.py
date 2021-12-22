@@ -27,12 +27,14 @@ class DataStore:
     nordpool_data: pd.Series
     tornet_household_elec_cons: pd.Series
     coop_elec_cons: pd.Series  # Electricity used for cooling included
+    tornet_heat_cons: pd.Series
+    coop_heat_cons: pd.Series
     tornet_pv_prod: pd.Series
     coop_pv_prod: pd.Series  # Rooftop PV production
 
     def __init__(self, config_data, external_price_csv_path='../data/nordpool_area_grid_el_price.csv',
                  energy_data_csv_path='../data/full_mock_energy_data.csv',
-                 irradiation_csv_path='../data/varberg_irradiation_W_m2_h.csv',):
+                 irradiation_csv_path='../data/varberg_irradiation_W_m2_h.csv', ):
         self.pv_efficiency = config_data["PVEfficiency"]
         self.store_pv_area = config_data["StorePVArea"]
         self.park_pv_area = config_data["ParkPVArea"]
@@ -40,7 +42,8 @@ class DataStore:
         self.total_tornet_pv_area = self.park_pv_area + self.rooftop_pv_area
 
         self.nordpool_data = self.__read_nordpool_data(external_price_csv_path)
-        self.tornet_household_elec_cons, self.coop_elec_cons = self.__read_energy_data(energy_data_csv_path)
+        self.tornet_household_elec_cons, self.coop_elec_cons, \
+            self.tornet_heat_cons, self.coop_heat_cons = self.__read_energy_data(energy_data_csv_path)
         irradiation_data = self.__read_solar_irradiation(irradiation_csv_path)
         self.coop_pv_prod = calculate_solar_prod(irradiation_data, self.store_pv_area, self.pv_efficiency)
         self.tornet_pv_prod = calculate_solar_prod(irradiation_data, self.total_tornet_pv_area, self.pv_efficiency)
@@ -60,7 +63,10 @@ class DataStore:
         energy_data = pd.read_csv(energy_csv_path, index_col=0)
         energy_data.index = pd.to_datetime(energy_data.index)
         return energy_data['tornet_electricity_consumed_household_kwh'], \
-               energy_data['coop_electricity_consumed_cooling_kwh'] + energy_data['coop_electricity_consumed_other_kwh']
+               energy_data['coop_electricity_consumed_cooling_kwh'] + \
+               energy_data['coop_electricity_consumed_other_kwh'], \
+               energy_data['tornet_energy_consumed_heat_kwh'], \
+               energy_data['coop_net_heat_consumed']
 
     @staticmethod
     def __read_solar_irradiation(irradiation_csv_path):
