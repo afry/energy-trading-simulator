@@ -14,12 +14,13 @@ from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.agent.storage_agent import BatteryStorageAgent
 from tradingplatformpoc.trade import write_rows
 from tradingplatformpoc.bid import Bid
+from pkg_resources import resource_filename
 
 
 def run_trading_simulations():
     """The core loop of the simulation, running through the desired time period and performing trades."""
 
-    with open("../data/jonstaka.json", "r") as jsonfile:
+    with open(resource_filename("tradingplatformpoc.data", "jonstaka.json"), "r") as jsonfile:
         config_data = json.load(jsonfile)
 
     # Initialize data store
