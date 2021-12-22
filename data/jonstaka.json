@@ -1,6 +1,13 @@
 {
   "Agents": [{
-        "Name": "BuildingAgent"
+        "Name": "BuildingAgentBC1",
+        "RandomSeed": 1,
+        "GrossFloorArea": 11305
+      },
+      {
+        "Name": "BuildingAgentB2",
+        "RandomSeed": 2,
+        "GrossFloorArea": 7801
       },
       {
         "Name": "BatteryStorageAgent",

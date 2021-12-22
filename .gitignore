@@ -58,3 +58,6 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+
+# Model files
+/data/models/*.pickle
