@@ -13,7 +13,7 @@ import tradingplatformpoc.agent.grocery_store_agent
 import tradingplatformpoc.agent.pv_agent
 import tradingplatformpoc.agent.storage_agent
 
-with open("../data/jonstaka.json", "r") as jsonfile:
+with open("../tradingplatformpoc/data/jonstaka.json", "r") as jsonfile:
     config_data = json.load(jsonfile)
 data_store_entity = data_store.DataStore(config_data=config_data["AreaInfo"])
 
@@ -127,7 +127,7 @@ class TestGroceryStoreAgent(TestCase):
         bids = self.grocery_store_agent.make_bids(datetime(2019, 7, 7, 11, 0, 0))
         self.assertEqual(Resource.ELECTRICITY, bids[0].resource)
         self.assertEqual(Action.BUY, bids[0].action)
-        self.assertEqual(193.76252792024837, bids[0].quantity)
+        self.assertEqual(193.7625279202484, bids[0].quantity)
         self.assertTrue(bids[0].price > 1000)
 
 
