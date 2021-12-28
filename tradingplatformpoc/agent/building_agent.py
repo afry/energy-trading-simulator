@@ -3,13 +3,13 @@ import math
 from tradingplatformpoc.agent.iagent import IAgent, get_price_and_market_to_use_when_buying
 from tradingplatformpoc.bid import Action, Resource
 from tradingplatformpoc.data_store import DataStore
-from tradingplatformpoc.digitaltwin.idigital_twin import IDigitalTwin
+from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.trading_platform_utils import minus_n_hours
 
 
 class BuildingAgent(IAgent):
 
-    def __init__(self, data_store: DataStore, digital_twin: IDigitalTwin, guid="BuildingAgent"):
+    def __init__(self, data_store: DataStore, digital_twin: StaticDigitalTwin, guid="BuildingAgent"):
         super().__init__(guid)
         self.data_store = data_store
         self.digital_twin = digital_twin

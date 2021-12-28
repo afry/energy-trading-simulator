@@ -4,14 +4,14 @@ from tradingplatformpoc.agent.iagent import IAgent, get_price_and_market_to_use_
     get_price_and_market_to_use_when_selling
 from tradingplatformpoc.bid import Action, Resource
 from tradingplatformpoc.data_store import DataStore
-from tradingplatformpoc.digitaltwin.idigital_twin import IDigitalTwin
+from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.trading_platform_utils import minus_n_hours
 
 
 class GroceryStoreAgent(IAgent):
     """Currently very similar to BuildingAgent. May in the future sell excess heat."""
 
-    def __init__(self, data_store: DataStore, digital_twin: IDigitalTwin, guid="GroceryStoreAgent"):
+    def __init__(self, data_store: DataStore, digital_twin: StaticDigitalTwin, guid="GroceryStoreAgent"):
         super().__init__(guid)
         self.data_store = data_store
         self.digital_twin = digital_twin
