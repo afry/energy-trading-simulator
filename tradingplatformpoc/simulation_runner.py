@@ -15,6 +15,7 @@ from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.agent.storage_agent import BatteryStorageAgent
 from tradingplatformpoc.trade import write_rows
 from tradingplatformpoc.bid import Bid
+from pkg_resources import resource_filename
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +25,7 @@ def run_trading_simulations():
 
     logger.info("Starting trading simulations")
 
-    with open("../data/jonstaka.json", "r") as jsonfile:
+    with open(resource_filename("tradingplatformpoc.data", "jonstaka.json"), "r") as jsonfile:
         config_data = json.load(jsonfile)
 
     # Initialize data store
