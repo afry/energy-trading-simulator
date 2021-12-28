@@ -1,4 +1,5 @@
 import pandas as pd
+from pkg_resources import resource_filename
 
 
 def calculate_solar_prod(irradiation_data, pv_sqm, pv_efficiency):
@@ -32,9 +33,10 @@ class DataStore:
     tornet_pv_prod: pd.Series
     coop_pv_prod: pd.Series  # Rooftop PV production
 
-    def __init__(self, config_data, external_price_csv_path='../data/nordpool_area_grid_el_price.csv',
-                 energy_data_csv_path='../data/full_mock_energy_data.csv',
-                 irradiation_csv_path='../data/varberg_irradiation_W_m2_h.csv', ):
+    def __init__(self, config_data,
+                 external_price_csv_path=resource_filename("tradingplatformpoc.data", "nordpool_area_grid_el_price.csv"),
+                 energy_data_csv_path=resource_filename("tradingplatformpoc.data", "full_mock_energy_data.csv"),
+                 irradiation_csv_path=resource_filename("tradingplatformpoc.data", "varberg_irradiation_W_m2_h.csv")):
         self.pv_efficiency = config_data["PVEfficiency"]
         self.store_pv_area = config_data["StorePVArea"]
         self.park_pv_area = config_data["ParkPVArea"]

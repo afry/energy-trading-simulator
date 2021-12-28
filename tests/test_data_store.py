@@ -9,7 +9,7 @@ class TestDataStore(TestCase):
 
     def __init__(self, *args, **kwargs):
         super(TestDataStore, self).__init__(*args, **kwargs)
-        with open("../data/jonstaka.json", "r") as jsonfile:
+        with open("../tradingplatformpoc/data/jonstaka.json", "r") as jsonfile:
             config_data = json.load(jsonfile)
 
         self.data_store_entity = data_store.DataStore(config_data=config_data["AreaInfo"])
@@ -24,7 +24,7 @@ class TestDataStore(TestCase):
         self.assertEqual(0.56871, self.data_store_entity.get_wholesale_price(datetime(2019, 2, 1, 1, 0, 0)))
 
     def test_get_tornet_household_electricity_consumed(self):
-        self.assertEqual(206.2577964869327,
+        self.assertEqual(206.25779648693268,
                          self.data_store_entity.tornet_household_elec_cons.loc[datetime(2019, 2, 1, 1, 0, 0)])
 
     def test_get_coop_electricity_consumed(self):
