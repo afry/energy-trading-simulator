@@ -1,13 +1,16 @@
+import logging
+
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.bid import Action, Resource, Bid
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.trade import Market, Trade
 
+logger = logging.getLogger(__name__)
+
 
 class ElectricityGridAgent(IAgent):
-    #MAX_TRANSFER_PER_HOUR = 10000  # kW (placeholder value: same limit as FED)
 
-    def __init__(self, data_store: DataStore, guid="ElectricityGridAgent", max_transfer_per_hour = 10000):
+    def __init__(self, data_store: DataStore, guid="ElectricityGridAgent", max_transfer_per_hour=10000):
         super().__init__(guid)
         self.data_store = data_store
         self.max_transfer_per_hour = max_transfer_per_hour
@@ -78,10 +81,8 @@ class ElectricityGridAgent(IAgent):
                     # consumers could be to blame - producers may have produced less than they thought they would, and
                     # consumers may have consumed more than they thought they would. We'll have to work out some
                     # proportional way of distributing the extra cost.
-                    # TODO: Debug/trace logging:
-                    # print("External grid sells at {:.5f} SEK/kWh to the local market, but the clearing price was {:.5f}"
-                    #       " SEK/kWh.".format(retail_price, local_clearing_price))
-                    pass
+                    logger.debug("External grid sells at {:.5f} SEK/kWh to the local market, but the clearing price "
+                                 "was {:.5f} SEK/kWh.".format(retail_price, local_clearing_price))
                 elif local_clearing_price > retail_price:
                     raise RuntimeError("Unexpected result: Local clearing price higher than external retail price")
         elif sum_buys < sum_sells:
@@ -97,9 +98,7 @@ class ElectricityGridAgent(IAgent):
                     # between themselves, in some way. Both producers and consumers could be to blame - producers may
                     # have produced more than they thought they would, and consumers may have consumed less than they
                     # thought they would. We'll have to work out some proportional way of distributing the extra cost.
-                    # TODO: Debug/trace logging:
-                    # print("External grid buys at {:.5f} SEK/kWh from the local market, but the clearing price was "
-                    #       "{:.5f} SEK/kWh". format(wholesale_price, local_clearing_price))
-                    pass
+                    logger.debug("External grid buys at {:.5f} SEK/kWh from the local market, but the clearing price "
+                                 "was {:.5f} SEK/kWh".format(wholesale_price, local_clearing_price))
                 elif local_clearing_price < wholesale_price:
                     raise RuntimeError("Unexpected result: Local clearing price lower than external wholesale price")
