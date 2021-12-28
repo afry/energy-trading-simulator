@@ -91,18 +91,6 @@ class DataStore:
         # Per https://doc.afdrift.se/pages/viewpage.action?pageId=17072325
         return self.get_nordpool_price_for_period(period) + 0.05
 
-    def get_tornet_household_electricity_consumed(self, period):
-        return self.tornet_household_elec_cons.loc[period]
-
-    def get_tornet_pv_produced(self, period):
-        return self.tornet_pv_prod.loc[period]
-
-    def get_coop_pv_produced(self, period):
-        return self.coop_pv_prod.loc[period]
-
-    def get_coop_electricity_consumed(self, period):
-        return self.coop_elec_cons.loc[period]
-
     def get_trading_periods(self):
         tornet_household_times = self.tornet_household_elec_cons.index.tolist()
         nordpool_times = self.nordpool_data.index.tolist()
