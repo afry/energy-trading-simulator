@@ -1,7 +1,17 @@
 {
   "Agents": [{
         "Type": "BuildingAgent",
-        "Name": "BuildingAgent1"
+        "Name": "BuildingAgentBC1",
+        "RandomSeed": 1,
+        "GrossFloorArea": 11305,
+        "RooftopPVArea": 1748.5
+      },
+      {
+        "Type": "BuildingAgent",
+        "Name": "BuildingAgentB2",
+        "RandomSeed": 2,
+        "GrossFloorArea": 7801,
+        "RooftopPVArea": 1206.5
       },
       {
         "Type": "BatteryStorageAgent",
