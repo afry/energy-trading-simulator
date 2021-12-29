@@ -3,6 +3,7 @@ import math
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.bid import Action, Resource
 from tradingplatformpoc.data_store import DataStore
+from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
 from tradingplatformpoc.trade import Market
 
 
@@ -14,20 +15,15 @@ class BatteryStorageAgent(IAgent):
     discharge until at or below the lower threshold.
     """
 
-    def __init__(self, data_store: DataStore, max_capacity=1000, charge_rate=0.1, guid="BatteryStorageAgent"):
+    def __init__(self, data_store: DataStore, digital_twin: StorageDigitalTwin, guid="BatteryStorageAgent"):
         super().__init__(guid)
         self.data_store = data_store
-        # Initialize with a capacity of zero
-        self.capacity = 0
-        # Set max capacity in kWh, default = 1000
-        self.max_capacity = max_capacity
-        # A state used to check whether filling or emptying capacity
-        self.charging = True
+        self.digital_twin = digital_twin
         # Upper and lower thresholds
         self.upper_threshold = 0.8
         self.lower_threshold = 0.2
-        # Maximum charge per time step
-        self.charge_limit = self.max_capacity * charge_rate
+        # A state used to check whether filling or emptying capacity - to be removed when this logic changes
+        self.charging = True
 
     def make_bids(self, period):
         bids = []
@@ -52,16 +48,16 @@ class BatteryStorageAgent(IAgent):
 
     def make_prognosis(self, period):
         # Determine if we want to sell or buy
-        if self.capacity < self.lower_threshold * self.max_capacity:
+        if self.digital_twin.capacity_kwh < self.lower_threshold * self.digital_twin.max_capacity_kwh:
             self.charging = True
-        elif self.capacity > self.upper_threshold * self.max_capacity:
+        elif self.digital_twin.capacity_kwh > self.upper_threshold * self.digital_twin.max_capacity_kwh:
             self.charging = False
 
         if self.charging:
-            capacity_to_charge = min([self.max_capacity - self.capacity, self.charge_limit])
+            capacity_to_charge = self.digital_twin.get_possible_charge_amount()
             return Action.BUY, capacity_to_charge
         else:
-            capacity_to_deliver = min([self.capacity, self.charge_limit])
+            capacity_to_deliver = self.digital_twin.get_possible_discharge_amount()
             return Action.SELL, capacity_to_deliver
 
     def get_actual_usage(self, period):
@@ -71,32 +67,10 @@ class BatteryStorageAgent(IAgent):
         # In this implementation, the battery never sells or buys directly from the external grid.
         action, quantity = self.make_prognosis(self)
         if action == Action.BUY:
-            actual_charge_quantity = self.charge(quantity)
+            actual_charge_quantity = self.digital_twin.charge(quantity)
             return self.construct_trade(Action.BUY, Resource.ELECTRICITY, actual_charge_quantity, clearing_price,
                                         Market.LOCAL, period)
         else:
-            actual_discharge_quantity = self.discharge(quantity)
+            actual_discharge_quantity = self.digital_twin.discharge(quantity)
             return self.construct_trade(Action.SELL, Resource.ELECTRICITY, actual_discharge_quantity, clearing_price,
                                         Market.LOCAL, period)
-
-    def charge(self, quantity):
-        """Charges the battery, changing the fields "charging" and "capacity".
-        Will return how much the battery was charged. This will most often be equal to the "quantity" argument, but will
-        be adjusted for "max_capacity" and "charge_limit".
-        """
-        self.charging = True
-        # So that we don't exceed max capacity:
-        amount_to_charge = min(float(self.max_capacity - self.capacity), float(quantity), self.charge_limit)
-        self.capacity = self.capacity + amount_to_charge
-        return amount_to_charge
-
-    def discharge(self, quantity):
-        """Discharges the battery, changing the fields "charging" and "capacity".
-        Will return how much the battery was discharged. This will most often be equal to the "quantity" argument, but
-        will be adjusted for current "capacity" and "charge_limit".
-        """
-        self.charging = False
-        # So that we don't discharge more than self.capacity:
-        amount_to_discharge = min(max(float(self.capacity), float(quantity)), self.charge_limit)
-        self.capacity = self.capacity - amount_to_discharge
-        return amount_to_discharge
