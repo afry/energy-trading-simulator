@@ -1,9 +1,18 @@
+import logging
 import math
+import time
 
 import numpy as np
 import pandas as pd
 import json
 import statsmodels.api as sm
+import pickle
+
+from statsmodels.regression.linear_model import RegressionResultsWrapper
+
+CONFIG_FILE = 'jonstaka.json'
+
+MOCK_DATAS_PICKLE = './tradingplatformpoc/data/generated/mock_datas.pickle'
 
 pd.options.mode.chained_assignment = None  # default='warn'
 
@@ -14,39 +23,79 @@ M2_PER_APARTMENT = 70
 """Currently this script generates household electricity consumption data, and rooftop PV production data, 
 for BuildingAgents, no more, no less. """
 
+# --- Format logger for print statements
+FORMAT = "%(asctime)-15s | %(levelname)-7s | %(name)-20.20s | %(message)s"
+
+file_handler = logging.FileHandler("../generate-mock-data.log")
+stream_handler = logging.StreamHandler()
+
+logging.basicConfig(
+    level=logging.DEBUG, format=FORMAT, datefmt="%Y-%m-%d %H:%M:%S",
+    handlers=[file_handler, stream_handler]
+)
+
+logger = logging.getLogger(__name__)
+
 
 def main():
-    # Load model
-    model = sm.load('./tradingplatformpoc/data/models/household_electricity_model.pickle')
+    # Load pre-existing mock data sets
+    try:
+        all_data_sets = pickle.load(open(MOCK_DATAS_PICKLE, 'rb'))
+    except FileNotFoundError:
+        logger.info('Did not find MOCK_DATAS_PICKLE, assuming it is empty')
+        all_data_sets = {}
 
-    # Read in-data: Temperature and timestamps
-    df_temp = pd.read_csv('./tradingplatformpoc/data/temperature_vetelangden.csv', names=['datetime', 'temperature'],
-                          delimiter=';', header=0)
-    df_temp['datetime'] = pd.to_datetime(df_temp['datetime'])
-    df_irrd = pd.read_csv('./tradingplatformpoc/data/varberg_irradiation_W_m2_h.csv')
-    df_irrd['datetime'] = pd.to_datetime(df_irrd['datetime'])
-    df_inputs = create_inputs_df(df_irrd, df_temp)
-    df_irrd.set_index('datetime', inplace=True)
-
-    with open("./tradingplatformpoc/data/jonstaka.json", "r") as json_file:
+    # Open config file
+    with open('./tradingplatformpoc/data/{}'.format(CONFIG_FILE), "r") as json_file:
         config_data = json.load(json_file)
 
-    output_per_building = pd.DataFrame({'datetime': df_inputs.index})
-    output_per_building.set_index('datetime', inplace=True)
+    building_agents = get_all_building_agents(config_data)
+    building_agents_frozen_set = frozenset(building_agents)  # Need to freeze, else can't use it as key in dict
+    if building_agents_frozen_set in all_data_sets:
+        logger.info('Already had mock data for the configuration described in %s, exiting generate_mock_data' %
+                    CONFIG_FILE)
+    else:
+        # So we have established that we need to generate new mock data.
 
-    building_agents = []
+        # Load model
+        model = sm.load('./tradingplatformpoc/data/models/household_electricity_model.pickle')
+
+        # Read in-data: Temperature and timestamps
+        df_inputs, df_irrd = create_inputs_df('./tradingplatformpoc/data/temperature_vetelangden.csv',
+                                              './tradingplatformpoc/data/varberg_irradiation_W_m2_h.csv')
+
+        output_per_building = pd.DataFrame({'datetime': df_inputs.index})
+        output_per_building.set_index('datetime', inplace=True)
+
+        for agent in building_agents:
+            simulate_and_add_to_output_df(dict(agent), df_inputs, df_irrd, model, output_per_building)
+
+        all_data_sets[building_agents_frozen_set] = output_per_building
+        pickle.dump(all_data_sets, open(MOCK_DATAS_PICKLE, 'wb'))
+
+
+def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd: pd.DataFrame,
+                                  model: RegressionResultsWrapper, output_per_building: pd.DataFrame):
+    start = time.time()
+    agent = dict(agent)  # "Unfreezing" the frozenset
+    logger.debug('Starting work on \'{}\''.format(agent['Name']))
+    pv_area = agent['RooftopPVArea'] if "RooftopPVArea" in agent else 0
+    start_seed = agent['RandomSeed'] * 1000
+    df_output = simulate_for_area(df_inputs, model, agent['GrossFloorArea'], start_seed)
+    output_per_building[agent["Name"] + '_elec_cons'] = df_output.sum(axis=1)
+    output_per_building[agent["Name"] + '_pv_prod'] = df_irrd * (pv_area * PV_EFFICIENCY / 1000)
+    end = time.time()
+    logger.debug('Finished work on \'{}\', took {:.2f} seconds'.format(agent['Name'], end - start))
+
+
+def get_all_building_agents(config_data):
+    building_agents = set()
     for agent in config_data["Agents"]:
         agent_type = agent["Type"]
         if agent_type == "BuildingAgent":
-            building_agents.append(agent)
-            pv_area = agent["RooftopPVArea"] if "RooftopPVArea" in agent else 0
-
-            start_seed = agent['RandomSeed'] * 1000
-            df_output = simulate_for_area(df_inputs, model, agent['GrossFloorArea'], start_seed)
-            output_per_building[agent["Name"] + '_elec_cons'] = df_output.sum(axis=1)
-            output_per_building[agent["Name"] + '_pv_prod'] = df_irrd * pv_area * PV_EFFICIENCY / 1000
-
-    output_per_building.to_csv('./tradingplatformpoc/data/generated/mock.csv')
+            key = frozenset(agent.items())
+            building_agents.add(key)
+    return building_agents
 
 
 def simulate_for_area(df_inputs, model, gross_floor_area, start_seed):
@@ -54,6 +103,7 @@ def simulate_for_area(df_inputs, model, gross_floor_area, start_seed):
     df_output.set_index('datetime', inplace=True)
 
     n_apartments = math.ceil(gross_floor_area / M2_PER_APARTMENT)
+    logger.debug('Number of apartments: {:d}'.format(n_apartments))
 
     for i in range(0, n_apartments):
         unscaled_simulated_values_for_apartment = simulate_series(df_inputs, start_seed + i, model)
@@ -106,7 +156,13 @@ def calculate_adjustment_for_energy_prev(model, energy_prev):
                                                                                                          0.7)
 
 
-def create_inputs_df(df_irrd, df_temp):
+def create_inputs_df(temperature_csv_path, irradiation_csv_path):
+    df_temp = pd.read_csv(temperature_csv_path, names=['datetime', 'temperature'],
+                          delimiter=';', header=0)
+    df_temp['datetime'] = pd.to_datetime(df_temp['datetime'])
+    df_irrd = pd.read_csv(irradiation_csv_path)
+    df_irrd['datetime'] = pd.to_datetime(df_irrd['datetime'])
+
     df_inputs = df_temp.merge(df_irrd)
     df_inputs = df_inputs.interpolate(method='linear')  # In case there are any missing values
     df_inputs['hour_of_day'] = df_inputs['datetime'].dt.hour + 1
@@ -117,7 +173,9 @@ def create_inputs_df(df_irrd, df_temp):
     df_inputs['major_holiday'] = is_major_holiday_sweden(df_inputs['month_of_year'], df_inputs['day_of_month'])
     df_inputs['pre_major_holiday'] = is_day_before_major_holiday_sweden(df_inputs['month_of_year'],
                                                                         df_inputs['day_of_month'])
-    return df_inputs
+
+    df_irrd.set_index('datetime', inplace=True)
+    return df_inputs, df_irrd
 
 
 def is_major_holiday_sweden(month_of_year, day_of_month):
