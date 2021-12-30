@@ -9,6 +9,8 @@ if __name__ == '__main__':
                           skiprows=10, nrows=20)
     areas['Type'] = 'BuildingAgent'
     areas['Name'] = 'BuildingAgent' + areas['Name']
+    # It is estimated that 50% of BYA can be covered by rooftop PV panels
+    # (see https://doc.afdrift.se/display/RPJ/BDAB+data)
     areas['RooftopPVArea'] = areas['BYA'] / 2.0
     areas['RandomSeed'] = range(1, len(areas)+1)
     areas = areas[["Type", "Name", "RandomSeed", "GrossFloorArea", "RooftopPVArea"]]
