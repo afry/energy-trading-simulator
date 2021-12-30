@@ -42,11 +42,11 @@ def run_trading_simulations():
     buildings_mock_data = get_generated_mock_data(config_data)
 
     # Output files
-    clearing_prices_file = open('../clearing_prices.csv', 'w')
+    clearing_prices_file = open('./clearing_prices.csv', 'w')
     clearing_prices_file.write('period,price\n')
-    trades_csv_file = open('../trades.csv', 'w')
+    trades_csv_file = open('./trades.csv', 'w')
     trades_csv_file.write('period,agent,by_external,action,resource,market,quantity,price\n')
-    extra_costs_file = open('../extra_costs.csv', 'w')
+    extra_costs_file = open('./extra_costs.csv', 'w')
     extra_costs_file.write('period,agent,cost\n')
     # Output lists
     clearing_prices_dict = {}
