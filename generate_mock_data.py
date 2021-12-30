@@ -49,7 +49,7 @@ def main():
     with open('./tradingplatformpoc/data/{}'.format(CONFIG_FILE), "r") as json_file:
         config_data = json.load(json_file)
 
-    building_agents = get_all_building_agents(config_data)
+    building_agents, total_gross_floor_area = get_all_building_agents(config_data)
     building_agents_frozen_set = frozenset(building_agents)  # Need to freeze, else can't use it as key in dict
     if building_agents_frozen_set in all_data_sets:
         logger.info('Already had mock data for the configuration described in %s, exiting generate_mock_data' %
@@ -64,18 +64,31 @@ def main():
         df_inputs, df_irrd = create_inputs_df('./tradingplatformpoc/data/temperature_vetelangden.csv',
                                               './tradingplatformpoc/data/varberg_irradiation_W_m2_h.csv')
 
+        approx_n_of_apartments = math.ceil(total_gross_floor_area / M2_PER_APARTMENT)
+        n_apps_done = 0
+
         output_per_building = pd.DataFrame({'datetime': df_inputs.index})
         output_per_building.set_index('datetime', inplace=True)
 
+        total_time_elapsed = 0
         for agent in building_agents:
-            simulate_and_add_to_output_df(dict(agent), df_inputs, df_irrd, model, output_per_building)
+            time_elapsed, n_apps_done = simulate_and_add_to_output_df(dict(agent), df_inputs, df_irrd, model,
+                                                                      output_per_building,
+                                                                      n_apps_done)
+            approx_n_apps_remaining = approx_n_of_apartments - n_apps_done
+            total_time_elapsed = total_time_elapsed + time_elapsed
+            if approx_n_apps_remaining > 0:
+                time_taken_per_apartment = total_time_elapsed / n_apps_done
+                estimated_time_left = approx_n_apps_remaining * time_taken_per_apartment
+                logger.info('Estimated time left: {:.2f} seconds'.format(estimated_time_left))
 
         all_data_sets[building_agents_frozen_set] = output_per_building
         pickle.dump(all_data_sets, open(MOCK_DATAS_PICKLE, 'wb'))
 
 
 def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd: pd.DataFrame,
-                                  model: RegressionResultsWrapper, output_per_building: pd.DataFrame):
+                                  model: RegressionResultsWrapper, output_per_building: pd.DataFrame,
+                                  n_apartments_simulated: int):
     start = time.time()
     agent = dict(agent)  # "Unfreezing" the frozenset
     logger.debug('Starting work on \'{}\''.format(agent['Name']))
@@ -84,18 +97,23 @@ def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd:
     df_output = simulate_for_area(df_inputs, model, agent['GrossFloorArea'], start_seed)
     output_per_building[agent["Name"] + '_elec_cons'] = df_output.sum(axis=1)
     output_per_building[agent["Name"] + '_pv_prod'] = df_irrd * (pv_area * PV_EFFICIENCY / 1000)
+    n_apartments_simulated = n_apartments_simulated + len(df_output.columns)
     end = time.time()
-    logger.debug('Finished work on \'{}\', took {:.2f} seconds'.format(agent['Name'], end - start))
+    time_elapsed = end - start
+    logger.debug('Finished work on \'{}\', took {:.2f} seconds'.format(agent['Name'], time_elapsed))
+    return time_elapsed, n_apartments_simulated
 
 
 def get_all_building_agents(config_data):
+    total_gross_floor_area = 0
     building_agents = set()
     for agent in config_data["Agents"]:
         agent_type = agent["Type"]
         if agent_type == "BuildingAgent":
             key = frozenset(agent.items())
             building_agents.add(key)
-    return building_agents
+            total_gross_floor_area = total_gross_floor_area + agent['GrossFloorArea']
+    return building_agents, total_gross_floor_area
 
 
 def simulate_for_area(df_inputs, model, gross_floor_area, start_seed):
