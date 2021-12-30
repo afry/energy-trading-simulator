@@ -1,42 +1,169 @@
 {
-  "Agents": [{
-        "Type": "BuildingAgent",
-        "Name": "BuildingAgentBC1",
-        "RandomSeed": 1,
-        "GrossFloorArea": 11305,
-        "RooftopPVArea": 1748.5
-      },
-      {
-        "Type": "BuildingAgent",
-        "Name": "BuildingAgentB2",
-        "RandomSeed": 2,
-        "GrossFloorArea": 7801,
-        "RooftopPVArea": 1206.5
-      },
-      {
-        "Type": "BatteryStorageAgent",
-        "Name": "BatteryStorageAgent1",
-        "Capacity": 1000,
-        "ChargeRate": 0.1
-      },
-      {
-        "Type": "PVAgent",
-        "Name": "PVAgent1"
-      },
-      {
-        "Type": "GroceryStoreAgent",
-        "Name": "GroceryStoreAgent1"
-      },
-      {
-        "Type": "ElectricityGridAgent",
-        "Name": "ElectricityGridAgent1",
-        "TransferRate": 10000
-      }
+	"Agents": [
+		{
+			"Type": "BuildingAgent",
+			"Name": "BuildingAgentBC1",
+			"RandomSeed": 1,
+			"GrossFloorArea": 11305.3333333333,
+			"RooftopPVArea": 1748.6666666667
+		},
+		{
+			"Type": "BuildingAgent",
+			"Name": "BuildingAgentB2",
+			"RandomSeed": 2,
+			"GrossFloorArea": 7801.375,
+			"RooftopPVArea": 1206.6875
+		},
+		{
+			"Type": "BuildingAgent",
+			"Name": "BuildingAgentB3",
+			"RandomSeed": 3,
+			"GrossFloorArea": 9000.25,
+			"RooftopPVArea": 1392.125
+		},
+		{
+			"Type": "BuildingAgent",
+			"Name": "BuildingAgentB4",
+			"RandomSeed": 4,
+			"GrossFloorArea": 6938.4166666667,
+			"RooftopPVArea": 1073.2083333333
+		},
+		{
+			"Type": "BuildingAgent",
+			"Name": "BuildingAgentB5",
+			"RandomSeed": 5,
+			"GrossFloorArea": 8322.625,
+			"RooftopPVArea": 1287.3125
+		},
+		{
+			"Type": "BuildingAgent",
+			"Name": "BuildingAgentBC6",
+			"RandomSeed": 6,
+			"GrossFloorArea": 7430.7083333333,
+			"RooftopPVArea": 1149.3541666667
+		},
+		{
+			"Type": "BuildingAgent",
+			"Name": "BuildingAgentBC7",
+			"RandomSeed": 7,
+			"GrossFloorArea": 7789.7916666667,
+			"RooftopPVArea": 1204.8958333333
+		},
+		{
+			"Type": "BuildingAgent",
+			"Name": "BuildingAgentB8",
+			"RandomSeed": 8,
+			"GrossFloorArea": 12753.25,
+			"RooftopPVArea": 1972.625
+		},
+		{
+			"Type": "BuildingAgent",
+			"Name": "BuildingAgentB9",
+			"RandomSeed": 9,
+			"GrossFloorArea": 8328.4166666667,
+			"RooftopPVArea": 1288.2083333333
+		},
+		{
+			"Type": "BuildingAgent",
+			"Name": "BuildingAgentB10",
+			"RandomSeed": 10,
+			"GrossFloorArea": 7459.6666666667,
+			"RooftopPVArea": 1153.8333333333
+		},
+		{
+			"Type": "BuildingAgent",
+			"Name": "BuildingAgentB11",
+			"RandomSeed": 11,
+			"GrossFloorArea": 4830.25,
+			"RooftopPVArea": 747.125
+		},
+		{
+			"Type": "BuildingAgent",
+			"Name": "BuildingAgentBC12",
+			"RandomSeed": 12,
+			"GrossFloorArea": 9591.0,
+			"RooftopPVArea": 1483.5
+		},
+		{
+			"Type": "BuildingAgent",
+			"Name": "BuildingAgentB13",
+			"RandomSeed": 13,
+			"GrossFloorArea": 8340.0,
+			"RooftopPVArea": 1290.0
+		},
+		{
+			"Type": "BuildingAgent",
+			"Name": "BuildingAgentB14",
+			"RandomSeed": 14,
+			"GrossFloorArea": 5820.625,
+			"RooftopPVArea": 900.3125
+		},
+		{
+			"Type": "BuildingAgent",
+			"Name": "BuildingAgentB15",
+			"RandomSeed": 15,
+			"GrossFloorArea": 4604.375,
+			"RooftopPVArea": 712.1875
+		},
+		{
+			"Type": "BuildingAgent",
+			"Name": "BuildingAgentB16",
+			"RandomSeed": 16,
+			"GrossFloorArea": 3874.625,
+			"RooftopPVArea": 599.3125
+		},
+		{
+			"Type": "BuildingAgent",
+			"Name": "BuildingAgentBC17",
+			"RandomSeed": 17,
+			"GrossFloorArea": 5635.2916666667,
+			"RooftopPVArea": 871.6458333333
+		},
+		{
+			"Type": "BuildingAgent",
+			"Name": "BuildingAgentB18",
+			"RandomSeed": 18,
+			"GrossFloorArea": 12011.9166666667,
+			"RooftopPVArea": 1857.9583333333
+		},
+		{
+			"Type": "BuildingAgent",
+			"Name": "BuildingAgentB19",
+			"RandomSeed": 19,
+			"GrossFloorArea": 8728.0416666667,
+			"RooftopPVArea": 1350.0208333333
+		},
+		{
+			"Type": "BuildingAgent",
+			"Name": "BuildingAgentB20",
+			"RandomSeed": 20,
+			"GrossFloorArea": 7314.875,
+			"RooftopPVArea": 1131.4375
+		},
+		{
+			"Type": "BatteryStorageAgent",
+			"Name": "BatteryStorageAgent1",
+			"Capacity": 1000,
+			"ChargeRate": 0.1
+		},
+		{
+			"Type": "PVAgent",
+			"Name": "PVAgent1"
+		},
+		{
+			"Type": "GroceryStoreAgent",
+			"Name": "GroceryStoreAgent1"
+		},
+		{
+			"Type": "ElectricityGridAgent",
+			"Name": "ElectricityGridAgent1",
+			"TransferRate": 10000
+		}
 	],
-  "AreaInfo": {
-    "RooftopPVArea": 24420.5,
-    "ParkPVArea": 24324.3,
-    "StorePVArea": 320,
-    "PVEfficiency": 0.165
-  }
+	"AreaInfo": {
+		"RooftopPVArea": 24420.5,
+		"ParkPVArea": 24324.3,
+		"StorePVArea": 320,
+		"PVEfficiency": 0.165
+	}
 }
