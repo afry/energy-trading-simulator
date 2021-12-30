@@ -16,8 +16,7 @@ class BatteryStorageAgent(IAgent):
     """
 
     def __init__(self, data_store: DataStore, digital_twin: StorageDigitalTwin, guid="BatteryStorageAgent"):
-        super().__init__(guid)
-        self.data_store = data_store
+        super().__init__(guid, data_store)
         self.digital_twin = digital_twin
         # Upper and lower thresholds
         self.upper_threshold = 0.8
@@ -34,7 +33,7 @@ class BatteryStorageAgent(IAgent):
         elif action is Action.SELL:
             # Wants at least the external wholesale price, if local price would be lower than that,
             # the agent would just sell directly to external
-            price = self.data_store.get_wholesale_price(period)
+            price = self.get_external_grid_buy_price(period)
         bid = self.construct_bid(action=action,
                                  quantity=quantity,
                                  price=price,

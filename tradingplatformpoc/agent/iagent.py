@@ -1,14 +1,16 @@
 from abc import ABC, abstractmethod
 
 from ..bid import Bid
+from ..data_store import DataStore
 from ..trade import Trade, Market
 
 
 class IAgent(ABC):
     """Interface for agents to implement"""
 
-    def __init__(self, guid: str):
+    def __init__(self, guid: str, data_store: DataStore):
         self.guid = guid
+        self.data_store = data_store
 
     @abstractmethod
     def make_bids(self, period):
@@ -38,6 +40,15 @@ class IAgent(ABC):
     def construct_trade(self, action, resource, quantity, price, market, period):
         return Trade(action, resource, quantity, price, self.guid, False, market, period)
 
+    def get_external_grid_buy_price(self, period):
+        wholesale_price = self.data_store.get_wholesale_price(period)
+
+        # Per https://doc.afdrift.se/pages/viewpage.action?pageId=17072325, Varberg Energi can pay an extra
+        # remuneration on top of the Nordpool spot price. This can vary, "depending on for example membership".
+        # Might make sense to make this number configurable.
+        remuneration_modifier = 0
+
+        return wholesale_price + remuneration_modifier
 
 def get_price_and_market_to_use_when_buying(clearing_price, retail_price):
     if clearing_price <= retail_price:

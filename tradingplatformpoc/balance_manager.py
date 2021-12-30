@@ -1,5 +1,5 @@
 from tradingplatformpoc.bid import Bid, Action
-from tradingplatformpoc.trade import Trade
+from tradingplatformpoc.trade import Trade, Market
 from typing import List
 
 
@@ -11,8 +11,9 @@ def calculate_costs(bids: List[Bid], trades: List[Trade], clearing_price: float,
     agent_ids = set([x.source for x in accepted_bids] + [x.source for x in trades])
 
     external_bids = [x for x in bids if x.by_external]
-    external_trades = [x for x in trades if x.by_external]
-    extra_cost = calculate_extra_cost(external_bids, external_trades, clearing_price, external_wholesale_price)
+    external_trades_on_local_market = [x for x in trades if x.by_external and x.market == Market.LOCAL]
+    extra_cost = calculate_extra_cost(external_bids, external_trades_on_local_market, clearing_price,
+                                      external_wholesale_price)
     # Now we know how much extra cost that need to be covered. Now we'll figure out how to distribute it.
 
     error_by_agent = calculate_error_by_agent(accepted_bids, agent_ids, trades)

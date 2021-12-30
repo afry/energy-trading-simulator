@@ -17,7 +17,7 @@ import tradingplatformpoc.agent.storage_agent
 
 with open("../tradingplatformpoc/data/jonstaka.json", "r") as jsonfile:
     config_data = json.load(jsonfile)
-data_store_entity = data_store.DataStore(config_data=config_data["AreaInfo"])
+data_store_entity = data_store.DataStore(config_area_info=config_data["AreaInfo"])
 
 
 class TestGridAgent(unittest.TestCase):
@@ -141,7 +141,7 @@ class TestGroceryStoreAgent(TestCase):
 
 
 class TestPVAgent(TestCase):
-    pv_digital_twin = StaticDigitalTwin(electricity_production=data_store_entity.tornet_pv_prod)
+    pv_digital_twin = StaticDigitalTwin(electricity_production=data_store_entity.tornet_park_pv_prod)
     tornet_pv_agent = tradingplatformpoc.agent.pv_agent.PVAgent(data_store_entity, pv_digital_twin)
 
     def test_make_bids(self):

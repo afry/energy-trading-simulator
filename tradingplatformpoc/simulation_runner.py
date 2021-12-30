@@ -1,6 +1,7 @@
 import datetime
 import json
 import logging
+import pickle
 
 from typing import List
 
@@ -15,11 +16,15 @@ from tradingplatformpoc.agent.grocery_store_agent import GroceryStoreAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.agent.storage_agent import BatteryStorageAgent
+from tradingplatformpoc.mock_data_generation_functions import get_all_building_agents, get_pv_prod_key, \
+    get_elec_cons_key
 from tradingplatformpoc.trade import write_rows
 from tradingplatformpoc.bid import Bid
 from pkg_resources import resource_filename
 
 logger = logging.getLogger(__name__)
+
+MOCK_DATAS_PICKLE = './tradingplatformpoc/data/generated/mock_datas.pickle'
 
 
 def run_trading_simulations():
@@ -31,7 +36,10 @@ def run_trading_simulations():
         config_data = json.load(jsonfile)
 
     # Initialize data store
-    data_store_entity = DataStore(config_data=config_data["AreaInfo"])
+    data_store_entity = DataStore(config_area_info=config_data["AreaInfo"])
+
+    # Load generated mock data
+    buildings_mock_data = get_generated_mock_data(config_data)
 
     # Output files
     clearing_prices_file = open('../clearing_prices.csv', 'w')
@@ -49,7 +57,7 @@ def run_trading_simulations():
     # Keep a list of all agents to iterate over later
     agents: List[IAgent]
     try:
-        agents, grid_agent = initialize_agents(data_store_entity, config_data)
+        agents, grid_agent = initialize_agents(data_store_entity, config_data, buildings_mock_data)
     except RuntimeError as e:
         clearing_prices_file.write(e.args)
         exit(1)
@@ -101,7 +109,17 @@ def run_trading_simulations():
     return clearing_prices_dict, all_trades_list, all_extra_costs_dict
 
 
-def initialize_agents(data_store_entity, config_data):
+def get_generated_mock_data(config_data):
+    all_data_sets = pickle.load(open(MOCK_DATAS_PICKLE, 'rb'))
+    building_agents, total_gross_floor_area = get_all_building_agents(config_data)
+    building_agents_frozen_set = frozenset(building_agents)  # Need to freeze, else can't use it as key in dict
+    if building_agents_frozen_set not in all_data_sets:
+        raise RuntimeError('No mock data found for this configuration!')
+    else:
+        return all_data_sets[building_agents_frozen_set]
+
+
+def initialize_agents(data_store_entity, config_data, buildings_mock_data):
     # Register all agents
     # Keep a list of all agents to iterate over later
     agents: List[IAgent] = []
@@ -109,16 +127,19 @@ def initialize_agents(data_store_entity, config_data):
     for agent in config_data["Agents"]:
         agent_type = agent["Type"]
         if agent_type == "BuildingAgent":
-            building_digital_twin = StaticDigitalTwin(electricity_usage=data_store_entity.tornet_household_elec_cons,
-                                                      heating_usage=data_store_entity.tornet_heat_cons)
-            agents.append(BuildingAgent(data_store_entity, building_digital_twin))
+            agent_name = agent['Name']
+            household_elec_cons_series = buildings_mock_data[get_elec_cons_key(agent_name)]
+            pv_prod_series = buildings_mock_data[get_pv_prod_key(agent_name)]
+            building_digital_twin = StaticDigitalTwin(electricity_usage=household_elec_cons_series,
+                                                      electricity_production=pv_prod_series)
+            agents.append(BuildingAgent(data_store_entity, building_digital_twin, guid=agent_name))
         elif agent_type == "BatteryStorageAgent":
             storage_digital_twin = StorageDigitalTwin(max_capacity_kwh=agent["Capacity"],
                                                       max_charge_rate_fraction=agent["ChargeRate"],
                                                       max_discharge_rate_fraction=agent["ChargeRate"])
             agents.append(BatteryStorageAgent(data_store_entity, storage_digital_twin))
         elif agent_type == "PVAgent":
-            pv_digital_twin = StaticDigitalTwin(electricity_production=data_store_entity.tornet_pv_prod)
+            pv_digital_twin = StaticDigitalTwin(electricity_production=data_store_entity.tornet_park_pv_prod)
             agents.append(PVAgent(data_store_entity, pv_digital_twin))
         elif agent_type == "GroceryStoreAgent":
             grocery_store_digital_twin = StaticDigitalTwin(electricity_usage=data_store_entity.coop_elec_cons,

@@ -10,6 +10,9 @@ import pickle
 
 from statsmodels.regression.linear_model import RegressionResultsWrapper
 
+from tradingplatformpoc.mock_data_generation_functions import load_existing_data_sets, get_all_building_agents, \
+    get_elec_cons_key, get_pv_prod_key
+
 CONFIG_FILE = 'jonstaka.json'
 
 MOCK_DATAS_PICKLE = './tradingplatformpoc/data/generated/mock_datas.pickle'
@@ -39,11 +42,7 @@ logger = logging.getLogger(__name__)
 
 def main():
     # Load pre-existing mock data sets
-    try:
-        all_data_sets = pickle.load(open(MOCK_DATAS_PICKLE, 'rb'))
-    except FileNotFoundError:
-        logger.info('Did not find MOCK_DATAS_PICKLE, assuming it is empty')
-        all_data_sets = {}
+    all_data_sets = load_existing_data_sets(MOCK_DATAS_PICKLE)
 
     # Open config file
     with open('./tradingplatformpoc/data/{}'.format(CONFIG_FILE), "r") as json_file:
@@ -95,25 +94,13 @@ def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd:
     pv_area = agent['RooftopPVArea'] if "RooftopPVArea" in agent else 0
     start_seed = agent['RandomSeed'] * 1000
     df_output = simulate_for_area(df_inputs, model, agent['GrossFloorArea'], start_seed)
-    output_per_building[agent["Name"] + '_elec_cons'] = df_output.sum(axis=1)
-    output_per_building[agent["Name"] + '_pv_prod'] = df_irrd * (pv_area * PV_EFFICIENCY / 1000)
+    output_per_building[get_elec_cons_key(agent['Name'])] = df_output.sum(axis=1)
+    output_per_building[get_pv_prod_key(agent['Name'])] = df_irrd * (pv_area * PV_EFFICIENCY / 1000)
     n_apartments_simulated = n_apartments_simulated + len(df_output.columns)
     end = time.time()
     time_elapsed = end - start
     logger.debug('Finished work on \'{}\', took {:.2f} seconds'.format(agent['Name'], time_elapsed))
     return time_elapsed, n_apartments_simulated
-
-
-def get_all_building_agents(config_data):
-    total_gross_floor_area = 0
-    building_agents = set()
-    for agent in config_data["Agents"]:
-        agent_type = agent["Type"]
-        if agent_type == "BuildingAgent":
-            key = frozenset(agent.items())
-            building_agents.add(key)
-            total_gross_floor_area = total_gross_floor_area + agent['GrossFloorArea']
-    return building_agents, total_gross_floor_area
 
 
 def simulate_for_area(df_inputs, model, gross_floor_area, start_seed):

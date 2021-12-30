@@ -11,8 +11,7 @@ logger = logging.getLogger(__name__)
 class ElectricityGridAgent(IAgent):
 
     def __init__(self, data_store: DataStore, guid="ElectricityGridAgent", max_transfer_per_hour=10000):
-        super().__init__(guid)
-        self.data_store = data_store
+        super().__init__(guid, data_store)
         self.max_transfer_per_hour = max_transfer_per_hour
 
     def make_bids(self, period):

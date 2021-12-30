@@ -12,19 +12,20 @@ class GroceryStoreAgent(IAgent):
     """Currently very similar to BuildingAgent. May in the future sell excess heat."""
 
     def __init__(self, data_store: DataStore, digital_twin: StaticDigitalTwin, guid="GroceryStoreAgent"):
-        super().__init__(guid)
-        self.data_store = data_store
+        super().__init__(guid, data_store)
         self.digital_twin = digital_twin
 
     def make_bids(self, period):
-        # The building should make a bid for purchasing energy
+        # Note - identical to the same method in building_agent.py
+        # The building should make a bid for purchasing energy, or selling if it has a surplus
         electricity_needed = self.make_prognosis(period)
         bids = []
         if electricity_needed > 0:
             bids.append(self.construct_bid(Action.BUY, Resource.ELECTRICITY, electricity_needed, math.inf))
             # This demand must be fulfilled - therefore price is inf
         elif electricity_needed < 0:
-            bids.append(self.construct_bid(Action.SELL, Resource.ELECTRICITY, -electricity_needed, 0))
+            bids.append(self.construct_bid(Action.SELL, Resource.ELECTRICITY, -electricity_needed,
+                                           self.get_external_grid_buy_price(period)))
             # If the store doesn't have it's own battery, then surplus electricity must be sold, so price is 0
         return bids
 
@@ -55,4 +56,4 @@ class GroceryStoreAgent(IAgent):
             return self.construct_trade(Action.BUY, Resource.ELECTRICITY, usage, price_to_use, market_to_use, period)
         else:
             price_to_use, market_to_use = get_price_and_market_to_use_when_selling(clearing_price, wholesale_price)
-            return self.construct_trade(Action.SELL, Resource.ELECTRICITY, usage, price_to_use, market_to_use, period)
+            return self.construct_trade(Action.SELL, Resource.ELECTRICITY, -usage, price_to_use, market_to_use, period)
