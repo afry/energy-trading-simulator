@@ -10,7 +10,8 @@ from tradingplatformpoc.bid import Action
 class Test(TestCase):
 
     def test(self):
-        clearing_prices, all_trades, all_extra_costs = simulation_runner.run_trading_simulations()
+        clearing_prices, all_trades, all_extra_costs = simulation_runner.run_trading_simulations(
+            '../tradingplatformpoc/data/generated/mock_datas.pickle')
 
         for period in clearing_prices.keys():
             trades_for_period = [x for x in all_trades if x.period == period]
