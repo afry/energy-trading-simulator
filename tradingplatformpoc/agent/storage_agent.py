@@ -21,8 +21,6 @@ class StorageAgent(IAgent):
         # Upper and lower thresholds
         self.upper_threshold = 0.8
         self.lower_threshold = 0.2
-        # A state used to check whether filling or emptying capacity - to be removed when this logic changes
-        self.charging = True
 
     def make_bids(self, period):
         bids = []
@@ -34,6 +32,8 @@ class StorageAgent(IAgent):
             # Wants at least the external wholesale price, if local price would be lower than that,
             # the agent would just sell directly to external
             price = self.get_external_grid_buy_price(period)
+        else:
+            return []
         bid = self.construct_bid(action=action,
                                  quantity=quantity,
                                  price=price,
@@ -47,17 +47,14 @@ class StorageAgent(IAgent):
 
     def make_prognosis(self, period):
         # Determine if we want to sell or buy
-        if self.digital_twin.capacity_kwh < self.lower_threshold * self.digital_twin.max_capacity_kwh:
-            self.charging = True
-        elif self.digital_twin.capacity_kwh > self.upper_threshold * self.digital_twin.max_capacity_kwh:
-            self.charging = False
-
-        if self.charging:
+        if self.want_to_buy(period):
             capacity_to_charge = self.digital_twin.get_possible_charge_amount()
             return Action.BUY, capacity_to_charge
-        else:
+        elif self.want_to_sell(period):
             capacity_to_deliver = self.digital_twin.get_possible_discharge_amount()
             return Action.SELL, capacity_to_deliver
+        else:
+            return None, None
 
     def get_actual_usage(self, period):
         pass
@@ -69,7 +66,15 @@ class StorageAgent(IAgent):
             actual_charge_quantity = self.digital_twin.charge(quantity)
             return self.construct_trade(Action.BUY, Resource.ELECTRICITY, actual_charge_quantity, clearing_price,
                                         Market.LOCAL, period)
-        else:
+        elif action == Action.SELL:
             actual_discharge_quantity = self.digital_twin.discharge(quantity)
             return self.construct_trade(Action.SELL, Resource.ELECTRICITY, actual_discharge_quantity, clearing_price,
                                         Market.LOCAL, period)
+        else:
+            return None
+
+    def want_to_buy(self, period):
+        return self.digital_twin.capacity_kwh < self.lower_threshold * self.digital_twin.max_capacity_kwh
+
+    def want_to_sell(self, period):
+        return self.digital_twin.capacity_kwh > self.upper_threshold * self.digital_twin.max_capacity_kwh
