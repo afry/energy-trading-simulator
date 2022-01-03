@@ -144,7 +144,7 @@
 			"Type": "BatteryStorageAgent",
 			"Name": "BatteryStorageAgent1",
 			"Capacity": 1000,
-			"ChargeRate": 0.1
+			"ChargeRate": 0.4
 		},
 		{
 			"Type": "PVAgent",
