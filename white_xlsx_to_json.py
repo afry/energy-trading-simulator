@@ -2,6 +2,10 @@ import pandas as pd
 
 FILE_NAME = 'Jonstaka_ytberakning_overslag_210512_White.xlsx'
 
+"""
+This script takes in an Excel file, of the same format that we got from White, via BDAB, during fall 2021,
+which details the planned sub-areas in Jonstaka. It translates these into our preferred JSON config format."""
+
 if __name__ == '__main__':
     areas = pd.read_excel('./tradingplatformpoc/data/{}'.format(FILE_NAME),
                           names=['Name', 'BYA', 'GrossFloorArea'],

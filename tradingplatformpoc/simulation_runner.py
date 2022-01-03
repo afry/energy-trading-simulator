@@ -5,11 +5,13 @@ import pickle
 
 from typing import List
 
+import pandas as pd
+
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
 from tradingplatformpoc.market_solver import MarketSolver
 from tradingplatformpoc.data_store import DataStore
-from tradingplatformpoc import balance_manager, results_calculator
+from tradingplatformpoc import balance_manager, results_calculator, data_store
 from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.grid_agent import ElectricityGridAgent
 from tradingplatformpoc.agent.grocery_store_agent import GroceryStoreAgent
@@ -109,7 +111,14 @@ def run_trading_simulations():
     return clearing_prices_dict, all_trades_list, all_extra_costs_dict
 
 
-def get_generated_mock_data(config_data):
+def get_generated_mock_data(config_data: dict):
+    """
+    Loads the dict stored in MOCK_DATAS_PICKLE, checks if it contains a key which is identical to the set of building
+    agents specified in config_data. If it isn't, throws an error. If it is, it returns the value for that key in the
+    dictionary.
+    @param config_data: A dictionary specifying agents etc
+    @return: A pd.DataFrame containing mock data for building agents
+    """
     all_data_sets = pickle.load(open(MOCK_DATAS_PICKLE, 'rb'))
     building_agents, total_gross_floor_area = get_all_building_agents(config_data)
     building_agents_frozen_set = frozenset(building_agents)  # Need to freeze, else can't use it as key in dict
@@ -119,7 +128,7 @@ def get_generated_mock_data(config_data):
         return all_data_sets[building_agents_frozen_set]
 
 
-def initialize_agents(data_store_entity, config_data, buildings_mock_data):
+def initialize_agents(data_store_entity: data_store, config_data: dict, buildings_mock_data: pd.DataFrame):
     # Register all agents
     # Keep a list of all agents to iterate over later
     agents: List[IAgent] = []
@@ -158,12 +167,6 @@ def initialize_agents(data_store_entity, config_data, buildings_mock_data):
         raise RuntimeError("No grid agent initialized")
 
     return agents, grid_agent
-
-
-def get_corresponding_digital_twin(agent_name, digital_twins):
-    if agent_name not in digital_twins:
-        raise RuntimeError("No digital twin found for agent {}".format(agent_name))
-    return digital_twins[agent_name]
 
 
 def write_extra_costs_rows(period: datetime.datetime, extra_costs: dict):

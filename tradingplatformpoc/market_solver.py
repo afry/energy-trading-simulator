@@ -1,11 +1,11 @@
 from tradingplatformpoc.bid import Bid, Action
-from typing import List
+from typing import Iterable
 
 
 class MarketSolver:
     """An entity that resolves bids towards the market in a way that fulfills the constraints of the bidding entities"""
 
-    def resolve_bids(self, bids: List[Bid]):
+    def resolve_bids(self, bids: Iterable[Bid]):
         """Function for resolving all bids for the next trading period.
         Will try to find the lowest price where supply equals or exceeds demand."""
 
@@ -30,5 +30,5 @@ class MarketSolver:
         raise RuntimeError("No acceptable price found!")
 
     @staticmethod
-    def get_price_points(bids: List[Bid]):
+    def get_price_points(bids: Iterable[Bid]):
         return set([x.price for x in bids])

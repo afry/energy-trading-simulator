@@ -23,8 +23,12 @@ KWH_PER_YEAR_M2_ATEMP = 20  # According to Skanska: 20 kWh/year/m2 Atemp
 PV_EFFICIENCY = 0.165
 M2_PER_APARTMENT = 70
 
-"""Currently this script generates household electricity consumption data, and rooftop PV production data, 
-for BuildingAgents, no more, no less. """
+"""
+This script generates household electricity consumption data, and rooftop PV production data, for BuildingAgents.
+It stores such data in the MOCK_DATAS_PICKLE file, as a dictionary, where the set of BuildingAgents used to generate the
+data is the key, and a pd.DataFrame of generated data is the value. This way, simulation_runner can get the correct mock
+data set for the given config.
+"""
 
 # --- Format logger for print statements
 FORMAT = "%(asctime)-15s | %(levelname)-7s | %(name)-20.20s | %(message)s"
@@ -103,7 +107,8 @@ def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd:
     return time_elapsed, n_apartments_simulated
 
 
-def simulate_for_area(df_inputs, model, gross_floor_area, start_seed):
+def simulate_for_area(df_inputs: pd.DataFrame, model: RegressionResultsWrapper, gross_floor_area: float,
+                      start_seed: int):
     df_output = pd.DataFrame({'datetime': df_inputs.index})
     df_output.set_index('datetime', inplace=True)
 
@@ -121,7 +126,7 @@ def simulate_for_area(df_inputs, model, gross_floor_area, start_seed):
     return df_output
 
 
-def simulate_series(input_df, rand_seed, model):
+def simulate_series(input_df: pd.DataFrame, rand_seed: int, model: RegressionResultsWrapper):
     """
     Runs simulations using "model" and "input_df", with "rand_seed" as the random seed (can be specified, so that the
     experiment becomes reproducible, and also when simulating several different apartments/houses, the simulations don't
@@ -152,7 +157,7 @@ def simulate_series(input_df, rand_seed, model):
     return np.exp(input_df['simulated_log_energy_unscaled'])
 
 
-def calculate_adjustment_for_energy_prev(model, energy_prev):
+def calculate_adjustment_for_energy_prev(model: RegressionResultsWrapper, energy_prev: float):
     return model.params['np.where(np.isnan(energy_prev), 0, energy_prev)'] * energy_prev + \
            model.params['np.where(np.isnan(energy_prev), 0, np.power(energy_prev, 2))'] * np.power(energy_prev, 2) + \
            model.params['np.where(np.isnan(energy_prev), 0, np.minimum(energy_prev, 0.3))'] * np.minimum(energy_prev,
@@ -161,7 +166,7 @@ def calculate_adjustment_for_energy_prev(model, energy_prev):
                                                                                                          0.7)
 
 
-def create_inputs_df(temperature_csv_path, irradiation_csv_path):
+def create_inputs_df(temperature_csv_path: str, irradiation_csv_path: str):
     df_temp = pd.read_csv(temperature_csv_path, names=['datetime', 'temperature'],
                           delimiter=';', header=0)
     df_temp['datetime'] = pd.to_datetime(df_temp['datetime'])
@@ -183,7 +188,7 @@ def create_inputs_df(temperature_csv_path, irradiation_csv_path):
     return df_inputs, df_irrd
 
 
-def is_major_holiday_sweden(month_of_year, day_of_month):
+def is_major_holiday_sweden(month_of_year: int, day_of_month: int):
     # Christmas eve, Christmas day, Boxing day, New years day, epiphany, 1 may, national day.
     # Some moveable ones not included
     return ((month_of_year == 12) & (day_of_month == 24)) | \
@@ -195,7 +200,7 @@ def is_major_holiday_sweden(month_of_year, day_of_month):
            ((month_of_year == 6) & (day_of_month == 6))
 
 
-def is_day_before_major_holiday_sweden(month_of_year, day_of_month):
+def is_day_before_major_holiday_sweden(month_of_year: int, day_of_month: int):
     return ((month_of_year == 12) & (day_of_month == 23)) | \
            ((month_of_year == 12) & (day_of_month == 31)) | \
            ((month_of_year == 1) & (day_of_month == 5)) | \
@@ -203,7 +208,7 @@ def is_day_before_major_holiday_sweden(month_of_year, day_of_month):
            ((month_of_year == 6) & (day_of_month == 5))
 
 
-def scale_electricity_consumption(unscaled_simulated_values_for_year, m2):
+def scale_electricity_consumption(unscaled_simulated_values_for_year: pd.Series, m2: float):
     current_yearly_sum = unscaled_simulated_values_for_year.sum()
     wanted_yearly_sum = m2 * KWH_PER_YEAR_M2_ATEMP
     return unscaled_simulated_values_for_year * (wanted_yearly_sum / current_yearly_sum)
