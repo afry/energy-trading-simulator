@@ -20,19 +20,20 @@ class TestStaticDigitalTwin(TestCase):
     pv_digital_twin = StaticDigitalTwin(electricity_production=data_store_entity.tornet_park_pv_prod)
 
     def test_get_tornet_household_electricity_consumed(self):
-        self.assertEqual(206.25779648693268,
-                         self.building_digital_twin.get_consumption(datetime(2019, 2, 1, 1, 0, 0),
-                                                                    Resource.ELECTRICITY))
+        self.assertAlmostEqual(206.25779648693268,
+                               self.building_digital_twin.get_consumption(datetime(2019, 2, 1, 1, 0, 0),
+                                                                          Resource.ELECTRICITY))
 
     def test_get_coop_electricity_consumed(self):
-        self.assertEqual(130.71967582084125,
-                         self.grocery_store_digital_twin.get_consumption(datetime(2019, 2, 1, 1, 0, 0),
-                                                                         Resource.ELECTRICITY))
+        self.assertAlmostEqual(130.71967582084125,
+                               self.grocery_store_digital_twin.get_consumption(datetime(2019, 2, 1, 1, 0, 0),
+                                                                               Resource.ELECTRICITY))
 
     def test_get_tornet_pv_produced(self):
-        self.assertEqual(4458.9793248000005,
-                         self.pv_digital_twin.get_production(datetime(2019, 8, 1, 11, 0, 0), Resource.ELECTRICITY))
+        self.assertAlmostEqual(2225.0896668,
+                               self.pv_digital_twin.get_production(datetime(2019, 8, 1, 11, 0, 0),
+                                                                   Resource.ELECTRICITY))
 
     def test_get_coop_pv_produced(self):
-        self.assertEqual(29.27232, self.grocery_store_digital_twin.get_production(datetime(2019, 8, 1, 11, 0, 0),
-                                                                                  Resource.ELECTRICITY))
+        self.assertAlmostEqual(29.27232, self.grocery_store_digital_twin.get_production(datetime(2019, 8, 1, 11, 0, 0),
+                                                                                        Resource.ELECTRICITY))

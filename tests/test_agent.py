@@ -136,7 +136,7 @@ class TestGroceryStoreAgent(TestCase):
         bids = self.grocery_store_agent.make_bids(datetime(2019, 7, 7, 11, 0, 0))
         self.assertEqual(Resource.ELECTRICITY, bids[0].resource)
         self.assertEqual(Action.BUY, bids[0].action)
-        self.assertEqual(193.7625279202484, bids[0].quantity)
+        self.assertAlmostEqual(193.7625279202484, bids[0].quantity)
         self.assertTrue(bids[0].price > 1000)
 
 
@@ -148,5 +148,5 @@ class TestPVAgent(TestCase):
         bids = self.tornet_pv_agent.make_bids(datetime(2019, 7, 7, 11, 0, 0))
         self.assertEqual(Resource.ELECTRICITY, bids[0].resource)
         self.assertEqual(Action.SELL, bids[0].action)
-        self.assertEqual(6443.1607812, bids[0].quantity)
-        self.assertEqual(0.34389, bids[0].price)
+        self.assertAlmostEqual(3215.22246045, bids[0].quantity)
+        self.assertAlmostEqual(0.34389, bids[0].price)
