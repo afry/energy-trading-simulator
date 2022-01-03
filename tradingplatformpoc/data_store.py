@@ -3,6 +3,8 @@ import pickle
 import pandas as pd
 from pkg_resources import resource_filename
 
+from tradingplatformpoc.trading_platform_utils import minus_n_hours
+
 
 def calculate_solar_prod(irradiation_data, pv_sqm, pv_efficiency):
     """
@@ -98,3 +100,10 @@ class DataStore:
         timestamps = [time for time in tornet_household_times if time in nordpool_times]
 
         return timestamps
+
+    def get_nordpool_prices_last_n_hours(self, period, go_back_n_hours):
+        nordpool_prices_last_n_hours = []
+        for i in range(go_back_n_hours):
+            t = minus_n_hours(period, i + 1)
+            nordpool_prices_last_n_hours.append(self.get_nordpool_price_for_period(t))
+        return nordpool_prices_last_n_hours

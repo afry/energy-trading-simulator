@@ -1,4 +1,4 @@
-import math
+import numpy as np
 
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.bid import Action, Resource
@@ -15,66 +15,61 @@ class StorageAgent(IAgent):
     discharge until at or below the lower threshold.
     """
 
-    def __init__(self, data_store: DataStore, digital_twin: StorageDigitalTwin, guid="BatteryStorageAgent"):
+    def __init__(self, data_store: DataStore, digital_twin: StorageDigitalTwin, guid="StorageAgent"):
         super().__init__(guid, data_store)
         self.digital_twin = digital_twin
+        self.go_back_n_hours = 24 * 7
         # Upper and lower thresholds
-        self.upper_threshold = 0.8
-        self.lower_threshold = 0.2
+        self.if_lower_than_this_percentile_then_buy = 20
+        self.if_higher_than_this_percentile_then_sell = 80
 
     def make_bids(self, period):
-        bids = []
-
-        action, quantity = self.make_prognosis(self)
-        if action is Action.BUY:
-            price = math.inf  # Inf as upper bound for buying price
-        elif action is Action.SELL:
-            # Wants at least the external wholesale price, if local price would be lower than that,
-            # the agent would just sell directly to external
-            price = self.get_external_grid_buy_price(period)
-        else:
-            return []
-        bid = self.construct_bid(action=action,
-                                 quantity=quantity,
-                                 price=price,
-                                 resource=Resource.ELECTRICITY)  # What should price be here?
-        # We need to express that the battery will buy at any price but prefers the lowest
-        # And that it will buy up-to the specified amount but never more
-
-        bids.append(bid)
-
-        return bids
+        nordpool_prices_last_n_hours = self.data_store.get_nordpool_prices_last_n_hours(period, self.go_back_n_hours)
+        buy_bid = self.construct_bid(action=Action.BUY,
+                                     quantity=self.calculate_buy_quantity(),
+                                     price=self.calculate_buy_price(nordpool_prices_last_n_hours),
+                                     resource=Resource.ELECTRICITY)
+        sell_bid = self.construct_bid(action=Action.SELL,
+                                      quantity=self.calculate_sell_quantity(),
+                                      price=self.calculate_sell_price(nordpool_prices_last_n_hours),
+                                      resource=Resource.ELECTRICITY)
+        return [buy_bid, sell_bid]
 
     def make_prognosis(self, period):
-        # Determine if we want to sell or buy
-        if self.want_to_buy(period):
-            capacity_to_charge = self.digital_twin.get_possible_charge_amount()
-            return Action.BUY, capacity_to_charge
-        elif self.want_to_sell(period):
-            capacity_to_deliver = self.digital_twin.get_possible_discharge_amount()
-            return Action.SELL, capacity_to_deliver
-        else:
-            return None, None
+        pass
 
     def get_actual_usage(self, period):
         pass
 
     def make_trade_given_clearing_price(self, period, clearing_price):
+        # The following is only needed since we have to calculate ourselves what bid(s) were accepted
+        nordpool_prices_last_n_hours = self.data_store.get_nordpool_prices_last_n_hours(period, self.go_back_n_hours)
+        buy_bid_price = self.calculate_buy_price(nordpool_prices_last_n_hours)
+        sell_bid_price = self.calculate_sell_price(nordpool_prices_last_n_hours)
+        buy_bid_quantity = self.calculate_buy_quantity()
+        sell_bid_quantity = self.calculate_sell_quantity()
         # In this implementation, the battery never sells or buys directly from the external grid.
-        action, quantity = self.make_prognosis(self)
-        if action == Action.BUY:
-            actual_charge_quantity = self.digital_twin.charge(quantity)
-            return self.construct_trade(Action.BUY, Resource.ELECTRICITY, actual_charge_quantity, clearing_price,
-                                        Market.LOCAL, period)
-        elif action == Action.SELL:
-            actual_discharge_quantity = self.digital_twin.discharge(quantity)
-            return self.construct_trade(Action.SELL, Resource.ELECTRICITY, actual_discharge_quantity, clearing_price,
-                                        Market.LOCAL, period)
-        else:
-            return None
 
-    def want_to_buy(self, period):
-        return self.digital_twin.capacity_kwh < self.lower_threshold * self.digital_twin.max_capacity_kwh
+        if clearing_price <= buy_bid_price:
+            actual_charge_quantity = self.digital_twin.charge(buy_bid_quantity)
+            if actual_charge_quantity > 0:
+                return self.construct_trade(Action.BUY, Resource.ELECTRICITY, actual_charge_quantity,
+                                            clearing_price, Market.LOCAL, period)
+        elif clearing_price >= sell_bid_price:
+            actual_discharge_quantity = self.digital_twin.discharge(sell_bid_quantity)
+            if actual_discharge_quantity > 0:
+                return self.construct_trade(Action.SELL, Resource.ELECTRICITY, actual_discharge_quantity,
+                                            clearing_price, Market.LOCAL, period)
+        return None
 
-    def want_to_sell(self, period):
-        return self.digital_twin.capacity_kwh > self.upper_threshold * self.digital_twin.max_capacity_kwh
+    def calculate_buy_price(self, nordpool_prices_last_n_hours):
+        return np.percentile(nordpool_prices_last_n_hours, self.if_lower_than_this_percentile_then_buy)
+
+    def calculate_sell_price(self, nordpool_prices_last_n_hours):
+        return np.percentile(nordpool_prices_last_n_hours, self.if_higher_than_this_percentile_then_sell)
+
+    def calculate_buy_quantity(self):
+        return self.digital_twin.get_possible_charge_amount()
+
+    def calculate_sell_quantity(self):
+        return self.digital_twin.get_possible_discharge_amount()
