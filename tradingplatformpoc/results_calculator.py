@@ -2,6 +2,7 @@ from typing import Iterable
 
 from tradingplatformpoc import data_store
 from tradingplatformpoc.agent.iagent import IAgent
+from tradingplatformpoc.agent.storage_agent import StorageAgent
 from tradingplatformpoc.bid import Action
 from tradingplatformpoc.agent.grid_agent import ElectricityGridAgent
 from tradingplatformpoc.trade import Trade
@@ -39,6 +40,10 @@ def print_basic_results_for_agent(agent: IAgent, all_trades: Iterable[Trade], al
         print("For agent {} was penalized with a total of {:.2f} SEK due to inaccurate projections. This brought "
               "total savings to {:.2f} SEK".
               format(agent.guid, extra_costs_for_agent, saved_on_buy + saved_on_sell - extra_costs_for_agent))
+
+        if isinstance(agent, StorageAgent):
+            total_profit = sek_sold_for - sek_bought_for
+            print("For agent {} total profit was {:.2f} SEK".format(agent.guid, total_profit))
 
     print("For agent {} quantity bought was {:.2f} kWh".format(agent.guid, quantity_bought))
     print("For agent {} quantity sold was {:.2f} kWh".format(agent.guid, quantity_sold))
