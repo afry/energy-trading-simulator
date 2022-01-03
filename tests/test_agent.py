@@ -97,7 +97,7 @@ class TestGridAgent(unittest.TestCase):
 
 class TestBatteryStorageAgent(unittest.TestCase):
     twin = StorageDigitalTwin(max_capacity_kwh=1000, max_charge_rate_fraction=0.1, max_discharge_rate_fraction=0.1)
-    battery_agent = tradingplatformpoc.agent.storage_agent.BatteryStorageAgent(data_store_entity, twin)
+    battery_agent = tradingplatformpoc.agent.storage_agent.StorageAgent(data_store_entity, twin)
 
     def test_make_bids(self):
         bids = self.battery_agent.make_bids("")

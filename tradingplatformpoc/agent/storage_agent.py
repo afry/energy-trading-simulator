@@ -7,7 +7,7 @@ from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTw
 from tradingplatformpoc.trade import Market
 
 
-class BatteryStorageAgent(IAgent):
+class StorageAgent(IAgent):
     """The agent for a battery storage actor.
 
     The battery works on the logic that it tries to keep it capacity between an upper and a lower bound, 80% and 20%

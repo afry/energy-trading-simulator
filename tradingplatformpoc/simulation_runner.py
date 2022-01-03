@@ -17,7 +17,7 @@ from tradingplatformpoc.agent.grid_agent import ElectricityGridAgent
 from tradingplatformpoc.agent.grocery_store_agent import GroceryStoreAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
-from tradingplatformpoc.agent.storage_agent import BatteryStorageAgent
+from tradingplatformpoc.agent.storage_agent import StorageAgent
 from tradingplatformpoc.mock_data_generation_functions import get_all_building_agents, get_pv_prod_key, \
     get_elec_cons_key
 from tradingplatformpoc.trade import write_rows
@@ -146,7 +146,7 @@ def initialize_agents(data_store_entity: data_store, config_data: dict, building
             storage_digital_twin = StorageDigitalTwin(max_capacity_kwh=agent["Capacity"],
                                                       max_charge_rate_fraction=agent["ChargeRate"],
                                                       max_discharge_rate_fraction=agent["ChargeRate"])
-            agents.append(BatteryStorageAgent(data_store_entity, storage_digital_twin))
+            agents.append(StorageAgent(data_store_entity, storage_digital_twin))
         elif agent_type == "PVAgent":
             pv_digital_twin = StaticDigitalTwin(electricity_production=data_store_entity.tornet_park_pv_prod)
             agents.append(PVAgent(data_store_entity, pv_digital_twin))
