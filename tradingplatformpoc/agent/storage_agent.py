@@ -44,8 +44,10 @@ class StorageAgent(IAgent):
     def make_trade_given_clearing_price(self, period, clearing_price):
         # The following is only needed since we have to calculate ourselves what bid(s) were accepted
         nordpool_prices_last_n_hours = self.data_store.get_nordpool_prices_last_n_hours(period, self.go_back_n_hours)
-        buy_bid_price = self.calculate_buy_price(nordpool_prices_last_n_hours)
-        sell_bid_price = self.calculate_sell_price(nordpool_prices_last_n_hours)
+        current_nordpool_wholesale_price = self.data_store.get_wholesale_price(period)
+        current_nordpool_retail_price = self.data_store.get_retail_price(period)
+        buy_bid_price = min(self.calculate_buy_price(nordpool_prices_last_n_hours), current_nordpool_retail_price)
+        sell_bid_price = max(self.calculate_sell_price(nordpool_prices_last_n_hours), current_nordpool_wholesale_price)
         buy_bid_quantity = self.calculate_buy_quantity()
         sell_bid_quantity = self.calculate_sell_quantity()
         # In this implementation, the battery never sells or buys directly from the external grid.
