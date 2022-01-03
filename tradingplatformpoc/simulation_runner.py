@@ -26,10 +26,8 @@ from pkg_resources import resource_filename
 
 logger = logging.getLogger(__name__)
 
-MOCK_DATAS_PICKLE = './tradingplatformpoc/data/generated/mock_datas.pickle'
 
-
-def run_trading_simulations():
+def run_trading_simulations(mock_datas_pickle_path: str):
     """The core loop of the simulation, running through the desired time period and performing trades."""
 
     logger.info("Starting trading simulations")
@@ -41,7 +39,7 @@ def run_trading_simulations():
     data_store_entity = DataStore(config_area_info=config_data["AreaInfo"])
 
     # Load generated mock data
-    buildings_mock_data = get_generated_mock_data(config_data)
+    buildings_mock_data = get_generated_mock_data(config_data, mock_datas_pickle_path)
 
     # Output files
     clearing_prices_file = open('./clearing_prices.csv', 'w')
@@ -111,7 +109,7 @@ def run_trading_simulations():
     return clearing_prices_dict, all_trades_list, all_extra_costs_dict
 
 
-def get_generated_mock_data(config_data: dict):
+def get_generated_mock_data(config_data: dict, mock_datas_pickle_path: str):
     """
     Loads the dict stored in MOCK_DATAS_PICKLE, checks if it contains a key which is identical to the set of building
     agents specified in config_data. If it isn't, throws an error. If it is, it returns the value for that key in the
@@ -119,7 +117,8 @@ def get_generated_mock_data(config_data: dict):
     @param config_data: A dictionary specifying agents etc
     @return: A pd.DataFrame containing mock data for building agents
     """
-    all_data_sets = pickle.load(open(MOCK_DATAS_PICKLE, 'rb'))
+    with open(mock_datas_pickle_path, 'rb') as f:
+        all_data_sets = pickle.load(f)
     building_agents, total_gross_floor_area = get_all_building_agents(config_data)
     building_agents_frozen_set = frozenset(building_agents)  # Need to freeze, else can't use it as key in dict
     if building_agents_frozen_set not in all_data_sets:
