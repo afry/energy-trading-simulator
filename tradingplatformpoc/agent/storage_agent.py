@@ -69,7 +69,10 @@ class StorageAgent(IAgent):
         return np.percentile(nordpool_prices_last_n_hours, self.if_higher_than_this_percentile_then_sell)
 
     def calculate_buy_quantity(self):
-        return self.digital_twin.get_possible_charge_amount()
+        """Will buy 50% of remaining empty space, but not more than the digital twin's charge limit"""
+        empty_capacity_kwh = self.digital_twin.max_capacity_kwh - self.digital_twin.capacity_kwh
+        return min([empty_capacity_kwh / 2.0, self.digital_twin.charge_limit_kwh])
 
     def calculate_sell_quantity(self):
-        return self.digital_twin.get_possible_discharge_amount()
+        """Will sell 50% of current charge level, but not more than the digital twin's discharge limit"""
+        return min([self.digital_twin.capacity_kwh / 2.0, self.digital_twin.discharge_limit_kwh])
