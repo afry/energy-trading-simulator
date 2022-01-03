@@ -46,7 +46,7 @@ class StorageDigitalTwin(IDigitalTwin):
         """
         self.is_charging = False
         # So that we don't discharge more than self.capacity:
-        amount_to_discharge = min(max(float(self.capacity_kwh), float(quantity)), self.discharge_limit_kwh)
+        amount_to_discharge = min(min(float(self.capacity_kwh), float(quantity)), self.discharge_limit_kwh)
         self.capacity_kwh = self.capacity_kwh - amount_to_discharge
         return amount_to_discharge
 
