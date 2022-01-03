@@ -4,15 +4,17 @@ from tradingplatformpoc.agent.iagent import IAgent, get_price_and_market_to_use_
     get_price_and_market_to_use_when_selling
 from tradingplatformpoc.bid import Action, Resource
 from tradingplatformpoc.data_store import DataStore
+from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.trading_platform_utils import minus_n_hours
 
 
 class GroceryStoreAgent(IAgent):
     """Currently very similar to BuildingAgent. May in the future sell excess heat."""
 
-    def __init__(self, data_store: DataStore, guid="GroceryStoreAgent"):
+    def __init__(self, data_store: DataStore, digital_twin: StaticDigitalTwin, guid="GroceryStoreAgent"):
         super().__init__(guid)
         self.data_store = data_store
+        self.digital_twin = digital_twin
 
     def make_bids(self, period):
         # The building should make a bid for purchasing energy
@@ -31,17 +33,17 @@ class GroceryStoreAgent(IAgent):
         # If negative, it means there is a surplus
         prev_trading_period = minus_n_hours(period, 1)
         try:
-            electricity_demand = self.data_store.get_coop_electricity_consumed(prev_trading_period)
-            electricity_supply = self.data_store.get_coop_pv_produced(prev_trading_period)
+            electricity_demand_prev = self.digital_twin.get_consumption(prev_trading_period, Resource.ELECTRICITY)
+            electricity_supply_prev = self.digital_twin.get_production(prev_trading_period, Resource.ELECTRICITY)
         except KeyError:
             # First time step, haven't got a previous value to use. Will go with a perfect prediction here
-            electricity_demand = self.data_store.get_coop_electricity_consumed(period)
-            electricity_supply = self.data_store.get_coop_pv_produced(period)
-        return electricity_demand - electricity_supply
+            electricity_demand_prev = self.digital_twin.get_consumption(period, Resource.ELECTRICITY)
+            electricity_supply_prev = self.digital_twin.get_production(period, Resource.ELECTRICITY)
+        return electricity_demand_prev - electricity_supply_prev
 
     def get_actual_usage(self, period):
-        electricity_demand = self.data_store.get_coop_electricity_consumed(period)
-        electricity_supply = self.data_store.get_coop_pv_produced(period)
+        electricity_demand = self.digital_twin.get_consumption(period, Resource.ELECTRICITY)
+        electricity_supply = self.digital_twin.get_production(period, Resource.ELECTRICITY)
         return electricity_demand - electricity_supply
 
     def make_trade_given_clearing_price(self, period, clearing_price):

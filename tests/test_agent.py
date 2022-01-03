@@ -5,6 +5,8 @@ from unittest import TestCase
 
 from tradingplatformpoc import data_store, agent
 from tradingplatformpoc.bid import Resource, Action
+from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
+from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
 from tradingplatformpoc.trade import Trade, Market
 
 import tradingplatformpoc.agent.building_agent
@@ -94,7 +96,8 @@ class TestGridAgent(unittest.TestCase):
 
 
 class TestBatteryStorageAgent(unittest.TestCase):
-    battery_agent = tradingplatformpoc.agent.storage_agent.BatteryStorageAgent(data_store_entity, max_capacity=1000)
+    twin = StorageDigitalTwin(max_capacity_kwh=1000, max_charge_rate_fraction=0.1, max_discharge_rate_fraction=0.1)
+    battery_agent = tradingplatformpoc.agent.storage_agent.BatteryStorageAgent(data_store_entity, twin)
 
     def test_make_bids(self):
         bids = self.battery_agent.make_bids("")
@@ -110,7 +113,9 @@ if __name__ == '__main__':
 
 
 class TestBuildingAgent(TestCase):
-    building_agent = agent.building_agent.BuildingAgent(data_store_entity)
+    building_digital_twin = StaticDigitalTwin(electricity_usage=data_store_entity.tornet_household_elec_cons,
+                                              heating_usage=data_store_entity.tornet_heat_cons)
+    building_agent = agent.building_agent.BuildingAgent(data_store_entity, building_digital_twin)
 
     def test_make_bids(self):
         bids = self.building_agent.make_bids(datetime(2019, 2, 1, 1, 0, 0))
@@ -121,7 +126,11 @@ class TestBuildingAgent(TestCase):
 
 
 class TestGroceryStoreAgent(TestCase):
-    grocery_store_agent = tradingplatformpoc.agent.grocery_store_agent.GroceryStoreAgent(data_store_entity)
+    grocery_store_digital_twin = StaticDigitalTwin(electricity_usage=data_store_entity.coop_elec_cons,
+                                                   heating_usage=data_store_entity.coop_heat_cons,
+                                                   electricity_production=data_store_entity.coop_pv_prod)
+    grocery_store_agent = tradingplatformpoc.agent.grocery_store_agent.GroceryStoreAgent(data_store_entity,
+                                                                                         grocery_store_digital_twin)
 
     def test_make_bids(self):
         bids = self.grocery_store_agent.make_bids(datetime(2019, 7, 7, 11, 0, 0))
@@ -132,7 +141,8 @@ class TestGroceryStoreAgent(TestCase):
 
 
 class TestPVAgent(TestCase):
-    tornet_pv_agent = tradingplatformpoc.agent.pv_agent.PVAgent(data_store_entity)
+    pv_digital_twin = StaticDigitalTwin(electricity_production=data_store_entity.tornet_pv_prod)
+    tornet_pv_agent = tradingplatformpoc.agent.pv_agent.PVAgent(data_store_entity, pv_digital_twin)
 
     def test_make_bids(self):
         bids = self.tornet_pv_agent.make_bids(datetime(2019, 7, 7, 11, 0, 0))

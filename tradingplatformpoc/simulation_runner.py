@@ -4,6 +4,8 @@ import logging
 
 from typing import List
 
+from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
+from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
 from tradingplatformpoc.market_solver import MarketSolver
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc import balance_manager, results_calculator
@@ -105,16 +107,24 @@ def initialize_agents(data_store_entity, config_data):
     agents: List[IAgent] = []
 
     for agent in config_data["Agents"]:
-        agent_type = agent["Name"]
+        agent_type = agent["Type"]
         if agent_type == "BuildingAgent":
-            agents.append(BuildingAgent(data_store_entity))
+            building_digital_twin = StaticDigitalTwin(electricity_usage=data_store_entity.tornet_household_elec_cons,
+                                                      heating_usage=data_store_entity.tornet_heat_cons)
+            agents.append(BuildingAgent(data_store_entity, building_digital_twin))
         elif agent_type == "BatteryStorageAgent":
-            agents.append(BatteryStorageAgent(data_store_entity, max_capacity=agent["Capacity"],
-                                              charge_rate=agent["ChargeRate"]))
+            storage_digital_twin = StorageDigitalTwin(max_capacity_kwh=agent["Capacity"],
+                                                      max_charge_rate_fraction=agent["ChargeRate"],
+                                                      max_discharge_rate_fraction=agent["ChargeRate"])
+            agents.append(BatteryStorageAgent(data_store_entity, storage_digital_twin))
         elif agent_type == "PVAgent":
-            agents.append(PVAgent(data_store_entity))
+            pv_digital_twin = StaticDigitalTwin(electricity_production=data_store_entity.tornet_pv_prod)
+            agents.append(PVAgent(data_store_entity, pv_digital_twin))
         elif agent_type == "GroceryStoreAgent":
-            agents.append(GroceryStoreAgent(data_store_entity))
+            grocery_store_digital_twin = StaticDigitalTwin(electricity_usage=data_store_entity.coop_elec_cons,
+                                                           heating_usage=data_store_entity.coop_heat_cons,
+                                                           electricity_production=data_store_entity.coop_pv_prod)
+            agents.append(GroceryStoreAgent(data_store_entity, grocery_store_digital_twin))
         elif agent_type == "ElectricityGridAgent":
             grid_agent = ElectricityGridAgent(data_store_entity, max_transfer_per_hour=agent["TransferRate"])
             agents.append(grid_agent)
@@ -127,6 +137,12 @@ def initialize_agents(data_store_entity, config_data):
         raise RuntimeError("No grid agent initialized")
 
     return agents, grid_agent
+
+
+def get_corresponding_digital_twin(agent_name, digital_twins):
+    if agent_name not in digital_twins:
+        raise RuntimeError("No digital twin found for agent {}".format(agent_name))
+    return digital_twins[agent_name]
 
 
 def write_extra_costs_rows(period: datetime.datetime, extra_costs: dict):
