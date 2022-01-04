@@ -1,3 +1,4 @@
+import logging
 from typing import List
 
 import numpy as np
@@ -9,22 +10,30 @@ from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTw
 from tradingplatformpoc.trade import Market
 from tradingplatformpoc.trading_platform_utils import minus_n_hours
 
+logger = logging.getLogger(__name__)
+
 
 class StorageAgent(IAgent):
-    """The agent for a battery storage actor.
+    """The agent for a storage actor.
 
-    The battery works on the logic that it tries to keep it capacity between an upper and a lower bound, 80% and 20%
-    for instance. Starting empty, the battery will charge until at or above the upper threshold. It will then
-    discharge until at or below the lower threshold.
+    The storage agent currently works on the logic that it tries to buy when energy is cheap, and sell when it is
+    expensive. It will look at the local market clearing prices over the last N hours (call this X), and submit bids
+    with a price which is equal to some percentile of X. Similarly, it will submit sell bids with a price equal to
+    some (other, higher) percentile of X.
     """
 
-    def __init__(self, data_store: DataStore, digital_twin: StorageDigitalTwin, guid="StorageAgent"):
+    def __init__(self, data_store: DataStore, digital_twin: StorageDigitalTwin,
+                 n_hours_to_look_back, buy_price_percentile, sell_price_percentile, guid="StorageAgent"):
         super().__init__(guid, data_store)
         self.digital_twin = digital_twin
-        self.go_back_n_hours = 24 * 7
+        self.go_back_n_hours = n_hours_to_look_back
         # Upper and lower thresholds
-        self.if_lower_than_this_percentile_then_buy = 20
-        self.if_higher_than_this_percentile_then_sell = 80
+        if sell_price_percentile < buy_price_percentile:
+            logger.warning('In StorageAgent, sell_price_percentile should be higher than buy_price_percentile, but had '
+                           'buy_price_percentile={} and sell_price_percentile='.format(buy_price_percentile,
+                                                                                       sell_price_percentile))
+        self.if_lower_than_this_percentile_then_buy = buy_price_percentile
+        self.if_higher_than_this_percentile_then_sell = sell_price_percentile
 
     def make_bids(self, period, clearing_prices_dict: dict):
         nordpool_prices_last_n_hours_dict = self.data_store.get_nordpool_prices_last_n_hours_dict(period,

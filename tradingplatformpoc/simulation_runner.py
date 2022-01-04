@@ -147,17 +147,22 @@ def initialize_agents(data_store_entity: data_store, config_data: dict, building
             storage_digital_twin = StorageDigitalTwin(max_capacity_kwh=agent["Capacity"],
                                                       max_charge_rate_fraction=agent["ChargeRate"],
                                                       max_discharge_rate_fraction=agent["ChargeRate"])
-            agents.append(StorageAgent(data_store_entity, storage_digital_twin))
+            agents.append(StorageAgent(data_store_entity, storage_digital_twin,
+                                       n_hours_to_look_back=agent["NHoursBack"],
+                                       buy_price_percentile=agent["BuyPricePercentile"],
+                                       sell_price_percentile=agent["SellPricePercentile"],
+                                       guid=agent["Name"]))
         elif agent_type == "PVAgent":
             pv_digital_twin = StaticDigitalTwin(electricity_production=data_store_entity.tornet_park_pv_prod)
-            agents.append(PVAgent(data_store_entity, pv_digital_twin))
+            agents.append(PVAgent(data_store_entity, pv_digital_twin, guid=agent["Name"]))
         elif agent_type == "GroceryStoreAgent":
             grocery_store_digital_twin = StaticDigitalTwin(electricity_usage=data_store_entity.coop_elec_cons,
                                                            heating_usage=data_store_entity.coop_heat_cons,
                                                            electricity_production=data_store_entity.coop_pv_prod)
-            agents.append(GroceryStoreAgent(data_store_entity, grocery_store_digital_twin))
+            agents.append(GroceryStoreAgent(data_store_entity, grocery_store_digital_twin, guid=agent["Name"]))
         elif agent_type == "ElectricityGridAgent":
-            grid_agent = ElectricityGridAgent(data_store_entity, max_transfer_per_hour=agent["TransferRate"])
+            grid_agent = ElectricityGridAgent(data_store_entity, max_transfer_per_hour=agent["TransferRate"],
+                                              guid=agent["Name"])
             agents.append(grid_agent)
 
     # TODO: As of right now, grid agents are treated as configurable, but the code is hard coded with the
