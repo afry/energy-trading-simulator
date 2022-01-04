@@ -12,6 +12,7 @@ from statsmodels.regression.linear_model import RegressionResultsWrapper
 
 from tradingplatformpoc.mock_data_generation_functions import load_existing_data_sets, get_all_building_agents, \
     get_elec_cons_key, get_pv_prod_key
+from tradingplatformpoc.trading_platform_utils import calculate_solar_prod
 
 CONFIG_FILE = 'jonstaka.json'
 
@@ -28,6 +29,7 @@ This script generates household electricity consumption data, and rooftop PV pro
 It stores such data in the MOCK_DATAS_PICKLE file, as a dictionary, where the set of BuildingAgents used to generate the
 data is the key, and a pd.DataFrame of generated data is the value. This way, simulation_runner can get the correct mock
 data set for the given config.
+For some more information: https://doc.afdrift.se/display/RPJ/Household+electricity+mock-up
 """
 
 # --- Format logger for print statements
@@ -99,7 +101,8 @@ def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd:
     start_seed = agent['RandomSeed'] * 1000
     df_output = simulate_for_area(df_inputs, model, agent['GrossFloorArea'], start_seed)
     output_per_building[get_elec_cons_key(agent['Name'])] = df_output.sum(axis=1)
-    output_per_building[get_pv_prod_key(agent['Name'])] = df_irrd * (pv_area * PV_EFFICIENCY / 1000)
+    output_per_building[get_pv_prod_key(agent['Name'])] = calculate_solar_prod(df_irrd['irradiation'], pv_area,
+                                                                               PV_EFFICIENCY)
     n_apartments_simulated = n_apartments_simulated + len(df_output.columns)
     end = time.time()
     time_elapsed = end - start
@@ -130,7 +133,11 @@ def simulate_series(input_df: pd.DataFrame, rand_seed: int, model: RegressionRes
     """
     Runs simulations using "model" and "input_df", with "rand_seed" as the random seed (can be specified, so that the
     experiment becomes reproducible, and also when simulating several different apartments/houses, the simulations don't
-    end up identical). The autoregressive parts of the model are calculated in calculate_adjustment_for_energy_prev.
+    end up identical).
+    The fact that autoregressive parts are included in the model, makes it more difficult to predict with, we can't just
+    use the predict-method. As explained in https://doc.afdrift.se/display/RPJ/Household+electricity+mock-up,
+    we use the predict-method first and then add on autoregressive terms afterwards. The autoregressive parts are
+    calculated in calculate_adjustment_for_energy_prev(...).
     :param input_df: pd.DataFrame
     :param rand_seed: int
     :param model: statsmodels.regression.linear_model.RegressionResultsWrapper
@@ -158,6 +165,18 @@ def simulate_series(input_df: pd.DataFrame, rand_seed: int, model: RegressionRes
 
 
 def calculate_adjustment_for_energy_prev(model: RegressionResultsWrapper, energy_prev: float):
+    """
+    As described in https://doc.afdrift.se/display/RPJ/Household+electricity+mock-up, here we calculate an
+    autoregressive adjustment to a simulation.
+    @param model: A statsmodels.regression.linear_model.RegressionResultsWrapper, which must include parameters with the
+        following names:
+            'np.where(np.isnan(energy_prev), 0, energy_prev)'
+            'np.where(np.isnan(energy_prev), 0, np.power(energy_prev, 2))'
+            'np.where(np.isnan(energy_prev), 0, np.minimum(energy_prev, 0.3))'
+            'np.where(np.isnan(energy_prev), 0, np.minimum(energy_prev, 0.7))'
+    @param energy_prev: The simulated energy consumption in the previous time step (a.k.a. y_(t-1)
+    @return: The autoregressive part of the simulated energy, as a float
+    """
     return model.params['np.where(np.isnan(energy_prev), 0, energy_prev)'] * energy_prev + \
            model.params['np.where(np.isnan(energy_prev), 0, np.power(energy_prev, 2))'] * np.power(energy_prev, 2) + \
            model.params['np.where(np.isnan(energy_prev), 0, np.minimum(energy_prev, 0.3))'] * np.minimum(energy_prev,
@@ -167,6 +186,12 @@ def calculate_adjustment_for_energy_prev(model: RegressionResultsWrapper, energy
 
 
 def create_inputs_df(temperature_csv_path: str, irradiation_csv_path: str):
+    """
+    Create a pd.DataFrame with certain columns that are needed to predict from the household electricity linear model.
+    @param temperature_csv_path: Path to a CSV-file with datetime-stamps and temperature readings, in degrees C.
+    @param irradiation_csv_path: Path to a CSV-file with datetime-stamps and solar irradiance readings, in W/m2.
+    @return: A pd.DataFrame
+    """
     df_temp = pd.read_csv(temperature_csv_path, names=['datetime', 'temperature'],
                           delimiter=';', header=0)
     df_temp['datetime'] = pd.to_datetime(df_temp['datetime'])
@@ -189,8 +214,9 @@ def create_inputs_df(temperature_csv_path: str, irradiation_csv_path: str):
 
 
 def is_major_holiday_sweden(month_of_year: int, day_of_month: int):
-    # Christmas eve, Christmas day, Boxing day, New years day, epiphany, 1 may, national day.
-    # Some moveable ones not included
+    # Major holidays will naturally have a big impact on household electricity usage patterns, with people not working
+    # etc. Included here are: Christmas eve, Christmas day, Boxing day, New years day, epiphany, 1 may, national day.
+    # Some moveable ones not included (Easter etc)
     return ((month_of_year == 12) & (day_of_month == 24)) | \
            ((month_of_year == 12) & (day_of_month == 25)) | \
            ((month_of_year == 12) & (day_of_month == 26)) | \
@@ -201,6 +227,9 @@ def is_major_holiday_sweden(month_of_year: int, day_of_month: int):
 
 
 def is_day_before_major_holiday_sweden(month_of_year: int, day_of_month: int):
+    # Major holidays will naturally have a big impact on household electricity usage patterns, with people not working
+    # etc. Included here are:
+    # Day before christmas eve, New years eve, day before epiphany, Valborg, day before national day.
     return ((month_of_year == 12) & (day_of_month == 23)) | \
            ((month_of_year == 12) & (day_of_month == 31)) | \
            ((month_of_year == 1) & (day_of_month == 5)) | \

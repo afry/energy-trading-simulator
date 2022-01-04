@@ -3,29 +3,7 @@ import pickle
 import pandas as pd
 from pkg_resources import resource_filename
 
-from tradingplatformpoc.trading_platform_utils import minus_n_hours
-
-
-def calculate_solar_prod(irradiation_data, pv_sqm, pv_efficiency):
-    """
-    Calculates the solar energy production from some solar panels, given irradiation, total size of solar panels, and
-    their efficiency.
-
-    Parameters
-    ----------
-    irradiation_data : pd.Series
-        Irradiation data per datetime, in W/m2
-    pv_sqm : float
-        Total square meterage of solar panels
-    pv_efficiency : float
-        Efficiency of solar panels
-
-    Returns
-    -------
-    pd.Series
-        The solar energy production in kWh
-    """
-    return irradiation_data * pv_sqm * pv_efficiency / 1000
+from tradingplatformpoc.trading_platform_utils import minus_n_hours, calculate_solar_prod
 
 
 class DataStore:
