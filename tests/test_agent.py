@@ -17,7 +17,7 @@ import tradingplatformpoc.agent.storage_agent
 
 with open("../tradingplatformpoc/data/jonstaka.json", "r") as jsonfile:
     config_data = json.load(jsonfile)
-data_store_entity = data_store.DataStore(config_data=config_data["AreaInfo"])
+data_store_entity = data_store.DataStore(config_area_info=config_data["AreaInfo"])
 
 
 class TestGridAgent(unittest.TestCase):
@@ -136,17 +136,17 @@ class TestGroceryStoreAgent(TestCase):
         bids = self.grocery_store_agent.make_bids(datetime(2019, 7, 7, 11, 0, 0))
         self.assertEqual(Resource.ELECTRICITY, bids[0].resource)
         self.assertEqual(Action.BUY, bids[0].action)
-        self.assertEqual(193.7625279202484, bids[0].quantity)
+        self.assertAlmostEqual(193.7625279202484, bids[0].quantity)
         self.assertTrue(bids[0].price > 1000)
 
 
 class TestPVAgent(TestCase):
-    pv_digital_twin = StaticDigitalTwin(electricity_production=data_store_entity.tornet_pv_prod)
+    pv_digital_twin = StaticDigitalTwin(electricity_production=data_store_entity.tornet_park_pv_prod)
     tornet_pv_agent = tradingplatformpoc.agent.pv_agent.PVAgent(data_store_entity, pv_digital_twin)
 
     def test_make_bids(self):
         bids = self.tornet_pv_agent.make_bids(datetime(2019, 7, 7, 11, 0, 0))
         self.assertEqual(Resource.ELECTRICITY, bids[0].resource)
         self.assertEqual(Action.SELL, bids[0].action)
-        self.assertEqual(6443.1607812, bids[0].quantity)
-        self.assertEqual(0.34389, bids[0].price)
+        self.assertAlmostEqual(3215.22246045, bids[0].quantity)
+        self.assertAlmostEqual(0.34389, bids[0].price)

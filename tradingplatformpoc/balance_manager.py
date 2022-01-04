@@ -1,18 +1,20 @@
 from tradingplatformpoc.bid import Bid, Action
-from tradingplatformpoc.trade import Trade
-from typing import List
+from tradingplatformpoc.trade import Trade, Market
+from typing import Collection, List
 
 
-def calculate_costs(bids: List[Bid], trades: List[Trade], clearing_price: float, external_wholesale_price: float):
+def calculate_costs(bids: Collection[Bid], trades: Collection[Trade], clearing_price: float,
+                    external_wholesale_price: float):
     """
     All bids and trades should be for the same trading period
     """
     accepted_bids = [x for x in bids if was_bid_accepted(x, clearing_price)]
     agent_ids = set([x.source for x in accepted_bids] + [x.source for x in trades])
 
-    external_bids = [x for x in bids if x.by_external]
-    external_trades = [x for x in trades if x.by_external]
-    extra_cost = calculate_extra_cost(external_bids, external_trades, clearing_price, external_wholesale_price)
+    external_bid = get_external_bid(bids)
+    external_trade_on_local_market = get_external_trade_on_local_market(trades)
+    extra_cost = calculate_extra_cost(external_bid, external_trade_on_local_market, clearing_price,
+                                      external_wholesale_price)
     # Now we know how much extra cost that need to be covered. Now we'll figure out how to distribute it.
 
     error_by_agent = calculate_error_by_agent(accepted_bids, agent_ids, trades)
@@ -20,31 +22,45 @@ def calculate_costs(bids: List[Bid], trades: List[Trade], clearing_price: float,
     return cost_to_be_paid_by_agent
 
 
-def calculate_extra_cost(external_bids, external_trades, clearing_price, external_wholesale_price):
+def get_external_trade_on_local_market(trades: Collection[Trade]):
+    external_trades_on_local_market = [x for x in trades if x.by_external and x.market == Market.LOCAL]
+    if len(external_trades_on_local_market) == 0:
+        return None
+    elif len(external_trades_on_local_market) > 1:
+        raise RuntimeError("Unexpected state: More than 1 external grid trade for a single trading period")
+    else:
+        return external_trades_on_local_market[0]
+
+
+def get_external_bid(bids: Collection[Bid]):
+    external_bids = [x for x in bids if x.by_external]
     if len(external_bids) != 1:
         raise RuntimeError("Expected 1 and only 1 external grid bid for a single trading period")
     else:
-        external_retail_price = external_bids[0].price
+        return external_bids[0]
+
+
+def calculate_extra_cost(external_bid: Bid, external_trade: Trade,
+                         clearing_price: float, external_wholesale_price: float):
+    external_retail_price = external_bid.price
 
     if external_retail_price < clearing_price:
         raise RuntimeError("Unexpected state: External retail price < local clearing price")
 
-    if len(external_trades) == 0:
+    if external_trade is None:
         return 0
-    elif len(external_trades) > 1:
-        raise RuntimeError("Unexpected state: More than 1 external grid trade for a single trading period")
     else:
-        if external_trades[0].action == Action.BUY:
-            external_actual_export = external_trades[0].quantity
+        if external_trade.action == Action.BUY:
+            external_actual_export = external_trade.quantity
             price_difference = clearing_price - external_wholesale_price
             return external_actual_export * price_difference
         else:
-            external_actual_import = external_trades[0].quantity
+            external_actual_import = external_trade.quantity
             price_difference = external_retail_price - clearing_price
             return external_actual_import * price_difference
 
 
-def was_bid_accepted(bid, clearing_price):
+def was_bid_accepted(bid: Bid, clearing_price: float):
     return ((bid.action == Action.SELL) & (bid.price <= clearing_price)) | \
            ((bid.action == Action.BUY) & (bid.price >= clearing_price))
 
@@ -61,7 +77,7 @@ def distribute_cost(error_by_agent, extra_cost):
     return {k: extra_cost * v for (k, v) in perc_of_cost_to_be_paid_by_agent.items()}
 
 
-def is_agent_external(accepted_bids_for_agent, trades_for_agent):
+def is_agent_external(accepted_bids_for_agent: List[Bid], trades_for_agent: List[Trade]):
     """Helper method to figure out whether an agent represents an external grid, based on bids and trades for the agent.
     """
     if len(trades_for_agent) > 0:
@@ -73,7 +89,7 @@ def is_agent_external(accepted_bids_for_agent, trades_for_agent):
     return False
 
 
-def calculate_error_by_agent(accepted_bids, agent_ids, trades):
+def calculate_error_by_agent(accepted_bids: Collection[Bid], agent_ids: Collection[str], trades: Collection[Trade]):
     """
     The error being the difference between the projected (i.e. the bid quantity) usage and the actual usage for the
     trading period. Usage is negative if the agent is a supplier.
@@ -90,7 +106,7 @@ def calculate_error_by_agent(accepted_bids, agent_ids, trades):
     return error_by_agent
 
 
-def get_bid_usage(accepted_bids_for_agent, agent_id):
+def get_bid_usage(accepted_bids_for_agent: List[Bid], agent_id: str):
     """Usage is negative if the agent is a supplier of energy"""
     if len(accepted_bids_for_agent) > 1:
         raise RuntimeError("More than 1 bid accepted for agent " + agent_id + " in a single trading period")
@@ -101,7 +117,7 @@ def get_bid_usage(accepted_bids_for_agent, agent_id):
         return accepted_bid.quantity if accepted_bid.action == Action.BUY else -accepted_bid.quantity
 
 
-def get_actual_usage(trades_for_agent, agent_id):
+def get_actual_usage(trades_for_agent: List[Trade], agent_id: str):
     """Usage is negative if the agent is a supplier of energy"""
     if len(trades_for_agent) > 1:
         raise RuntimeError("More than 1 trade for agent " + agent_id + " in a single trading period")

@@ -1,27 +1,9 @@
+import pickle
+
 import pandas as pd
 from pkg_resources import resource_filename
 
-
-def calculate_solar_prod(irradiation_data, pv_sqm, pv_efficiency):
-    """
-    Calculates the solar energy production from some solar panels, given irradiation, total size of solar panels, and
-    their efficiency.
-
-    Parameters
-    ----------
-    irradiation_data : pd.Series
-        Irradiation data per datetime, in W/m2
-    pv_sqm : float
-        Total square meterage of solar panels
-    pv_efficiency : float
-        Efficiency of solar panels
-
-    Returns
-    -------
-    pd.Series
-        The solar energy production in kWh
-    """
-    return irradiation_data * pv_sqm * pv_efficiency / 1000
+from tradingplatformpoc.trading_platform_utils import calculate_solar_prod
 
 
 class DataStore:
@@ -30,25 +12,24 @@ class DataStore:
     coop_elec_cons: pd.Series  # Electricity used for cooling included
     tornet_heat_cons: pd.Series
     coop_heat_cons: pd.Series
-    tornet_pv_prod: pd.Series
+    tornet_park_pv_prod: pd.Series
     coop_pv_prod: pd.Series  # Rooftop PV production
 
-    def __init__(self, config_data,
-                 external_price_csv_path=resource_filename("tradingplatformpoc.data", "nordpool_area_grid_el_price.csv"),
+    def __init__(self, config_area_info,
+                 external_price_csv_path=resource_filename("tradingplatformpoc.data",
+                                                           "nordpool_area_grid_el_price.csv"),
                  energy_data_csv_path=resource_filename("tradingplatformpoc.data", "full_mock_energy_data.csv"),
                  irradiation_csv_path=resource_filename("tradingplatformpoc.data", "varberg_irradiation_W_m2_h.csv")):
-        self.pv_efficiency = config_data["PVEfficiency"]
-        self.store_pv_area = config_data["StorePVArea"]
-        self.park_pv_area = config_data["ParkPVArea"]
-        self.rooftop_pv_area = config_data["RooftopPVArea"]
-        self.total_tornet_pv_area = self.park_pv_area + self.rooftop_pv_area
+        self.pv_efficiency = config_area_info["PVEfficiency"]
+        self.store_pv_area = config_area_info["StorePVArea"]
+        self.park_pv_area = config_area_info["ParkPVArea"]
 
         self.nordpool_data = self.__read_nordpool_data(external_price_csv_path)
         self.tornet_household_elec_cons, self.coop_elec_cons, \
-            self.tornet_heat_cons, self.coop_heat_cons = self.__read_energy_data(energy_data_csv_path)
+        self.tornet_heat_cons, self.coop_heat_cons = self.__read_energy_data(energy_data_csv_path)
         irradiation_data = self.__read_solar_irradiation(irradiation_csv_path)
         self.coop_pv_prod = calculate_solar_prod(irradiation_data, self.store_pv_area, self.pv_efficiency)
-        self.tornet_pv_prod = calculate_solar_prod(irradiation_data, self.total_tornet_pv_area, self.pv_efficiency)
+        self.tornet_park_pv_prod = calculate_solar_prod(irradiation_data, self.park_pv_area, self.pv_efficiency)
 
     @staticmethod
     def __read_nordpool_data(external_price_csv):

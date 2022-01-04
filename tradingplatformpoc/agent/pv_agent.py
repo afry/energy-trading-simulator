@@ -8,8 +8,7 @@ from tradingplatformpoc.trading_platform_utils import minus_n_hours
 class PVAgent(IAgent):
 
     def __init__(self, data_store: DataStore, digital_twin: StaticDigitalTwin, guid="PVAgent"):
-        super().__init__(guid)
-        self.data_store = data_store
+        super().__init__(guid, data_store)
         self.digital_twin = digital_twin
 
     def make_bids(self, period):
@@ -35,16 +34,6 @@ class PVAgent(IAgent):
             # First time step, haven't got a previous value to use. Will go with a perfect prediction here
             electricity_prod_prev = self.digital_twin.get_production(period, Resource.ELECTRICITY)
         return electricity_prod_prev
-
-    def get_external_grid_buy_price(self, period):
-        wholesale_price = self.data_store.get_wholesale_price(period)
-
-        # Per https://doc.afdrift.se/pages/viewpage.action?pageId=17072325, Varberg Energi can pay an extra
-        # remuneration on top of the Nordpool spot price. This can vary, "depending on for example membership".
-        # Might make sense to make this number configurable.
-        remuneration_modifier = 0
-
-        return wholesale_price + remuneration_modifier
 
     def get_actual_usage(self, period):
         # Negative means net producer

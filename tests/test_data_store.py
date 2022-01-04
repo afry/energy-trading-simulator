@@ -12,7 +12,7 @@ class TestDataStore(TestCase):
         with open("../tradingplatformpoc/data/jonstaka.json", "r") as jsonfile:
             config_data = json.load(jsonfile)
 
-        self.data_store_entity = data_store.DataStore(config_data=config_data["AreaInfo"])
+        self.data_store_entity = data_store.DataStore(config_area_info=config_data["AreaInfo"])
 
     def test_get_nordpool_price_for_period(self):
         self.assertEqual(0.51871, self.data_store_entity.get_nordpool_price_for_period(datetime(2019, 2, 1, 1, 0, 0)))

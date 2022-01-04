@@ -1,15 +1,21 @@
+from typing import Iterable
+
 from tradingplatformpoc import data_store
+from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.bid import Action
 from tradingplatformpoc.agent.grid_agent import ElectricityGridAgent
+from tradingplatformpoc.trade import Trade
 
 
-def print_basic_results(agents, all_trades_list, all_extra_costs_dict, data_store_entity: data_store):
+def print_basic_results(agents: Iterable[IAgent], all_trades: Iterable[Trade], all_extra_costs_dict: dict,
+                        data_store_entity: data_store):
     for agent in agents:
-        print_basic_results_for_agent(agent, all_trades_list, all_extra_costs_dict, data_store_entity)
+        print_basic_results_for_agent(agent, all_trades, all_extra_costs_dict, data_store_entity)
 
 
-def print_basic_results_for_agent(agent, all_trades_list, all_extra_costs_dict, data_store_entity: data_store):
-    trades_for_agent = [x for x in all_trades_list if x.source == agent.guid]
+def print_basic_results_for_agent(agent: IAgent, all_trades: Iterable[Trade], all_extra_costs_dict: dict,
+                                  data_store_entity: data_store):
+    trades_for_agent = [x for x in all_trades if x.source == agent.guid]
     all_extra_costs = list(all_extra_costs_dict.values())
 
     quantity_bought = sum([x.quantity for x in trades_for_agent if x.action == Action.BUY])
@@ -45,7 +51,7 @@ def print_basic_results_for_agent(agent, all_trades_list, all_extra_costs_dict, 
         print("For agent {} average sell price was {:.3f} SEK/kWh".format(agent.guid, avg_sell_price))
 
 
-def get_savings_vs_only_external(data_store_entity, trades_for_agent):
+def get_savings_vs_only_external(data_store_entity: data_store, trades_for_agent: Iterable[Trade]):
     saved_on_buy_vs_using_only_external = 0
     saved_on_sell_vs_using_only_external = 0
     for trade in trades_for_agent:

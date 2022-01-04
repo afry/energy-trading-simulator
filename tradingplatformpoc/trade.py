@@ -17,6 +17,8 @@ class Trade:
     """
 
     def __init__(self, action, resource, quantity, price, source, by_external, market, period):
+        if quantity <= 0:
+            raise RuntimeError('Trade must have quantity > 0, but was ' + str(quantity))
         self.action = action
         self.resource = resource
         self.quantity = quantity
