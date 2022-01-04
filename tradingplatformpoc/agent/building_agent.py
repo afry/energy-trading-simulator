@@ -14,7 +14,7 @@ class BuildingAgent(IAgent):
         super().__init__(guid, data_store)
         self.digital_twin = digital_twin
 
-    def make_bids(self, period, clearing_prices_dict: dict):
+    def make_bids(self, period, clearing_prices_dict: dict = None):
         # Note - identical to the same method in grocery_store_agent.py
         # The building should make a bid for purchasing energy, or selling if it has a surplus
         electricity_needed = self.make_prognosis(period)
@@ -45,7 +45,7 @@ class BuildingAgent(IAgent):
         actual_production = self.digital_twin.get_production(period, Resource.ELECTRICITY)
         return actual_consumption - actual_production
 
-    def make_trade_given_clearing_price(self, period, clearing_price: float, clearing_prices_dict: dict):
+    def make_trade_given_clearing_price(self, period, clearing_price: float, clearing_prices_dict: dict = None):
         retail_price = self.data_store.get_retail_price(period)
         wholesale_price = self.data_store.get_wholesale_price(period)
         usage = self.get_actual_usage(period)

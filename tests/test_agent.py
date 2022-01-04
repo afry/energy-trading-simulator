@@ -100,7 +100,7 @@ class TestBatteryStorageAgent(unittest.TestCase):
     battery_agent = tradingplatformpoc.agent.storage_agent.StorageAgent(data_store_entity, twin)
 
     def test_make_bids(self):
-        bids = self.battery_agent.make_bids(datetime(2019, 2, 1, 1, 0, 0))
+        bids = self.battery_agent.make_bids(datetime(2019, 2, 1, 1, 0, 0), {})
         self.assertEqual(Resource.ELECTRICITY, bids[0].resource)
         self.assertEqual(Action.BUY, bids[0].action)
         self.assertTrue(bids[0].quantity > 0)
