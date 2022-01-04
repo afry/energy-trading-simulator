@@ -1,5 +1,3 @@
-import pickle
-
 import pandas as pd
 from pkg_resources import resource_filename
 
@@ -26,7 +24,7 @@ class DataStore:
 
         self.nordpool_data = self.__read_nordpool_data(external_price_csv_path)
         self.tornet_household_elec_cons, self.coop_elec_cons, \
-        self.tornet_heat_cons, self.coop_heat_cons = self.__read_energy_data(energy_data_csv_path)
+            self.tornet_heat_cons, self.coop_heat_cons = self.__read_energy_data(energy_data_csv_path)
         irradiation_data = self.__read_solar_irradiation(irradiation_csv_path)
         self.coop_pv_prod = calculate_solar_prod(irradiation_data, self.store_pv_area, self.pv_efficiency)
         self.tornet_park_pv_prod = calculate_solar_prod(irradiation_data, self.park_pv_area, self.pv_efficiency)
@@ -46,10 +44,10 @@ class DataStore:
         energy_data = pd.read_csv(energy_csv_path, index_col=0)
         energy_data.index = pd.to_datetime(energy_data.index)
         return energy_data['tornet_electricity_consumed_household_kwh'], \
-               energy_data['coop_electricity_consumed_cooling_kwh'] + \
-               energy_data['coop_electricity_consumed_other_kwh'], \
-               energy_data['tornet_energy_consumed_heat_kwh'], \
-               energy_data['coop_net_heat_consumed']
+            energy_data['coop_electricity_consumed_cooling_kwh'] + \
+            energy_data['coop_electricity_consumed_other_kwh'], \
+            energy_data['tornet_energy_consumed_heat_kwh'], \
+            energy_data['coop_net_heat_consumed']
 
     @staticmethod
     def __read_solar_irradiation(irradiation_csv_path):

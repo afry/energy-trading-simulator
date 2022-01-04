@@ -116,6 +116,7 @@ def get_generated_mock_data(config_data: dict, mock_datas_pickle_path: str):
     agents specified in config_data. If it isn't, throws an error. If it is, it returns the value for that key in the
     dictionary.
     @param config_data: A dictionary specifying agents etc
+    @param mock_datas_pickle_path: Path to pickle file where dict with mock data is saved
     @return: A pd.DataFrame containing mock data for building agents
     """
     with open(mock_datas_pickle_path, 'rb') as f:
