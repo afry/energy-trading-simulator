@@ -69,7 +69,7 @@ def run_trading_simulations(mock_datas_pickle_path: str):
     trading_periods = data_store_entity.get_trading_periods()
     for period in trading_periods:
         # Get all bids
-        bids = [agent.make_bids(period) for agent in agents]
+        bids = [agent.make_bids(period, clearing_prices_dict) for agent in agents]
 
         # Flatten bids list
         bids_flat: List[Bid] = [bid for sublist in bids for bid in sublist]
@@ -87,7 +87,8 @@ def run_trading_simulations(mock_datas_pickle_path: str):
         # energy, from/to either the local market or directly from/to the external grid.
         # To be clear: These "trades" are for _actual_ amounts, not predicted. All agents except the external grid agent
         # makes these, then finally the external grid agent "fills in" the energy imbalances through "trades" of its own
-        trades_excl_external = [agent.make_trade_given_clearing_price(period, clearing_price) for agent in agents]
+        trades_excl_external = [agent.make_trade_given_clearing_price(period, clearing_price, clearing_prices_dict)
+                                for agent in agents]
         trades_excl_external = [i for i in trades_excl_external if i]  # filter out None
         external_trades = grid_agent.calculate_external_trades(trades_excl_external, clearing_price)
         all_trades_for_period = trades_excl_external + external_trades
@@ -141,7 +142,7 @@ def initialize_agents(data_store_entity: data_store, config_data: dict, building
             building_digital_twin = StaticDigitalTwin(electricity_usage=household_elec_cons_series,
                                                       electricity_production=pv_prod_series)
             agents.append(BuildingAgent(data_store_entity, building_digital_twin, guid=agent_name))
-        elif agent_type == "BatteryStorageAgent":
+        elif agent_type == "StorageAgent":
             storage_digital_twin = StorageDigitalTwin(max_capacity_kwh=agent["Capacity"],
                                                       max_charge_rate_fraction=agent["ChargeRate"],
                                                       max_discharge_rate_fraction=agent["ChargeRate"])

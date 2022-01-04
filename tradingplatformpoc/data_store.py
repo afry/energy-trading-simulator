@@ -101,9 +101,9 @@ class DataStore:
 
         return timestamps
 
-    def get_nordpool_prices_last_n_hours(self, period, go_back_n_hours):
-        nordpool_prices_last_n_hours = []
+    def get_nordpool_prices_last_n_hours_dict(self, period, go_back_n_hours):
+        nordpool_prices_last_n_hours = {}
         for i in range(go_back_n_hours):
             t = minus_n_hours(period, i + 1)
-            nordpool_prices_last_n_hours.append(self.get_nordpool_price_for_period(t))
+            nordpool_prices_last_n_hours[t] = self.get_nordpool_price_for_period(t)
         return nordpool_prices_last_n_hours

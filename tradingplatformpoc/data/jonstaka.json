@@ -141,7 +141,7 @@
 			"RooftopPVArea": 1131.4375
 		},
 		{
-			"Type": "BatteryStorageAgent",
+			"Type": "StorageAgent",
 			"Name": "BatteryStorageAgent1",
 			"Capacity": 1000,
 			"ChargeRate": 0.4
