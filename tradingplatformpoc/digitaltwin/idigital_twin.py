@@ -1,6 +1,4 @@
-from abc import ABC, abstractmethod
-
-from ..bid import Resource
+from abc import ABC
 
 
 class IDigitalTwin(ABC):

@@ -1,8 +1,6 @@
 
 from unittest import TestCase
 
-from datetime import datetime
-
 from tradingplatformpoc import simulation_runner
 from tradingplatformpoc.bid import Action
 

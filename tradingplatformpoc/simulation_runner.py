@@ -17,7 +17,7 @@ from tradingplatformpoc.agent.grid_agent import ElectricityGridAgent
 from tradingplatformpoc.agent.grocery_store_agent import GroceryStoreAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
-from tradingplatformpoc.agent.storage_agent import BatteryStorageAgent
+from tradingplatformpoc.agent.storage_agent import StorageAgent
 from tradingplatformpoc.mock_data_generation_functions import get_all_building_agents, get_pv_prod_key, \
     get_elec_cons_key
 from tradingplatformpoc.trade import write_rows
@@ -69,7 +69,7 @@ def run_trading_simulations(mock_datas_pickle_path: str):
     trading_periods = data_store_entity.get_trading_periods()
     for period in trading_periods:
         # Get all bids
-        bids = [agent.make_bids(period) for agent in agents]
+        bids = [agent.make_bids(period, clearing_prices_dict) for agent in agents]
 
         # Flatten bids list
         bids_flat: List[Bid] = [bid for sublist in bids for bid in sublist]
@@ -87,7 +87,8 @@ def run_trading_simulations(mock_datas_pickle_path: str):
         # energy, from/to either the local market or directly from/to the external grid.
         # To be clear: These "trades" are for _actual_ amounts, not predicted. All agents except the external grid agent
         # makes these, then finally the external grid agent "fills in" the energy imbalances through "trades" of its own
-        trades_excl_external = [agent.make_trade_given_clearing_price(period, clearing_price) for agent in agents]
+        trades_excl_external = [agent.make_trade_given_clearing_price(period, clearing_price, clearing_prices_dict)
+                                for agent in agents]
         trades_excl_external = [i for i in trades_excl_external if i]  # filter out None
         external_trades = grid_agent.calculate_external_trades(trades_excl_external, clearing_price)
         all_trades_for_period = trades_excl_external + external_trades
@@ -115,6 +116,7 @@ def get_generated_mock_data(config_data: dict, mock_datas_pickle_path: str):
     agents specified in config_data. If it isn't, throws an error. If it is, it returns the value for that key in the
     dictionary.
     @param config_data: A dictionary specifying agents etc
+    @param mock_datas_pickle_path: Path to pickle file where dict with mock data is saved
     @return: A pd.DataFrame containing mock data for building agents
     """
     with open(mock_datas_pickle_path, 'rb') as f:
@@ -141,21 +143,26 @@ def initialize_agents(data_store_entity: data_store, config_data: dict, building
             building_digital_twin = StaticDigitalTwin(electricity_usage=household_elec_cons_series,
                                                       electricity_production=pv_prod_series)
             agents.append(BuildingAgent(data_store_entity, building_digital_twin, guid=agent_name))
-        elif agent_type == "BatteryStorageAgent":
+        elif agent_type == "StorageAgent":
             storage_digital_twin = StorageDigitalTwin(max_capacity_kwh=agent["Capacity"],
                                                       max_charge_rate_fraction=agent["ChargeRate"],
                                                       max_discharge_rate_fraction=agent["ChargeRate"])
-            agents.append(BatteryStorageAgent(data_store_entity, storage_digital_twin))
+            agents.append(StorageAgent(data_store_entity, storage_digital_twin,
+                                       n_hours_to_look_back=agent["NHoursBack"],
+                                       buy_price_percentile=agent["BuyPricePercentile"],
+                                       sell_price_percentile=agent["SellPricePercentile"],
+                                       guid=agent["Name"]))
         elif agent_type == "PVAgent":
             pv_digital_twin = StaticDigitalTwin(electricity_production=data_store_entity.tornet_park_pv_prod)
-            agents.append(PVAgent(data_store_entity, pv_digital_twin))
+            agents.append(PVAgent(data_store_entity, pv_digital_twin, guid=agent["Name"]))
         elif agent_type == "GroceryStoreAgent":
             grocery_store_digital_twin = StaticDigitalTwin(electricity_usage=data_store_entity.coop_elec_cons,
                                                            heating_usage=data_store_entity.coop_heat_cons,
                                                            electricity_production=data_store_entity.coop_pv_prod)
-            agents.append(GroceryStoreAgent(data_store_entity, grocery_store_digital_twin))
+            agents.append(GroceryStoreAgent(data_store_entity, grocery_store_digital_twin, guid=agent["Name"]))
         elif agent_type == "ElectricityGridAgent":
-            grid_agent = ElectricityGridAgent(data_store_entity, max_transfer_per_hour=agent["TransferRate"])
+            grid_agent = ElectricityGridAgent(data_store_entity, max_transfer_per_hour=agent["TransferRate"],
+                                              guid=agent["Name"])
             agents.append(grid_agent)
 
     # TODO: As of right now, grid agents are treated as configurable, but the code is hard coded with the

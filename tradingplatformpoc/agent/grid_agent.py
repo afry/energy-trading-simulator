@@ -14,7 +14,7 @@ class ElectricityGridAgent(IAgent):
         super().__init__(guid, data_store)
         self.max_transfer_per_hour = max_transfer_per_hour
 
-    def make_bids(self, period):
+    def make_bids(self, period, clearing_prices_dict: dict = None):
         # Submit a bid to sell electricity
         # Sell up to MAX_TRANSFER_PER_HOUR kWh at calculate_retail_price(period)
         retail_price = self.data_store.get_retail_price(period)
@@ -36,7 +36,7 @@ class ElectricityGridAgent(IAgent):
     def get_actual_usage(self, period):
         pass
 
-    def make_trade_given_clearing_price(self, period, clearing_price):
+    def make_trade_given_clearing_price(self, period, clearing_price: float, clearing_prices_dict: dict = None):
         # The external grid is used to make up for any differences on the local market. Therefore these will be
         # calculated at a later stage (in calculate_external_trades)
         pass

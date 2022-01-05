@@ -178,11 +178,10 @@ def calculate_adjustment_for_energy_prev(model: RegressionResultsWrapper, energy
     @return: The autoregressive part of the simulated energy, as a float
     """
     return model.params['np.where(np.isnan(energy_prev), 0, energy_prev)'] * energy_prev + \
-           model.params['np.where(np.isnan(energy_prev), 0, np.power(energy_prev, 2))'] * np.power(energy_prev, 2) + \
-           model.params['np.where(np.isnan(energy_prev), 0, np.minimum(energy_prev, 0.3))'] * np.minimum(energy_prev,
-                                                                                                         0.3) + \
-           model.params['np.where(np.isnan(energy_prev), 0, np.minimum(energy_prev, 0.7))'] * np.minimum(energy_prev,
-                                                                                                         0.7)
+        model.params['np.where(np.isnan(energy_prev), 0, np.power(energy_prev, 2))'] * np.power(energy_prev, 2) + \
+        model.params['np.where(np.isnan(energy_prev), 0, np.minimum(energy_prev, 0.3))'] * np.minimum(energy_prev,
+                                                                                                      0.3) + \
+        model.params['np.where(np.isnan(energy_prev), 0, np.minimum(energy_prev, 0.7))'] * np.minimum(energy_prev, 0.7)
 
 
 def create_inputs_df(temperature_csv_path: str, irradiation_csv_path: str):

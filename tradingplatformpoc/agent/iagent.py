@@ -13,7 +13,7 @@ class IAgent(ABC):
         self.data_store = data_store
 
     @abstractmethod
-    def make_bids(self, period):
+    def make_bids(self, period, clearing_prices_dict: dict):
         # Make a bid for produced or needed energy for next time step
         pass
 
@@ -29,7 +29,7 @@ class IAgent(ABC):
         pass
 
     @abstractmethod
-    def make_trade_given_clearing_price(self, period, clearing_price):
+    def make_trade_given_clearing_price(self, period, clearing_price: float, clearing_prices_dict: dict):
         # Once market solver has decided a clearing price, it will send it to the agents with this method
         # Should return a Trade
         pass
@@ -50,14 +50,15 @@ class IAgent(ABC):
 
         return wholesale_price + remuneration_modifier
 
-def get_price_and_market_to_use_when_buying(clearing_price, retail_price):
+
+def get_price_and_market_to_use_when_buying(clearing_price: float, retail_price: float):
     if clearing_price <= retail_price:
         return clearing_price, Market.LOCAL
     else:
         return retail_price, Market.EXTERNAL
 
 
-def get_price_and_market_to_use_when_selling(clearing_price, wholesale_price):
+def get_price_and_market_to_use_when_selling(clearing_price: float, wholesale_price: float):
     if clearing_price >= wholesale_price:
         return clearing_price, Market.LOCAL
     else:

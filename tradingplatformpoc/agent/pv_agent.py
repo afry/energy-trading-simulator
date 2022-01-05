@@ -11,7 +11,7 @@ class PVAgent(IAgent):
         super().__init__(guid, data_store)
         self.digital_twin = digital_twin
 
-    def make_bids(self, period):
+    def make_bids(self, period, clearing_prices_dict: dict = None):
         # The PV park should make a bid to sell energy
         # Pricing logic:
         # If the agent represents only solar panels and no storage, then the electricity must be sold.
@@ -39,7 +39,7 @@ class PVAgent(IAgent):
         # Negative means net producer
         return -self.digital_twin.get_production(period, Resource.ELECTRICITY)
 
-    def make_trade_given_clearing_price(self, period, clearing_price):
+    def make_trade_given_clearing_price(self, period, clearing_price: float, clearing_prices_dict: dict = None):
         usage = self.get_actual_usage(period)
         if usage < 0:
             wholesale_price = self.get_external_grid_buy_price(period)
