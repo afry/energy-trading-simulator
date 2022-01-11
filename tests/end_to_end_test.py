@@ -8,6 +8,13 @@ from tradingplatformpoc.bid import Action
 class Test(TestCase):
 
     def test(self):
+        """
+        Run the trading simulations with simulation_runner. If it runs ok (and doesn't throw an error or anything), then
+        this test will go through all trading periods, assert that the total amount of energy bought equals the total
+        amount of energy sold. Furthermore, it will look at monetary compensation, and make sure that the amounts paid
+        and received by different actors all match up.
+        """
+
         current_directory = os.getcwd()
         mock_datas_file_path = get_mock_datas_pickle_file_path(current_directory)
 
