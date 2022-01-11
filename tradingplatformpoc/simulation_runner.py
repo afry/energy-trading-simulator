@@ -24,6 +24,8 @@ from tradingplatformpoc.trade import write_rows
 from tradingplatformpoc.bid import Bid
 from pkg_resources import resource_filename
 
+from tradingplatformpoc.trading_platform_utils import get_intersection
+
 logger = logging.getLogger(__name__)
 
 
@@ -36,7 +38,10 @@ def run_trading_simulations(mock_datas_pickle_path: str):
         config_data = json.load(jsonfile)
 
     # Initialize data store
-    data_store_entity = DataStore(config_area_info=config_data["AreaInfo"])
+    data_store_entity = DataStore.from_csv_files(config_area_info=config_data["AreaInfo"])
+
+    # Specify path for CSV files from which to take some mock data (currently only for grocery store)
+    energy_data_csv_path = resource_filename("tradingplatformpoc.data", "full_mock_energy_data.csv")
 
     # Load generated mock data
     buildings_mock_data = get_generated_mock_data(config_data, mock_datas_pickle_path)
@@ -57,7 +62,8 @@ def run_trading_simulations(mock_datas_pickle_path: str):
     # Keep a list of all agents to iterate over later
     agents: List[IAgent]
     try:
-        agents, grid_agent = initialize_agents(data_store_entity, config_data, buildings_mock_data)
+        agents, grid_agent = initialize_agents(data_store_entity, config_data, buildings_mock_data,
+                                               energy_data_csv_path)
     except RuntimeError as e:
         clearing_prices_file.write(e.args)
         exit(1)
@@ -66,7 +72,8 @@ def run_trading_simulations(mock_datas_pickle_path: str):
     market_solver = MarketSolver()
 
     # Main loop
-    trading_periods = data_store_entity.get_trading_periods()
+    trading_periods = get_intersection(buildings_mock_data.index.tolist(),
+                                       data_store_entity.get_nordpool_data_datetimes())
     for period in trading_periods:
         # Get all bids
         bids = [agent.make_bids(period, clearing_prices_dict) for agent in agents]
@@ -129,10 +136,15 @@ def get_generated_mock_data(config_data: dict, mock_datas_pickle_path: str):
         return all_data_sets[building_agents_frozen_set]
 
 
-def initialize_agents(data_store_entity: data_store, config_data: dict, buildings_mock_data: pd.DataFrame):
+def initialize_agents(data_store_entity: data_store, config_data: dict, buildings_mock_data: pd.DataFrame,
+                      energy_data_csv_path: str):
     # Register all agents
     # Keep a list of all agents to iterate over later
     agents: List[IAgent] = []
+
+    # Read energy CSV file
+    tornet_household_elec_cons, coop_elec_cons, tornet_heat_cons, coop_heat_cons = \
+        data_store.read_energy_data(energy_data_csv_path)
 
     for agent in config_data["Agents"]:
         agent_type = agent["Type"]
@@ -156,8 +168,8 @@ def initialize_agents(data_store_entity: data_store, config_data: dict, building
             pv_digital_twin = StaticDigitalTwin(electricity_production=data_store_entity.tornet_park_pv_prod)
             agents.append(PVAgent(data_store_entity, pv_digital_twin, guid=agent["Name"]))
         elif agent_type == "GroceryStoreAgent":
-            grocery_store_digital_twin = StaticDigitalTwin(electricity_usage=data_store_entity.coop_elec_cons,
-                                                           heating_usage=data_store_entity.coop_heat_cons,
+            grocery_store_digital_twin = StaticDigitalTwin(electricity_usage=coop_elec_cons,
+                                                           heating_usage=coop_heat_cons,
                                                            electricity_production=data_store_entity.coop_pv_prod)
             agents.append(GroceryStoreAgent(data_store_entity, grocery_store_digital_twin, guid=agent["Name"]))
         elif agent_type == "ElectricityGridAgent":

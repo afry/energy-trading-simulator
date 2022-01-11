@@ -2,28 +2,38 @@ import json
 from datetime import datetime
 
 from unittest import TestCase
+
+import numpy as np
+import pandas as pd
+
 from tradingplatformpoc import data_store
+from tradingplatformpoc.trading_platform_utils import datetime_array_between
+
+
+AREA_INFO = {
+    "ParkPVArea": 24324.3,
+    "StorePVArea": 320,
+    "PVEfficiency": 0.165
+}
+DATETIME_ARRAY = datetime_array_between(datetime(2018, 12, 31, 23), datetime(2020, 1, 31, 22))
+CONSTANT_NORDPOOL_PRICE = 0.6  # Doesn't matter what this is
+ONES_SERIES = pd.Series(np.ones(shape=len(DATETIME_ARRAY)), index=DATETIME_ARRAY)
 
 
 class TestDataStore(TestCase):
-
-    def __init__(self, *args, **kwargs):
-        super(TestDataStore, self).__init__(*args, **kwargs)
-        with open("../tradingplatformpoc/data/jonstaka.json", "r") as jsonfile:
-            config_data = json.load(jsonfile)
-
-        self.data_store_entity = data_store.DataStore(config_area_info=config_data["AreaInfo"])
+    data_store_entity = data_store.DataStore(config_area_info=AREA_INFO,
+                                             nordpool_data=ONES_SERIES * CONSTANT_NORDPOOL_PRICE,
+                                             irradiation_data=ONES_SERIES)
 
     def test_get_nordpool_price_for_period(self):
-        self.assertEqual(0.51871, self.data_store_entity.get_nordpool_price_for_period(datetime(2019, 2, 1, 1, 0, 0)))
+        """Test that what we put into data_store is the same as we get out"""
+        self.assertEqual(CONSTANT_NORDPOOL_PRICE,
+                         self.data_store_entity.get_nordpool_price_for_period(datetime(2019, 2, 1, 1, 0, 0)))
 
-    def test_retail_price(self):
-        self.assertEqual(0.99871, self.data_store_entity.get_retail_price(datetime(2019, 2, 1, 1, 0, 0)))
+    def test_retail_price_greater_than_wholesale_price(self):
+        """Test that the retail price is always greater than the wholesale price"""
+        for dt in DATETIME_ARRAY:
+            retail_price = self.data_store_entity.get_retail_price(dt)
+            wholesale_price = self.data_store_entity.get_wholesale_price(dt)
+            self.assertTrue(retail_price > wholesale_price)
 
-    def test_wholesale_price(self):
-        self.assertEqual(0.56871, self.data_store_entity.get_wholesale_price(datetime(2019, 2, 1, 1, 0, 0)))
-
-    def test_get_energy_mock_timestamps(self):
-        test = self.data_store_entity.get_trading_periods()
-        # Need to figure out some reasonable assertion for this unit test. Length of list?
-        self.assertEqual(1, 1)

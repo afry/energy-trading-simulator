@@ -3,6 +3,9 @@ import json
 from datetime import datetime
 from unittest import TestCase
 
+import numpy as np
+import pandas as pd
+
 from tradingplatformpoc import data_store, agent
 from tradingplatformpoc.bid import Resource, Action
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
@@ -14,15 +17,28 @@ import tradingplatformpoc.agent.grid_agent
 import tradingplatformpoc.agent.grocery_store_agent
 import tradingplatformpoc.agent.pv_agent
 import tradingplatformpoc.agent.storage_agent
+from tradingplatformpoc.trading_platform_utils import datetime_array_between
 
-data_store_entity = data_store.DataStore(config_area_info={
+AREA_INFO = {
     "ParkPVArea": 24324.3,
     "StorePVArea": 320,
     "PVEfficiency": 0.165
-})
+}
+DATETIME_ARRAY = datetime_array_between(datetime(2018, 12, 31, 23), datetime(2020, 1, 31, 22))
+
+# To make tests consistent, set a random seed
+np.random.seed(1)
+# Create data
+nordpool_values = np.random.uniform(0, 4.0, len(DATETIME_ARRAY))
+irradiation_values = np.random.uniform(0, 100.0, len(DATETIME_ARRAY))
+#
+data_store_entity = data_store.DataStore(config_area_info=AREA_INFO,
+                                         nordpool_data=pd.Series(nordpool_values, index=DATETIME_ARRAY),
+                                         irradiation_data=pd.Series(irradiation_values, index=DATETIME_ARRAY))
 
 
 class TestGridAgent(unittest.TestCase):
+
     grid_agent = tradingplatformpoc.agent.grid_agent.ElectricityGridAgent(data_store_entity)
 
     def test_make_bids(self):
@@ -33,10 +49,10 @@ class TestGridAgent(unittest.TestCase):
         self.assertTrue(bids[0].quantity > 0)
 
     def test_calculate_trades_1(self):
-        retail_price = 0.99871
+        retail_price = 3.9248465534671775
         trades_excl_external = [
             Trade(Action.BUY, Resource.ELECTRICITY, 100, retail_price, "BuildingAgent", False, Market.LOCAL,
-                  datetime(2019, 2, 1, 1, 0, 0))
+                  datetime(2019, 2, 1, 1))
         ]
         external_trades = self.grid_agent.calculate_external_trades(trades_excl_external, retail_price)
         self.assertEqual(1, len(external_trades))
@@ -60,7 +76,7 @@ class TestGridAgent(unittest.TestCase):
         self.assertEqual(0, len(external_trades))
 
     def test_calculate_trades_price_not_matching(self):
-        local_price = 1
+        local_price = 10
         trades_excl_external = [
             Trade(Action.BUY, Resource.ELECTRICITY, 100, local_price, "BuildingAgent", False, Market.LOCAL,
                   datetime(2019, 2, 1, 1, 0, 0))
@@ -79,7 +95,7 @@ class TestGridAgent(unittest.TestCase):
         self.assertEqual(1, len(external_trades))
 
     def test_calculate_trades_2(self):
-        wholesale_price = 0.56871
+        wholesale_price = 3.4948465534671773
         period = datetime(2019, 2, 1, 1, 0, 0)
         trades_excl_external = [
             Trade(Action.BUY, Resource.ELECTRICITY, 100, wholesale_price, "BuildingAgent", False, Market.LOCAL, period),
@@ -111,8 +127,11 @@ class TestBatteryStorageAgent(unittest.TestCase):
 
 
 class TestBuildingAgent(TestCase):
-    building_digital_twin = StaticDigitalTwin(electricity_usage=data_store_entity.tornet_household_elec_cons,
-                                              heating_usage=data_store_entity.tornet_heat_cons)
+    # Won't test exact values so don't need to set random seed
+    elec_values = np.random.uniform(0, 100.0, len(DATETIME_ARRAY))
+    heat_values = np.random.uniform(0, 100.0, len(DATETIME_ARRAY))
+    building_digital_twin = StaticDigitalTwin(electricity_usage=pd.Series(elec_values, index=DATETIME_ARRAY),
+                                              heating_usage=pd.Series(heat_values, index=DATETIME_ARRAY))
     building_agent = agent.building_agent.BuildingAgent(data_store_entity, building_digital_twin)
 
     def test_make_bids(self):
@@ -124,8 +143,11 @@ class TestBuildingAgent(TestCase):
 
 
 class TestGroceryStoreAgent(TestCase):
-    grocery_store_digital_twin = StaticDigitalTwin(electricity_usage=data_store_entity.coop_elec_cons,
-                                                   heating_usage=data_store_entity.coop_heat_cons,
+    # Won't test exact values so don't need to set random seed
+    elec_values = np.random.uniform(0, 100.0, len(DATETIME_ARRAY))
+    heat_values = np.random.uniform(0, 100.0, len(DATETIME_ARRAY))
+    grocery_store_digital_twin = StaticDigitalTwin(electricity_usage=pd.Series(elec_values, index=DATETIME_ARRAY),
+                                                   heating_usage=pd.Series(heat_values, index=DATETIME_ARRAY),
                                                    electricity_production=data_store_entity.coop_pv_prod)
     grocery_store_agent = tradingplatformpoc.agent.grocery_store_agent.GroceryStoreAgent(data_store_entity,
                                                                                          grocery_store_digital_twin)
@@ -134,7 +156,7 @@ class TestGroceryStoreAgent(TestCase):
         bids = self.grocery_store_agent.make_bids(datetime(2019, 7, 7, 11, 0, 0))
         self.assertEqual(Resource.ELECTRICITY, bids[0].resource)
         self.assertEqual(Action.BUY, bids[0].action)
-        self.assertAlmostEqual(193.7625279202484, bids[0].quantity)
+        self.assertTrue(bids[0].quantity > 0)
         self.assertTrue(bids[0].price > 1000)
 
 
@@ -146,5 +168,5 @@ class TestPVAgent(TestCase):
         bids = self.tornet_pv_agent.make_bids(datetime(2019, 7, 7, 11, 0, 0))
         self.assertEqual(Resource.ELECTRICITY, bids[0].resource)
         self.assertEqual(Action.SELL, bids[0].action)
-        self.assertAlmostEqual(3215.22246045, bids[0].quantity)
-        self.assertAlmostEqual(0.34389, bids[0].price)
+        self.assertAlmostEqual(325.1019614111333, bids[0].quantity)
+        self.assertAlmostEqual(2.7982933842310787, bids[0].price)
