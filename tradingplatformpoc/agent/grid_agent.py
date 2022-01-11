@@ -72,14 +72,10 @@ class ElectricityGridAgent(IAgent):
                 Trade(Action.SELL, resource, sum_buys - sum_sells, retail_price, self.guid, True, market, period))
             if market == Market.LOCAL:
                 if local_clearing_price < retail_price:
-                    # This isn't necessarily a problem, per se, but when we move away from perfect predictions,
-                    # we'll have to do something when this happens: Basically the market solver believed that locally
-                    # produced energy would cover the needs of all agents, but it turned out to not be the case,
-                    # so we had to import some energy from the external grid, at a higher price than the local price.
-                    # The agents will have to split the extra cost between themselves, in some way. Both producers and
-                    # consumers could be to blame - producers may have produced less than they thought they would, and
-                    # consumers may have consumed more than they thought they would. We'll have to work out some
-                    # proportional way of distributing the extra cost.
+                    # What happened here is that the market solver believed that locally produced energy would cover
+                    # the needs of all agents, but it turned out to not be the case, so we had to import some energy
+                    # from the external grid, at a higher price than the local price. Some penalisation will be
+                    # applied in the balance manager.
                     logger.debug("External grid sells at {:.5f} SEK/kWh to the local market, but the clearing price "
                                  "was {:.5f} SEK/kWh.".format(retail_price, local_clearing_price))
                 elif local_clearing_price > retail_price:
@@ -89,14 +85,10 @@ class ElectricityGridAgent(IAgent):
                 Trade(Action.BUY, resource, sum_sells - sum_buys, wholesale_price, self.guid, True, market, period))
             if market == Market.LOCAL:
                 if local_clearing_price > wholesale_price:
-                    # This isn't necessarily a problem, per se, but when we move away from perfect predictions,
-                    # we'll have to do something when this happens: Basically the market solver believed that there
-                    # would be a local deficit, but it turned out to not be the case, instead there was a local
-                    # surplus. So, producing agents had to export some energy to the external grid, at a lower price
-                    # than the local price. The agents will have to split the extra cost (or rather, missing revenue)
-                    # between themselves, in some way. Both producers and consumers could be to blame - producers may
-                    # have produced more than they thought they would, and consumers may have consumed less than they
-                    # thought they would. We'll have to work out some proportional way of distributing the extra cost.
+                    # What happened here is that the market solver believed that there would be a local deficit,
+                    # but it turned out to not be the case, instead there was a local surplus. So, producing agents
+                    # had to export some energy to the external grid, at a lower price than the local price. Some
+                    # penalisation will be applied in the balance manager.
                     logger.debug("External grid buys at {:.5f} SEK/kWh from the local market, but the clearing price "
                                  "was {:.5f} SEK/kWh".format(wholesale_price, local_clearing_price))
                 elif local_clearing_price < wholesale_price:

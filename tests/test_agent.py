@@ -1,5 +1,4 @@
 import unittest
-import json
 from datetime import datetime
 from unittest import TestCase
 
@@ -19,6 +18,10 @@ import tradingplatformpoc.agent.pv_agent
 import tradingplatformpoc.agent.storage_agent
 from tradingplatformpoc.trading_platform_utils import datetime_array_between
 
+MAX_NORDPOOL_PRICE = 4.0
+
+MIN_NORDPOOL_PRICE = 0.1
+
 AREA_INFO = {
     "ParkPVArea": 24324.3,
     "StorePVArea": 320,
@@ -29,7 +32,7 @@ DATETIME_ARRAY = datetime_array_between(datetime(2018, 12, 31, 23), datetime(202
 # To make tests consistent, set a random seed
 np.random.seed(1)
 # Create data
-nordpool_values = np.random.uniform(0, 4.0, len(DATETIME_ARRAY))
+nordpool_values = np.random.uniform(MIN_NORDPOOL_PRICE, MAX_NORDPOOL_PRICE, len(DATETIME_ARRAY))
 irradiation_values = np.random.uniform(0, 100.0, len(DATETIME_ARRAY))
 #
 data_store_entity = data_store.DataStore(config_area_info=AREA_INFO,
@@ -42,6 +45,7 @@ class TestGridAgent(unittest.TestCase):
     grid_agent = tradingplatformpoc.agent.grid_agent.ElectricityGridAgent(data_store_entity)
 
     def test_make_bids(self):
+        """Test basic functionality of GridAgent's make_bids method."""
         bids = self.grid_agent.make_bids(datetime(2019, 2, 1, 1, 0, 0))
         self.assertEqual(1, len(bids))
         self.assertEqual(Resource.ELECTRICITY, bids[0].resource)
@@ -49,7 +53,8 @@ class TestGridAgent(unittest.TestCase):
         self.assertTrue(bids[0].quantity > 0)
 
     def test_calculate_trades_1(self):
-        retail_price = 3.9248465534671775
+        """Test basic functionality of GridAgent's calculate_external_trades method when there is a local deficit."""
+        retail_price = 3.938725389630498
         trades_excl_external = [
             Trade(Action.BUY, Resource.ELECTRICITY, 100, retail_price, "BuildingAgent", False, Market.LOCAL,
                   datetime(2019, 2, 1, 1))
@@ -59,12 +64,13 @@ class TestGridAgent(unittest.TestCase):
         self.assertEqual(Action.SELL, external_trades[0].action)
         self.assertEqual(Resource.ELECTRICITY, external_trades[0].resource)
         self.assertEqual(trades_excl_external[0].quantity, external_trades[0].quantity)
-        self.assertEqual(retail_price, external_trades[0].price)
+        self.assertAlmostEqual(retail_price, external_trades[0].price)
         self.assertEqual("ElectricityGridAgent", external_trades[0].source)
         self.assertEqual(Market.LOCAL, external_trades[0].market)
         self.assertEqual(datetime(2019, 2, 1, 1, 0, 0), external_trades[0].period)
 
     def test_calculate_trades_local_equilibrium(self):
+        """Test the calculate_external_trades method when there is no need for any external trades."""
         retail_price = 0.99871
         trades_excl_external = [
             Trade(Action.BUY, Resource.ELECTRICITY, 100, retail_price, "BuildingAgent", False, Market.LOCAL,
@@ -76,7 +82,8 @@ class TestGridAgent(unittest.TestCase):
         self.assertEqual(0, len(external_trades))
 
     def test_calculate_trades_price_not_matching(self):
-        local_price = 10
+        """Test that an error is raised when the local price is specified as greater than the external retail price."""
+        local_price = MAX_NORDPOOL_PRICE + 1.0
         trades_excl_external = [
             Trade(Action.BUY, Resource.ELECTRICITY, 100, local_price, "BuildingAgent", False, Market.LOCAL,
                   datetime(2019, 2, 1, 1, 0, 0))
@@ -85,7 +92,9 @@ class TestGridAgent(unittest.TestCase):
             external_trades = self.grid_agent.calculate_external_trades(trades_excl_external, local_price)
 
     def test_calculate_trades_price_not_matching_2(self):
-        local_price = 0.5
+        """Test calculate_external_trades when local price is lower than the retail price, but there is a need for
+        importing of energy. This will lead to penalisation of someone, but shouldn't raise an error."""
+        local_price = MIN_NORDPOOL_PRICE - 1.0
         trades_excl_external = [
             Trade(Action.BUY, Resource.ELECTRICITY, 100, local_price, "BuildingAgent", False, Market.LOCAL,
                   datetime(2019, 2, 1, 1, 0, 0))
@@ -95,7 +104,8 @@ class TestGridAgent(unittest.TestCase):
         self.assertEqual(1, len(external_trades))
 
     def test_calculate_trades_2(self):
-        wholesale_price = 3.4948465534671773
+        """Test basic functionality of GridAgent's calculate_external_trades method when there is a local surplus."""
+        wholesale_price = 3.5087253896304977
         period = datetime(2019, 2, 1, 1, 0, 0)
         trades_excl_external = [
             Trade(Action.BUY, Resource.ELECTRICITY, 100, wholesale_price, "BuildingAgent", False, Market.LOCAL, period),
@@ -107,17 +117,18 @@ class TestGridAgent(unittest.TestCase):
         self.assertEqual(Action.BUY, external_trades[0].action)
         self.assertEqual(Resource.ELECTRICITY, external_trades[0].resource)
         self.assertEqual(100, external_trades[0].quantity)
-        self.assertEqual(wholesale_price, external_trades[0].price)
+        self.assertAlmostEqual(wholesale_price, external_trades[0].price)
         self.assertEqual("ElectricityGridAgent", external_trades[0].source)
         self.assertEqual(Market.LOCAL, external_trades[0].market)
         self.assertEqual(period, external_trades[0].period)
 
 
-class TestBatteryStorageAgent(unittest.TestCase):
+class TestStorageAgent(unittest.TestCase):
     twin = StorageDigitalTwin(max_capacity_kwh=1000, max_charge_rate_fraction=0.1, max_discharge_rate_fraction=0.1)
     battery_agent = tradingplatformpoc.agent.storage_agent.StorageAgent(data_store_entity, twin, 168, 20, 80)
 
     def test_make_bids(self):
+        """Test basic functionality of StorageAgent's make_bids method."""
         bids = self.battery_agent.make_bids(datetime(2019, 2, 1, 1, 0, 0), {})
         self.assertEqual(Resource.ELECTRICITY, bids[0].resource)
         self.assertEqual(Action.BUY, bids[0].action)
@@ -135,6 +146,7 @@ class TestBuildingAgent(TestCase):
     building_agent = agent.building_agent.BuildingAgent(data_store_entity, building_digital_twin)
 
     def test_make_bids(self):
+        """Test basic functionality of BuildingAgent's make_bids method."""
         bids = self.building_agent.make_bids(datetime(2019, 2, 1, 1, 0, 0))
         self.assertEqual(bids[0].resource, Resource.ELECTRICITY)
         self.assertEqual(bids[0].action, Action.BUY)
@@ -153,6 +165,7 @@ class TestGroceryStoreAgent(TestCase):
                                                                                          grocery_store_digital_twin)
 
     def test_make_bids(self):
+        """Test basic functionality of GroceryStoreAgent's make_bids method."""
         bids = self.grocery_store_agent.make_bids(datetime(2019, 7, 7, 11, 0, 0))
         self.assertEqual(Resource.ELECTRICITY, bids[0].resource)
         self.assertEqual(Action.BUY, bids[0].action)
@@ -165,8 +178,9 @@ class TestPVAgent(TestCase):
     tornet_pv_agent = tradingplatformpoc.agent.pv_agent.PVAgent(data_store_entity, pv_digital_twin)
 
     def test_make_bids(self):
+        """Test basic functionality of PVAgent's make_bids method."""
         bids = self.tornet_pv_agent.make_bids(datetime(2019, 7, 7, 11, 0, 0))
         self.assertEqual(Resource.ELECTRICITY, bids[0].resource)
         self.assertEqual(Action.SELL, bids[0].action)
         self.assertAlmostEqual(325.1019614111333, bids[0].quantity)
-        self.assertAlmostEqual(2.7982933842310787, bids[0].price)
+        self.assertAlmostEqual(2.8295860496253016, bids[0].price)
