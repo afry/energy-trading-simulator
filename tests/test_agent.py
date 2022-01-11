@@ -15,9 +15,11 @@ import tradingplatformpoc.agent.grocery_store_agent
 import tradingplatformpoc.agent.pv_agent
 import tradingplatformpoc.agent.storage_agent
 
-with open("../tradingplatformpoc/data/jonstaka.json", "r") as jsonfile:
-    config_data = json.load(jsonfile)
-data_store_entity = data_store.DataStore(config_area_info=config_data["AreaInfo"])
+data_store_entity = data_store.DataStore(config_area_info={
+    "ParkPVArea": 24324.3,
+    "StorePVArea": 320,
+    "PVEfficiency": 0.165
+})
 
 
 class TestGridAgent(unittest.TestCase):
@@ -106,10 +108,6 @@ class TestBatteryStorageAgent(unittest.TestCase):
         self.assertTrue(bids[0].quantity > 0)
         self.assertTrue(bids[0].quantity <= 1000)
         self.assertTrue(bids[0].price > 0)
-
-
-if __name__ == '__main__':
-    unittest.main()
 
 
 class TestBuildingAgent(TestCase):
