@@ -18,6 +18,10 @@ class Bid:
         self.price = price
         self.source = source
         self.by_external = by_external
+        self.was_accepted = None
+
+    def set_was_accepted(self, was_accepted: bool):
+        self.was_accepted = was_accepted
 
 
 class Action:
