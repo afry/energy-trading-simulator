@@ -77,8 +77,9 @@ def read_school_energy_consumption_csv(csv_path: str):
                                               energy_data['Time'], format='%Y-%m-%d %H:%M')
     energy_data = energy_data.sort_values(by=['Timestamp'])
     energy_data = energy_data.set_index('Timestamp')
-    energy_data = energy_data['Energy']
-    energy_data = energy_data.resample('1H').sum()  # Half-hourly -> hourly
+    energy_data = energy_data.rename({'Energy': 'Energy [kWh]'}, axis=1)
+    energy_data = energy_data['Energy [kWh]']
+    energy_data = energy_data.resample('1H').sum() / 2  # Half-hourly -> hourly. Data seems to be kWh/h, hence the /2
     return energy_data
 
 
