@@ -1,5 +1,6 @@
-import os
 from unittest import TestCase
+
+from pkg_resources import resource_filename
 
 from tradingplatformpoc import simulation_runner
 from tradingplatformpoc.bid import Action
@@ -14,9 +15,7 @@ class Test(TestCase):
         amount of energy sold. Furthermore, it will look at monetary compensation, and make sure that the amounts paid
         and received by different actors all match up.
         """
-
-        current_directory = os.getcwd()
-        mock_datas_file_path = get_mock_datas_pickle_file_path(current_directory)
+        mock_datas_file_path = resource_filename("tradingplatformpoc.data", "generated/mock_datas.pickle")
 
         clearing_prices, all_trades, all_extra_costs = simulation_runner.run_trading_simulations(mock_datas_file_path)
 
@@ -36,17 +35,6 @@ class Test(TestCase):
                 cost_for_agent = sum([x.get_cost_of_trade() for x in trades_for_agent]) + extra_costs_for_agent
                 total_cost = total_cost + cost_for_agent
             self.assertAlmostEqual(0, total_cost)
-
-
-def get_mock_datas_pickle_file_path(current_directory):
-    folders = current_directory.split("\\")
-    if folders[len(folders) - 1] == 'trading-platform-poc':
-        mock_datas_file_path = './tradingplatformpoc/data/generated/mock_datas.pickle'
-    elif folders[len(folders) - 2] == 'trading-platform-poc':
-        mock_datas_file_path = '../tradingplatformpoc/data/generated/mock_datas.pickle'
-    else:
-        raise RuntimeError('Could not find pickle file with mock data')
-    return mock_datas_file_path
 
 
 def get_extra_cost_for_agent(extra_costs_for_period, agent):
