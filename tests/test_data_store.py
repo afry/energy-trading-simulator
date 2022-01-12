@@ -1,8 +1,8 @@
 from datetime import datetime
-
 from unittest import TestCase
 
 import numpy as np
+
 import pandas as pd
 
 from tradingplatformpoc import data_store
@@ -35,4 +35,3 @@ class TestDataStore(TestCase):
             retail_price = self.data_store_entity.get_retail_price(dt)
             wholesale_price = self.data_store_entity.get_wholesale_price(dt)
             self.assertTrue(retail_price > wholesale_price)
-
