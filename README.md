@@ -19,6 +19,8 @@ default interpretor to your venv.
 
         pip install --upgrade pip
         pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+        pip install -r requirements-test.txt
 
 Install package as editable (command automatically searches for the setup.py file): 
         
