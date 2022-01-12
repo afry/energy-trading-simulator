@@ -16,7 +16,7 @@ class TestMarketSolver(TestCase):
         # Someone willing to sell 100 kWh at 1 SEK/kWh,
         # someone willing to buy 100 kWh at 1.5 SEK/kWh.
         # Clearing price should be 1 SEK/kWh
-        clearing_price = self.ms.resolve_bids(bids)
+        clearing_price, bids_with_acceptance_status = self.ms.resolve_bids(bids)
         self.assertEqual(1, clearing_price)
 
     def test_resolve_bids_2(self):
@@ -26,7 +26,7 @@ class TestMarketSolver(TestCase):
         # Someone willing to sell 100 kWh at 1 SEK/kWh,
         # someone willing to buy 100 kWh at 0.5 SEK/kWh.
         # Clearing price should be 1 SEK/kWh
-        clearing_price = self.ms.resolve_bids(bids)
+        clearing_price, bids_with_acceptance_status = self.ms.resolve_bids(bids)
         self.assertEqual(1, clearing_price)
 
     def test_resolve_bids_3(self):
@@ -40,7 +40,7 @@ class TestMarketSolver(TestCase):
         # someone willing to sell 10000 kWh at 10 SEK/kWh,
         # someone willing to buy 200 kWh at Inf SEK/kWh.
         # Clearing price should be 1.5 SEK/kWh
-        clearing_price = self.ms.resolve_bids(bids)
+        clearing_price, bids_with_acceptance_status = self.ms.resolve_bids(bids)
         self.assertEqual(1.5, clearing_price)
 
     def test_resolve_bids_4(self):
@@ -55,7 +55,7 @@ class TestMarketSolver(TestCase):
         # someone willing to sell 100 kWh at 1 SEK/kWh,
         # someone willing to buy 200 kWh at Inf SEK/kWh.
         # Clearing price should be 1 SEK/kWh
-        clearing_price = self.ms.resolve_bids(bids)
+        clearing_price, bids_with_acceptance_status = self.ms.resolve_bids(bids)
         self.assertEqual(1, clearing_price)
 
     def test_resolve_bids_5(self):
@@ -74,5 +74,5 @@ class TestMarketSolver(TestCase):
                 Bid(Action.SELL, Resource.ELECTRICITY, 10000, 0.89069, 'ElectricityGridAgent', True)]
         # Local surplus
         # Clearing price should be 0.46069 SEK/kWh
-        clearing_price = self.ms.resolve_bids(bids)
+        clearing_price, bids_with_acceptance_status = self.ms.resolve_bids(bids)
         self.assertEqual(0.46069, clearing_price)

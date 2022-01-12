@@ -25,7 +25,19 @@ class MarketSolver:
 
             if supply_for_price_point >= demand_for_price_point:
                 # Found an acceptable price!
-                return price_point
+                # Now specify what bids were accepted.
+                for bid in bids:
+                    if bid.action == Action.SELL:
+                        if bid.price <= price_point:
+                            bid.set_was_accepted(True)
+                        else:
+                            bid.set_was_accepted(False)
+                    else:  # BUY
+                        if bid.price >= price_point:
+                            bid.set_was_accepted(True)
+                        else:
+                            bid.set_was_accepted(False)
+                return price_point, bids
 
         raise RuntimeError("No acceptable price found!")
 

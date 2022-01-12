@@ -1,10 +1,10 @@
 import logging
-from typing import List
+from typing import List, Sized, Collection
 
 import numpy as np
 
 from tradingplatformpoc.agent.iagent import IAgent
-from tradingplatformpoc.bid import Action, Resource
+from tradingplatformpoc.bid import Action, Resource, Bid
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
 from tradingplatformpoc.trade import Market
@@ -56,31 +56,25 @@ class StorageAgent(IAgent):
     def get_actual_usage(self, period):
         pass
 
-    def make_trade_given_clearing_price(self, period, clearing_price: float, clearing_prices_dict: dict):
-        # The following is only needed since we have to calculate ourselves what bid(s) were accepted
-        nordpool_prices_last_n_hours_dict = self.data_store.get_nordpool_prices_last_n_hours_dict(period,
-                                                                                                  self.go_back_n_hours)
-        prices_last_n_hours = get_prices_last_n_hours(period, self.go_back_n_hours, clearing_prices_dict,
-                                                      nordpool_prices_last_n_hours_dict)
-        current_nordpool_wholesale_price = self.data_store.get_wholesale_price(period)
-        current_nordpool_retail_price = self.data_store.get_retail_price(period)
-        # Buy/sell price capped by external retail/wholesale price respectively
-        buy_bid_price = min(self.calculate_buy_price(prices_last_n_hours), current_nordpool_retail_price)
-        sell_bid_price = max(self.calculate_sell_price(prices_last_n_hours), current_nordpool_wholesale_price)
-        buy_bid_quantity = self.calculate_buy_quantity()
-        sell_bid_quantity = self.calculate_sell_quantity()
+    def make_trade_given_clearing_price(self, period, clearing_price: float, clearing_prices_dict: dict,
+                                        accepted_bids_for_agent: List[Bid]):
         # In this implementation, the battery never sells or buys directly from the external grid.
-
-        if clearing_price <= buy_bid_price:
-            actual_charge_quantity = self.digital_twin.charge(buy_bid_quantity)
-            if actual_charge_quantity > 0:
-                return self.construct_trade(Action.BUY, Resource.ELECTRICITY, actual_charge_quantity,
-                                            clearing_price, Market.LOCAL, period)
-        elif clearing_price >= sell_bid_price:
-            actual_discharge_quantity = self.digital_twin.discharge(sell_bid_quantity)
-            if actual_discharge_quantity > 0:
-                return self.construct_trade(Action.SELL, Resource.ELECTRICITY, actual_discharge_quantity,
-                                            clearing_price, Market.LOCAL, period)
+        if len(accepted_bids_for_agent) > 1:
+            # As we are currently only supporting one Resource (electricity), this would be unexpected
+            raise RuntimeError("More than 1 accepted bid in one trading period for storage agent")
+        elif len(accepted_bids_for_agent) == 1:
+            bid_quantity = accepted_bids_for_agent[0].quantity
+            bid_resource = accepted_bids_for_agent[0].resource
+            if accepted_bids_for_agent[0].action == Action.BUY:
+                actual_charge_quantity = self.digital_twin.charge(bid_quantity)
+                if actual_charge_quantity > 0:
+                    return self.construct_trade(Action.BUY, bid_resource, actual_charge_quantity,
+                                                clearing_price, Market.LOCAL, period)
+            else:  # action was SELL
+                actual_discharge_quantity = self.digital_twin.discharge(bid_quantity)
+                if actual_discharge_quantity > 0:
+                    return self.construct_trade(Action.SELL, bid_resource, actual_discharge_quantity,
+                                                clearing_price, Market.LOCAL, period)
         return None
 
     def calculate_buy_price(self, prices_last_n_hours: List[float]):

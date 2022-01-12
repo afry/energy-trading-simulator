@@ -56,6 +56,7 @@ def run_trading_simulations(mock_datas_pickle_path: str):
     # Output lists
     clearing_prices_dict = {}
     all_trades_list = []
+    all_bids_list = []
     all_extra_costs_dict = {}
 
     # Register all agents
@@ -83,19 +84,27 @@ def run_trading_simulations(mock_datas_pickle_path: str):
 
         # Resolve bids
         try:
-            clearing_price = market_solver.resolve_bids(bids_flat)
+            clearing_price, bids_with_acceptance_status = market_solver.resolve_bids(bids_flat)
         except RuntimeError as e:
             clearing_price = e.args
+            bids_with_acceptance_status = []
         clearing_prices_dict[period] = clearing_price
 
         clearing_prices_file.write('{},{}\n'.format(period, clearing_price))
+        all_bids_list.extend(bids_with_acceptance_status)
 
         # Send clearing price back to agents, allow them to "make trades", i.e. decide if they want to buy/sell
         # energy, from/to either the local market or directly from/to the external grid.
         # To be clear: These "trades" are for _actual_ amounts, not predicted. All agents except the external grid agent
         # makes these, then finally the external grid agent "fills in" the energy imbalances through "trades" of its own
-        trades_excl_external = [agent.make_trade_given_clearing_price(period, clearing_price, clearing_prices_dict)
-                                for agent in agents]
+        trades_excl_external = []
+        for agent in agents:
+            accepted_bids_for_agent = [bid for bid in bids_with_acceptance_status
+                                       if bid.source == agent.guid and bid.was_accepted]
+            trades_excl_external.append(
+                agent.make_trade_given_clearing_price(period, clearing_price, clearing_prices_dict,
+                                                      accepted_bids_for_agent))
+
         trades_excl_external = [i for i in trades_excl_external if i]  # filter out None
         external_trades = grid_agent.calculate_external_trades(trades_excl_external, clearing_price)
         all_trades_for_period = trades_excl_external + external_trades

@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import List
 
 from ..bid import Bid
 from ..data_store import DataStore
@@ -29,7 +30,8 @@ class IAgent(ABC):
         pass
 
     @abstractmethod
-    def make_trade_given_clearing_price(self, period, clearing_price: float, clearing_prices_dict: dict):
+    def make_trade_given_clearing_price(self, period, clearing_price: float, clearing_prices_dict: dict,
+                                        accepted_bids_for_agent: List[Bid]):
         # Once market solver has decided a clearing price, it will send it to the agents with this method
         # Should return a Trade
         pass
