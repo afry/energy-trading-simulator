@@ -10,8 +10,8 @@ import pickle
 
 from statsmodels.regression.linear_model import RegressionResultsWrapper
 
-from tradingplatformpoc.mock_data_generation_functions import load_existing_data_sets, get_all_building_agents, \
-    get_elec_cons_key, get_pv_prod_key
+from tradingplatformpoc.mock_data_generation_functions import load_existing_data_sets, \
+    get_all_residential_building_agents, get_elec_cons_key, get_pv_prod_key
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod
 
 CONFIG_FILE = 'jonstaka.json'
@@ -54,9 +54,10 @@ def main():
     with open('./tradingplatformpoc/data/{}'.format(CONFIG_FILE), "r") as json_file:
         config_data = json.load(json_file)
 
-    building_agents, total_gross_floor_area = get_all_building_agents(config_data)
-    building_agents_frozen_set = frozenset(building_agents)  # Need to freeze, else can't use it as key in dict
-    if building_agents_frozen_set in all_data_sets:
+    residential_building_agents, total_gross_floor_area = get_all_residential_building_agents(config_data)
+    # Need to freeze, else can't use it as key in dict
+    residential_building_agents_frozen_set = frozenset(residential_building_agents)
+    if residential_building_agents_frozen_set in all_data_sets:
         logger.info('Already had mock data for the configuration described in %s, exiting generate_mock_data' %
                     CONFIG_FILE)
     else:
@@ -76,7 +77,7 @@ def main():
         output_per_building.set_index('datetime', inplace=True)
 
         total_time_elapsed = 0
-        for agent in building_agents:
+        for agent in residential_building_agents:
             time_elapsed, n_apps_done = simulate_and_add_to_output_df(dict(agent), df_inputs, df_irrd, model,
                                                                       output_per_building,
                                                                       n_apps_done)
@@ -87,7 +88,7 @@ def main():
                 estimated_time_left = approx_n_apps_remaining * time_taken_per_apartment
                 logger.info('Estimated time left: {:.2f} seconds'.format(estimated_time_left))
 
-        all_data_sets[building_agents_frozen_set] = output_per_building
+        all_data_sets[residential_building_agents_frozen_set] = output_per_building
         pickle.dump(all_data_sets, open(MOCK_DATAS_PICKLE, 'wb'))
 
 
