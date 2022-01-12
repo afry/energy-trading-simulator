@@ -80,3 +80,44 @@ class Test(TestCase):
         self.assertAlmostEqual(45.4545, costs["Seller1"], places=3)
         self.assertAlmostEqual(4.54545, costs["Buyer1"], places=3)
         self.assertAlmostEqual(0, costs["Buyer2"], places=3)
+
+    def test_2_external_bids(self):
+        """
+        When there are more than 1 external bid for the same resource, an error should be raised.
+        """
+        bids = [Bid(Action.BUY, Resource.ELECTRICITY, 2000, math.inf, "Buyer1", False),
+                Bid(Action.BUY, Resource.ELECTRICITY, 100, math.inf, "Buyer2", False),
+                Bid(Action.SELL, Resource.ELECTRICITY, 10000, 1, "Grid", True),
+                Bid(Action.BUY, Resource.ELECTRICITY, 10000, 1, "Grid", True)]
+        trades = [Trade(Action.SELL, Resource.ELECTRICITY, 2000, 1, "Seller1", False, Market.LOCAL, None),
+                  Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Buyer2", False, Market.LOCAL, None),
+                  Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Grid", True, Market.LOCAL, None)]
+        with self.assertRaises(RuntimeError):
+            calculate_costs(bids, trades, 1.0, 0.5)
+
+    def test_2_external_trades(self):
+        """
+        When there are more than 1 external trade for the same resource, an error should be raised.
+        """
+        bids = [Bid(Action.BUY, Resource.ELECTRICITY, 2000, math.inf, "Buyer1", False),
+                Bid(Action.BUY, Resource.ELECTRICITY, 100, math.inf, "Buyer2", False),
+                Bid(Action.SELL, Resource.ELECTRICITY, 10000, 1, "Grid", True)]
+        trades = [Trade(Action.SELL, Resource.ELECTRICITY, 2000, 1, "Seller1", False, Market.LOCAL, None),
+                  Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Buyer2", False, Market.LOCAL, None),
+                  Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Grid", True, Market.LOCAL, None),
+                  Trade(Action.SELL, Resource.ELECTRICITY, 100, 1, "Grid", True, Market.LOCAL, None)]
+        with self.assertRaises(RuntimeError):
+            calculate_costs(bids, trades, 1.0, 0.5)
+
+    def test_retail_price_less_than_local(self):
+        """
+        If the external retail price is lower than the local clearing price, an error should be raised.
+        """
+        bids = [Bid(Action.BUY, Resource.ELECTRICITY, 2000, math.inf, "Buyer1", False),
+                Bid(Action.BUY, Resource.ELECTRICITY, 100, math.inf, "Buyer2", False),
+                Bid(Action.SELL, Resource.ELECTRICITY, 10000, 0.9, "Grid", True)]
+        trades = [Trade(Action.SELL, Resource.ELECTRICITY, 2000, 1, "Seller1", False, Market.LOCAL, None),
+                  Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Buyer2", False, Market.LOCAL, None),
+                  Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Grid", True, Market.LOCAL, None)]
+        with self.assertRaises(RuntimeError):
+            calculate_costs(bids, trades, 1.0, 0.5)
