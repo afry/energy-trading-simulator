@@ -1,5 +1,6 @@
-
 from unittest import TestCase
+
+from pkg_resources import resource_filename
 
 from tradingplatformpoc import simulation_runner
 from tradingplatformpoc.bid import Action
@@ -8,8 +9,15 @@ from tradingplatformpoc.bid import Action
 class Test(TestCase):
 
     def test(self):
-        clearing_prices, all_trades, all_extra_costs = simulation_runner.run_trading_simulations(
-            '../tradingplatformpoc/data/generated/mock_datas.pickle')
+        """
+        Run the trading simulations with simulation_runner. If it runs ok (and doesn't throw an error or anything), then
+        this test will go through all trading periods, assert that the total amount of energy bought equals the total
+        amount of energy sold. Furthermore, it will look at monetary compensation, and make sure that the amounts paid
+        and received by different actors all match up.
+        """
+        mock_datas_file_path = resource_filename("tradingplatformpoc.data", "generated/mock_datas.pickle")
+
+        clearing_prices, all_trades, all_extra_costs = simulation_runner.run_trading_simulations(mock_datas_file_path)
 
         for period in clearing_prices.keys():
             trades_for_period = [x for x in all_trades if x.period == period]

@@ -10,6 +10,7 @@ class TestMarketSolver(TestCase):
     ms = MarketSolver()
 
     def test_resolve_bids_1(self):
+        """Test the clearing price calculation in a very simple example with one seller and one buyer."""
         bids = [Bid(Action.SELL, Resource.ELECTRICITY, 100, 1, "Seller1", False),
                 Bid(Action.BUY, Resource.ELECTRICITY, 100, 1.5, "Buyer1", False)]
         # Someone willing to sell 100 kWh at 1 SEK/kWh,
@@ -19,6 +20,7 @@ class TestMarketSolver(TestCase):
         self.assertEqual(1, clearing_price)
 
     def test_resolve_bids_2(self):
+        """Test the clearing price calculation when there are no accepted bids."""
         bids = [Bid(Action.SELL, Resource.ELECTRICITY, 100, 1, "Seller1", False),
                 Bid(Action.BUY, Resource.ELECTRICITY, 100, 0.5, "Buyer1", False)]
         # Someone willing to sell 100 kWh at 1 SEK/kWh,
@@ -28,6 +30,7 @@ class TestMarketSolver(TestCase):
         self.assertEqual(1, clearing_price)
 
     def test_resolve_bids_3(self):
+        """Test the clearing price calculation when there are 4 different bids, one of them from an external grid."""
         bids = [Bid(Action.SELL, Resource.ELECTRICITY, 100, 0, "Seller1", False),
                 Bid(Action.SELL, Resource.ELECTRICITY, 100, 1.5, "Seller2", False),
                 Bid(Action.SELL, Resource.ELECTRICITY, 10000, 10, "Grid", True),
@@ -41,11 +44,13 @@ class TestMarketSolver(TestCase):
         self.assertEqual(1.5, clearing_price)
 
     def test_resolve_bids_4(self):
+        """Test the clearing price calculation when there are 4 different bids, and the locally produced energy covers
+        the demand."""
         bids = [Bid(Action.SELL, Resource.ELECTRICITY, 10000, 2, "Grid", True),
                 Bid(Action.SELL, Resource.ELECTRICITY, 100, 0.75, "Seller1", False),
                 Bid(Action.SELL, Resource.ELECTRICITY, 100, 1, "Seller2", False),
                 Bid(Action.BUY, Resource.ELECTRICITY, 200, math.inf, "Buyer1", False)]
-        # Top 2 bids being typical for external grid
+        # Top bid being typical for external grid
         # Someone willing to sell 100 kWh at 0.75 SEK/kWh,
         # someone willing to sell 100 kWh at 1 SEK/kWh,
         # someone willing to buy 200 kWh at Inf SEK/kWh.
@@ -54,12 +59,14 @@ class TestMarketSolver(TestCase):
         self.assertEqual(1, clearing_price)
 
     def test_resolve_bids_5(self):
+        """Test that an Error is raised when there isn't enough energy to satisfy the local demand."""
         bids = [Bid(Action.SELL, Resource.ELECTRICITY, 100, 0.75, "Seller1", False),
                 Bid(Action.BUY, Resource.ELECTRICITY, 200, math.inf, "Buyer1", False)]
         with self.assertRaises(RuntimeError):
             self.ms.resolve_bids(bids)
 
     def test_resolve_bids_with_local_surplus(self):
+        """Test that the clearing price is calculated correctly when there is a local surplus."""
         bids = [Bid(Action.BUY, Resource.ELECTRICITY, 192.76354849517332, math.inf, 'BuildingAgent', False),
                 Bid(Action.SELL, Resource.ELECTRICITY, 100, 0.46069, 'BatteryStorageAgent', False),
                 Bid(Action.SELL, Resource.ELECTRICITY, 275.3113968, 0.46069, 'PVAgent', False),
