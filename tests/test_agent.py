@@ -8,7 +8,6 @@ import pandas as pd
 
 import tradingplatformpoc.agent.building_agent
 import tradingplatformpoc.agent.grid_agent
-import tradingplatformpoc.agent.grocery_store_agent
 import tradingplatformpoc.agent.pv_agent
 import tradingplatformpoc.agent.storage_agent
 from tradingplatformpoc import agent, data_store
@@ -89,7 +88,7 @@ class TestGridAgent(unittest.TestCase):
                   datetime(2019, 2, 1, 1, 0, 0))
         ]
         with self.assertRaises(RuntimeError):
-            external_trades = self.grid_agent.calculate_external_trades(trades_excl_external, local_price)
+            self.grid_agent.calculate_external_trades(trades_excl_external, local_price)
 
     def test_calculate_trades_price_not_matching_2(self):
         """Test calculate_external_trades when local price is lower than the retail price, but there is a need for
@@ -152,25 +151,6 @@ class TestBuildingAgent(TestCase):
         self.assertEqual(bids[0].action, Action.BUY)
         self.assertTrue(bids[0].quantity > 0)
         self.assertTrue(bids[0].price > 0)
-
-
-class TestGroceryStoreAgent(TestCase):
-    # Won't test exact values so don't need to set random seed
-    elec_values = np.random.uniform(0, 100.0, len(DATETIME_ARRAY))
-    heat_values = np.random.uniform(0, 100.0, len(DATETIME_ARRAY))
-    grocery_store_digital_twin = StaticDigitalTwin(electricity_usage=pd.Series(elec_values, index=DATETIME_ARRAY),
-                                                   heating_usage=pd.Series(heat_values, index=DATETIME_ARRAY),
-                                                   electricity_production=data_store_entity.coop_pv_prod)
-    grocery_store_agent = tradingplatformpoc.agent.grocery_store_agent.GroceryStoreAgent(data_store_entity,
-                                                                                         grocery_store_digital_twin)
-
-    def test_make_bids(self):
-        """Test basic functionality of GroceryStoreAgent's make_bids method."""
-        bids = self.grocery_store_agent.make_bids(datetime(2019, 7, 7, 11, 0, 0))
-        self.assertEqual(Resource.ELECTRICITY, bids[0].resource)
-        self.assertEqual(Action.BUY, bids[0].action)
-        self.assertTrue(bids[0].quantity > 0)
-        self.assertTrue(bids[0].price > 1000)
 
 
 class TestPVAgent(TestCase):

@@ -11,16 +11,16 @@ from pkg_resources import resource_filename
 from tradingplatformpoc import balance_manager, data_store, results_calculator
 from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.grid_agent import ElectricityGridAgent
-from tradingplatformpoc.agent.grocery_store_agent import GroceryStoreAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.agent.storage_agent import StorageAgent
+
 from tradingplatformpoc.bid import Bid
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
 from tradingplatformpoc.market_solver import MarketSolver
-from tradingplatformpoc.mock_data_generation_functions import get_all_building_agents, get_elec_cons_key, \
+from tradingplatformpoc.mock_data_generation_functions import get_all_residential_building_agents, get_elec_cons_key, \
     get_pv_prod_key
 from tradingplatformpoc.trade import write_rows
 from tradingplatformpoc.trading_platform_utils import get_intersection
@@ -41,6 +41,7 @@ def run_trading_simulations(mock_datas_pickle_path: str):
 
     # Specify path for CSV files from which to take some mock data (currently only for grocery store)
     energy_data_csv_path = resource_filename("tradingplatformpoc.data", "full_mock_energy_data.csv")
+    school_data_csv_path = resource_filename("tradingplatformpoc.data", "school_electricity_consumption.csv")
 
     # Load generated mock data
     buildings_mock_data = get_generated_mock_data(config_data, mock_datas_pickle_path)
@@ -63,7 +64,7 @@ def run_trading_simulations(mock_datas_pickle_path: str):
     agents: List[IAgent]
     try:
         agents, grid_agent = initialize_agents(data_store_entity, config_data, buildings_mock_data,
-                                               energy_data_csv_path)
+                                               energy_data_csv_path, school_data_csv_path)
     except RuntimeError as e:
         clearing_prices_file.write(e.args)
         exit(1)
@@ -136,16 +137,17 @@ def get_generated_mock_data(config_data: dict, mock_datas_pickle_path: str):
     """
     with open(mock_datas_pickle_path, 'rb') as f:
         all_data_sets = pickle.load(f)
-    building_agents, total_gross_floor_area = get_all_building_agents(config_data)
-    building_agents_frozen_set = frozenset(building_agents)  # Need to freeze, else can't use it as key in dict
-    if building_agents_frozen_set not in all_data_sets:
+    residential_building_agents, total_gross_floor_area = get_all_residential_building_agents(config_data)
+    # Need to freeze, else can't use it as key in dict
+    residential_building_agents_frozen_set = frozenset(residential_building_agents)
+    if residential_building_agents_frozen_set not in all_data_sets:
         raise RuntimeError('No mock data found for this configuration!')
     else:
-        return all_data_sets[building_agents_frozen_set]
+        return all_data_sets[residential_building_agents_frozen_set]
 
 
 def initialize_agents(data_store_entity: data_store, config_data: dict, buildings_mock_data: pd.DataFrame,
-                      energy_data_csv_path: str):
+                      energy_data_csv_path: str, school_data_csv_path: str):
     # Register all agents
     # Keep a list of all agents to iterate over later
     agents: List[IAgent] = []
@@ -153,11 +155,13 @@ def initialize_agents(data_store_entity: data_store, config_data: dict, building
     # Read energy CSV file
     tornet_household_elec_cons, coop_elec_cons, tornet_heat_cons, coop_heat_cons = \
         data_store.read_energy_data(energy_data_csv_path)
+    # Read school CSV file
+    school_elec_cons = data_store.read_school_energy_consumption_csv(school_data_csv_path)
 
     for agent in config_data["Agents"]:
         agent_type = agent["Type"]
-        if agent_type == "BuildingAgent":
-            agent_name = agent['Name']
+        agent_name = agent['Name']
+        if agent_type == "ResidentialBuildingAgent":
             household_elec_cons_series = buildings_mock_data[get_elec_cons_key(agent_name)]
             pv_prod_series = buildings_mock_data[get_pv_prod_key(agent_name)]
             building_digital_twin = StaticDigitalTwin(electricity_usage=household_elec_cons_series,
@@ -171,18 +175,22 @@ def initialize_agents(data_store_entity: data_store, config_data: dict, building
                                        n_hours_to_look_back=agent["NHoursBack"],
                                        buy_price_percentile=agent["BuyPricePercentile"],
                                        sell_price_percentile=agent["SellPricePercentile"],
-                                       guid=agent["Name"]))
+                                       guid=agent_name))
         elif agent_type == "PVAgent":
             pv_digital_twin = StaticDigitalTwin(electricity_production=data_store_entity.tornet_park_pv_prod)
-            agents.append(PVAgent(data_store_entity, pv_digital_twin, guid=agent["Name"]))
-        elif agent_type == "GroceryStoreAgent":
-            grocery_store_digital_twin = StaticDigitalTwin(electricity_usage=coop_elec_cons,
-                                                           heating_usage=coop_heat_cons,
-                                                           electricity_production=data_store_entity.coop_pv_prod)
-            agents.append(GroceryStoreAgent(data_store_entity, grocery_store_digital_twin, guid=agent["Name"]))
+            agents.append(PVAgent(data_store_entity, pv_digital_twin, guid=agent_name))
+        elif agent_type == "CommercialBuildingAgent":
+            if agent_name == "GroceryStoreAgent":
+                grocery_store_digital_twin = StaticDigitalTwin(electricity_usage=coop_elec_cons,
+                                                               heating_usage=coop_heat_cons,
+                                                               electricity_production=data_store_entity.coop_pv_prod)
+                agents.append(BuildingAgent(data_store_entity, grocery_store_digital_twin, guid=agent_name))
+            if agent_name == "SchoolBuildingAgent":
+                school_digital_twin = StaticDigitalTwin(electricity_usage=school_elec_cons)
+                agents.append(BuildingAgent(data_store_entity, school_digital_twin, guid=agent_name))
         elif agent_type == "ElectricityGridAgent":
             grid_agent = ElectricityGridAgent(data_store_entity, max_transfer_per_hour=agent["TransferRate"],
-                                              guid=agent["Name"])
+                                              guid=agent_name)
             agents.append(grid_agent)
 
     # TODO: As of right now, grid agents are treated as configurable, but the code is hard coded with the

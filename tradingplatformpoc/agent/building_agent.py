@@ -16,7 +16,6 @@ class BuildingAgent(IAgent):
         self.digital_twin = digital_twin
 
     def make_bids(self, period, clearing_prices_dict: dict = None):
-        # Note - identical to the same method in grocery_store_agent.py
         # The building should make a bid for purchasing energy, or selling if it has a surplus
         electricity_needed = self.make_prognosis(period)
         bids = []

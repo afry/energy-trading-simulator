@@ -4,6 +4,8 @@ from unittest import TestCase
 import numpy as np
 
 import pandas as pd
+from pandas import DatetimeIndex
+from pkg_resources import resource_filename
 
 from tradingplatformpoc import data_store
 from tradingplatformpoc.trading_platform_utils import datetime_array_between
@@ -35,3 +37,10 @@ class TestDataStore(TestCase):
             retail_price = self.data_store_entity.get_retail_price(dt)
             wholesale_price = self.data_store_entity.get_wholesale_price(dt)
             self.assertTrue(retail_price > wholesale_price)
+
+    def test_read_school_csv(self):
+        """Test that the CSV file with school energy data reads correctly."""
+        file_path = resource_filename("tradingplatformpoc.data", "school_electricity_consumption.csv")
+        school_energy_data = data_store.read_school_energy_consumption_csv(file_path)
+        self.assertTrue(school_energy_data.shape[0] > 0)
+        self.assertIsInstance(school_energy_data.index, DatetimeIndex)

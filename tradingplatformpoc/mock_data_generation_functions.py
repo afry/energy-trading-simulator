@@ -16,22 +16,22 @@ def load_existing_data_sets(file_path: str):
     return all_data_sets
 
 
-def get_all_building_agents(config_data: dict):
+def get_all_residential_building_agents(config_data: dict):
     """
-    Gets all building agents specified in config_data, and also returns the total gross floor area, summed over all
-    building agents.
+    Gets all residential building agents specified in config_data, and also returns the total gross floor area, summed
+    over all residential building agents.
     @param config_data: A dictionary
-    @return: building_agents: Set of dictionaries, total_gross_floor_area: a float
+    @return: residential_building_agents: Set of dictionaries, total_gross_floor_area: a float
     """
     total_gross_floor_area = 0
-    building_agents = set()
+    residential_building_agents = set()
     for agent in config_data["Agents"]:
         agent_type = agent["Type"]
-        if agent_type == "BuildingAgent":
+        if agent_type == "ResidentialBuildingAgent":
             key = frozenset(agent.items())
-            building_agents.add(key)
+            residential_building_agents.add(key)
             total_gross_floor_area = total_gross_floor_area + agent['GrossFloorArea']
-    return building_agents, total_gross_floor_area
+    return residential_building_agents, total_gross_floor_area
 
 
 def get_elec_cons_key(agent_name: str):
