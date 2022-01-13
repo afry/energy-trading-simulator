@@ -111,7 +111,8 @@ def run_trading_simulations(mock_datas_pickle_path: str):
         all_trades_list.extend(all_trades_for_period)
 
         wholesale_price = data_store_entity.get_wholesale_price(period)
-        extra_costs = balance_manager.calculate_costs(bids_flat, all_trades_for_period, clearing_price, wholesale_price)
+        extra_costs = balance_manager.calculate_costs(bids_with_acceptance_status, all_trades_for_period,
+                                                      clearing_price, wholesale_price)
         extra_costs_file.write(write_extra_costs_rows(period, extra_costs))
         all_extra_costs_dict[period] = extra_costs
 

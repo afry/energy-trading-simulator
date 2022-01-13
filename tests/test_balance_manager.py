@@ -2,7 +2,7 @@ import math
 from unittest import TestCase
 
 from tradingplatformpoc.balance_manager import calculate_costs
-from tradingplatformpoc.bid import Action, Bid, Resource
+from tradingplatformpoc.bid import Action, BidWithAcceptanceStatus, Resource
 from tradingplatformpoc.trade import Market, Trade
 
 
@@ -15,10 +15,10 @@ class Test(TestCase):
             kWh) at a higher price (1.0) than the local clearing price. Extra cost of (1-0.5)*200=100 need to be
             distributed.
         """
-        bids = [Bid(Action.SELL, Resource.ELECTRICITY, 2000, 0.5, "Seller1", False),
-                Bid(Action.BUY, Resource.ELECTRICITY, 1900, math.inf, "Buyer1", False),
-                Bid(Action.BUY, Resource.ELECTRICITY, 100, math.inf, "Buyer2", False),
-                Bid(Action.SELL, Resource.ELECTRICITY, 10000, 1, "Grid", True)]
+        bids = [BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 2000, 0.5, "Seller1", False, True),
+                BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 1900, math.inf, "Buyer1", False, True),
+                BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 100, math.inf, "Buyer2", False, True),
+                BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, 1, "Grid", True, False)]
         trades = [Trade(Action.SELL, Resource.ELECTRICITY, 1990, 0.5, "Seller1", False, Market.LOCAL, None),
                   Trade(Action.BUY, Resource.ELECTRICITY, 2100, 0.5, "Buyer1", False, Market.LOCAL, None),
                   Trade(Action.BUY, Resource.ELECTRICITY, 90, 0.5, "Buyer2", False, Market.LOCAL, None),
@@ -33,9 +33,9 @@ class Test(TestCase):
         Expected: Local deficit, so clearing price gets set to 1.0.
         Actual: Local deficit a bit larger than expected. But import price = local price, so no extra cost.
         """
-        bids = [Bid(Action.SELL, Resource.ELECTRICITY, 100, 0.5, "Seller1", False),
-                Bid(Action.BUY, Resource.ELECTRICITY, 200, math.inf, "Buyer1", False),
-                Bid(Action.SELL, Resource.ELECTRICITY, 10000, 1, "Grid", True)]
+        bids = [BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 100, 0.5, "Seller1", False, True),
+                BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 200, math.inf, "Buyer1", False, True),
+                BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, 1, "Grid", True, True)]
         trades = [Trade(Action.SELL, Resource.ELECTRICITY, 80, 1, "Seller1", False, Market.LOCAL, None),
                   Trade(Action.BUY, Resource.ELECTRICITY, 200, 1, "Buyer1", False, Market.LOCAL, None),
                   Trade(Action.SELL, Resource.ELECTRICITY, 120, 1, "Grid", True, Market.LOCAL, None)]
@@ -49,10 +49,10 @@ class Test(TestCase):
         Actual: Locally produced electricity does cover local demand, surplus needs to be exported (100 kWh) at a lower
             price (0.5) than the local clearing price. Loss of revenue (1-0.5)*100=50 need to be distributed.
         """
-        bids = [Bid(Action.SELL, Resource.ELECTRICITY, 2000, 0.5, "Seller1", False),
-                Bid(Action.BUY, Resource.ELECTRICITY, 2000, math.inf, "Buyer1", False),
-                Bid(Action.BUY, Resource.ELECTRICITY, 100, math.inf, "Buyer2", False),
-                Bid(Action.SELL, Resource.ELECTRICITY, 10000, 1, "Grid", True)]
+        bids = [BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 2000, 0.5, "Seller1", False, True),
+                BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 2000, math.inf, "Buyer1", False, True),
+                BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 100, math.inf, "Buyer2", False, True),
+                BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, 1, "Grid", True, True)]
         trades = [Trade(Action.SELL, Resource.ELECTRICITY, 2000, 1, "Seller1", False, Market.LOCAL, None),
                   Trade(Action.BUY, Resource.ELECTRICITY, 1800, 1, "Buyer1", False, Market.LOCAL, None),
                   Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Buyer2", False, Market.LOCAL, None),
@@ -69,9 +69,9 @@ class Test(TestCase):
         Actual: Locally produced electricity does cover local demand, surplus needs to be exported (100 kWh) at a lower
             price (0.5) than the local clearing price. Loss of revenue (1-0.5)*100=50 need to be distributed.
         """
-        bids = [Bid(Action.BUY, Resource.ELECTRICITY, 2000, math.inf, "Buyer1", False),
-                Bid(Action.BUY, Resource.ELECTRICITY, 100, math.inf, "Buyer2", False),
-                Bid(Action.SELL, Resource.ELECTRICITY, 10000, 1, "Grid", True)]
+        bids = [BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 2000, math.inf, "Buyer1", False, True),
+                BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 100, math.inf, "Buyer2", False, True),
+                BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, 1, "Grid", True, True)]
         trades = [Trade(Action.SELL, Resource.ELECTRICITY, 2000, 1, "Seller1", False, Market.LOCAL, None),
                   Trade(Action.BUY, Resource.ELECTRICITY, 1800, 1, "Buyer1", False, Market.LOCAL, None),
                   Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Buyer2", False, Market.LOCAL, None),
@@ -85,10 +85,10 @@ class Test(TestCase):
         """
         When there are more than 1 external bid for the same resource, an error should be raised.
         """
-        bids = [Bid(Action.BUY, Resource.ELECTRICITY, 2000, math.inf, "Buyer1", False),
-                Bid(Action.BUY, Resource.ELECTRICITY, 100, math.inf, "Buyer2", False),
-                Bid(Action.SELL, Resource.ELECTRICITY, 10000, 1, "Grid", True),
-                Bid(Action.BUY, Resource.ELECTRICITY, 10000, 1, "Grid", True)]
+        bids = [BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 2000, math.inf, "Buyer1", False, True),
+                BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 100, math.inf, "Buyer2", False, True),
+                BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, 1, "Grid", True, True),
+                BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 10000, 1, "Grid", True, True)]
         trades = [Trade(Action.SELL, Resource.ELECTRICITY, 2000, 1, "Seller1", False, Market.LOCAL, None),
                   Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Buyer2", False, Market.LOCAL, None),
                   Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Grid", True, Market.LOCAL, None)]
@@ -99,9 +99,9 @@ class Test(TestCase):
         """
         When there are more than 1 external trade for the same resource, an error should be raised.
         """
-        bids = [Bid(Action.BUY, Resource.ELECTRICITY, 2000, math.inf, "Buyer1", False),
-                Bid(Action.BUY, Resource.ELECTRICITY, 100, math.inf, "Buyer2", False),
-                Bid(Action.SELL, Resource.ELECTRICITY, 10000, 1, "Grid", True)]
+        bids = [BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 2000, math.inf, "Buyer1", False, True),
+                BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 100, math.inf, "Buyer2", False, True),
+                BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, 1, "Grid", True, True)]
         trades = [Trade(Action.SELL, Resource.ELECTRICITY, 2000, 1, "Seller1", False, Market.LOCAL, None),
                   Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Buyer2", False, Market.LOCAL, None),
                   Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Grid", True, Market.LOCAL, None),
@@ -113,9 +113,9 @@ class Test(TestCase):
         """
         If the external retail price is lower than the local clearing price, an error should be raised.
         """
-        bids = [Bid(Action.BUY, Resource.ELECTRICITY, 2000, math.inf, "Buyer1", False),
-                Bid(Action.BUY, Resource.ELECTRICITY, 100, math.inf, "Buyer2", False),
-                Bid(Action.SELL, Resource.ELECTRICITY, 10000, 0.9, "Grid", True)]
+        bids = [BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 2000, math.inf, "Buyer1", False, True),
+                BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 100, math.inf, "Buyer2", False, True),
+                BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, 0.9, "Grid", True, True)]
         trades = [Trade(Action.SELL, Resource.ELECTRICITY, 2000, 1, "Seller1", False, Market.LOCAL, None),
                   Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Buyer2", False, Market.LOCAL, None),
                   Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Grid", True, Market.LOCAL, None)]

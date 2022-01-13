@@ -1,15 +1,15 @@
 from typing import Collection, List
 
-from tradingplatformpoc.bid import Action, Bid
+from tradingplatformpoc.bid import Action, Bid, BidWithAcceptanceStatus
 from tradingplatformpoc.trade import Market, Trade
 
 
-def calculate_costs(bids: Collection[Bid], trades: Collection[Trade], clearing_price: float,
+def calculate_costs(bids: Collection[BidWithAcceptanceStatus], trades: Collection[Trade], clearing_price: float,
                     external_wholesale_price: float):
     """
     All bids and trades should be for the same trading period
     """
-    accepted_bids = [x for x in bids if was_bid_accepted(x, clearing_price)]
+    accepted_bids = [x for x in bids if x.was_accepted]
     agent_ids = set([x.source for x in accepted_bids] + [x.source for x in trades])
 
     external_bid = get_external_bid(bids)
@@ -61,11 +61,6 @@ def calculate_extra_cost(external_bid: Bid, external_trade: Trade,
             return external_actual_import * price_difference
 
 
-def was_bid_accepted(bid: Bid, clearing_price: float):
-    return ((bid.action == Action.SELL) & (bid.price <= clearing_price)) | \
-           ((bid.action == Action.BUY) & (bid.price >= clearing_price))
-
-
 def distribute_cost(error_by_agent, extra_cost):
     """
     Proportional to the absolute error of an agent's prediction, i.e. the difference between bid quantity and actual
@@ -90,7 +85,8 @@ def is_agent_external(accepted_bids_for_agent: List[Bid], trades_for_agent: List
     return False
 
 
-def calculate_error_by_agent(accepted_bids: Collection[Bid], agent_ids: Collection[str], trades: Collection[Trade]):
+def calculate_error_by_agent(accepted_bids: Collection[BidWithAcceptanceStatus], agent_ids: Collection[str],
+                             trades: Collection[Trade]):
     """
     The error being the difference between the projected (i.e. the bid quantity) usage and the actual usage for the
     trading period. Usage is negative if the agent is a supplier.
