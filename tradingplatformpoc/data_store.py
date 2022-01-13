@@ -1,7 +1,8 @@
 import pandas as pd
+
 from pkg_resources import resource_filename
 
-from tradingplatformpoc.trading_platform_utils import minus_n_hours, calculate_solar_prod
+from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, minus_n_hours
 
 
 class DataStore:
@@ -19,13 +20,14 @@ class DataStore:
         self.tornet_park_pv_prod = calculate_solar_prod(irradiation_data, self.park_pv_area, self.pv_efficiency)
 
     @staticmethod
-    def from_csv_files(config_area_info,
-                       external_price_csv_path=resource_filename("tradingplatformpoc.data",
-                                                                 "nordpool_area_grid_el_price.csv"),
-                       irradiation_csv_path=resource_filename("tradingplatformpoc.data",
-                                                              "varberg_irradiation_W_m2_h.csv")):
-        return DataStore(config_area_info,
-                         read_nordpool_data(external_price_csv_path),
+    def from_csv_files(config_area_info, data_path="tradingplatformpoc.data",
+                       external_price_file="nordpool_area_grid_el_price.csv",
+                       irradiation_file="varberg_irradiation_W_m2_h.csv"):
+
+        external_price_csv_path = resource_filename(data_path, external_price_file)
+        irradiation_csv_path = resource_filename(data_path, irradiation_file)
+
+        return DataStore(config_area_info, read_nordpool_data(external_price_csv_path),
                          read_solar_irradiation(irradiation_csv_path))
 
     def get_nordpool_price_for_period(self, period):
@@ -73,8 +75,8 @@ def read_school_energy_consumption_csv(csv_path: str):
     energy_data = pd.read_csv(csv_path)
     energy_data = pd.melt(energy_data, id_vars=['Reading Date', 'One Day Total kWh', 'Status', 'Substitute Date'],
                           var_name='Time', value_name="Energy")
-    energy_data['Timestamp'] = pd.to_datetime(energy_data['Reading Date'] + " " +
-                                              energy_data['Time'], format='%Y-%m-%d %H:%M')
+    energy_data['Timestamp'] = pd.to_datetime(energy_data['Reading Date'] + " " + energy_data['Time'],
+                                              format='%Y-%m-%d %H:%M')
     energy_data = energy_data.sort_values(by=['Timestamp'])
     energy_data = energy_data.set_index('Timestamp')
     energy_data = energy_data.rename({'Energy': 'Energy [kWh]'}, axis=1)

@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Union
 
 from ..bid import Bid
 from ..data_store import DataStore
-from ..trade import Trade, Market
+from ..trade import Market, Trade
 
 
 class IAgent(ABC):
@@ -14,7 +14,7 @@ class IAgent(ABC):
         self.data_store = data_store
 
     @abstractmethod
-    def make_bids(self, period, clearing_prices_dict: dict):
+    def make_bids(self, period, clearing_prices_dict: Union[dict, None]):
         # Make a bid for produced or needed energy for next time step
         pass
 

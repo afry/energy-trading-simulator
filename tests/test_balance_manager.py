@@ -2,8 +2,8 @@ import math
 from unittest import TestCase
 
 from tradingplatformpoc.balance_manager import calculate_costs
-from tradingplatformpoc.bid import Bid, Action, Resource
-from tradingplatformpoc.trade import Trade, Market
+from tradingplatformpoc.bid import Action, Bid, Resource
+from tradingplatformpoc.trade import Market, Trade
 
 
 class Test(TestCase):

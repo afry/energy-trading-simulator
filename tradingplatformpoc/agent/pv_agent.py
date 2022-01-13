@@ -1,7 +1,7 @@
-from typing import List
+from typing import List, Union
 
 from tradingplatformpoc.agent.iagent import IAgent, get_price_and_market_to_use_when_selling
-from tradingplatformpoc.bid import Action, Resource, Bid
+from tradingplatformpoc.bid import Action, Bid, Resource
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.trading_platform_utils import minus_n_hours
@@ -13,7 +13,7 @@ class PVAgent(IAgent):
         super().__init__(guid, data_store)
         self.digital_twin = digital_twin
 
-    def make_bids(self, period, clearing_prices_dict: dict = None):
+    def make_bids(self, period, clearing_prices_dict: Union[dict, None] = None):
         # The PV park should make a bid to sell energy
         # Pricing logic:
         # If the agent represents only solar panels and no storage, then the electricity must be sold.

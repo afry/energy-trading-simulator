@@ -3,18 +3,18 @@ from datetime import datetime
 from unittest import TestCase
 
 import numpy as np
-import pandas as pd
 
-from tradingplatformpoc import data_store, agent
-from tradingplatformpoc.bid import Resource, Action
-from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
-from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
-from tradingplatformpoc.trade import Trade, Market
+import pandas as pd
 
 import tradingplatformpoc.agent.building_agent
 import tradingplatformpoc.agent.grid_agent
 import tradingplatformpoc.agent.pv_agent
 import tradingplatformpoc.agent.storage_agent
+from tradingplatformpoc import agent, data_store
+from tradingplatformpoc.bid import Action, Resource
+from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
+from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
+from tradingplatformpoc.trade import Market, Trade
 from tradingplatformpoc.trading_platform_utils import datetime_array_between
 
 MAX_NORDPOOL_PRICE = 4.0

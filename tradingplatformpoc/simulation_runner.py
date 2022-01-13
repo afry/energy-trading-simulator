@@ -2,27 +2,26 @@ import datetime
 import json
 import logging
 import pickle
-
-from typing import List
+from typing import Dict, List
 
 import pandas as pd
 
-from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
-from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
-from tradingplatformpoc.market_solver import MarketSolver
-from tradingplatformpoc.data_store import DataStore
-from tradingplatformpoc import balance_manager, results_calculator, data_store
+from pkg_resources import resource_filename
+
+from tradingplatformpoc import balance_manager, data_store, results_calculator
 from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.grid_agent import ElectricityGridAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.agent.storage_agent import StorageAgent
-from tradingplatformpoc.mock_data_generation_functions import get_all_residential_building_agents, get_pv_prod_key, \
-    get_elec_cons_key
-from tradingplatformpoc.trade import write_rows
 from tradingplatformpoc.bid import Bid
-from pkg_resources import resource_filename
-
+from tradingplatformpoc.data_store import DataStore
+from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
+from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
+from tradingplatformpoc.market_solver import MarketSolver
+from tradingplatformpoc.mock_data_generation_functions import get_all_residential_building_agents, get_elec_cons_key, \
+    get_pv_prod_key
+from tradingplatformpoc.trade import write_rows
 from tradingplatformpoc.trading_platform_utils import get_intersection
 
 logger = logging.getLogger(__name__)
@@ -54,7 +53,7 @@ def run_trading_simulations(mock_datas_pickle_path: str):
     extra_costs_file = open('./extra_costs.csv', 'w')
     extra_costs_file.write('period,agent,cost\n')
     # Output lists
-    clearing_prices_dict = {}
+    clearing_prices_dict: Dict[datetime.datetime, float] = {}
     all_trades_list = []
     all_bids_list = []
     all_extra_costs_dict = {}
@@ -66,7 +65,7 @@ def run_trading_simulations(mock_datas_pickle_path: str):
         agents, grid_agent = initialize_agents(data_store_entity, config_data, buildings_mock_data,
                                                energy_data_csv_path, school_data_csv_path)
     except RuntimeError as e:
-        clearing_prices_file.write(e.args)
+        clearing_prices_file.write(str(e.args))
         exit(1)
 
     # Get a market solver
@@ -146,7 +145,7 @@ def get_generated_mock_data(config_data: dict, mock_datas_pickle_path: str):
         return all_data_sets[residential_building_agents_frozen_set]
 
 
-def initialize_agents(data_store_entity: data_store, config_data: dict, buildings_mock_data: pd.DataFrame,
+def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings_mock_data: pd.DataFrame,
                       energy_data_csv_path: str, school_data_csv_path: str):
     # Register all agents
     # Keep a list of all agents to iterate over later

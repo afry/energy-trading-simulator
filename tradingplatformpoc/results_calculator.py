@@ -1,21 +1,21 @@
 from typing import Iterable
 
-from tradingplatformpoc import data_store
+from tradingplatformpoc.agent.grid_agent import ElectricityGridAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.storage_agent import StorageAgent
 from tradingplatformpoc.bid import Action
-from tradingplatformpoc.agent.grid_agent import ElectricityGridAgent
+from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.trade import Trade
 
 
 def print_basic_results(agents: Iterable[IAgent], all_trades: Iterable[Trade], all_extra_costs_dict: dict,
-                        data_store_entity: data_store):
+                        data_store_entity: DataStore):
     for agent in agents:
         print_basic_results_for_agent(agent, all_trades, all_extra_costs_dict, data_store_entity)
 
 
 def print_basic_results_for_agent(agent: IAgent, all_trades: Iterable[Trade], all_extra_costs_dict: dict,
-                                  data_store_entity: data_store):
+                                  data_store_entity: DataStore):
     trades_for_agent = [x for x in all_trades if x.source == agent.guid]
     all_extra_costs = list(all_extra_costs_dict.values())
 
@@ -56,7 +56,7 @@ def print_basic_results_for_agent(agent: IAgent, all_trades: Iterable[Trade], al
         print("For agent {} average sell price was {:.3f} SEK/kWh".format(agent.guid, avg_sell_price))
 
 
-def get_savings_vs_only_external(data_store_entity: data_store, trades_for_agent: Iterable[Trade]):
+def get_savings_vs_only_external(data_store_entity: DataStore, trades_for_agent: Iterable[Trade]):
     saved_on_buy_vs_using_only_external = 0
     saved_on_sell_vs_using_only_external = 0
     for trade in trades_for_agent:
@@ -65,8 +65,8 @@ def get_savings_vs_only_external(data_store_entity: data_store, trades_for_agent
         external_wholesale_price = data_store_entity.get_wholesale_price(period)
         if trade.action == Action.BUY:
             saved_on_buy_vs_using_only_external = saved_on_buy_vs_using_only_external + \
-                                                  trade.quantity * (external_retail_price - trade.price)
+                trade.quantity * (external_retail_price - trade.price)
         elif trade.action == Action.SELL:
             saved_on_sell_vs_using_only_external = saved_on_sell_vs_using_only_external + \
-                                                   trade.quantity * (trade.price - external_wholesale_price)
+                trade.quantity * (trade.price - external_wholesale_price)
     return saved_on_buy_vs_using_only_external, saved_on_sell_vs_using_only_external

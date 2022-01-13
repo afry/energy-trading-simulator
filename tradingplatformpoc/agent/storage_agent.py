@@ -1,10 +1,10 @@
 import logging
-from typing import List, Sized, Collection
+from typing import List, Union
 
 import numpy as np
 
 from tradingplatformpoc.agent.iagent import IAgent
-from tradingplatformpoc.bid import Action, Resource, Bid
+from tradingplatformpoc.bid import Action, Bid, Resource
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
 from tradingplatformpoc.trade import Market
@@ -30,12 +30,18 @@ class StorageAgent(IAgent):
         # Upper and lower thresholds
         if sell_price_percentile < buy_price_percentile:
             logger.warning('In StorageAgent, sell_price_percentile should be higher than buy_price_percentile, but had '
-                           'buy_price_percentile={} and sell_price_percentile='.format(buy_price_percentile,
-                                                                                       sell_price_percentile))
+                           'buy_price_percentile={} and sell_price_percentile={}'.format(buy_price_percentile,
+                                                                                         sell_price_percentile))
         self.if_lower_than_this_percentile_then_buy = buy_price_percentile
         self.if_higher_than_this_percentile_then_sell = sell_price_percentile
 
-    def make_bids(self, period, clearing_prices_dict: dict):
+    def make_bids(self, period, clearing_prices_dict: Union[dict, None]):
+
+        if clearing_prices_dict is not None:
+            clearing_prices_dict = dict(clearing_prices_dict)
+        else:
+            raise RuntimeError("Historical clearing price is needed!")
+
         nordpool_prices_last_n_hours_dict = self.data_store.get_nordpool_prices_last_n_hours_dict(period,
                                                                                                   self.go_back_n_hours)
         prices_last_n_hours = get_prices_last_n_hours(period, self.go_back_n_hours, clearing_prices_dict,

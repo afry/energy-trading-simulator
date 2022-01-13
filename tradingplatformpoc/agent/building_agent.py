@@ -1,9 +1,9 @@
 import math
-from typing import List
+from typing import List, Union
 
 from tradingplatformpoc.agent.iagent import IAgent, get_price_and_market_to_use_when_buying, \
     get_price_and_market_to_use_when_selling
-from tradingplatformpoc.bid import Action, Resource, Bid
+from tradingplatformpoc.bid import Action, Bid, Resource
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.trading_platform_utils import minus_n_hours
@@ -15,7 +15,7 @@ class BuildingAgent(IAgent):
         super().__init__(guid, data_store)
         self.digital_twin = digital_twin
 
-    def make_bids(self, period, clearing_prices_dict: dict = None):
+    def make_bids(self, period, clearing_prices_dict: Union[dict, None] = None):
         # The building should make a bid for purchasing energy, or selling if it has a surplus
         electricity_needed = self.make_prognosis(period)
         bids = []
@@ -47,6 +47,7 @@ class BuildingAgent(IAgent):
 
     def make_trade_given_clearing_price(self, period, clearing_price: float, clearing_prices_dict: dict,
                                         accepted_bids_for_agent: List[Bid]):
+
         retail_price = self.data_store.get_retail_price(period)
         wholesale_price = self.data_store.get_wholesale_price(period)
         usage = self.get_actual_usage(period)

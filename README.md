@@ -5,6 +5,10 @@ A POC for the trading platform system including agents and market solver.
 ## Preliminaries
 Tested on:
 - Ubuntu 18.04, bionic using Python=3.9.4
+  - Compatible with tox for code quality checks and running tests
+
+          sudo apt update
+          sudo apt install tox
 - Windows OS ?
 
 ## Setup a virtual environment
@@ -19,6 +23,8 @@ default interpretor to your venv.
 
         pip install --upgrade pip
         pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+        pip install -r requirements-test.txt
 
 Install package as editable (command automatically searches for the setup.py file): 
         

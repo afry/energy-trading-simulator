@@ -1,6 +1,7 @@
-from tradingplatformpoc.bid import Bid, Action
-from tradingplatformpoc.trade import Trade, Market
 from typing import Collection, List
+
+from tradingplatformpoc.bid import Action, Bid
+from tradingplatformpoc.trade import Market, Trade
 
 
 def calculate_costs(bids: Collection[Bid], trades: Collection[Trade], clearing_price: float,

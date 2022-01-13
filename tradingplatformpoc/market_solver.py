@@ -1,5 +1,6 @@
-from tradingplatformpoc.bid import Bid, Action
 from typing import Iterable
+
+from tradingplatformpoc.bid import Action, Bid
 
 
 class MarketSolver:

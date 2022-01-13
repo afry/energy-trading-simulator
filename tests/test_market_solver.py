@@ -1,7 +1,7 @@
 import math
 from unittest import TestCase
 
-from tradingplatformpoc.bid import Bid, Action, Resource
+from tradingplatformpoc.bid import Action, Bid, Resource
 from tradingplatformpoc.market_solver import MarketSolver
 
 
