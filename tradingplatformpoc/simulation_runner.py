@@ -5,6 +5,7 @@ import pickle
 from typing import Dict, List
 
 import numpy as np
+
 import pandas as pd
 
 from pkg_resources import resource_filename
@@ -19,7 +20,7 @@ from tradingplatformpoc.bid import Bid, BidWithAcceptanceStatus
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
-from tradingplatformpoc.market_solver import MarketSolver, NoSolutionFoundException
+from tradingplatformpoc.market_solver import MarketSolver, NoSolutionFoundError
 from tradingplatformpoc.mock_data_generation_functions import get_all_residential_building_agents, get_elec_cons_key, \
     get_pv_prod_key
 from tradingplatformpoc.trade import write_rows
@@ -85,7 +86,7 @@ def run_trading_simulations(mock_datas_pickle_path: str):
         # Resolve bids
         try:
             clearing_price, bids_with_acceptance_status = market_solver.resolve_bids(bids_flat)
-        except NoSolutionFoundException as e:
+        except NoSolutionFoundError:
             logger.warning("Market solver found no price for which demand was covered by supply, for period {}".
                            format(period))
             # Not entirely clear what we should do here. This will only happen if ExternalGridAgent cannot provide
