@@ -1,5 +1,5 @@
 import logging
-from typing import Collection, List, Sized
+from typing import List
 
 import numpy as np
 
@@ -30,8 +30,8 @@ class StorageAgent(IAgent):
         # Upper and lower thresholds
         if sell_price_percentile < buy_price_percentile:
             logger.warning('In StorageAgent, sell_price_percentile should be higher than buy_price_percentile, but had '
-                           'buy_price_percentile={} and sell_price_percentile='.format(buy_price_percentile,
-                                                                                       sell_price_percentile))
+                           'buy_price_percentile={} and sell_price_percentile={}'.format(buy_price_percentile,
+                                                                                         sell_price_percentile))
         self.if_lower_than_this_percentile_then_buy = buy_price_percentile
         self.if_higher_than_this_percentile_then_sell = sell_price_percentile
 

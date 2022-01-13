@@ -20,13 +20,14 @@ class DataStore:
         self.tornet_park_pv_prod = calculate_solar_prod(irradiation_data, self.park_pv_area, self.pv_efficiency)
 
     @staticmethod
-    def from_csv_files(config_area_info,
-                       external_price_csv_path=resource_filename("tradingplatformpoc.data",
-                                                                 "nordpool_area_grid_el_price.csv"),
-                       irradiation_csv_path=resource_filename("tradingplatformpoc.data",
-                                                              "varberg_irradiation_W_m2_h.csv")):
-        return DataStore(config_area_info,
-                         read_nordpool_data(external_price_csv_path),
+    def from_csv_files(config_area_info, data_path="tradingplatformpoc.data",
+                       external_price_file="nordpool_area_grid_el_price.csv",
+                       irradiation_file="varberg_irradiation_W_m2_h.csv"):
+
+        external_price_csv_path = resource_filename(data_path, external_price_file)
+        irradiation_csv_path = resource_filename(data_path, irradiation_file)
+
+        return DataStore(config_area_info, read_nordpool_data(external_price_csv_path),
                          read_solar_irradiation(irradiation_csv_path))
 
     def get_nordpool_price_for_period(self, period):
