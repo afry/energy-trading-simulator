@@ -2,28 +2,27 @@ import datetime
 import json
 import logging
 import pickle
-
 from typing import List
 
 import pandas as pd
 
-from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
-from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
-from tradingplatformpoc.market_solver import MarketSolver
-from tradingplatformpoc.data_store import DataStore
-from tradingplatformpoc import balance_manager, results_calculator, data_store
+from pkg_resources import resource_filename
+
+from tradingplatformpoc import balance_manager, data_store, results_calculator
 from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.grid_agent import ElectricityGridAgent
 from tradingplatformpoc.agent.grocery_store_agent import GroceryStoreAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.agent.storage_agent import StorageAgent
-from tradingplatformpoc.mock_data_generation_functions import get_all_building_agents, get_pv_prod_key, \
-    get_elec_cons_key
-from tradingplatformpoc.trade import write_rows
 from tradingplatformpoc.bid import Bid
-from pkg_resources import resource_filename
-
+from tradingplatformpoc.data_store import DataStore
+from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
+from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
+from tradingplatformpoc.market_solver import MarketSolver
+from tradingplatformpoc.mock_data_generation_functions import get_all_building_agents, get_elec_cons_key, \
+    get_pv_prod_key
+from tradingplatformpoc.trade import write_rows
 from tradingplatformpoc.trading_platform_utils import get_intersection
 
 logger = logging.getLogger(__name__)

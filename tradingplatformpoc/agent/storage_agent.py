@@ -1,10 +1,10 @@
 import logging
-from typing import List, Sized, Collection
+from typing import Collection, List, Sized
 
 import numpy as np
 
 from tradingplatformpoc.agent.iagent import IAgent
-from tradingplatformpoc.bid import Action, Resource, Bid
+from tradingplatformpoc.bid import Action, Bid, Resource
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
 from tradingplatformpoc.trade import Market

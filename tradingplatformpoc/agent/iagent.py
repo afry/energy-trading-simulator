@@ -3,7 +3,7 @@ from typing import List
 
 from ..bid import Bid
 from ..data_store import DataStore
-from ..trade import Trade, Market
+from ..trade import Market, Trade
 
 
 class IAgent(ABC):

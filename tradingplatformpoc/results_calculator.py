@@ -1,10 +1,10 @@
 from typing import Iterable
 
 from tradingplatformpoc import data_store
+from tradingplatformpoc.agent.grid_agent import ElectricityGridAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.storage_agent import StorageAgent
 from tradingplatformpoc.bid import Action
-from tradingplatformpoc.agent.grid_agent import ElectricityGridAgent
 from tradingplatformpoc.trade import Trade
 
 
@@ -65,8 +65,8 @@ def get_savings_vs_only_external(data_store_entity: data_store, trades_for_agent
         external_wholesale_price = data_store_entity.get_wholesale_price(period)
         if trade.action == Action.BUY:
             saved_on_buy_vs_using_only_external = saved_on_buy_vs_using_only_external + \
-                                                  trade.quantity * (external_retail_price - trade.price)
+                trade.quantity * (external_retail_price - trade.price)
         elif trade.action == Action.SELL:
             saved_on_sell_vs_using_only_external = saved_on_sell_vs_using_only_external + \
-                                                   trade.quantity * (trade.price - external_wholesale_price)
+                trade.quantity * (trade.price - external_wholesale_price)
     return saved_on_buy_vs_using_only_external, saved_on_sell_vs_using_only_external

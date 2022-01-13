@@ -1,7 +1,8 @@
 import pandas as pd
+
 from pkg_resources import resource_filename
 
-from tradingplatformpoc.trading_platform_utils import minus_n_hours, calculate_solar_prod
+from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, minus_n_hours
 
 
 class DataStore:

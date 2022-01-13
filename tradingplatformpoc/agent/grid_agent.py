@@ -2,7 +2,7 @@ import logging
 from typing import List
 
 from tradingplatformpoc.agent.iagent import IAgent
-from tradingplatformpoc.bid import Action, Resource, Bid
+from tradingplatformpoc.bid import Action, Bid, Resource
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.trade import Market, Trade
 

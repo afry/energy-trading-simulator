@@ -1,5 +1,6 @@
-import pandas as pd
 import logging
+
+import pandas as pd
 
 from tradingplatformpoc.bid import Resource
 from tradingplatformpoc.digitaltwin.idigital_twin import IDigitalTwin
