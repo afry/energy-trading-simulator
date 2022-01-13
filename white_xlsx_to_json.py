@@ -11,8 +11,8 @@ if __name__ == '__main__':
                           names=['Name', 'BYA', 'GrossFloorArea'],
                           usecols='A,C,D',
                           skiprows=10, nrows=20)
-    areas['Type'] = 'BuildingAgent'
-    areas['Name'] = 'BuildingAgent' + areas['Name']
+    areas['Type'] = 'ResidentialBuildingAgent'
+    areas['Name'] = 'ResidentialBuildingAgent' + areas['Name']
     # It is estimated that 50% of BYA can be covered by rooftop PV panels
     # (see https://doc.afdrift.se/display/RPJ/BDAB+data)
     areas['RooftopPVArea'] = areas['BYA'] / 2.0
