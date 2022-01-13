@@ -5,6 +5,7 @@ import numpy as np
 
 import pandas as pd
 from pandas import DatetimeIndex
+
 from pkg_resources import resource_filename
 
 from tradingplatformpoc import data_store

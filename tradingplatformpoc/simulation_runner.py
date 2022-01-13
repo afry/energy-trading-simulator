@@ -14,7 +14,6 @@ from tradingplatformpoc.agent.grid_agent import ElectricityGridAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.agent.storage_agent import StorageAgent
-
 from tradingplatformpoc.bid import Bid
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin

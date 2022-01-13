@@ -74,8 +74,8 @@ def read_school_energy_consumption_csv(csv_path: str):
     energy_data = pd.read_csv(csv_path)
     energy_data = pd.melt(energy_data, id_vars=['Reading Date', 'One Day Total kWh', 'Status', 'Substitute Date'],
                           var_name='Time', value_name="Energy")
-    energy_data['Timestamp'] = pd.to_datetime(energy_data['Reading Date'] + " " +
-                                              energy_data['Time'], format='%Y-%m-%d %H:%M')
+    energy_data['Timestamp'] = pd.to_datetime(energy_data['Reading Date'] + " " + energy_data['Time'],
+                                              format='%Y-%m-%d %H:%M')
     energy_data = energy_data.sort_values(by=['Timestamp'])
     energy_data = energy_data.set_index('Timestamp')
     energy_data = energy_data.rename({'Energy': 'Energy [kWh]'}, axis=1)
