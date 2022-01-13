@@ -32,3 +32,6 @@ test:
       - pip install -r requirements.txt
       - pip install .
       - tox
+    artifacts:
+      reports:
+        cobertura: coverage.xml
