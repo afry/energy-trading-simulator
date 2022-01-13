@@ -43,8 +43,15 @@ class MarketSolver:
                             bids_with_acceptance_status.append(BidWithAcceptanceStatus.from_bid(bid, False))
                 return price_point, bids_with_acceptance_status
 
-        raise RuntimeError("No acceptable price found!")
+        raise NoSolutionFoundException()
 
     @staticmethod
     def get_price_points(bids: Iterable[Bid]):
         return set([x.price for x in bids])
+
+
+class NoSolutionFoundException(Exception):
+    """
+    Raised when the market solver cannot find a price point for which the demand is covered by the supply
+    """
+    pass

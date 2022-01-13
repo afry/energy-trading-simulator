@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import List, Union
 
+import numpy as np
+
 from ..bid import Bid
 from ..data_store import DataStore
 from ..trade import Market, Trade
@@ -54,14 +56,14 @@ class IAgent(ABC):
 
 
 def get_price_and_market_to_use_when_buying(clearing_price: float, retail_price: float):
-    if clearing_price <= retail_price:
+    if clearing_price != np.nan and clearing_price <= retail_price:
         return clearing_price, Market.LOCAL
     else:
         return retail_price, Market.EXTERNAL
 
 
 def get_price_and_market_to_use_when_selling(clearing_price: float, wholesale_price: float):
-    if clearing_price >= wholesale_price:
+    if clearing_price != np.nan and clearing_price >= wholesale_price:
         return clearing_price, Market.LOCAL
     else:
         return wholesale_price, Market.EXTERNAL

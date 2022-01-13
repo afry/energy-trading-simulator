@@ -2,7 +2,7 @@ import math
 from unittest import TestCase
 
 from tradingplatformpoc.bid import Action, Bid, Resource
-from tradingplatformpoc.market_solver import MarketSolver
+from tradingplatformpoc.market_solver import MarketSolver, NoSolutionFoundException
 
 
 class TestMarketSolver(TestCase):
@@ -79,7 +79,7 @@ class TestMarketSolver(TestCase):
         """Test that an Error is raised when there isn't enough energy to satisfy the local demand."""
         bids = [Bid(Action.SELL, Resource.ELECTRICITY, 100, 0.75, "Seller1", False),
                 Bid(Action.BUY, Resource.ELECTRICITY, 200, math.inf, "Buyer1", False)]
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(NoSolutionFoundException):
             self.ms.resolve_bids(bids)
 
     def test_resolve_bids_with_local_surplus(self):
