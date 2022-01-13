@@ -1,6 +1,6 @@
 from typing import Collection, List
 
-from tradingplatformpoc.bid import Action, Bid, BidWithAcceptanceStatus
+from tradingplatformpoc.bid import Action, BidWithAcceptanceStatus
 from tradingplatformpoc.trade import Market, Trade
 
 
@@ -33,7 +33,7 @@ def get_external_trade_on_local_market(trades: Collection[Trade]):
         return external_trades_on_local_market[0]
 
 
-def get_external_bid(bids: Collection[Bid]):
+def get_external_bid(bids: Collection[BidWithAcceptanceStatus]):
     external_bids = [x for x in bids if x.by_external]
     if len(external_bids) != 1:
         raise RuntimeError("Expected 1 and only 1 external grid bid for a single trading period")
@@ -41,7 +41,7 @@ def get_external_bid(bids: Collection[Bid]):
         return external_bids[0]
 
 
-def calculate_extra_cost(external_bid: Bid, external_trade: Trade,
+def calculate_extra_cost(external_bid: BidWithAcceptanceStatus, external_trade: Trade,
                          clearing_price: float, external_wholesale_price: float):
     external_retail_price = external_bid.price
 
@@ -73,7 +73,7 @@ def distribute_cost(error_by_agent, extra_cost):
     return {k: extra_cost * v for (k, v) in perc_of_cost_to_be_paid_by_agent.items()}
 
 
-def is_agent_external(accepted_bids_for_agent: List[Bid], trades_for_agent: List[Trade]):
+def is_agent_external(accepted_bids_for_agent: List[BidWithAcceptanceStatus], trades_for_agent: List[Trade]):
     """Helper method to figure out whether an agent represents an external grid, based on bids and trades for the agent.
     """
     if len(trades_for_agent) > 0:
@@ -103,7 +103,7 @@ def calculate_error_by_agent(accepted_bids: Collection[BidWithAcceptanceStatus],
     return error_by_agent
 
 
-def get_bid_usage(accepted_bids_for_agent: List[Bid], agent_id: str):
+def get_bid_usage(accepted_bids_for_agent: List[BidWithAcceptanceStatus], agent_id: str):
     """Usage is negative if the agent is a supplier of energy"""
     if len(accepted_bids_for_agent) > 1:
         raise RuntimeError("More than 1 bid accepted for agent " + agent_id + " in a single trading period")
