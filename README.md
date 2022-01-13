@@ -1,3 +1,6 @@
+[![pipeline status](https://gitlab01.afdrift.se/futuretechnologies/tornet-jonstaka/trading-platform-poc/badges/master/pipeline.svg)](https://gitlab01.afdrift.se/futuretechnologies/tornet-jonstaka/trading-platform-poc/commits/master)
+[![coverage report](https://gitlab01.afdrift.se/futuretechnologies/tornet-jonstaka/trading-platform-poc/badges/master/coverage.svg)](https://gitlab01.afdrift.se/futuretechnologies/tornet-jonstaka/trading-platform-poc/commits/master)
+
 # Trading platform PoC
 
 A POC for the trading platform system including agents and market solver.
