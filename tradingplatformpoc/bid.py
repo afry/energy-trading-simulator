@@ -1,3 +1,6 @@
+from enum import Enum
+
+
 class Bid:
     """The bid model for our trading tradingplatformpoc.
 
@@ -24,12 +27,12 @@ class Bid:
         self.was_accepted = was_accepted
 
 
-class Action:
+class Action(Enum):
     BUY = 0
     SELL = 1
 
 
-class Resource:
+class Resource(Enum):
     ELECTRICITY = 0
     HEATING = 1
     COOLING = 2

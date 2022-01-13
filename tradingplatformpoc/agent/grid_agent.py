@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from typing import List, Union
 
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.bid import Action, Bid, Resource
@@ -15,7 +15,7 @@ class ElectricityGridAgent(IAgent):
         super().__init__(guid, data_store)
         self.max_transfer_per_hour = max_transfer_per_hour
 
-    def make_bids(self, period, clearing_prices_dict: dict = None):
+    def make_bids(self, period, clearing_prices_dict: Union[dict, None] = None):
         # Submit a bid to sell electricity
         # Sell up to MAX_TRANSFER_PER_HOUR kWh at calculate_retail_price(period)
         retail_price = self.data_store.get_retail_price(period)

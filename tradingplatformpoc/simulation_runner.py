@@ -2,7 +2,7 @@ import datetime
 import json
 import logging
 import pickle
-from typing import List
+from typing import Dict, List
 
 import pandas as pd
 
@@ -53,7 +53,7 @@ def run_trading_simulations(mock_datas_pickle_path: str):
     extra_costs_file = open('./extra_costs.csv', 'w')
     extra_costs_file.write('period,agent,cost\n')
     # Output lists
-    clearing_prices_dict = {}
+    clearing_prices_dict: Dict[datetime.datetime, float] = {}
     all_trades_list = []
     all_bids_list = []
     all_extra_costs_dict = {}
@@ -65,7 +65,7 @@ def run_trading_simulations(mock_datas_pickle_path: str):
         agents, grid_agent = initialize_agents(data_store_entity, config_data, buildings_mock_data,
                                                energy_data_csv_path, school_data_csv_path)
     except RuntimeError as e:
-        clearing_prices_file.write(e.args)
+        clearing_prices_file.write(str(e.args))
         exit(1)
 
     # Get a market solver
@@ -145,7 +145,7 @@ def get_generated_mock_data(config_data: dict, mock_datas_pickle_path: str):
         return all_data_sets[residential_building_agents_frozen_set]
 
 
-def initialize_agents(data_store_entity: data_store, config_data: dict, buildings_mock_data: pd.DataFrame,
+def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings_mock_data: pd.DataFrame,
                       energy_data_csv_path: str, school_data_csv_path: str):
     # Register all agents
     # Keep a list of all agents to iterate over later

@@ -1,3 +1,5 @@
+from enum import Enum
+
 from tradingplatformpoc.bid import Action, Resource
 
 
@@ -46,7 +48,7 @@ class Trade:
             return -self.quantity * self.price
 
 
-class Market:
+class Market(Enum):
     LOCAL = 0
     EXTERNAL = 1
 
