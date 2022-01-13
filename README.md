@@ -1,5 +1,5 @@
-[![pipeline status](https://gitlab01.afdrift.se/futuretechnologies/tornet-jonstaka/trading-platform-poc/badges/master/pipeline.svg)](https://gitlab01.afdrift.se/futuretechnologies/tornet-jonstaka/trading-platform-poc/commits/master)
-[![coverage report](https://gitlab01.afdrift.se/futuretechnologies/tornet-jonstaka/trading-platform-poc/badges/master/coverage.svg)](https://gitlab01.afdrift.se/futuretechnologies/tornet-jonstaka/trading-platform-poc/commits/master)
+[![pipeline status](https://gitlab01.afdrift.se/futuretechnologies/tornet-jonstaka/trading-platform-poc/badges/main/pipeline.svg)](https://gitlab01.afdrift.se/futuretechnologies/tornet-jonstaka/trading-platform-poc/commits/main)
+[![coverage report](https://gitlab01.afdrift.se/futuretechnologies/tornet-jonstaka/trading-platform-poc/badges/main/coverage.svg)](https://gitlab01.afdrift.se/futuretechnologies/tornet-jonstaka/trading-platform-poc/commits/main)
 
 # Trading platform PoC
 
