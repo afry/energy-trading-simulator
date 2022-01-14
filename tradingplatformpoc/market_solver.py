@@ -1,6 +1,6 @@
 from typing import Iterable
 
-from tradingplatformpoc.bid import Action, Bid
+from tradingplatformpoc.bid import Action, Bid, BidWithAcceptanceStatus
 
 
 class MarketSolver:
@@ -8,9 +8,12 @@ class MarketSolver:
 
     def resolve_bids(self, bids: Iterable[Bid]):
         """Function for resolving all bids for the next trading period.
-        Will try to find the lowest price where supply equals or exceeds demand."""
+        Will try to find the lowest price where supply equals or exceeds demand.
+        @return A clearing price as a float, and a list of BidWithAcceptanceStatus
+        """
 
         price_points = self.get_price_points(bids)
+        bids_with_acceptance_status = []
 
         for price_point in sorted(price_points):
             # Going through price points in ascending order
@@ -30,15 +33,15 @@ class MarketSolver:
                 for bid in bids:
                     if bid.action == Action.SELL:
                         if bid.price <= price_point:
-                            bid.set_was_accepted(True)
+                            bids_with_acceptance_status.append(BidWithAcceptanceStatus.from_bid(bid, True))
                         else:
-                            bid.set_was_accepted(False)
+                            bids_with_acceptance_status.append(BidWithAcceptanceStatus.from_bid(bid, False))
                     else:  # BUY
                         if bid.price >= price_point:
-                            bid.set_was_accepted(True)
+                            bids_with_acceptance_status.append(BidWithAcceptanceStatus.from_bid(bid, True))
                         else:
-                            bid.set_was_accepted(False)
-                return price_point, bids
+                            bids_with_acceptance_status.append(BidWithAcceptanceStatus.from_bid(bid, False))
+                return price_point, bids_with_acceptance_status
 
         raise RuntimeError("No acceptable price found!")
 

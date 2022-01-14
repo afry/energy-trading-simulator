@@ -21,10 +21,21 @@ class Bid:
         self.price = price
         self.source = source
         self.by_external = by_external
-        self.was_accepted = None
 
-    def set_was_accepted(self, was_accepted: bool):
+
+class BidWithAcceptanceStatus(Bid):
+    """
+    A bid, with the additional information of whether the bid was accepted or not, in the market clearing process.
+    """
+
+    def __init__(self, action, resource, quantity, price, source, by_external, was_accepted: bool):
+        super().__init__(action, resource, quantity, price, source, by_external)
         self.was_accepted = was_accepted
+
+    @staticmethod
+    def from_bid(bid: Bid, was_accepted: bool):
+        return BidWithAcceptanceStatus(bid.action, bid.resource, bid.quantity, bid.price, bid.source, bid.by_external,
+                                       was_accepted)
 
 
 class Action(Enum):
