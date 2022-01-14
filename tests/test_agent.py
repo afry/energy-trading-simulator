@@ -81,14 +81,16 @@ class TestGridAgent(unittest.TestCase):
         self.assertEqual(0, len(external_trades))
 
     def test_calculate_trades_price_not_matching(self):
-        """Test that an error is raised when the local price is specified as greater than the external retail price."""
+        """Test that a warning is logged when the local price is specified as greater than the external retail price."""
         local_price = MAX_NORDPOOL_PRICE + 1.0
         trades_excl_external = [
             Trade(Action.BUY, Resource.ELECTRICITY, 100, local_price, "BuildingAgent", False, Market.LOCAL,
                   datetime(2019, 2, 1, 1, 0, 0))
         ]
-        with self.assertRaises(RuntimeError):
+        with self.assertLogs() as captured:
             self.grid_agent.calculate_external_trades(trades_excl_external, local_price)
+        self.assertEqual(len(captured.records), 1)
+        self.assertEqual(captured.records[0].levelname, 'WARNING')
 
     def test_calculate_trades_price_not_matching_2(self):
         """Test calculate_external_trades when local price is lower than the retail price, but there is a need for
