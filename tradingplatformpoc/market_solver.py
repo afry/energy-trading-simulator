@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Iterable, List, Set, Tuple
 
 from tradingplatformpoc.bid import Action, Bid, BidWithAcceptanceStatus
 
@@ -6,7 +6,7 @@ from tradingplatformpoc.bid import Action, Bid, BidWithAcceptanceStatus
 class MarketSolver:
     """An entity that resolves bids towards the market in a way that fulfills the constraints of the bidding entities"""
 
-    def resolve_bids(self, bids: Iterable[Bid]):
+    def resolve_bids(self, bids: Iterable[Bid]) -> Tuple[float, List[BidWithAcceptanceStatus]]:
         """Function for resolving all bids for the next trading period.
         Will try to find the lowest price where supply equals or exceeds demand.
         @return A clearing price as a float, and a list of BidWithAcceptanceStatus
@@ -46,7 +46,7 @@ class MarketSolver:
         raise NoSolutionFoundError()
 
     @staticmethod
-    def get_price_points(bids: Iterable[Bid]):
+    def get_price_points(bids: Iterable[Bid]) -> Set[float]:
         return set([x.price for x in bids])
 
 
