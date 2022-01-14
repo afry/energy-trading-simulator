@@ -2,7 +2,7 @@ import datetime
 import json
 import logging
 import pickle
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import numpy as np
 
@@ -87,15 +87,7 @@ def run_trading_simulations(mock_datas_pickle_path: str):
         try:
             clearing_price, bids_with_acceptance_status = market_solver.resolve_bids(bids_flat)
         except NoSolutionFoundError:
-            logger.warning("Market solver found no price for which demand was covered by supply, for period {}".
-                           format(period))
-            # Not entirely clear what we should do here. This will only happen if ExternalGridAgent cannot provide
-            # enough energy, basically, which should never be the case. Currently, we will set clearing price to np.nan
-            # and all agents will ignore the local market, and buy/sell directly from/to the external grid instead.
-            # This is the easiest way of handling it, even though there may be some locally produced electricity which
-            # could be sold locally, saving money for that seller...
-            clearing_price = np.nan
-            bids_with_acceptance_status = [BidWithAcceptanceStatus.from_bid(bid, False) for bid in bids_flat]
+            clearing_price, bids_with_acceptance_status = deal_with_no_solution_found(bids_flat, period)
         clearing_prices_dict[period] = clearing_price
 
         clearing_prices_file.write('{},{}\n'.format(period, clearing_price))
@@ -202,14 +194,28 @@ def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings
                                               guid=agent_name)
             agents.append(grid_agent)
 
-    # TODO: As of right now, grid agents are treated as configurable, but the code is hard coded with the
-    # TODO: assumption that they'll always exist. Should probably be refactored
+    # TODO: As of right now, grid agents are treated as configurable, but the code is hard coded with the assumption
+    #  that they'll always exist. Should probably be refactored
 
     # Verify that we have a Grid Agent
     if not any(isinstance(agent, ElectricityGridAgent) for agent in agents):
         raise RuntimeError("No grid agent initialized")
 
     return agents, grid_agent
+
+
+def deal_with_no_solution_found(bids_flat: List[Bid], period: datetime.datetime) -> \
+        Tuple[float, List[BidWithAcceptanceStatus]]:
+    """
+    Not entirely clear what we should do here. This will only happen if ExternalGridAgent cannot provide
+    enough energy, basically, which should never be the case. Currently, we will set clearing price to np.nan
+    and all agents will ignore the local market, and buy/sell directly from/to the external grid instead.
+    This is the easiest way of handling it, even though there may be some locally produced electricity which
+    could be sold locally, saving money for that seller...
+    """
+    logger.warning("Market solver found no price for which demand was covered by supply, for period {}".
+                   format(period))
+    return np.nan, [BidWithAcceptanceStatus.from_bid(bid, False) for bid in bids_flat]
 
 
 def write_extra_costs_rows(period: datetime.datetime, extra_costs: dict):
