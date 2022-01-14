@@ -125,3 +125,16 @@ class Test(TestCase):
                   Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Grid", True, Market.LOCAL, SOME_DATETIME)]
         with self.assertRaises(RuntimeError):
             calculate_costs(bids, trades, 1.0, 0.5)
+
+    def test_no_external_bid(self):
+        """
+        If there is no bid from an external grid agent, an error should be raised.
+        """
+        bids = [BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 2000, math.inf, "Buyer1", False, True),
+                BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 100, math.inf, "Buyer2", False, True),
+                BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, 1.0, "Seller1", False, True)]
+        trades = [Trade(Action.SELL, Resource.ELECTRICITY, 2000, 1, "Seller1", False, Market.LOCAL, SOME_DATETIME),
+                  Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Buyer2", False, Market.LOCAL, SOME_DATETIME),
+                  Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Seller1", False, Market.LOCAL, SOME_DATETIME)]
+        with self.assertRaises(RuntimeError):
+            calculate_costs(bids, trades, 1.0, 0.5)

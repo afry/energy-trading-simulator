@@ -1,8 +1,12 @@
+import logging
+
 import pandas as pd
 
 from pkg_resources import resource_filename
 
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, minus_n_hours
+
+logger = logging.getLogger(__name__)
 
 
 class DataStore:
@@ -50,7 +54,13 @@ class DataStore:
         nordpool_prices_last_n_hours = {}
         for i in range(go_back_n_hours):
             t = minus_n_hours(period, i + 1)
-            nordpool_prices_last_n_hours[t] = self.get_nordpool_price_for_period(t)
+            try:
+                nordpool_prices_last_n_hours[t] = self.get_nordpool_price_for_period(t)
+            except KeyError:
+                logger.info('No Nordpool data on or before {}. Exiting get_nordpool_prices_last_n_hours_dict with {} '
+                            'entries instead of the desired {}'.
+                            format(t, len(nordpool_prices_last_n_hours), go_back_n_hours))
+                break
         return nordpool_prices_last_n_hours
 
 

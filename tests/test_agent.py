@@ -11,11 +11,13 @@ import tradingplatformpoc.agent.grid_agent
 import tradingplatformpoc.agent.pv_agent
 import tradingplatformpoc.agent.storage_agent
 from tradingplatformpoc import agent, data_store
-from tradingplatformpoc.bid import Action, Resource
+from tradingplatformpoc.bid import Action, BidWithAcceptanceStatus, Resource
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
 from tradingplatformpoc.trade import Market, Trade
 from tradingplatformpoc.trading_platform_utils import datetime_array_between
+
+SOME_DATETIME = datetime(2019, 2, 1, 1)
 
 MAX_NORDPOOL_PRICE = 4.0
 
@@ -45,7 +47,7 @@ class TestGridAgent(unittest.TestCase):
 
     def test_make_bids(self):
         """Test basic functionality of GridAgent's make_bids method."""
-        bids = self.grid_agent.make_bids(datetime(2019, 2, 1, 1, 0, 0))
+        bids = self.grid_agent.make_bids(SOME_DATETIME)
         self.assertEqual(1, len(bids))
         self.assertEqual(Resource.ELECTRICITY, bids[0].resource)
         self.assertEqual(Action.SELL, bids[0].action)
@@ -56,7 +58,7 @@ class TestGridAgent(unittest.TestCase):
         retail_price = 3.938725389630498
         trades_excl_external = [
             Trade(Action.BUY, Resource.ELECTRICITY, 100, retail_price, "BuildingAgent", False, Market.LOCAL,
-                  datetime(2019, 2, 1, 1))
+                  SOME_DATETIME)
         ]
         external_trades = self.grid_agent.calculate_external_trades(trades_excl_external, retail_price)
         self.assertEqual(1, len(external_trades))
@@ -66,16 +68,16 @@ class TestGridAgent(unittest.TestCase):
         self.assertAlmostEqual(retail_price, external_trades[0].price)
         self.assertEqual("ElectricityGridAgent", external_trades[0].source)
         self.assertEqual(Market.LOCAL, external_trades[0].market)
-        self.assertEqual(datetime(2019, 2, 1, 1, 0, 0), external_trades[0].period)
+        self.assertEqual(SOME_DATETIME, external_trades[0].period)
 
     def test_calculate_trades_local_equilibrium(self):
         """Test the calculate_external_trades method when there is no need for any external trades."""
         retail_price = 0.99871
         trades_excl_external = [
             Trade(Action.BUY, Resource.ELECTRICITY, 100, retail_price, "BuildingAgent", False, Market.LOCAL,
-                  datetime(2019, 2, 1, 1, 0, 0)),
+                  SOME_DATETIME),
             Trade(Action.SELL, Resource.ELECTRICITY, 100, retail_price, "PVAgent", False, Market.LOCAL,
-                  datetime(2019, 2, 1, 1, 0, 0))
+                  SOME_DATETIME)
         ]
         external_trades = self.grid_agent.calculate_external_trades(trades_excl_external, retail_price)
         self.assertEqual(0, len(external_trades))
@@ -85,7 +87,7 @@ class TestGridAgent(unittest.TestCase):
         local_price = MAX_NORDPOOL_PRICE + 1.0
         trades_excl_external = [
             Trade(Action.BUY, Resource.ELECTRICITY, 100, local_price, "BuildingAgent", False, Market.LOCAL,
-                  datetime(2019, 2, 1, 1, 0, 0))
+                  SOME_DATETIME)
         ]
         with self.assertLogs() as captured:
             self.grid_agent.calculate_external_trades(trades_excl_external, local_price)
@@ -98,7 +100,7 @@ class TestGridAgent(unittest.TestCase):
         local_price = MIN_NORDPOOL_PRICE - 1.0
         trades_excl_external = [
             Trade(Action.BUY, Resource.ELECTRICITY, 100, local_price, "BuildingAgent", False, Market.LOCAL,
-                  datetime(2019, 2, 1, 1, 0, 0))
+                  SOME_DATETIME)
         ]
         # Should log a line about external grid and market clearing price being different
         external_trades = self.grid_agent.calculate_external_trades(trades_excl_external, local_price)
@@ -107,7 +109,7 @@ class TestGridAgent(unittest.TestCase):
     def test_calculate_trades_2(self):
         """Test basic functionality of GridAgent's calculate_external_trades method when there is a local surplus."""
         wholesale_price = 3.5087253896304977
-        period = datetime(2019, 2, 1, 1, 0, 0)
+        period = SOME_DATETIME
         trades_excl_external = [
             Trade(Action.BUY, Resource.ELECTRICITY, 100, wholesale_price, "BuildingAgent", False, Market.LOCAL, period),
             Trade(Action.BUY, Resource.ELECTRICITY, 200, wholesale_price, "GSAgent", False, Market.LOCAL, period),
@@ -130,12 +132,52 @@ class TestStorageAgent(unittest.TestCase):
 
     def test_make_bids(self):
         """Test basic functionality of StorageAgent's make_bids method."""
-        bids = self.battery_agent.make_bids(datetime(2019, 2, 1, 1, 0, 0), {})
+        bids = self.battery_agent.make_bids(SOME_DATETIME, {})
         self.assertEqual(Resource.ELECTRICITY, bids[0].resource)
         self.assertEqual(Action.BUY, bids[0].action)
         self.assertTrue(bids[0].quantity > 0)
         self.assertTrue(bids[0].quantity <= 1000)
         self.assertTrue(bids[0].price > 0)
+
+    def test_make_bids_without_historical_prices(self):
+        """Test that a warning is logged when calling StorageAgent's make_bids with None clearing_prices_dict"""
+        with self.assertLogs() as captured:
+            self.battery_agent.make_bids(SOME_DATETIME, None)
+        self.assertTrue(len(captured.records) > 0)
+        log_levels_captured = [rec.levelname for rec in captured.records]
+        self.assertTrue('WARNING' in log_levels_captured)
+
+    def test_make_bids_without_historical_prices_or_nordpool_prices(self):
+        """Test that an error is raised when calling StorageAgent's make_bids for a time period when there is no price
+        data available whatsoever, local nor Nordpool"""
+        with self.assertRaises(RuntimeError):
+            self.battery_agent.make_bids(datetime(1990, 1, 1), {})
+
+    def test_make_bids_without_historical_prices_and_only_1_day_of_nordpool_prices(self):
+        """Test that an error is raised when calling StorageAgent's make_bids for a time period when there is only
+        one day's worth of entries of Nordpool data available."""
+        early_datetime = data_store_entity.get_nordpool_data_datetimes()[24]
+        with self.assertRaises(RuntimeError):
+            self.battery_agent.make_bids(early_datetime, {})
+
+    def test_make_bids_without_historical_prices_and_only_5_days_of_nordpool_prices(self):
+        """Test that an INFO is logged when calling StorageAgent's make_bids for a time period when there are only
+        five day's worth of entries of Nordpool data available."""
+        quite_early_datetime = data_store_entity.get_nordpool_data_datetimes()[120]
+        with self.assertLogs() as captured:
+            self.battery_agent.make_bids(quite_early_datetime, {})
+        self.assertTrue(len(captured.records) > 0)
+        log_levels_captured = [rec.levelname for rec in captured.records]
+        self.assertTrue('INFO' in log_levels_captured)
+
+    def test_make_trade_with_2_accepted_bids(self):
+        """Test that an error is raised when trying to calculate what trade to make, with more than 1 accepted bid."""
+        accepted_bids_for_agent = [
+            BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 100, 1, 'StorageAgent', False, True),
+            BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 100, 1, 'StorageAgent', False, True)
+        ]
+        with self.assertRaises(RuntimeError):
+            self.battery_agent.make_trade_given_clearing_price(SOME_DATETIME, 1.0, {}, accepted_bids_for_agent)
 
 
 class TestBuildingAgent(TestCase):
@@ -148,7 +190,7 @@ class TestBuildingAgent(TestCase):
 
     def test_make_bids(self):
         """Test basic functionality of BuildingAgent's make_bids method."""
-        bids = self.building_agent.make_bids(datetime(2019, 2, 1, 1, 0, 0))
+        bids = self.building_agent.make_bids(SOME_DATETIME)
         self.assertEqual(bids[0].resource, Resource.ELECTRICITY)
         self.assertEqual(bids[0].action, Action.BUY)
         self.assertTrue(bids[0].quantity > 0)
