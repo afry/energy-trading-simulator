@@ -2,7 +2,7 @@ import logging
 from typing import List, Union
 
 from tradingplatformpoc.agent.iagent import IAgent
-from tradingplatformpoc.bid import Action, Bid, Resource
+from tradingplatformpoc.bid import Action, Bid, BidWithAcceptanceStatus, Resource
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.trade import Market, Trade
 
@@ -38,7 +38,7 @@ class ElectricityGridAgent(IAgent):
         pass
 
     def make_trade_given_clearing_price(self, period, clearing_price: float, clearing_prices_dict: dict,
-                                        accepted_bids_for_agent: List[Bid]):
+                                        accepted_bids_for_agent: List[BidWithAcceptanceStatus]):
         # The external grid is used to make up for any differences on the local market. Therefore these will be
         # calculated at a later stage (in calculate_external_trades)
         pass

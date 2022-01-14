@@ -1,7 +1,7 @@
 from typing import List, Union
 
 from tradingplatformpoc.agent.iagent import IAgent, get_price_and_market_to_use_when_selling
-from tradingplatformpoc.bid import Action, Bid, Resource
+from tradingplatformpoc.bid import Action, BidWithAcceptanceStatus, Resource
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.trading_platform_utils import minus_n_hours
@@ -42,7 +42,7 @@ class PVAgent(IAgent):
         return -self.digital_twin.get_production(period, Resource.ELECTRICITY)
 
     def make_trade_given_clearing_price(self, period, clearing_price: float, clearing_prices_dict: dict,
-                                        accepted_bids_for_agent: List[Bid]):
+                                        accepted_bids_for_agent: List[BidWithAcceptanceStatus]):
         usage = self.get_actual_usage(period)
         if usage < 0:
             wholesale_price = self.get_external_grid_buy_price(period)

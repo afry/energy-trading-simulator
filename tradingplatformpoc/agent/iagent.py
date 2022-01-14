@@ -3,7 +3,7 @@ from typing import List, Union
 
 import numpy as np
 
-from ..bid import Bid
+from ..bid import Bid, BidWithAcceptanceStatus
 from ..data_store import DataStore
 from ..trade import Market, Trade
 
@@ -33,7 +33,7 @@ class IAgent(ABC):
 
     @abstractmethod
     def make_trade_given_clearing_price(self, period, clearing_price: float, clearing_prices_dict: dict,
-                                        accepted_bids_for_agent: List[Bid]):
+                                        accepted_bids_for_agent: List[BidWithAcceptanceStatus]):
         # Once market solver has decided a clearing price, it will send it to the agents with this method
         # Should return a Trade
         pass
