@@ -1,6 +1,13 @@
+import datetime
 from enum import Enum
+from typing import Iterable
 
 from tradingplatformpoc.bid import Action, Resource
+
+
+class Market(Enum):
+    LOCAL = 0
+    EXTERNAL = 1
 
 
 class Trade:
@@ -18,7 +25,17 @@ class Trade:
         period: What period the trade happened
     """
 
-    def __init__(self, action, resource, quantity, price, source, by_external, market, period):
+    action: Action
+    resource: Resource
+    quantity: float
+    price: float
+    source: str
+    by_external: bool
+    market: Market
+    period: datetime.datetime
+
+    def __init__(self, action: Action, resource: Resource, quantity: float, price: float, source: str,
+                 by_external: bool, market: Market, period: datetime.datetime):
         if quantity <= 0:
             raise RuntimeError('Trade must have quantity > 0, but was ' + str(quantity))
         self.action = action
@@ -40,7 +57,7 @@ class Trade:
                                                 self.quantity,
                                                 self.price)
 
-    def get_cost_of_trade(self):
+    def get_cost_of_trade(self) -> float:
         """Negative if it is an income, i.e. if the trade is a SELL"""
         if self.action == Action.BUY:
             return self.quantity * self.price
@@ -48,25 +65,20 @@ class Trade:
             return -self.quantity * self.price
 
 
-class Market(Enum):
-    LOCAL = 0
-    EXTERNAL = 1
-
-
-def market_string(market):
+def market_string(market: Market) -> str:
     return "LOCAL" if market == Market.LOCAL else "EXTERNAL"
 
 
-def action_string(action):
+def action_string(action: Action) -> str:
     return "BUY" if action == Action.BUY else "SELL"
 
 
-def resource_string(resource):
+def resource_string(resource: Resource) -> str:
     return "ELECTRICITY" if resource == Resource.ELECTRICITY else \
         ("HEATING" if resource == Resource.HEATING else "COOLING")
 
 
-def write_rows(trades):
+def write_rows(trades: Iterable[Trade]) -> str:
     full_string = ""
     for trade in trades:
         full_string = full_string + str(trade) + "\n"

@@ -17,8 +17,8 @@ class MarketSolver:
 
         for price_point in sorted(price_points):
             # Going through price points in ascending order
-            supply_for_price_point = 0
-            demand_for_price_point = 0
+            supply_for_price_point = 0.0
+            demand_for_price_point = 0.0
             for bid in bids:
                 if bid.action == Action.SELL:
                     if bid.price <= price_point:
