@@ -67,7 +67,7 @@ class StorageAgent(IAgent):
         # In this implementation, the battery never sells or buys directly from the external grid.
         if len(accepted_bids_for_agent) > 1:
             # As we are currently only supporting one Resource (electricity), this would be unexpected
-            raise RuntimeError("More than 1 accepted bid in one trading period for storage agent")
+            raise RuntimeError("More than 1 accepted bid in period {} for storage agent '{}'".format(period, self.guid))
         elif len(accepted_bids_for_agent) == 1:
             bid_quantity = accepted_bids_for_agent[0].quantity
             bid_resource = accepted_bids_for_agent[0].resource
