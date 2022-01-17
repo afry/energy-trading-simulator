@@ -215,6 +215,16 @@ class TestBuildingAgent(TestCase):
         self.assertFalse(np.isnan(prognosis_producer))
         self.assertTrue(prognosis_producer < 0)
 
+    def test_make_prognosis_for_first_data_point(self):
+        """BuildingAgent's make_prognosis method currently just looks up the previous actual value, so here we test
+        what happens when we try to make a prognosis for the first value."""
+        prognosis_consumer = self.building_agent_cons.make_prognosis(DATETIME_ARRAY[0])
+        self.assertFalse(np.isnan(prognosis_consumer))
+        self.assertTrue(prognosis_consumer > 0)
+        prognosis_producer = self.building_agent_prod.make_prognosis(DATETIME_ARRAY[0])
+        self.assertFalse(np.isnan(prognosis_producer))
+        self.assertTrue(prognosis_producer < 0)
+
     def test_get_actual_usage(self):
         """Test basic functionality of BuildingAgent's get_actual_usage method."""
         usage_consumer = self.building_agent_cons.get_actual_usage(SOME_DATETIME)
