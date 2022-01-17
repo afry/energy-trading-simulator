@@ -16,7 +16,7 @@ class ElectricityGridAgent(IAgent):
         super().__init__(guid, data_store)
         self.max_transfer_per_hour = max_transfer_per_hour
 
-    def make_bids(self, period, clearing_prices_dict: Union[dict, None] = None):
+    def make_bids(self, period: datetime.datetime, clearing_prices_dict: Union[dict, None] = None):
         # Submit a bid to sell electricity
         # Sell up to MAX_TRANSFER_PER_HOUR kWh at calculate_retail_price(period)
         retail_price = self.data_store.get_retail_price(period)
@@ -31,20 +31,21 @@ class ElectricityGridAgent(IAgent):
     def construct_bid(self, action, resource, quantity, price):
         return Bid(action, resource, quantity, price, self.guid, True)
 
-    def make_prognosis(self, period):
+    def make_prognosis(self, period: datetime.datetime):
         # FUTURE: Make prognoses of the price, instead of using actual? Although we are already using the day-ahead?
         pass
 
-    def get_actual_usage(self, period):
+    def get_actual_usage(self, period: datetime.datetime):
         pass
 
-    def make_trade_given_clearing_price(self, period, clearing_price: float, clearing_prices_dict: dict,
+    def make_trade_given_clearing_price(self, period: datetime.datetime, clearing_price: float,
+                                        clearing_prices_dict: dict,
                                         accepted_bids_for_agent: List[BidWithAcceptanceStatus]):
         # The external grid is used to make up for any differences on the local market. Therefore these will be
         # calculated at a later stage (in calculate_external_trades)
         pass
 
-    def calculate_external_trades(self, trades_excl_external, local_clearing_price):
+    def calculate_external_trades(self, trades_excl_external: Iterable[Trade], local_clearing_price: float):
         trades_to_add: List[Trade] = []
 
         periods = set([trade.period for trade in trades_excl_external])

@@ -1,3 +1,4 @@
+import datetime
 from typing import List, Union
 
 from tradingplatformpoc.agent.iagent import IAgent, get_price_and_market_to_use_when_selling
@@ -13,7 +14,7 @@ class PVAgent(IAgent):
         super().__init__(guid, data_store)
         self.digital_twin = digital_twin
 
-    def make_bids(self, period, clearing_prices_dict: Union[dict, None] = None):
+    def make_bids(self, period: datetime.datetime, clearing_prices_dict: Union[dict, None] = None):
         # The PV park should make a bid to sell energy
         # Pricing logic:
         # If the agent represents only solar panels and no storage, then the electricity must be sold.
@@ -27,7 +28,7 @@ class PVAgent(IAgent):
         else:
             return []
 
-    def make_prognosis(self, period):
+    def make_prognosis(self, period: datetime.datetime):
         # The PV park should make a prognosis for how much energy will be produced
         prev_trading_period = minus_n_hours(period, 1)
         try:
@@ -37,11 +38,12 @@ class PVAgent(IAgent):
             electricity_prod_prev = self.digital_twin.get_production(period, Resource.ELECTRICITY)
         return electricity_prod_prev
 
-    def get_actual_usage(self, period):
+    def get_actual_usage(self, period: datetime.datetime):
         # Negative means net producer
         return -self.digital_twin.get_production(period, Resource.ELECTRICITY)
 
-    def make_trade_given_clearing_price(self, period, clearing_price: float, clearing_prices_dict: dict,
+    def make_trade_given_clearing_price(self, period: datetime.datetime, clearing_price: float,
+                                        clearing_prices_dict: dict,
                                         accepted_bids_for_agent: List[BidWithAcceptanceStatus]):
         usage = self.get_actual_usage(period)
         if usage < 0:

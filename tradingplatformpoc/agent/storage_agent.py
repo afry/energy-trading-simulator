@@ -1,3 +1,4 @@
+import datetime
 import logging
 from typing import List, Union
 
@@ -44,7 +45,7 @@ class StorageAgent(IAgent):
         self.if_higher_than_this_percentile_then_sell = sell_price_percentile
         self.need_at_least_n_hours = int(self.go_back_n_hours / 2)
 
-    def make_bids(self, period, clearing_prices_dict: Union[dict, None]):
+    def make_bids(self, period: datetime.datetime, clearing_prices_dict: Union[dict, None]):
 
         if clearing_prices_dict is not None:
             clearing_prices_dict = dict(clearing_prices_dict)
@@ -72,13 +73,14 @@ class StorageAgent(IAgent):
                                       resource=Resource.ELECTRICITY)
         return [buy_bid, sell_bid]
 
-    def make_prognosis(self, period):
+    def make_prognosis(self, period: datetime.datetime):
         pass
 
-    def get_actual_usage(self, period):
+    def get_actual_usage(self, period: datetime.datetime):
         pass
 
-    def make_trade_given_clearing_price(self, period, clearing_price: float, clearing_prices_dict: dict,
+    def make_trade_given_clearing_price(self, period: datetime.datetime, clearing_price: float,
+                                        clearing_prices_dict: dict,
                                         accepted_bids_for_agent: List[BidWithAcceptanceStatus]):
         # In this implementation, the battery never sells or buys directly from the external grid.
         if len(accepted_bids_for_agent) > 1:
@@ -115,8 +117,8 @@ class StorageAgent(IAgent):
         return min([self.digital_twin.capacity_kwh / 2.0, self.digital_twin.discharge_limit_kwh])
 
 
-def get_prices_last_n_hours(period, n_hours: int, clearing_prices_dict: dict, nordpool_prices_last_n_hours_dict: dict)\
-        -> List[float]:
+def get_prices_last_n_hours(period: datetime.datetime, n_hours: int, clearing_prices_dict: dict,
+                            nordpool_prices_last_n_hours_dict: dict) -> List[float]:
     """
     Tries to get the clearing price for the last n hours. If it doesn't exist (i.e. if the market was just started up)
     it will get the Nordpool spot price instead.
