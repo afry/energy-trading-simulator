@@ -1,9 +1,10 @@
+import datetime
 import math
 from typing import List, Union
 
 from tradingplatformpoc.agent.iagent import IAgent, get_price_and_market_to_use_when_buying, \
     get_price_and_market_to_use_when_selling
-from tradingplatformpoc.bid import Action, Bid, Resource
+from tradingplatformpoc.bid import Action, BidWithAcceptanceStatus, Resource
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.trading_platform_utils import minus_n_hours
@@ -15,7 +16,7 @@ class BuildingAgent(IAgent):
         super().__init__(guid, data_store)
         self.digital_twin = digital_twin
 
-    def make_bids(self, period, clearing_prices_dict: Union[dict, None] = None):
+    def make_bids(self, period: datetime.datetime, clearing_prices_dict: Union[dict, None] = None):
         # The building should make a bid for purchasing energy, or selling if it has a surplus
         electricity_needed = self.make_prognosis(period)
         bids = []
@@ -28,7 +29,7 @@ class BuildingAgent(IAgent):
             # If the building doesn't have it's own battery, then surplus electricity must be sold, so price is 0
         return bids
 
-    def make_prognosis(self, period):
+    def make_prognosis(self, period: datetime.datetime):
         # The building should make a prognosis for how much energy will be required
         prev_trading_period = minus_n_hours(period, 1)
         try:
@@ -45,8 +46,9 @@ class BuildingAgent(IAgent):
         actual_production = self.digital_twin.get_production(period, Resource.ELECTRICITY)
         return actual_consumption - actual_production
 
-    def make_trade_given_clearing_price(self, period, clearing_price: float, clearing_prices_dict: dict,
-                                        accepted_bids_for_agent: List[Bid]):
+    def make_trade_given_clearing_price(self, period: datetime.datetime, clearing_price: float,
+                                        clearing_prices_dict: dict,
+                                        accepted_bids_for_agent: List[BidWithAcceptanceStatus]):
 
         retail_price = self.data_store.get_retail_price(period)
         wholesale_price = self.data_store.get_wholesale_price(period)

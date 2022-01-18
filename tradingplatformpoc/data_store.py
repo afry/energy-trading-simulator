@@ -1,8 +1,13 @@
+import datetime
+import logging
+
 import pandas as pd
 
 from pkg_resources import resource_filename
 
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, minus_n_hours
+
+logger = logging.getLogger(__name__)
 
 
 class DataStore:
@@ -10,7 +15,7 @@ class DataStore:
     tornet_park_pv_prod: pd.Series
     coop_pv_prod: pd.Series  # Rooftop PV production
 
-    def __init__(self, config_area_info, nordpool_data, irradiation_data):
+    def __init__(self, config_area_info: dict, nordpool_data: pd.Series, irradiation_data: pd.Series):
         self.pv_efficiency = config_area_info["PVEfficiency"]
         self.store_pv_area = config_area_info["StorePVArea"]
         self.park_pv_area = config_area_info["ParkPVArea"]
@@ -20,9 +25,9 @@ class DataStore:
         self.tornet_park_pv_prod = calculate_solar_prod(irradiation_data, self.park_pv_area, self.pv_efficiency)
 
     @staticmethod
-    def from_csv_files(config_area_info, data_path="tradingplatformpoc.data",
-                       external_price_file="nordpool_area_grid_el_price.csv",
-                       irradiation_file="varberg_irradiation_W_m2_h.csv"):
+    def from_csv_files(config_area_info: dict, data_path: str = "tradingplatformpoc.data",
+                       external_price_file: str = "nordpool_area_grid_el_price.csv",
+                       irradiation_file: str = "varberg_irradiation_W_m2_h.csv"):
 
         external_price_csv_path = resource_filename(data_path, external_price_file)
         irradiation_csv_path = resource_filename(data_path, irradiation_file)
@@ -30,15 +35,15 @@ class DataStore:
         return DataStore(config_area_info, read_nordpool_data(external_price_csv_path),
                          read_solar_irradiation(irradiation_csv_path))
 
-    def get_nordpool_price_for_period(self, period):
+    def get_nordpool_price_for_period(self, period: datetime.datetime):
         return self.nordpool_data.loc[period]
 
-    def get_retail_price(self, period):
+    def get_retail_price(self, period: datetime.datetime):
         """Returns the price at which the external grid operator is willing to sell electricity, in SEK/kWh"""
         # Per https://doc.afdrift.se/pages/viewpage.action?pageId=17072325
         return self.get_nordpool_price_for_period(period) + 0.48
 
-    def get_wholesale_price(self, period):
+    def get_wholesale_price(self, period: datetime.datetime):
         """Returns the price at which the external grid operator is willing to buy electricity, in SEK/kWh"""
         # Per https://doc.afdrift.se/pages/viewpage.action?pageId=17072325
         return self.get_nordpool_price_for_period(period) + 0.05
@@ -46,11 +51,17 @@ class DataStore:
     def get_nordpool_data_datetimes(self):
         return self.nordpool_data.index.tolist()
 
-    def get_nordpool_prices_last_n_hours_dict(self, period, go_back_n_hours):
+    def get_nordpool_prices_last_n_hours_dict(self, period: datetime.datetime, go_back_n_hours: int):
         nordpool_prices_last_n_hours = {}
         for i in range(go_back_n_hours):
             t = minus_n_hours(period, i + 1)
-            nordpool_prices_last_n_hours[t] = self.get_nordpool_price_for_period(t)
+            try:
+                nordpool_prices_last_n_hours[t] = self.get_nordpool_price_for_period(t)
+            except KeyError:
+                logger.info('No Nordpool data on or before {}. Exiting get_nordpool_prices_last_n_hours_dict with {} '
+                            'entries instead of the desired {}'.
+                            format(t, len(nordpool_prices_last_n_hours), go_back_n_hours))
+                break
         return nordpool_prices_last_n_hours
 
 
@@ -85,8 +96,8 @@ def read_school_energy_consumption_csv(csv_path: str):
     return energy_data
 
 
-def read_nordpool_data(external_price_csv):
-    price_data = pd.read_csv(external_price_csv, index_col=0)
+def read_nordpool_data(external_price_csv_path: str):
+    price_data = pd.read_csv(external_price_csv_path, index_col=0)
     price_data = price_data.squeeze()
     if price_data.mean() > 100:
         # convert price from SEK per MWh to SEK per kWh
@@ -95,7 +106,7 @@ def read_nordpool_data(external_price_csv):
     return price_data
 
 
-def read_solar_irradiation(irradiation_csv_path):
+def read_solar_irradiation(irradiation_csv_path: str):
     """Return solar irradiation, according to SMHI, in Watt per square meter"""
     irradiation_data = pd.read_csv(irradiation_csv_path, index_col=0)
     irradiation_series = irradiation_data['irradiation']

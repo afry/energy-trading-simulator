@@ -1,11 +1,11 @@
-from typing import Collection, List
+from typing import Collection, Dict, List, Union
 
 from tradingplatformpoc.bid import Action, BidWithAcceptanceStatus
 from tradingplatformpoc.trade import Market, Trade
 
 
 def calculate_costs(bids: Collection[BidWithAcceptanceStatus], trades: Collection[Trade], clearing_price: float,
-                    external_wholesale_price: float):
+                    external_wholesale_price: float) -> Dict[str, float]:
     """
     All bids and trades should be for the same trading period
     """
@@ -23,7 +23,7 @@ def calculate_costs(bids: Collection[BidWithAcceptanceStatus], trades: Collectio
     return cost_to_be_paid_by_agent
 
 
-def get_external_trade_on_local_market(trades: Collection[Trade]):
+def get_external_trade_on_local_market(trades: Collection[Trade]) -> Union[Trade, None]:
     external_trades_on_local_market = [x for x in trades if x.by_external and x.market == Market.LOCAL]
     if len(external_trades_on_local_market) == 0:
         return None
@@ -33,23 +33,25 @@ def get_external_trade_on_local_market(trades: Collection[Trade]):
         return external_trades_on_local_market[0]
 
 
-def get_external_bid(bids: Collection[BidWithAcceptanceStatus]):
+def get_external_bid(bids: Collection[BidWithAcceptanceStatus]) -> BidWithAcceptanceStatus:
     external_bids = [x for x in bids if x.by_external]
     if len(external_bids) != 1:
-        raise RuntimeError("Expected 1 and only 1 external grid bid for a single trading period")
+        raise RuntimeError("Expected 1 and only 1 external grid bid for a single trading period, but had {}".
+                           format(len(external_bids)))
     else:
         return external_bids[0]
 
 
-def calculate_extra_cost(external_bid: BidWithAcceptanceStatus, external_trade: Trade,
-                         clearing_price: float, external_wholesale_price: float):
+def calculate_extra_cost(external_bid: BidWithAcceptanceStatus, external_trade: Union[Trade, None],
+                         clearing_price: float, external_wholesale_price: float) -> float:
     external_retail_price = external_bid.price
 
     if external_retail_price < clearing_price:
-        raise RuntimeError("Unexpected state: External retail price < local clearing price")
+        raise RuntimeError("Unexpected state: External retail price ({}) < local clearing price ({})".
+                           format(external_retail_price, clearing_price))
 
     if external_trade is None:
-        return 0
+        return 0.0
     else:
         if external_trade.action == Action.BUY:
             external_actual_export = external_trade.quantity
@@ -61,7 +63,7 @@ def calculate_extra_cost(external_bid: BidWithAcceptanceStatus, external_trade: 
             return external_actual_import * price_difference
 
 
-def distribute_cost(error_by_agent, extra_cost):
+def distribute_cost(error_by_agent, extra_cost) -> Dict[str, float]:
     """
     Proportional to the absolute error of an agent's prediction, i.e. the difference between bid quantity and actual
     consumption/production.
@@ -73,7 +75,7 @@ def distribute_cost(error_by_agent, extra_cost):
     return {k: extra_cost * v for (k, v) in perc_of_cost_to_be_paid_by_agent.items()}
 
 
-def is_agent_external(accepted_bids_for_agent: List[BidWithAcceptanceStatus], trades_for_agent: List[Trade]):
+def is_agent_external(accepted_bids_for_agent: List[BidWithAcceptanceStatus], trades_for_agent: List[Trade]) -> bool:
     """Helper method to figure out whether an agent represents an external grid, based on bids and trades for the agent.
     """
     if len(trades_for_agent) > 0:
@@ -86,7 +88,7 @@ def is_agent_external(accepted_bids_for_agent: List[BidWithAcceptanceStatus], tr
 
 
 def calculate_error_by_agent(accepted_bids: Collection[BidWithAcceptanceStatus], agent_ids: Collection[str],
-                             trades: Collection[Trade]):
+                             trades: Collection[Trade]) -> Dict[str, float]:
     """
     The error being the difference between the projected (i.e. the bid quantity) usage and the actual usage for the
     trading period. Usage is negative if the agent is a supplier.
@@ -103,10 +105,11 @@ def calculate_error_by_agent(accepted_bids: Collection[BidWithAcceptanceStatus],
     return error_by_agent
 
 
-def get_bid_usage(accepted_bids_for_agent: List[BidWithAcceptanceStatus], agent_id: str):
+def get_bid_usage(accepted_bids_for_agent: List[BidWithAcceptanceStatus], agent_id: str) -> float:
     """Usage is negative if the agent is a supplier of energy"""
     if len(accepted_bids_for_agent) > 1:
-        raise RuntimeError("More than 1 bid accepted for agent " + agent_id + " in a single trading period")
+        raise RuntimeError("Expected max 1 bid accepted per agent and trading period, but had {} for agent '{}'".
+                           format(len(accepted_bids_for_agent), agent_id))
     elif len(accepted_bids_for_agent) == 0:
         return 0
     else:
@@ -114,12 +117,13 @@ def get_bid_usage(accepted_bids_for_agent: List[BidWithAcceptanceStatus], agent_
         return accepted_bid.quantity if accepted_bid.action == Action.BUY else -accepted_bid.quantity
 
 
-def get_actual_usage(trades_for_agent: List[Trade], agent_id: str):
+def get_actual_usage(trades_for_agent: List[Trade], agent_id: str) -> float:
     """Usage is negative if the agent is a supplier of energy"""
     if len(trades_for_agent) > 1:
-        raise RuntimeError("More than 1 trade for agent " + agent_id + " in a single trading period")
+        raise RuntimeError("Expected max 1 trade per agent and trading period, but had {} for agent '{}'".
+                           format(len(trades_for_agent), agent_id))
     elif len(trades_for_agent) == 0:
-        return 0
+        return 0.0
     else:
         trade = trades_for_agent[0]
         return trade.quantity if trade.action == Action.BUY else -trade.quantity

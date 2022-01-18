@@ -8,22 +8,19 @@ from pandas import DatetimeIndex
 
 from pkg_resources import resource_filename
 
+from tests import utility_test_objects
+
 from tradingplatformpoc import data_store
 from tradingplatformpoc.trading_platform_utils import datetime_array_between
 
 
-AREA_INFO = {
-    "ParkPVArea": 24324.3,
-    "StorePVArea": 320,
-    "PVEfficiency": 0.165
-}
 DATETIME_ARRAY = datetime_array_between(datetime(2018, 12, 31, 23), datetime(2020, 1, 31, 22))
 CONSTANT_NORDPOOL_PRICE = 0.6  # Doesn't matter what this is
 ONES_SERIES = pd.Series(np.ones(shape=len(DATETIME_ARRAY)), index=DATETIME_ARRAY)
 
 
 class TestDataStore(TestCase):
-    data_store_entity = data_store.DataStore(config_area_info=AREA_INFO,
+    data_store_entity = data_store.DataStore(config_area_info=utility_test_objects.AREA_INFO,
                                              nordpool_data=ONES_SERIES * CONSTANT_NORDPOOL_PRICE,
                                              irradiation_data=ONES_SERIES)
 

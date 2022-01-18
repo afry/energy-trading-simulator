@@ -8,7 +8,7 @@ import pandas as pd
 
 from pkg_resources import resource_filename
 
-from tradingplatformpoc import balance_manager, data_store, results_calculator
+from tradingplatformpoc import balance_manager, data_store, market_solver, results_calculator
 from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.grid_agent import ElectricityGridAgent
 from tradingplatformpoc.agent.iagent import IAgent
@@ -18,7 +18,6 @@ from tradingplatformpoc.bid import Bid
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
-from tradingplatformpoc.market_solver import MarketSolver
 from tradingplatformpoc.mock_data_generation_functions import get_all_residential_building_agents, get_elec_cons_key, \
     get_pv_prod_key
 from tradingplatformpoc.trade import write_rows
@@ -68,9 +67,6 @@ def run_trading_simulations(mock_datas_pickle_path: str):
         clearing_prices_file.write(str(e.args))
         exit(1)
 
-    # Get a market solver
-    market_solver = MarketSolver()
-
     # Main loop
     trading_periods = get_intersection(buildings_mock_data.index.tolist(),
                                        data_store_entity.get_nordpool_data_datetimes())
@@ -82,11 +78,7 @@ def run_trading_simulations(mock_datas_pickle_path: str):
         bids_flat: List[Bid] = [bid for sublist in bids for bid in sublist]
 
         # Resolve bids
-        try:
-            clearing_price, bids_with_acceptance_status = market_solver.resolve_bids(bids_flat)
-        except RuntimeError as e:
-            clearing_price = e.args
-            bids_with_acceptance_status = []
+        clearing_price, bids_with_acceptance_status = market_solver.resolve_bids(period, bids_flat)
         clearing_prices_dict[period] = clearing_price
 
         clearing_prices_file.write('{},{}\n'.format(period, clearing_price))
@@ -193,8 +185,8 @@ def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings
                                               guid=agent_name)
             agents.append(grid_agent)
 
-    # TODO: As of right now, grid agents are treated as configurable, but the code is hard coded with the
-    # TODO: assumption that they'll always exist. Should probably be refactored
+    # TODO: As of right now, grid agents are treated as configurable, but the code is hard coded with the assumption
+    #  that they'll always exist. Should probably be refactored
 
     # Verify that we have a Grid Agent
     if not any(isinstance(agent, ElectricityGridAgent) for agent in agents):

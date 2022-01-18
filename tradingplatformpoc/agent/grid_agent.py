@@ -1,8 +1,9 @@
+import datetime
 import logging
-from typing import List, Union
+from typing import Iterable, List, Union
 
 from tradingplatformpoc.agent.iagent import IAgent
-from tradingplatformpoc.bid import Action, Bid, Resource
+from tradingplatformpoc.bid import Action, Bid, BidWithAcceptanceStatus, Resource
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.trade import Market, Trade
 
@@ -15,7 +16,7 @@ class ElectricityGridAgent(IAgent):
         super().__init__(guid, data_store)
         self.max_transfer_per_hour = max_transfer_per_hour
 
-    def make_bids(self, period, clearing_prices_dict: Union[dict, None] = None):
+    def make_bids(self, period: datetime.datetime, clearing_prices_dict: Union[dict, None] = None):
         # Submit a bid to sell electricity
         # Sell up to MAX_TRANSFER_PER_HOUR kWh at calculate_retail_price(period)
         retail_price = self.data_store.get_retail_price(period)
@@ -30,21 +31,22 @@ class ElectricityGridAgent(IAgent):
     def construct_bid(self, action, resource, quantity, price):
         return Bid(action, resource, quantity, price, self.guid, True)
 
-    def make_prognosis(self, period):
+    def make_prognosis(self, period: datetime.datetime):
         # FUTURE: Make prognoses of the price, instead of using actual? Although we are already using the day-ahead?
         pass
 
-    def get_actual_usage(self, period):
+    def get_actual_usage(self, period: datetime.datetime):
         pass
 
-    def make_trade_given_clearing_price(self, period, clearing_price: float, clearing_prices_dict: dict,
-                                        accepted_bids_for_agent: List[Bid]):
+    def make_trade_given_clearing_price(self, period: datetime.datetime, clearing_price: float,
+                                        clearing_prices_dict: dict,
+                                        accepted_bids_for_agent: List[BidWithAcceptanceStatus]):
         # The external grid is used to make up for any differences on the local market. Therefore these will be
         # calculated at a later stage (in calculate_external_trades)
         pass
 
-    def calculate_external_trades(self, trades_excl_external, local_clearing_price):
-        trades_to_add = []
+    def calculate_external_trades(self, trades_excl_external: Iterable[Trade], local_clearing_price: float):
+        trades_to_add: List[Trade] = []
 
         periods = set([trade.period for trade in trades_excl_external])
         for period in periods:
@@ -54,17 +56,18 @@ class ElectricityGridAgent(IAgent):
 
             resource = Resource.ELECTRICITY  # FUTURE: Go through HEATING and maybe COOLING as well
             trades_for_this_resource = [trade for trade in trades_for_this_period if trade.resource == resource]
-            self.calculate_external_trades_for_resource_and_market(Market.LOCAL, period, resource, retail_price,
+            self.calculate_external_trades_for_resource_and_market(Market.LOCAL, period, resource,
                                                                    trades_for_this_resource, trades_to_add,
-                                                                   wholesale_price, local_clearing_price)
-            self.calculate_external_trades_for_resource_and_market(Market.EXTERNAL, period, resource, retail_price,
+                                                                   retail_price, wholesale_price, local_clearing_price)
+            self.calculate_external_trades_for_resource_and_market(Market.EXTERNAL, period, resource,
                                                                    trades_for_this_resource, trades_to_add,
-                                                                   wholesale_price, local_clearing_price)
+                                                                   retail_price, wholesale_price, local_clearing_price)
         return trades_to_add
 
-    def calculate_external_trades_for_resource_and_market(self, market, period, resource, retail_price,
-                                                          trades_for_this_resource, trades_to_add, wholesale_price,
-                                                          local_clearing_price):
+    def calculate_external_trades_for_resource_and_market(self, market: Market, period: datetime.datetime,
+                                                          resource: Resource, trades_for_this_resource: Iterable[Trade],
+                                                          trades_to_add: List[Trade], retail_price: float,
+                                                          wholesale_price: float, local_clearing_price: float):
         trades_for_this_resource_and_market = [trade for trade in trades_for_this_resource if trade.market == market]
         sum_buys = sum([trade.quantity for trade in trades_for_this_resource_and_market if trade.action == Action.BUY])
         sum_sells = sum(
@@ -78,10 +81,12 @@ class ElectricityGridAgent(IAgent):
                     # the needs of all agents, but it turned out to not be the case, so we had to import some energy
                     # from the external grid, at a higher price than the local price. Some penalisation will be
                     # applied in the balance manager.
-                    logger.debug("External grid sells at {:.5f} SEK/kWh to the local market, but the clearing price "
-                                 "was {:.5f} SEK/kWh.".format(retail_price, local_clearing_price))
+                    logger.debug("In period {}: External grid sells at {:.5f} SEK/kWh to the local market, but the "
+                                 "clearing price was {:.5f} SEK/kWh.".
+                                 format(period, retail_price, local_clearing_price))
                 elif local_clearing_price > retail_price:
-                    raise RuntimeError("Unexpected result: Local clearing price higher than external retail price")
+                    logger.warning("In period {}: Unexpected result: Local clearing price higher than external retail "
+                                   "price".format(period))
         elif sum_buys < sum_sells:
             trades_to_add.append(
                 Trade(Action.BUY, resource, sum_sells - sum_buys, wholesale_price, self.guid, True, market, period))
@@ -91,7 +96,9 @@ class ElectricityGridAgent(IAgent):
                     # but it turned out to not be the case, instead there was a local surplus. So, producing agents
                     # had to export some energy to the external grid, at a lower price than the local price. Some
                     # penalisation will be applied in the balance manager.
-                    logger.debug("External grid buys at {:.5f} SEK/kWh from the local market, but the clearing price "
-                                 "was {:.5f} SEK/kWh".format(wholesale_price, local_clearing_price))
+                    logger.debug("In period {}: External grid buys at {:.5f} SEK/kWh from the local market, but the "
+                                 "clearing price was {:.5f} SEK/kWh".
+                                 format(period, wholesale_price, local_clearing_price))
                 elif local_clearing_price < wholesale_price:
-                    raise RuntimeError("Unexpected result: Local clearing price lower than external wholesale price")
+                    logger.warning("In period {}: Unexpected result: Local clearing price lower than external "
+                                   "wholesale price".format(period))

@@ -1,10 +1,11 @@
+import datetime
 import logging
 from typing import List, Union
 
 import numpy as np
 
 from tradingplatformpoc.agent.iagent import IAgent
-from tradingplatformpoc.bid import Action, Bid, Resource
+from tradingplatformpoc.bid import Action, BidWithAcceptanceStatus, Resource
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
 from tradingplatformpoc.trade import Market
@@ -21,9 +22,17 @@ class StorageAgent(IAgent):
     with a price which is equal to some percentile of X. Similarly, it will submit sell bids with a price equal to
     some (other, higher) percentile of X.
     """
+    data_store: DataStore
+    digital_twin: StorageDigitalTwin
+    go_back_n_hours: int
+    if_lower_than_this_percentile_then_buy: int
+    if_higher_than_this_percentile_then_sell: int
+    # If there isn't {go_back_n_hours} data available, will allow down to {need_at_least_n_hours} hours of data. If
+    # there is even less than that available, will throw an error.
+    need_at_least_n_hours: int
 
     def __init__(self, data_store: DataStore, digital_twin: StorageDigitalTwin,
-                 n_hours_to_look_back, buy_price_percentile, sell_price_percentile, guid="StorageAgent"):
+                 n_hours_to_look_back: int, buy_price_percentile: int, sell_price_percentile: int, guid="StorageAgent"):
         super().__init__(guid, data_store)
         self.digital_twin = digital_twin
         self.go_back_n_hours = n_hours_to_look_back
@@ -34,18 +43,26 @@ class StorageAgent(IAgent):
                                                                                          sell_price_percentile))
         self.if_lower_than_this_percentile_then_buy = buy_price_percentile
         self.if_higher_than_this_percentile_then_sell = sell_price_percentile
+        self.need_at_least_n_hours = int(self.go_back_n_hours / 2)
 
-    def make_bids(self, period, clearing_prices_dict: Union[dict, None]):
+    def make_bids(self, period: datetime.datetime, clearing_prices_dict: Union[dict, None]):
 
         if clearing_prices_dict is not None:
             clearing_prices_dict = dict(clearing_prices_dict)
         else:
-            raise RuntimeError("Historical clearing price is needed!")
+            logger.warning('No historical clearing prices were provided to StorageAgent! Will use Nordpool spot '
+                           'prices instead.')
+            clearing_prices_dict = {}
 
         nordpool_prices_last_n_hours_dict = self.data_store.get_nordpool_prices_last_n_hours_dict(period,
                                                                                                   self.go_back_n_hours)
         prices_last_n_hours = get_prices_last_n_hours(period, self.go_back_n_hours, clearing_prices_dict,
                                                       nordpool_prices_last_n_hours_dict)
+        if len(prices_last_n_hours) < self.need_at_least_n_hours:
+            raise RuntimeError("StorageAgent '{}' needed at least {} hours of historical prices to function, but was "
+                               "only provided with {} hours.".
+                               format(self.guid, self.need_at_least_n_hours, len(prices_last_n_hours)))
+
         buy_bid = self.construct_bid(action=Action.BUY,
                                      quantity=self.calculate_buy_quantity(),
                                      price=self.calculate_buy_price(prices_last_n_hours),
@@ -56,18 +73,19 @@ class StorageAgent(IAgent):
                                       resource=Resource.ELECTRICITY)
         return [buy_bid, sell_bid]
 
-    def make_prognosis(self, period):
+    def make_prognosis(self, period: datetime.datetime):
         pass
 
-    def get_actual_usage(self, period):
+    def get_actual_usage(self, period: datetime.datetime):
         pass
 
-    def make_trade_given_clearing_price(self, period, clearing_price: float, clearing_prices_dict: dict,
-                                        accepted_bids_for_agent: List[Bid]):
+    def make_trade_given_clearing_price(self, period: datetime.datetime, clearing_price: float,
+                                        clearing_prices_dict: dict,
+                                        accepted_bids_for_agent: List[BidWithAcceptanceStatus]):
         # In this implementation, the battery never sells or buys directly from the external grid.
         if len(accepted_bids_for_agent) > 1:
             # As we are currently only supporting one Resource (electricity), this would be unexpected
-            raise RuntimeError("More than 1 accepted bid in one trading period for storage agent")
+            raise RuntimeError("More than 1 accepted bid in period {} for storage agent '{}'".format(period, self.guid))
         elif len(accepted_bids_for_agent) == 1:
             bid_quantity = accepted_bids_for_agent[0].quantity
             bid_resource = accepted_bids_for_agent[0].resource
@@ -99,7 +117,8 @@ class StorageAgent(IAgent):
         return min([self.digital_twin.capacity_kwh / 2.0, self.digital_twin.discharge_limit_kwh])
 
 
-def get_prices_last_n_hours(period, n_hours: int, clearing_prices_dict: dict, nordpool_prices_last_n_hours_dict: dict):
+def get_prices_last_n_hours(period: datetime.datetime, n_hours: int, clearing_prices_dict: dict,
+                            nordpool_prices_last_n_hours_dict: dict) -> List[float]:
     """
     Tries to get the clearing price for the last n hours. If it doesn't exist (i.e. if the market was just started up)
     it will get the Nordpool spot price instead.
@@ -107,13 +126,14 @@ def get_prices_last_n_hours(period, n_hours: int, clearing_prices_dict: dict, no
     @param n_hours: How many hours to go back
     @param clearing_prices_dict: dict with datetime keys, float values
     @param nordpool_prices_last_n_hours_dict: dict with datetime keys, float values
-    @return: A list with length n_hours with floats
+    @return: A list with length at most n_hours with floats. Can be shorter than n_hours if there is no data available
+        far enough back.
     """
     prices_last_n_hours = []
     for i in range(n_hours):
         t = minus_n_hours(period, i + 1)
         if t in clearing_prices_dict:
             prices_last_n_hours.append(clearing_prices_dict[t])
-        else:
+        elif t in nordpool_prices_last_n_hours_dict:
             prices_last_n_hours.append(nordpool_prices_last_n_hours_dict[t])
     return prices_last_n_hours
