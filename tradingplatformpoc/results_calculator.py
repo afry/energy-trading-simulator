@@ -1,13 +1,13 @@
 from typing import Iterable
 
+import streamlit as st
+
 from tradingplatformpoc.agent.grid_agent import ElectricityGridAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.storage_agent import StorageAgent
 from tradingplatformpoc.bid import Action
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.trade import Trade
-
-import streamlit as st
 
 
 def print_basic_results(agents: Iterable[IAgent], all_trades: Iterable[Trade], all_extra_costs_dict: dict,
@@ -36,22 +36,22 @@ def print_basic_results_for_agent(agent: IAgent, all_trades: Iterable[Trade], al
                   "everything from external grid, saving of {:.2f}%".
                   format(agent.guid, saved_on_buy, 100.0 * saved_on_buy / sek_bought_for))
             st.write("For agent {} saved {:.2f} SEK when buying electricity by using local market, versus buying "
-                  "everything from external grid, saving of {:.2f}%".
-                  format(agent.guid, saved_on_buy, 100.0 * saved_on_buy / sek_bought_for))
+                     "everything from external grid, saving of {:.2f}%".
+                     format(agent.guid, saved_on_buy, 100.0 * saved_on_buy / sek_bought_for))
         if sek_sold_for > 0:
             print("For agent {} saved {:.2f} SEK when selling electricity by using local market, versus selling "
                   "everything to external grid, saving of {:.2f}%".
                   format(agent.guid, saved_on_sell, 100.0 * saved_on_sell / sek_sold_for))
             st.write("For agent {} saved {:.2f} SEK when selling electricity by using local market, versus selling "
-                  "everything to external grid, saving of {:.2f}%".
-                  format(agent.guid, saved_on_sell, 100.0 * saved_on_sell / sek_sold_for))
+                     "everything to external grid, saving of {:.2f}%".
+                     format(agent.guid, saved_on_sell, 100.0 * saved_on_sell / sek_sold_for))
 
         print("For agent {} was penalized with a total of {:.2f} SEK due to inaccurate projections. This brought "
               "total savings to {:.2f} SEK".
               format(agent.guid, extra_costs_for_agent, saved_on_buy + saved_on_sell - extra_costs_for_agent))
         st.write("For agent {} was penalized with a total of {:.2f} SEK due to inaccurate projections. This brought "
-              "total savings to {:.2f} SEK".
-              format(agent.guid, extra_costs_for_agent, saved_on_buy + saved_on_sell - extra_costs_for_agent))
+                 "total savings to {:.2f} SEK".
+                 format(agent.guid, extra_costs_for_agent, saved_on_buy + saved_on_sell - extra_costs_for_agent))
 
         if isinstance(agent, StorageAgent):
             total_profit = sek_sold_for - sek_bought_for
