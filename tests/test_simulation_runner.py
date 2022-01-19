@@ -12,7 +12,7 @@ from tradingplatformpoc.data_store import DataStore
 
 class Test(TestCase):
 
-    mock_datas_file_path = resource_filename("tradingplatformpoc.data", "generated/mock_datas.pickle")
+    mock_datas_file_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
     fake_config = {'Agents': []}
 
     def test_get_generated_mock_data_when_doesnt_exist(self):
