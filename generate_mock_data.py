@@ -237,10 +237,11 @@ def is_day_before_major_holiday_sweden(month_of_year: int, day_of_month: int):
            ((month_of_year == 6) & (day_of_month == 5))
 
 
-def scale_electricity_consumption(unscaled_simulated_values_for_year: pd.Series, m2: float):
-    current_yearly_sum = unscaled_simulated_values_for_year.sum()
+def scale_electricity_consumption(unscaled_simulated_values: pd.Series, m2: float):
+    # unscaled_simulated_values may contain more than 1 year, so just look at the first 8766 hours (365.25 days)
+    current_yearly_sum = unscaled_simulated_values.iloc[:8766].sum()
     wanted_yearly_sum = m2 * KWH_PER_YEAR_M2_ATEMP
-    return unscaled_simulated_values_for_year * (wanted_yearly_sum / current_yearly_sum)
+    return unscaled_simulated_values * (wanted_yearly_sum / current_yearly_sum)
 
 
 if __name__ == '__main__':
