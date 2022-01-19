@@ -7,9 +7,12 @@ from tradingplatformpoc.bid import Action
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.trade import Trade
 
+import streamlit as st
+
 
 def print_basic_results(agents: Iterable[IAgent], all_trades: Iterable[Trade], all_extra_costs_dict: dict,
                         data_store_entity: DataStore):
+    st.write( """ ## Results: """)
     for agent in agents:
         print_basic_results_for_agent(agent, all_trades, all_extra_costs_dict, data_store_entity)
 
@@ -32,28 +35,42 @@ def print_basic_results_for_agent(agent: IAgent, all_trades: Iterable[Trade], al
             print("For agent {} saved {:.2f} SEK when buying electricity by using local market, versus buying "
                   "everything from external grid, saving of {:.2f}%".
                   format(agent.guid, saved_on_buy, 100.0 * saved_on_buy / sek_bought_for))
+            st.write("For agent {} saved {:.2f} SEK when buying electricity by using local market, versus buying "
+                  "everything from external grid, saving of {:.2f}%".
+                  format(agent.guid, saved_on_buy, 100.0 * saved_on_buy / sek_bought_for))
         if sek_sold_for > 0:
             print("For agent {} saved {:.2f} SEK when selling electricity by using local market, versus selling "
+                  "everything to external grid, saving of {:.2f}%".
+                  format(agent.guid, saved_on_sell, 100.0 * saved_on_sell / sek_sold_for))
+            st.write("For agent {} saved {:.2f} SEK when selling electricity by using local market, versus selling "
                   "everything to external grid, saving of {:.2f}%".
                   format(agent.guid, saved_on_sell, 100.0 * saved_on_sell / sek_sold_for))
 
         print("For agent {} was penalized with a total of {:.2f} SEK due to inaccurate projections. This brought "
               "total savings to {:.2f} SEK".
               format(agent.guid, extra_costs_for_agent, saved_on_buy + saved_on_sell - extra_costs_for_agent))
+        st.write("For agent {} was penalized with a total of {:.2f} SEK due to inaccurate projections. This brought "
+              "total savings to {:.2f} SEK".
+              format(agent.guid, extra_costs_for_agent, saved_on_buy + saved_on_sell - extra_costs_for_agent))
 
         if isinstance(agent, StorageAgent):
             total_profit = sek_sold_for - sek_bought_for
             print("For agent {} total profit was {:.2f} SEK".format(agent.guid, total_profit))
+            st.write("For agent {} total profit was {:.2f} SEK".format(agent.guid, total_profit))
 
     print("For agent {} quantity bought was {:.2f} kWh".format(agent.guid, quantity_bought))
     print("For agent {} quantity sold was {:.2f} kWh".format(agent.guid, quantity_sold))
+    st.write("For agent {} quantity bought was {:.2f} kWh".format(agent.guid, quantity_bought))
+    st.write("For agent {} quantity sold was {:.2f} kWh".format(agent.guid, quantity_sold))
 
     if quantity_bought > 0:
         avg_buy_price = sek_bought_for / quantity_bought
         print("For agent {} average buy price was {:.3f} SEK/kWh".format(agent.guid, avg_buy_price))
+        st.write("For agent {} average buy price was {:.3f} SEK/kWh".format(agent.guid, avg_buy_price))
     if quantity_sold > 0:
         avg_sell_price = sek_sold_for / quantity_sold
         print("For agent {} average sell price was {:.3f} SEK/kWh".format(agent.guid, avg_sell_price))
+        st.write("For agent {} average sell price was {:.3f} SEK/kWh".format(agent.guid, avg_sell_price))
 
 
 def get_savings_vs_only_external(data_store_entity: DataStore, trades_for_agent: Iterable[Trade]):

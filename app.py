@@ -5,6 +5,15 @@ import sys
 
 import streamlit as st
 
+import pandas as pd
+
+import altair as alt
+
+@st.cache
+def load_data():
+    df = pd.read_csv("trades.csv")
+    return df
+
 # --- Read sys.argv to get logging level, if it is specified ---
 string_to_log_later = None
 if len(sys.argv) > 1 and type(sys.argv[1]) == str:
@@ -49,6 +58,11 @@ if __name__ == '__main__':
     st.sidebar.write("""
     # This is a sidebar where we can have navigation options
     """)
+
+    # These options in the sidebar combined with if clauses can be used to build a
+    # multi-page app for more advanced interactions, like switching between experiments
+    # or upload/run/analysis pages
+
     selection = st.sidebar.selectbox("Options",("Option 1", "Option 2", "Option 3"))
 
     radio_selection = st.sidebar.radio("Radio options",("radio 1", "radio 2"))
@@ -60,4 +74,12 @@ if __name__ == '__main__':
         st.spinner("Running simulation")
         clearing_prices_dict, all_trades_list, all_extra_costs_dict = run_trading_simulations(
         './tradingplatformpoc/data/generated/mock_datas.pickle')
-        st.success('Done!')
+        st.success('Simulation finished!')
+
+    data_button = st.button("Click here to load data")
+    if data_button:
+        data_button = False
+        logger.info("Loading data")
+        st.spinner("Loading data")
+        df = load_data()
+        st.success("Data loaded!")

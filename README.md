@@ -43,6 +43,24 @@ From the root of the repository, run the main file:
 ### As docker container
 Next task.
 
+## Streamlit GUI
+To run the streamlit GUI, make sure streamlit and altair are installed in your venv
+
+    pip install streamlit
+    pip install altair
+
+Then, to run the gui:
+
+    streamlit run app.py
+
+For inspiration on further improvements on the gui, check out:
+
+https://awesome-streamlit.org/
+
+and the source repo:
+
+https://github.com/aliavni/awesome-data-explorer
+
 ## Agents
 Info about agent design
 
