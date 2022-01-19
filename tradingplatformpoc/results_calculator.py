@@ -12,7 +12,7 @@ import streamlit as st
 
 def print_basic_results(agents: Iterable[IAgent], all_trades: Iterable[Trade], all_extra_costs_dict: dict,
                         data_store_entity: DataStore):
-    st.write( """ ## Results: """)
+    st.write(""" ## Results: """)
     for agent in agents:
         print_basic_results_for_agent(agent, all_trades, all_extra_costs_dict, data_store_entity)
 
