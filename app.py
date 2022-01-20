@@ -11,7 +11,7 @@ import altair as alt
 
 @st.cache
 def load_data():
-    df = pd.read_csv("trades.csv")
+    df = pd.read_csv("clearing_prices.csv")
     return df
 
 # --- Read sys.argv to get logging level, if it is specified ---
@@ -83,3 +83,5 @@ if __name__ == '__main__':
         st.spinner("Loading data")
         df = load_data()
         st.success("Data loaded!")
+        chart = alt.Chart(df).mark_line().encode(y='price',x='period')
+        st.altair_chart(chart, use_container_width=True)
