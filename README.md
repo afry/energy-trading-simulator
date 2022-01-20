@@ -51,8 +51,15 @@ based on the created image
 
         docker run imagename:latest
 
-Once the container has run, the logger information relating to the job can be accessed at a later time by identifying 
-the containerID, and reviewing its logs
+Once the container has run, the logger information relating to the job can be accessed at a later time if you have the 
+**containerID**. To find the container ID, you can do the following
+
+        docker container ls -af "ancestor=imagename:latest"
+
+Here, the "a" flag is needed to list all containers, not just running ones. The "f" flag lets you specify a filter, 
+which is then given in the final bit of the command.
+This should bring up a table, where the container ID can be found in the leftmost column.
+Once you have the containerID, you can review the logs with
 
         docker logs containerID
 
