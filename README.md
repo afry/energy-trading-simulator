@@ -52,7 +52,7 @@ based on the created image
         docker run imagename:latest
 
 Once the container has run, the logger information relating to the job can be accessed at a later time by identifying 
-the containerID, and reviewing its logs
+the containerID (see below for how to do this), and reviewing its logs
 
         docker logs containerID
 
