@@ -44,12 +44,12 @@ From the root of the repository, run the main file:
 Install Docker (verify installation by running "docker run hello-world"). Navigate to the root of the trading 
 platform-poc repository; build a docker image based on the Dockerfile
 
-        docker build -t imageName .
+        docker build -t imagename .
 
-where the -t flag allows you to specify an image name (imageName). Once built, instantiate (and run) a docker container 
+where the -t flag allows you to specify an image name (imagename). Once built, instantiate (and run) a docker container 
 based on the created image
 
-        docker run imageName:latest
+        docker run imagename:latest
 
 Once the container has run, the logger information relating to the job can be accessed at a later time by identifying 
 the containerID, and reviewing its logs
