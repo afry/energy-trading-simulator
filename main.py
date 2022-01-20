@@ -1,3 +1,4 @@
+from pkg_resources import resource_filename
 from tradingplatformpoc.simulation_runner import run_trading_simulations
 import logging
 import sys
@@ -34,8 +35,9 @@ logger = logging.getLogger(__name__)
 if string_to_log_later is not None:
     logger.info(string_to_log_later)
 
+# --- Define path to mock data
+mock_datas_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
+
 if __name__ == '__main__':
     logger.info("Running main")
-    clearing_prices_dict, all_trades_list, all_extra_costs_dict = run_trading_simulations(
-        'tradingplatformpoc/data/mock_datas.pickle'
-    )
+    clearing_prices_dict, all_trades_list, all_extra_costs_dict = run_trading_simulations(mock_datas_path)
