@@ -11,18 +11,26 @@ import pickle
 from statsmodels.regression.linear_model import RegressionResultsWrapper
 
 from tradingplatformpoc.mock_data_generation_functions import load_existing_data_sets, \
-    get_all_residential_building_agents, get_elec_cons_key, get_pv_prod_key
+    get_all_residential_building_agents, get_elec_cons_key, get_pv_prod_key, \
+    get_commercial_electricity_consumption_hourly_factor
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod
 
 CONFIG_FILE = 'jonstaka.json'
 
-MOCK_DATAS_PICKLE = './tradingplatformpoc/data/generated/mock_datas.pickle'
+MOCK_DATAS_PICKLE = './tradingplatformpoc/data/mock_datas.pickle'
 
 pd.options.mode.chained_assignment = None  # default='warn'
 
 KWH_PER_YEAR_M2_ATEMP = 20  # According to Skanska: 20 kWh/year/m2 Atemp
 PV_EFFICIENCY = 0.165
 M2_PER_APARTMENT = 70
+# Will use this to set random seed. Agent with start_seed = 1 will then have apartments with seeds 1001, 1002, ...
+# In other words, this kind of assumes that there aren't more than 1000 apartments in any one agent.
+RESIDENTIAL_START_SEED_MULTIPLICATOR = 1000
+# Constants for the 'commercial' bit:
+KWH_PER_YEAR_M2_COMMERCIAL = 118
+COMMERCIAL_START_SEED_MULTIPLICATOR = 100000
+COMMERCIAL_RELATIVE_ERROR_STD_DEV = 0.2
 
 """
 This script generates household electricity consumption data, and rooftop PV production data, for BuildingAgents.
@@ -99,33 +107,47 @@ def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd:
     agent = dict(agent)  # "Unfreezing" the frozenset
     logger.debug('Starting work on \'{}\''.format(agent['Name']))
     pv_area = agent['RooftopPVArea'] if "RooftopPVArea" in agent else 0
-    start_seed = agent['RandomSeed'] * 1000
-    df_output = simulate_for_area(df_inputs, model, agent['GrossFloorArea'], start_seed)
-    output_per_building[get_elec_cons_key(agent['Name'])] = df_output.sum(axis=1)
+
+    start_seed_commercial = agent['RandomSeed'] * COMMERCIAL_START_SEED_MULTIPLICATOR
+    start_seed_residential = agent['RandomSeed'] * RESIDENTIAL_START_SEED_MULTIPLICATOR
+    fraction_commercial = get_fraction_commercial(agent)
+    fraction_residential = 1.0 - fraction_commercial
+    commercial_gross_floor_area = agent['GrossFloorArea'] * fraction_commercial
+    residential_gross_floor_area = agent['GrossFloorArea'] * fraction_residential
+
+    commercial_electricity_consumption = simulate_commercial_area(commercial_gross_floor_area, start_seed_commercial,
+                                                                  df_inputs.index)
+
+    df_apartments = simulate_residential_area(df_inputs, model, residential_gross_floor_area, start_seed_residential)
+    household_electricity_consumption = df_apartments.sum(axis=1)
+
+    output_per_building[get_elec_cons_key(agent['Name'])] = household_electricity_consumption + \
+        commercial_electricity_consumption
     output_per_building[get_pv_prod_key(agent['Name'])] = calculate_solar_prod(df_irrd['irradiation'], pv_area,
                                                                                PV_EFFICIENCY)
-    n_apartments_simulated = n_apartments_simulated + len(df_output.columns)
+    n_apartments_simulated = n_apartments_simulated + len(df_apartments.columns)
     end = time.time()
     time_elapsed = end - start
     logger.debug('Finished work on \'{}\', took {:.2f} seconds'.format(agent['Name'], time_elapsed))
     return time_elapsed, n_apartments_simulated
 
 
-def simulate_for_area(df_inputs: pd.DataFrame, model: RegressionResultsWrapper, gross_floor_area: float,
-                      start_seed: int):
+def simulate_residential_area(df_inputs: pd.DataFrame, model: RegressionResultsWrapper, gross_floor_area_m2: float,
+                              start_seed: int):
     df_output = pd.DataFrame({'datetime': df_inputs.index})
     df_output.set_index('datetime', inplace=True)
 
-    n_apartments = math.ceil(gross_floor_area / M2_PER_APARTMENT)
+    n_apartments = math.ceil(gross_floor_area_m2 / M2_PER_APARTMENT)
     logger.debug('Number of apartments: {:d}'.format(n_apartments))
 
     for i in range(0, n_apartments):
         unscaled_simulated_values_for_apartment = simulate_series(df_inputs, start_seed + i, model)
         # Scale
         m2_for_this_apartment = M2_PER_APARTMENT if i < (n_apartments - 1) else \
-            (gross_floor_area - M2_PER_APARTMENT * (n_apartments - 1))
+            (gross_floor_area_m2 - M2_PER_APARTMENT * (n_apartments - 1))
         simulated_values_for_this_apartment = scale_electricity_consumption(unscaled_simulated_values_for_apartment,
-                                                                            m2_for_this_apartment)
+                                                                            m2_for_this_apartment,
+                                                                            KWH_PER_YEAR_M2_ATEMP)
         df_output['apartment' + str(i)] = simulated_values_for_this_apartment
     return df_output
 
@@ -179,10 +201,11 @@ def calculate_adjustment_for_energy_prev(model: RegressionResultsWrapper, energy
     @return: The autoregressive part of the simulated energy, as a float
     """
     return model.params['np.where(np.isnan(energy_prev), 0, energy_prev)'] * energy_prev + \
-        model.params['np.where(np.isnan(energy_prev), 0, np.power(energy_prev, 2))'] * np.power(energy_prev, 2) + \
-        model.params['np.where(np.isnan(energy_prev), 0, np.minimum(energy_prev, 0.3))'] * np.minimum(energy_prev,
-                                                                                                      0.3) + \
-        model.params['np.where(np.isnan(energy_prev), 0, np.minimum(energy_prev, 0.7))'] * np.minimum(energy_prev, 0.7)
+           model.params['np.where(np.isnan(energy_prev), 0, np.power(energy_prev, 2))'] * np.power(energy_prev, 2) + \
+           model.params['np.where(np.isnan(energy_prev), 0, np.minimum(energy_prev, 0.3))'] * np.minimum(energy_prev,
+                                                                                                         0.3) + \
+           model.params['np.where(np.isnan(energy_prev), 0, np.minimum(energy_prev, 0.7))'] * np.minimum(energy_prev,
+                                                                                                         0.7)
 
 
 def create_inputs_df(temperature_csv_path: str, irradiation_csv_path: str):
@@ -237,10 +260,32 @@ def is_day_before_major_holiday_sweden(month_of_year: int, day_of_month: int):
            ((month_of_year == 6) & (day_of_month == 5))
 
 
-def scale_electricity_consumption(unscaled_simulated_values_for_year: pd.Series, m2: float):
-    current_yearly_sum = unscaled_simulated_values_for_year.sum()
-    wanted_yearly_sum = m2 * KWH_PER_YEAR_M2_ATEMP
-    return unscaled_simulated_values_for_year * (wanted_yearly_sum / current_yearly_sum)
+def scale_electricity_consumption(unscaled_simulated_values_kwh: pd.Series, m2: float, kwh_per_year_per_m2: float):
+    # unscaled_simulated_values may contain more than 1 year, so just look at the first 8766 hours (365.25 days)
+    current_yearly_sum = unscaled_simulated_values_kwh.iloc[:8766].sum()
+    wanted_yearly_sum = m2 * kwh_per_year_per_m2
+    return unscaled_simulated_values_kwh * (wanted_yearly_sum / current_yearly_sum)
+
+
+def get_fraction_commercial(agent: dict) -> float:
+    """If available, gets the 'FractionCommercial' field from the agent dict. Else returns 0."""
+    if 'FractionCommercial' in agent:
+        return agent['FractionCommercial']
+    else:
+        return 0.0
+
+
+def simulate_commercial_area(commercial_gross_floor_area_m2: float, start_seed_commercial: int,
+                             datetimes: pd.DatetimeIndex) -> pd.Series:
+    vectorized_function = np.vectorize(get_commercial_electricity_consumption_hourly_factor)
+    factors = vectorized_function(datetimes.hour.tolist())
+    np.random.seed(start_seed_commercial)
+    relative_errors = np.random.normal(0, COMMERCIAL_RELATIVE_ERROR_STD_DEV, len(factors))
+    unscaled_values = factors * (1 + relative_errors)
+    unscaled_series = pd.Series(unscaled_values, index=datetimes)
+    scaled_series = scale_electricity_consumption(unscaled_series, commercial_gross_floor_area_m2,
+                                                  KWH_PER_YEAR_M2_COMMERCIAL)
+    return scaled_series
 
 
 if __name__ == '__main__':

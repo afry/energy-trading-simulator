@@ -15,7 +15,7 @@ class Test(TestCase):
         amount of energy sold. Furthermore, it will look at monetary compensation, and make sure that the amounts paid
         and received by different actors all match up.
         """
-        mock_datas_file_path = resource_filename("tradingplatformpoc.data", "generated/mock_datas.pickle")
+        mock_datas_file_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
 
         clearing_prices, all_trades, all_extra_costs = simulation_runner.run_trading_simulations(mock_datas_file_path)
 

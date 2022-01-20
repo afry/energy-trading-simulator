@@ -37,5 +37,5 @@ if string_to_log_later is not None:
 if __name__ == '__main__':
     logger.info("Running main")
     clearing_prices_dict, all_trades_list, all_extra_costs_dict = run_trading_simulations(
-        './tradingplatformpoc/data/generated/mock_datas.pickle'
+        'tradingplatformpoc/data/mock_datas.pickle'
     )
