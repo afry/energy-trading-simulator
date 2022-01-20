@@ -17,7 +17,7 @@ from tradingplatformpoc.trading_platform_utils import calculate_solar_prod
 
 CONFIG_FILE = 'jonstaka.json'
 
-MOCK_DATAS_PICKLE = './tradingplatformpoc/data/generated/mock_datas.pickle'
+MOCK_DATAS_PICKLE = './tradingplatformpoc/data/mock_datas.pickle'
 
 pd.options.mode.chained_assignment = None  # default='warn'
 

@@ -1,7 +1,7 @@
 import pickle
 
 IN_PICKLE = './tradingplatformpoc/data/generated/mock_datas_copy.pickle'
-OUT_PICKLE = './tradingplatformpoc/data/generated/mock_datas.pickle'
+OUT_PICKLE = './tradingplatformpoc/data/mock_datas.pickle'
 
 with open(IN_PICKLE, 'rb') as f:
     all_data_sets = pickle.load(f)
