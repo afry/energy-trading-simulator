@@ -41,7 +41,8 @@ From the root of the repository, run the main file:
         python main.py
 
 ### As docker container
-Next task.
+Install Docker (verify installation by running "docker run hello-world"). Navigate to the root of the trading 
+platform-poc repository; build a docker image based on the Dockerfile
 
 ## Streamlit GUI
 To run the streamlit GUI, make sure streamlit and altair are installed in your venv
@@ -61,6 +62,38 @@ and the source repo:
 
 https://github.com/aliavni/awesome-data-explorer
 
+        docker build -t imagename .
+
+where the -t flag allows you to specify an image name (imagename). Once built, instantiate (and run) a docker container 
+based on the created image
+
+        docker run imagename:latest
+
+Once the container has run, the logger information relating to the job can be accessed at a later time by identifying 
+the containerID (see below for how to do this), and reviewing its logs
+
+        docker logs containerID
+
+#### Docker Ecosystem Basics
+For a basic overview of Docker, see https://docker-curriculum.com/.
+- *image*: the blueprint of the container/application.
+- *container*: Instantiation image and run of application.
+- *Dockerfile*: text file containing the commands to creating an image.
+
+To delete a container and avoid stray containers from occupying disk space, remove it as
+
+        docker rm containerID
+
+where the containerID can be identified from
+
+        docker ps -a
+
+which returns a list of the containers that have run. To delete all completed containers, run
+
+        docker container prune
+
+
+# Specs. on system architecture 
 ## Agents
 Info about agent design
 
