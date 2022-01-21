@@ -44,6 +44,24 @@ From the root of the repository, run the main file:
 Install Docker (verify installation by running "docker run hello-world"). Navigate to the root of the trading 
 platform-poc repository; build a docker image based on the Dockerfile
 
+## Streamlit GUI
+To run the streamlit GUI, make sure streamlit and altair are installed in your venv
+
+    pip install streamlit
+    pip install altair
+
+Then, to run the gui:
+
+    streamlit run app.py
+
+For inspiration on further improvements on the gui, check out:
+
+https://awesome-streamlit.org/
+
+and the source repo:
+
+https://github.com/aliavni/awesome-data-explorer
+
         docker build -t imagename .
 
 where the -t flag allows you to specify an image name (imagename). Once built, instantiate (and run) a docker container 
