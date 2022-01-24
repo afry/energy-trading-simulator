@@ -75,7 +75,7 @@ def main():
         model = sm.load('./tradingplatformpoc/data/models/household_electricity_model.pickle')
 
         # Read in-data: Temperature and timestamps
-        df_inputs, df_irrd = create_inputs_df('./tradingplatformpoc/data/temperature_vetelangden.csv',
+        df_inputs, df_irrd = create_inputs_df('../tradingplatformpoc/data/temperature_vetelangden.csv',
                                               './tradingplatformpoc/data/varberg_irradiation_W_m2_h.csv')
 
         approx_n_of_apartments = math.ceil(total_gross_floor_area / M2_PER_APARTMENT)
