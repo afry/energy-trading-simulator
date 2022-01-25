@@ -9,10 +9,15 @@ import pandas as pd
 
 import altair as alt
 
+# Note: To debug a streamlit script, see https://stackoverflow.com/a/60172283
+
+
 @st.cache
 def load_data():
-    df = pd.read_csv("clearing_prices.csv")
-    return df
+    clearing_prices = pd.read_csv("clearing_prices.csv")
+    clearing_prices['period'] = pd.to_datetime(clearing_prices['period'])
+    return clearing_prices
+
 
 # --- Read sys.argv to get logging level, if it is specified ---
 string_to_log_later = None
@@ -22,7 +27,7 @@ if len(sys.argv) > 1 and type(sys.argv[1]) == str:
         console_log_level = getattr(logging, arg_to_upper)
     except AttributeError:
         # Since we haven't set up the logger yet, will store this message and log it a little bit further down.
-        string_to_log_later = "No logging level found with name '{}', console logging level will default to INFO.".\
+        string_to_log_later = "No logging level found with name '{}', console logging level will default to INFO.". \
             format(arg_to_upper)
         console_log_level = logging.INFO
 else:
@@ -66,10 +71,10 @@ if __name__ == '__main__':
     # multi-page app for more advanced interactions, like switching between experiments
     # or upload/run/analysis pages
 
-    selection = st.sidebar.selectbox("Options",("Option 1", "Option 2", "Option 3"))
+    selection = st.sidebar.selectbox("Options", ("Option 1", "Option 2", "Option 3"))
 
-    radio_selection = st.sidebar.radio("Radio options",("radio 1", "radio 2"))
-    
+    radio_selection = st.sidebar.radio("Radio options", ("radio 1", "radio 2"))
+
     run_sim = st.button("Click here to run simulation")
     if run_sim:
         run_sim = False
@@ -85,5 +90,5 @@ if __name__ == '__main__':
         st.spinner("Loading data")
         df = load_data()
         st.success("Data loaded!")
-        chart = alt.Chart(df).mark_line().encode(y='price',x='period')
+        chart = alt.Chart(df).mark_line().encode(y='price', x='period').interactive()
         st.altair_chart(chart, use_container_width=True)
