@@ -79,22 +79,20 @@ def main():
         df_inputs, df_irrd = create_inputs_df('./tradingplatformpoc/data/temperature_vetelangden.csv',
                                               './tradingplatformpoc/data/varberg_irradiation_W_m2_h.csv')
 
-        approx_n_of_apartments = math.ceil(total_gross_floor_area / M2_PER_APARTMENT)
-        n_apps_done = 0
-
         output_per_building = pd.DataFrame({'datetime': df_inputs.index})
         output_per_building.set_index('datetime', inplace=True)
 
         total_time_elapsed = 0
+        n_areas_done = 0
+        n_areas = len(residential_building_agents)
         for agent in residential_building_agents:
-            time_elapsed, n_apps_done = simulate_and_add_to_output_df(dict(agent), df_inputs, df_irrd, model,
-                                                                      output_per_building,
-                                                                      n_apps_done)
-            approx_n_apps_remaining = approx_n_of_apartments - n_apps_done
+            time_elapsed = simulate_and_add_to_output_df(dict(agent), df_inputs, df_irrd, model, output_per_building)
+            n_areas_done = n_areas_done + 1
+            n_areas_remaining = n_areas - n_areas_done
             total_time_elapsed = total_time_elapsed + time_elapsed
-            if approx_n_apps_remaining > 0:
-                time_taken_per_apartment = total_time_elapsed / n_apps_done
-                estimated_time_left = approx_n_apps_remaining * time_taken_per_apartment
+            if n_areas_remaining > 0:
+                time_taken_per_area = total_time_elapsed / n_areas_done
+                estimated_time_left = n_areas_remaining * time_taken_per_area
                 logger.info('Estimated time left: {:.2f} seconds'.format(estimated_time_left))
 
         all_data_sets[residential_building_agents_frozen_set] = output_per_building
@@ -102,8 +100,7 @@ def main():
 
 
 def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd: pd.DataFrame,
-                                  model: RegressionResultsWrapper, output_per_building: pd.DataFrame,
-                                  n_apartments_simulated: int):
+                                  model: RegressionResultsWrapper, output_per_building: pd.DataFrame):
     start = time.time()
     agent = dict(agent)  # "Unfreezing" the frozenset
     logger.debug('Starting work on \'{}\''.format(agent['Name']))
@@ -119,23 +116,23 @@ def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd:
     commercial_electricity_consumption = simulate_commercial_area(commercial_gross_floor_area, start_seed_commercial,
                                                                   df_inputs.index)
 
-    household_electricity_consumption, n_apartments_for_area = simulate_household_electricity(
+    household_electricity_consumption = simulate_household_electricity_aggregated(
         df_inputs, model, residential_gross_floor_area, start_seed_residential)
 
     output_per_building[get_elec_cons_key(agent['Name'])] = household_electricity_consumption + \
         commercial_electricity_consumption
     output_per_building[get_pv_prod_key(agent['Name'])] = calculate_solar_prod(df_irrd['irradiation'], pv_area,
                                                                                PV_EFFICIENCY)
-    n_apartments_simulated = n_apartments_simulated + n_apartments_for_area
     end = time.time()
     time_elapsed = end - start
     logger.debug('Finished work on \'{}\', took {:.2f} seconds'.format(agent['Name'], time_elapsed))
-    return time_elapsed, n_apartments_simulated
+    return time_elapsed
 
 
-def simulate_household_electricity(df_inputs: pd.DataFrame, model: RegressionResultsWrapper, gross_floor_area_m2: float,
-                                   start_seed: int) -> Tuple[pd.Series, int]:
+def simulate_household_electricity_by_apartment(df_inputs: pd.DataFrame, model: RegressionResultsWrapper,
+                                                gross_floor_area_m2: float, start_seed: int) -> Tuple[pd.Series, int]:
     """
+    --- DEPRECATED: Use simulate_household_electricity_aggregated ---
     Simulates the aggregated household electricity consumption for an area. Calculates a rough number of apartments/
     dwellings, and simulates the household electricity on an individual basis (since the model we have is for individual
     dwellings, not whole buildings aggregated) and then sums over these.
@@ -145,7 +142,7 @@ def simulate_household_electricity(df_inputs: pd.DataFrame, model: RegressionRes
     df_output.set_index('datetime', inplace=True)
 
     n_apartments = math.ceil(gross_floor_area_m2 / M2_PER_APARTMENT)
-    logger.debug('Number of apartments: {:d}'.format(n_apartments))
+    logger.debug('Number of apartments in area: {:d}'.format(n_apartments))
 
     for i in range(0, n_apartments):
         unscaled_simulated_values_for_apartment = simulate_series(df_inputs, start_seed + i, model)
@@ -157,6 +154,28 @@ def simulate_household_electricity(df_inputs: pd.DataFrame, model: RegressionRes
                                                                             KWH_PER_YEAR_M2_ATEMP)
         df_output['apartment' + str(i)] = simulated_values_for_this_apartment
     return df_output.sum(axis=1), n_apartments
+
+
+def simulate_household_electricity_aggregated(df_inputs: pd.DataFrame, model: RegressionResultsWrapper,
+                                              gross_floor_area_m2: float, start_seed: int) -> pd.Series:
+    """
+    Simulates the aggregated household electricity consumption for an area. Instead of simulating individual apartments,
+    this method just sees the whole area as one apartment, and simulates that. This drastically reduces runtime.
+    Mathematically, the sum of log-normal random variables is approximately log-normal, which supports this way of doing
+    things. Furthermore, just simulating one series instead of ~100 (or however many apartments are in an area), should
+    increase randomness. This is probably not a bad thing for us: Since our simulations stem from a model fit on one
+    single apartment, increased randomness could actually be said to make a lot of sense.
+    Returns a pd.Series with the data.
+    """
+    df_output = pd.DataFrame({'datetime': df_inputs.index})
+    df_output.set_index('datetime', inplace=True)
+
+    unscaled_simulated_values_for_area = simulate_series(df_inputs, start_seed, model)
+    # Scale
+    simulated_values_for_this_area = scale_electricity_consumption(unscaled_simulated_values_for_area,
+                                                                   gross_floor_area_m2,
+                                                                   KWH_PER_YEAR_M2_ATEMP)
+    return simulated_values_for_this_area
 
 
 def simulate_series(input_df: pd.DataFrame, rand_seed: int, model: RegressionResultsWrapper):
