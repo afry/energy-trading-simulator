@@ -48,7 +48,7 @@ class IAgent(ABC):
         return Trade(action, resource, quantity, price, self.guid, False, market, period)
 
     def get_external_grid_buy_price(self, period: datetime.datetime):
-        wholesale_price = self.data_store.get_wholesale_price(period)
+        wholesale_price = self.data_store.get_wholesale_price(period, Resource.ELECTRICITY)
 
         # Per https://doc.afdrift.se/pages/viewpage.action?pageId=17072325, Varberg Energi can pay an extra
         # remuneration on top of the Nordpool spot price. This can vary, "depending on for example membership".

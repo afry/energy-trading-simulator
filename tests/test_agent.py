@@ -42,13 +42,24 @@ data_store_entity = data_store.DataStore(config_area_info=AREA_INFO,
 
 
 class TestGridAgent(unittest.TestCase):
-    grid_agent = tradingplatformpoc.agent.grid_agent.ElectricityGridAgent(data_store_entity)
+    electricity_grid_agent = tradingplatformpoc.agent.grid_agent.GridAgent(data_store_entity, Resource.ELECTRICITY,
+                                                                           guid='ElectricityGridAgent')
+    heating_grid_agent = tradingplatformpoc.agent.grid_agent.GridAgent(data_store_entity, Resource.HEATING,
+                                                                       guid='HeatingGridAgent')
 
-    def test_make_bids(self):
-        """Test basic functionality of GridAgent's make_bids method."""
-        bids = self.grid_agent.make_bids(SOME_DATETIME)
+    def test_make_bids_electricity(self):
+        """Test basic functionality of GridAgent's make_bids method, for the ELECTRICITY resource."""
+        bids = self.electricity_grid_agent.make_bids(SOME_DATETIME)
         self.assertEqual(1, len(bids))
         self.assertEqual(Resource.ELECTRICITY, bids[0].resource)
+        self.assertEqual(Action.SELL, bids[0].action)
+        self.assertTrue(bids[0].quantity > 0)
+
+    def test_make_bids_heating(self):
+        """Test basic functionality of GridAgent's make_bids method, for the HEATING resource."""
+        bids = self.heating_grid_agent.make_bids(SOME_DATETIME)
+        self.assertEqual(1, len(bids))
+        self.assertEqual(Resource.HEATING, bids[0].resource)
         self.assertEqual(Action.SELL, bids[0].action)
         self.assertTrue(bids[0].quantity > 0)
 
@@ -59,7 +70,7 @@ class TestGridAgent(unittest.TestCase):
             Trade(Action.BUY, Resource.ELECTRICITY, 100, retail_price, "BuildingAgent", False, Market.LOCAL,
                   SOME_DATETIME)
         ]
-        external_trades = self.grid_agent.calculate_external_trades(trades_excl_external, retail_price)
+        external_trades = self.electricity_grid_agent.calculate_external_trades(trades_excl_external, retail_price)
         self.assertEqual(1, len(external_trades))
         self.assertEqual(Action.SELL, external_trades[0].action)
         self.assertEqual(Resource.ELECTRICITY, external_trades[0].resource)
@@ -78,7 +89,7 @@ class TestGridAgent(unittest.TestCase):
             Trade(Action.SELL, Resource.ELECTRICITY, 100, retail_price, "PVAgent", False, Market.LOCAL,
                   SOME_DATETIME)
         ]
-        external_trades = self.grid_agent.calculate_external_trades(trades_excl_external, retail_price)
+        external_trades = self.electricity_grid_agent.calculate_external_trades(trades_excl_external, retail_price)
         self.assertEqual(0, len(external_trades))
 
     def test_calculate_trades_price_not_matching(self):
@@ -89,7 +100,7 @@ class TestGridAgent(unittest.TestCase):
                   SOME_DATETIME)
         ]
         with self.assertLogs() as captured:
-            self.grid_agent.calculate_external_trades(trades_excl_external, local_price)
+            self.electricity_grid_agent.calculate_external_trades(trades_excl_external, local_price)
         self.assertEqual(len(captured.records), 1)
         self.assertEqual(captured.records[0].levelname, 'WARNING')
 
@@ -102,7 +113,7 @@ class TestGridAgent(unittest.TestCase):
                   SOME_DATETIME)
         ]
         # Should log a line about external grid and market clearing price being different
-        external_trades = self.grid_agent.calculate_external_trades(trades_excl_external, local_price)
+        external_trades = self.electricity_grid_agent.calculate_external_trades(trades_excl_external, local_price)
         self.assertEqual(1, len(external_trades))
 
     def test_calculate_trades_2(self):
@@ -114,7 +125,7 @@ class TestGridAgent(unittest.TestCase):
             Trade(Action.BUY, Resource.ELECTRICITY, 200, wholesale_price, "GSAgent", False, Market.LOCAL, period),
             Trade(Action.SELL, Resource.ELECTRICITY, 400, wholesale_price, "PvAgent", False, Market.LOCAL, period)
         ]
-        external_trades = self.grid_agent.calculate_external_trades(trades_excl_external, wholesale_price)
+        external_trades = self.electricity_grid_agent.calculate_external_trades(trades_excl_external, wholesale_price)
         self.assertEqual(1, len(external_trades))
         self.assertEqual(Action.BUY, external_trades[0].action)
         self.assertEqual(Resource.ELECTRICITY, external_trades[0].resource)
@@ -123,6 +134,25 @@ class TestGridAgent(unittest.TestCase):
         self.assertEqual("ElectricityGridAgent", external_trades[0].source)
         self.assertEqual(Market.LOCAL, external_trades[0].market)
         self.assertEqual(period, external_trades[0].period)
+
+    def test_calculate_trades_with_some_bids_with_other_resource(self):
+        """When sent into an electricity grid agent, heating trades should be ignored."""
+        retail_price = 3.938725389630498
+        trades_excl_external = [
+            Trade(Action.BUY, Resource.ELECTRICITY, 100, retail_price, "BuildingAgent", False, Market.LOCAL,
+                  SOME_DATETIME),
+            Trade(Action.BUY, Resource.HEATING, 100, retail_price, "BuildingAgent", False, Market.LOCAL,
+                  SOME_DATETIME)
+        ]
+        external_trades = self.electricity_grid_agent.calculate_external_trades(trades_excl_external, retail_price)
+        self.assertEqual(1, len(external_trades))
+        self.assertEqual(Action.SELL, external_trades[0].action)
+        self.assertEqual(Resource.ELECTRICITY, external_trades[0].resource)
+        self.assertEqual(trades_excl_external[0].quantity, external_trades[0].quantity)
+        self.assertAlmostEqual(retail_price, external_trades[0].price)
+        self.assertEqual("ElectricityGridAgent", external_trades[0].source)
+        self.assertEqual(Market.LOCAL, external_trades[0].market)
+        self.assertEqual(SOME_DATETIME, external_trades[0].period)
 
 
 class TestStorageAgent(unittest.TestCase):

@@ -182,8 +182,9 @@
 			"Name": "SchoolBuildingAgent"
 		},
 		{
-			"Type": "ElectricityGridAgent",
-			"Name": "ElectricityGridAgent1",
+			"Type": "GridAgent",
+			"Name": "ElectricityGridAgent",
+			"Resource": "ELECTRICITY",
 			"TransferRate": 10000
 		}
 	],

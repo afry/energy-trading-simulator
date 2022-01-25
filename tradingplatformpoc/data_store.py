@@ -5,6 +5,7 @@ import pandas as pd
 
 from pkg_resources import resource_filename
 
+from tradingplatformpoc.bid import Resource
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, minus_n_hours
 
 logger = logging.getLogger(__name__)
@@ -38,15 +39,23 @@ class DataStore:
     def get_nordpool_price_for_period(self, period: datetime.datetime):
         return self.nordpool_data.loc[period]
 
-    def get_retail_price(self, period: datetime.datetime):
-        """Returns the price at which the external grid operator is willing to sell electricity, in SEK/kWh"""
-        # Per https://doc.afdrift.se/pages/viewpage.action?pageId=17072325
-        return self.get_nordpool_price_for_period(period) + 0.48
+    def get_retail_price(self, period: datetime.datetime, resource: Resource):
+        """Returns the price at which the external grid operator is willing to sell energy, in SEK/kWh"""
+        if resource == Resource.ELECTRICITY:
+            # Per https://doc.afdrift.se/pages/viewpage.action?pageId=17072325
+            return self.get_nordpool_price_for_period(period) + 0.48
+        else:
+            # TODO: Price for heating
+            return 1.0
 
-    def get_wholesale_price(self, period: datetime.datetime):
-        """Returns the price at which the external grid operator is willing to buy electricity, in SEK/kWh"""
-        # Per https://doc.afdrift.se/pages/viewpage.action?pageId=17072325
-        return self.get_nordpool_price_for_period(period) + 0.05
+    def get_wholesale_price(self, period: datetime.datetime, resource: Resource):
+        """Returns the price at which the external grid operator is willing to buy energy, in SEK/kWh"""
+        if resource == Resource.ELECTRICITY:
+            # Per https://doc.afdrift.se/pages/viewpage.action?pageId=17072325
+            return self.get_nordpool_price_for_period(period) + 0.05
+        else:
+            # TODO: Price for heating
+            return 0.5
 
     def get_nordpool_data_datetimes(self):
         return self.nordpool_data.index.tolist()

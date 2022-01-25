@@ -10,17 +10,20 @@ from tradingplatformpoc.trade import Market, Trade
 logger = logging.getLogger(__name__)
 
 
-class ElectricityGridAgent(IAgent):
+class GridAgent(IAgent):
+    resource: Resource
+    max_transfer_per_hour: float
 
-    def __init__(self, data_store: DataStore, guid="ElectricityGridAgent", max_transfer_per_hour=10000):
+    def __init__(self, data_store: DataStore, resource: Resource, max_transfer_per_hour=10000, guid="GridAgent"):
         super().__init__(guid, data_store)
+        self.resource = resource
         self.max_transfer_per_hour = max_transfer_per_hour
 
     def make_bids(self, period: datetime.datetime, clearing_prices_dict: Union[dict, None] = None):
-        # Submit a bid to sell electricity
+        # Submit a bid to sell energy
         # Sell up to MAX_TRANSFER_PER_HOUR kWh at calculate_retail_price(period)
-        retail_price = self.data_store.get_retail_price(period)
-        bid_to_sell = self.construct_bid(Action.SELL, Resource.ELECTRICITY, self.max_transfer_per_hour, retail_price)
+        retail_price = self.data_store.get_retail_price(period, self.resource)
+        bid_to_sell = self.construct_bid(Action.SELL, self.resource, self.max_transfer_per_hour, retail_price)
         # Note: In FED, this agent also submits a BUY bid at "wholesale price". To implement this, we'd need a way
         # for the market solver to know that such a bid doesn't _have to_ be filled. Not sure how this was handled in
         # FED. For us, the "wholesale price" comes into the pricing through the other selling agents: They check what
@@ -48,20 +51,21 @@ class ElectricityGridAgent(IAgent):
     def calculate_external_trades(self, trades_excl_external: Iterable[Trade], local_clearing_price: float):
         trades_to_add: List[Trade] = []
 
-        periods = set([trade.period for trade in trades_excl_external])
+        trades_for_this_resource = [trade for trade in trades_excl_external if trade.resource == self.resource]
+        periods = set([trade.period for trade in trades_for_this_resource])
         for period in periods:
-            trades_for_this_period = [trade for trade in trades_excl_external if trade.period == period]
-            retail_price = self.data_store.get_retail_price(period)
-            wholesale_price = self.data_store.get_wholesale_price(period)
+            trades_for_period_resource = [trade for trade in trades_for_this_resource if trade.period == period]
+            retail_price = self.data_store.get_retail_price(period, self.resource)
+            wholesale_price = self.data_store.get_wholesale_price(period, self.resource)
 
-            resource = Resource.ELECTRICITY  # FUTURE: Go through HEATING and maybe COOLING as well
-            trades_for_this_resource = [trade for trade in trades_for_this_period if trade.resource == resource]
-            self.calculate_external_trades_for_resource_and_market(Market.LOCAL, period, resource,
-                                                                   trades_for_this_resource, trades_to_add,
-                                                                   retail_price, wholesale_price, local_clearing_price)
-            self.calculate_external_trades_for_resource_and_market(Market.EXTERNAL, period, resource,
-                                                                   trades_for_this_resource, trades_to_add,
-                                                                   retail_price, wholesale_price, local_clearing_price)
+            self.calculate_external_trades_for_resource_and_market(Market.LOCAL, period, self.resource,
+                                                                   trades_for_period_resource, trades_to_add,
+                                                                   retail_price, wholesale_price,
+                                                                   local_clearing_price)
+            self.calculate_external_trades_for_resource_and_market(Market.EXTERNAL, period, self.resource,
+                                                                   trades_for_period_resource, trades_to_add,
+                                                                   retail_price, wholesale_price,
+                                                                   local_clearing_price)
         return trades_to_add
 
     def calculate_external_trades_for_resource_and_market(self, market: Market, period: datetime.datetime,

@@ -11,6 +11,7 @@ from pkg_resources import resource_filename
 from tests import utility_test_objects
 
 from tradingplatformpoc import data_store
+from tradingplatformpoc.bid import Resource
 from tradingplatformpoc.trading_platform_utils import datetime_array_between
 
 
@@ -31,9 +32,10 @@ class TestDataStore(TestCase):
 
     def test_retail_price_greater_than_wholesale_price(self):
         """Test that the retail price is always greater than the wholesale price"""
+        # May want to test for other resources than ELECTRICITY
         for dt in DATETIME_ARRAY:
-            retail_price = self.data_store_entity.get_retail_price(dt)
-            wholesale_price = self.data_store_entity.get_wholesale_price(dt)
+            retail_price = self.data_store_entity.get_retail_price(dt, Resource.ELECTRICITY)
+            wholesale_price = self.data_store_entity.get_wholesale_price(dt, Resource.ELECTRICITY)
             self.assertTrue(retail_price > wholesale_price)
 
     def test_read_school_csv(self):
