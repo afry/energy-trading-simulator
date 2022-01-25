@@ -57,13 +57,11 @@ class TestGridAgent(unittest.TestCase):
 
     def test_make_bids_heating(self):
         """Test basic functionality of GridAgent's make_bids method, for the HEATING resource."""
-        pass
-        # TODO: Implement this test once we have district heating prices
-        # bids = self.heating_grid_agent.make_bids(SOME_DATETIME)
-        # self.assertEqual(1, len(bids))
-        # self.assertEqual(Resource.HEATING, bids[0].resource)
-        # self.assertEqual(Action.SELL, bids[0].action)
-        # self.assertTrue(bids[0].quantity > 0)
+        bids = self.heating_grid_agent.make_bids(SOME_DATETIME)
+        self.assertEqual(1, len(bids))
+        self.assertEqual(Resource.HEATING, bids[0].resource)
+        self.assertEqual(Action.SELL, bids[0].action)
+        self.assertTrue(bids[0].quantity > 0)
 
     def test_calculate_trades_1(self):
         """Test basic functionality of GridAgent's calculate_external_trades method when there is a local deficit."""
@@ -136,6 +134,25 @@ class TestGridAgent(unittest.TestCase):
         self.assertEqual("ElectricityGridAgent", external_trades[0].source)
         self.assertEqual(Market.LOCAL, external_trades[0].market)
         self.assertEqual(period, external_trades[0].period)
+
+    def test_calculate_trades_with_some_bids_with_other_resource(self):
+        """When sent into an electricity grid agent, heating trades should be ignored."""
+        retail_price = 3.938725389630498
+        trades_excl_external = [
+            Trade(Action.BUY, Resource.ELECTRICITY, 100, retail_price, "BuildingAgent", False, Market.LOCAL,
+                  SOME_DATETIME),
+            Trade(Action.BUY, Resource.HEATING, 100, retail_price, "BuildingAgent", False, Market.LOCAL,
+                  SOME_DATETIME)
+        ]
+        external_trades = self.electricity_grid_agent.calculate_external_trades(trades_excl_external, retail_price)
+        self.assertEqual(1, len(external_trades))
+        self.assertEqual(Action.SELL, external_trades[0].action)
+        self.assertEqual(Resource.ELECTRICITY, external_trades[0].resource)
+        self.assertEqual(trades_excl_external[0].quantity, external_trades[0].quantity)
+        self.assertAlmostEqual(retail_price, external_trades[0].price)
+        self.assertEqual("ElectricityGridAgent", external_trades[0].source)
+        self.assertEqual(Market.LOCAL, external_trades[0].market)
+        self.assertEqual(SOME_DATETIME, external_trades[0].period)
 
 
 class TestStorageAgent(unittest.TestCase):

@@ -41,21 +41,21 @@ class DataStore:
 
     def get_retail_price(self, period: datetime.datetime, resource: Resource):
         """Returns the price at which the external grid operator is willing to sell energy, in SEK/kWh"""
-        # TODO: Price for heating
         if resource == Resource.ELECTRICITY:
             # Per https://doc.afdrift.se/pages/viewpage.action?pageId=17072325
             return self.get_nordpool_price_for_period(period) + 0.48
         else:
-            raise NotImplementedError("Method not implemented for resource '{}'".format(resource))
+            # TODO: Price for heating
+            return 1.0
 
     def get_wholesale_price(self, period: datetime.datetime, resource: Resource):
         """Returns the price at which the external grid operator is willing to buy energy, in SEK/kWh"""
-        # TODO: Price for heating
         if resource == Resource.ELECTRICITY:
             # Per https://doc.afdrift.se/pages/viewpage.action?pageId=17072325
             return self.get_nordpool_price_for_period(period) + 0.05
         else:
-            raise NotImplementedError("Method not implemented for resource '{}'".format(resource))
+            # TODO: Price for heating
+            return 0.5
 
     def get_nordpool_data_datetimes(self):
         return self.nordpool_data.index.tolist()
