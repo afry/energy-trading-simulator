@@ -1,4 +1,6 @@
 from pkg_resources import resource_filename
+
+from tradingplatformpoc import data_store
 from tradingplatformpoc.simulation_runner import run_trading_simulations
 import logging
 import sys
@@ -10,13 +12,24 @@ import pandas as pd
 import altair as alt
 
 # Note: To debug a streamlit script, see https://stackoverflow.com/a/60172283
+# This would be neat, but haven't been able to get it to work
+# https://altair-viz.github.io/altair-tutorial/notebooks/06-Selections.html#binding-scales-to-other-domains
+DATA_PATH = "tradingplatformpoc.data"
 
 
 @st.cache
 def load_data():
-    clearing_prices = pd.read_csv("clearing_prices.csv")
-    clearing_prices['period'] = pd.to_datetime(clearing_prices['period'])
-    return clearing_prices
+    clearing_prices_df = pd.read_csv("clearing_prices.csv")
+    clearing_prices_df['period'] = pd.to_datetime(clearing_prices_df['period'])
+
+    external_price_csv_path = resource_filename(DATA_PATH, "nordpool_area_grid_el_price.csv")
+    nordpool_data = data_store.read_nordpool_data(external_price_csv_path)
+    nordpool_data.name = 'nordpool'
+
+    both_df = clearing_prices_df.merge(nordpool_data, left_on="period", right_index=True)
+    both_df['retail'] = both_df['nordpool'] + data_store.ELECTRICITY_RETAIL_PRICE_OFFSET
+    both_df['wholesale'] = both_df['nordpool'] + data_store.ELECTRICITY_WHOLESALE_PRICE_OFFSET
+    return both_df
 
 
 # --- Read sys.argv to get logging level, if it is specified ---
@@ -88,7 +101,15 @@ if __name__ == '__main__':
         data_button = False
         logger.info("Loading data")
         st.spinner("Loading data")
-        df = load_data()
+        combined_price_df = load_data()
         st.success("Data loaded!")
-        chart = alt.Chart(df).mark_line().encode(y='price', x='period').interactive()
-        st.altair_chart(chart, use_container_width=True)
+
+        base = alt.Chart(combined_price_df).encode(x='period')
+
+        full = alt.layer(base.mark_line(color='blue').encode(y='price'),
+                         base.mark_line(color='red', strokeDash=[2, 4]).encode(y='retail'),
+                         base.mark_line(color='green', strokeDash=[2, 4]).encode(y='wholesale')).\
+            interactive(bind_y=False)
+
+        # chart = alt.Chart(combined_price_df).mark_line().encode(y='price', x='period').interactive()
+        st.altair_chart(full, use_container_width=True)
