@@ -1,6 +1,7 @@
 import logging
 import math
 import time
+from typing import Tuple
 
 import numpy as np
 import pandas as pd
@@ -118,22 +119,28 @@ def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd:
     commercial_electricity_consumption = simulate_commercial_area(commercial_gross_floor_area, start_seed_commercial,
                                                                   df_inputs.index)
 
-    df_apartments = simulate_residential_area(df_inputs, model, residential_gross_floor_area, start_seed_residential)
-    household_electricity_consumption = df_apartments.sum(axis=1)
+    household_electricity_consumption, n_apartments_for_area = simulate_household_electricity(
+        df_inputs, model, residential_gross_floor_area, start_seed_residential)
 
     output_per_building[get_elec_cons_key(agent['Name'])] = household_electricity_consumption + \
         commercial_electricity_consumption
     output_per_building[get_pv_prod_key(agent['Name'])] = calculate_solar_prod(df_irrd['irradiation'], pv_area,
                                                                                PV_EFFICIENCY)
-    n_apartments_simulated = n_apartments_simulated + len(df_apartments.columns)
+    n_apartments_simulated = n_apartments_simulated + n_apartments_for_area
     end = time.time()
     time_elapsed = end - start
     logger.debug('Finished work on \'{}\', took {:.2f} seconds'.format(agent['Name'], time_elapsed))
     return time_elapsed, n_apartments_simulated
 
 
-def simulate_residential_area(df_inputs: pd.DataFrame, model: RegressionResultsWrapper, gross_floor_area_m2: float,
-                              start_seed: int):
+def simulate_household_electricity(df_inputs: pd.DataFrame, model: RegressionResultsWrapper, gross_floor_area_m2: float,
+                                   start_seed: int) -> Tuple[pd.Series, int]:
+    """
+    Simulates the aggregated household electricity consumption for an area. Calculates a rough number of apartments/
+    dwellings, and simulates the household electricity on an individual basis (since the model we have is for individual
+    dwellings, not whole buildings aggregated) and then sums over these.
+    Returns a Series with the data, as well as an integer with the number of apartments that was used.
+    """
     df_output = pd.DataFrame({'datetime': df_inputs.index})
     df_output.set_index('datetime', inplace=True)
 
@@ -149,7 +156,7 @@ def simulate_residential_area(df_inputs: pd.DataFrame, model: RegressionResultsW
                                                                             m2_for_this_apartment,
                                                                             KWH_PER_YEAR_M2_ATEMP)
         df_output['apartment' + str(i)] = simulated_values_for_this_apartment
-    return df_output
+    return df_output.sum(axis=1), n_apartments
 
 
 def simulate_series(input_df: pd.DataFrame, rand_seed: int, model: RegressionResultsWrapper):
@@ -222,7 +229,8 @@ def create_inputs_df(temperature_csv_path: str, irradiation_csv_path: str):
     df_irrd['datetime'] = pd.to_datetime(df_irrd['datetime'])
 
     df_inputs = df_temp.merge(df_irrd)
-    df_inputs = df_inputs.interpolate(method='linear')  # In case there are any missing values
+    # In case there are any missing values
+    df_inputs[['temperature', 'irradiation']] = df_inputs[['temperature', 'irradiation']].interpolate(method='linear')
     df_inputs['hour_of_day'] = df_inputs['datetime'].dt.hour + 1
     df_inputs['day_of_week'] = df_inputs['datetime'].dt.dayofweek + 1
     df_inputs['day_of_month'] = df_inputs['datetime'].dt.day
