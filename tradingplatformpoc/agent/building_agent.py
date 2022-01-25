@@ -50,8 +50,8 @@ class BuildingAgent(IAgent):
                                         clearing_prices_dict: dict,
                                         accepted_bids_for_agent: List[BidWithAcceptanceStatus]):
 
-        retail_price = self.data_store.get_retail_price(period)
-        wholesale_price = self.data_store.get_wholesale_price(period)
+        retail_price = self.data_store.get_retail_price(period, Resource.ELECTRICITY)
+        wholesale_price = self.data_store.get_wholesale_price(period, Resource.ELECTRICITY)
         usage = self.get_actual_usage(period)
         if usage >= 0:
             price_to_use, market_to_use = get_price_and_market_to_use_when_buying(clearing_price, retail_price)

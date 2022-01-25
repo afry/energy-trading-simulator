@@ -10,11 +10,11 @@ from pkg_resources import resource_filename
 
 from tradingplatformpoc import balance_manager, data_store, market_solver, results_calculator
 from tradingplatformpoc.agent.building_agent import BuildingAgent
-from tradingplatformpoc.agent.grid_agent import ElectricityGridAgent
+from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.agent.storage_agent import StorageAgent
-from tradingplatformpoc.bid import Bid
+from tradingplatformpoc.bid import Bid, Resource
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
@@ -102,7 +102,7 @@ def run_trading_simulations(mock_datas_pickle_path: str):
         trades_csv_file.write(write_rows(all_trades_for_period))
         all_trades_list.extend(all_trades_for_period)
 
-        wholesale_price = data_store_entity.get_wholesale_price(period)
+        wholesale_price = data_store_entity.get_wholesale_price(period, Resource.ELECTRICITY)
         extra_costs = balance_manager.calculate_costs(bids_with_acceptance_status, all_trades_for_period,
                                                       clearing_price, wholesale_price)
         extra_costs_file.write(write_extra_costs_rows(period, extra_costs))
@@ -180,16 +180,16 @@ def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings
             if agent_name == "SchoolBuildingAgent":
                 school_digital_twin = StaticDigitalTwin(electricity_usage=school_elec_cons)
                 agents.append(BuildingAgent(data_store_entity, school_digital_twin, guid=agent_name))
-        elif agent_type == "ElectricityGridAgent":
-            grid_agent = ElectricityGridAgent(data_store_entity, max_transfer_per_hour=agent["TransferRate"],
-                                              guid=agent_name)
+        elif agent_type == "GridAgent":
+            grid_agent = GridAgent(data_store_entity, Resource[agent["Resource"]],
+                                   max_transfer_per_hour=agent["TransferRate"], guid=agent_name)
             agents.append(grid_agent)
 
     # TODO: As of right now, grid agents are treated as configurable, but the code is hard coded with the assumption
     #  that they'll always exist. Should probably be refactored
 
     # Verify that we have a Grid Agent
-    if not any(isinstance(agent, ElectricityGridAgent) for agent in agents):
+    if not any(isinstance(agent, GridAgent) for agent in agents):
         raise RuntimeError("No grid agent initialized")
 
     return agents, grid_agent
