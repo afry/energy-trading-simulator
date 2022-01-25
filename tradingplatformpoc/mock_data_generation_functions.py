@@ -65,6 +65,10 @@ def get_elec_cons_key(agent_name: str):
     return agent_name + '_elec_cons'
 
 
+def get_heat_cons_key(agent_name: str):
+    return agent_name + '_heat_cons'
+
+
 def get_pv_prod_key(agent_name: str):
     return agent_name + '_pv_prod'
 
