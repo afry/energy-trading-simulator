@@ -2,7 +2,7 @@ from typing import Iterable
 
 import streamlit as st
 
-from tradingplatformpoc.agent.grid_agent import ElectricityGridAgent
+from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.storage_agent import StorageAgent
 from tradingplatformpoc.bid import Action
@@ -27,7 +27,7 @@ def print_basic_results_for_agent(agent: IAgent, all_trades: Iterable[Trade], al
     sek_bought_for = sum([x.quantity * x.price for x in trades_for_agent if x.action == Action.BUY])
     sek_sold_for = sum([x.quantity * x.price for x in trades_for_agent if x.action == Action.SELL])
 
-    if not isinstance(agent, ElectricityGridAgent):
+    if not isinstance(agent, GridAgent):
         extra_costs_for_agent = sum([d[agent.guid] for d in all_extra_costs if (agent.guid in d.keys())])
         saved_on_buy, saved_on_sell = get_savings_vs_only_external(
             data_store_entity, trades_for_agent)
@@ -78,8 +78,9 @@ def get_savings_vs_only_external(data_store_entity: DataStore, trades_for_agent:
     saved_on_sell_vs_using_only_external = 0
     for trade in trades_for_agent:
         period = trade.period
-        external_retail_price = data_store_entity.get_retail_price(period)
-        external_wholesale_price = data_store_entity.get_wholesale_price(period)
+        resource = trade.resource
+        external_retail_price = data_store_entity.get_retail_price(period, resource)
+        external_wholesale_price = data_store_entity.get_wholesale_price(period, resource)
         if trade.action == Action.BUY:
             saved_on_buy_vs_using_only_external = saved_on_buy_vs_using_only_external + \
                 trade.quantity * (external_retail_price - trade.price)
