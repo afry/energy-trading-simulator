@@ -26,10 +26,10 @@ def probability_of_0_space_heating(temperature: float) -> float:
     elif temperature >= 20:
         return 1
     else:
-        return 1 - inv_logit(BM_INTERCEPT +
-                             BM_TEMP_1 * np.minimum(np.maximum(temperature, 5.5), 8) +
-                             BM_TEMP_2 * np.minimum(np.maximum(temperature, 8), 12.5) +
-                             BM_TEMP_3 * np.maximum(temperature, 12.5))
+        return 1 - inv_logit(BM_INTERCEPT
+                             + BM_TEMP_1 * min(max(temperature, 5.5), 8)
+                             + BM_TEMP_2 * min(max(temperature, 8), 12.5)
+                             + BM_TEMP_3 * max(temperature, 12.5))
 
 
 def space_heating_given_more_than_0(temperature: float) -> float:

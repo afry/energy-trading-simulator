@@ -369,6 +369,7 @@ def simulate_commercial_area_heating(commercial_gross_floor_area_m2: float, rand
 
 def simulate_commercial_area_hot_tap_water(commercial_gross_floor_area_m2: float, random_seed: int,
                                            datetimes: pd.DatetimeIndex) -> pd.Series:
+    """Gets a factor based on the hour of day, multiplies it by a noise-factor, and scales it."""
     time_factors = [get_commercial_heating_consumption_hourly_factor(x) for x in datetimes.hour]
     np.random.seed(random_seed)
     relative_errors = np.random.normal(0, COMMERCIAL_HOT_TAP_WATER_RELATIVE_ERROR_STD_DEV, len(time_factors))
