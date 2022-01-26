@@ -14,6 +14,9 @@ import altair as alt
 # Note: To debug a streamlit script, see https://stackoverflow.com/a/60172283
 # This would be neat, but haven't been able to get it to work
 # https://altair-viz.github.io/altair-tutorial/notebooks/06-Selections.html#binding-scales-to-other-domains
+WHOLESALE_PRICE_STR = 'External wholesale price'
+RETAIL_PRICE_STR = 'External retail price'
+LOCAL_PRICE_STR = 'Local price'
 DATA_PATH = "tradingplatformpoc.data"
 
 
@@ -21,15 +24,17 @@ DATA_PATH = "tradingplatformpoc.data"
 def load_data():
     clearing_prices_df = pd.read_csv("clearing_prices.csv")
     clearing_prices_df['period'] = pd.to_datetime(clearing_prices_df['period'])
+    clearing_prices_df.rename({'price': LOCAL_PRICE_STR}, axis=1, inplace=True)
 
     external_price_csv_path = resource_filename(DATA_PATH, "nordpool_area_grid_el_price.csv")
     nordpool_data = data_store.read_nordpool_data(external_price_csv_path)
     nordpool_data.name = 'nordpool'
 
     both_df = clearing_prices_df.merge(nordpool_data, left_on="period", right_index=True)
-    both_df['retail'] = both_df['nordpool'] + data_store.ELECTRICITY_RETAIL_PRICE_OFFSET
-    both_df['wholesale'] = both_df['nordpool'] + data_store.ELECTRICITY_WHOLESALE_PRICE_OFFSET
-    return both_df
+    both_df[RETAIL_PRICE_STR] = both_df['nordpool'] + data_store.ELECTRICITY_RETAIL_PRICE_OFFSET
+    both_df[WHOLESALE_PRICE_STR] = both_df['nordpool'] + data_store.ELECTRICITY_WHOLESALE_PRICE_OFFSET
+    both_df.drop(['nordpool'], axis=1, inplace=True)
+    return both_df.melt('period')  # Un-pivot the dataframe from wide to long, which is how Altair prefers it
 
 
 # --- Read sys.argv to get logging level, if it is specified ---
@@ -66,6 +71,19 @@ mock_datas_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickl
 
 if string_to_log_later is not None:
     logger.info(string_to_log_later)
+
+
+def construct_price_chart():
+    domain = [LOCAL_PRICE_STR, RETAIL_PRICE_STR, WHOLESALE_PRICE_STR]
+    range_color = ['blue', 'green', 'red']
+    range_dash = [[0, 0], [2, 4], [2, 4]]
+    return alt.Chart(combined_price_df).mark_line(). \
+        encode(x='period',
+               y='value',
+               color=alt.Color('variable', scale=alt.Scale(domain=domain, range=range_color)),
+               strokeDash=alt.StrokeDash('variable', scale=alt.Scale(domain=domain, range=range_dash))). \
+        interactive(bind_y=False)
+
 
 if __name__ == '__main__':
     st.write(
@@ -104,12 +122,6 @@ if __name__ == '__main__':
         combined_price_df = load_data()
         st.success("Data loaded!")
 
-        base = alt.Chart(combined_price_df).encode(x='period')
+        chart = construct_price_chart()
 
-        full = alt.layer(base.mark_line(color='blue').encode(y='price'),
-                         base.mark_line(color='red', strokeDash=[2, 4]).encode(y='retail'),
-                         base.mark_line(color='green', strokeDash=[2, 4]).encode(y='wholesale')).\
-            interactive(bind_y=False)
-
-        # chart = alt.Chart(combined_price_df).mark_line().encode(y='price', x='period').interactive()
-        st.altair_chart(full, use_container_width=True)
+        st.altair_chart(chart, use_container_width=True)
