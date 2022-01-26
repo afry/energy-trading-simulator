@@ -8,6 +8,9 @@ from pkg_resources import resource_filename
 from tradingplatformpoc.bid import Resource
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, minus_n_hours
 
+ELECTRICITY_WHOLESALE_PRICE_OFFSET = 0.05
+ELECTRICITY_RETAIL_PRICE_OFFSET = 0.48
+
 logger = logging.getLogger(__name__)
 
 
@@ -43,7 +46,7 @@ class DataStore:
         """Returns the price at which the external grid operator is willing to sell energy, in SEK/kWh"""
         if resource == Resource.ELECTRICITY:
             # Per https://doc.afdrift.se/pages/viewpage.action?pageId=17072325
-            return self.get_nordpool_price_for_period(period) + 0.48
+            return self.get_nordpool_price_for_period(period) + ELECTRICITY_RETAIL_PRICE_OFFSET
         else:
             # TODO: Price for heating
             return 1.0
@@ -52,7 +55,7 @@ class DataStore:
         """Returns the price at which the external grid operator is willing to buy energy, in SEK/kWh"""
         if resource == Resource.ELECTRICITY:
             # Per https://doc.afdrift.se/pages/viewpage.action?pageId=17072325
-            return self.get_nordpool_price_for_period(period) + 0.05
+            return self.get_nordpool_price_for_period(period) + ELECTRICITY_WHOLESALE_PRICE_OFFSET
         else:
             # TODO: Price for heating
             return 0.5
