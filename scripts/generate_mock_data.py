@@ -418,6 +418,7 @@ def simulate_residential_heating(df_inputs: pd.DataFrame, gross_floor_area_m2: f
     """
     Following along with https://doc.afdrift.se/display/RPJ/Jonstaka+heating+mock-up
     But as for electricity, we'll just see the whole sub-area as 1 house, shouldn't matter too much.
+    df_inputs needs to contain a 'heating_energy_kwh' column, with the Vetelangden data.
     Returns a pd.Series with simulated data.
     """
 
@@ -435,7 +436,8 @@ def simulate_residential_heating(df_inputs: pd.DataFrame, gross_floor_area_m2: f
     nans, x = nan_helper(noise)
     noise[nans] = np.interp(x(nans), x(~nans), noise[~nans])
 
-    heating_unscaled = noise * df_inputs['heating_energy_kwh']
+    vetelangden_data = df_inputs['heating_energy_kwh']
+    heating_unscaled = noise * vetelangden_data
     # Scale using BDAB's estimate
     heating_scaled = scale_energy_consumption(heating_unscaled, gross_floor_area_m2,
                                               KWH_PER_YEAR_M2_RESIDENTIAL_HEATING)
