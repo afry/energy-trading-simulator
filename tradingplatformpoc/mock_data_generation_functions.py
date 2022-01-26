@@ -1,6 +1,8 @@
 import logging
 import pickle
 
+import numpy as np
+
 logger = logging.getLogger(__name__)
 
 """Here goes functions that are used both for generating mock data, and for loading that data when starting simulations.
@@ -75,3 +77,10 @@ def get_pv_prod_key(agent_name: str):
 
 def get_commercial_electricity_consumption_hourly_factor(hour: int) -> float:
     return COMMERCIAL_ELECTRICITY_CONSUMPTION_HOURLY_FACTOR[hour]
+
+
+def get_commercial_heating_consumption_hourly_factor(hour: int) -> float:
+    if 8 < hour < 20:
+        return 1.0
+    else:
+        return 0.5

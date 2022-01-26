@@ -9,16 +9,22 @@ import json
 import statsmodels.api as sm
 import pickle
 
+from pkg_resources import resource_filename
 from statsmodels.regression.linear_model import RegressionResultsWrapper
 
-from tradingplatformpoc.mock_data_generation_functions import load_existing_data_sets, \
-    get_all_residential_building_agents, get_elec_cons_key, get_pv_prod_key, \
-    get_commercial_electricity_consumption_hourly_factor, get_heat_cons_key
+from tradingplatformpoc import commercial_heating_model
+from tradingplatformpoc.mock_data_generation_functions import get_all_residential_building_agents, \
+    get_commercial_electricity_consumption_hourly_factor, \
+    get_elec_cons_key, get_heat_cons_key, get_pv_prod_key, load_existing_data_sets, \
+    get_commercial_heating_consumption_hourly_factor
+
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod
 
 CONFIG_FILE = 'jonstaka.json'
 
-MOCK_DATAS_PICKLE = './tradingplatformpoc/data/mock_datas.pickle'
+DATA_PATH = 'tradingplatformpoc.data'
+
+MOCK_DATAS_PICKLE = resource_filename(DATA_PATH, 'mock_datas.pickle')
 
 pd.options.mode.chained_assignment = None  # default='warn'
 
@@ -26,16 +32,21 @@ KWH_PER_YEAR_M2_ATEMP = 20  # According to Skanska: 20 kWh/year/m2 Atemp
 PV_EFFICIENCY = 0.165
 M2_PER_APARTMENT = 70
 # Will use this to set random seed. Agent with start_seed = 1 will have seed 1 for household electricity, and
-# RESIDENTIAL_HEATING_SEED_OFFSET+1 for residential heating, and COMMERCIAL_SEED_OFFSET+1 for commercial electricity.
+# RESIDENTIAL_HEATING_SEED_OFFSET+1 for residential heating, and COMMERCIAL_SEED_OFFSET+1 for commercial electricity...
 RESIDENTIAL_HEATING_SEED_OFFSET = 1000
-# Constants for the 'commercial' bit:
-COMMERCIAL_SEED_OFFSET = 100000
-KWH_PER_YEAR_M2_COMMERCIAL = 118
-COMMERCIAL_RELATIVE_ERROR_STD_DEV = 0.2
-# Constants for the residential heating bit:
 EVERY_X_HOURS = 3  # Random noise will be piecewise linear, with knots every X hours
 HEATING_RELATIVE_ERROR_STD_DEV = 0.2
 KWH_PER_YEAR_M2_RESIDENTIAL_HEATING = 43.75  # See https://doc.afdrift.se/display/RPJ/BDAB+data
+# Constants for the 'commercial' electricity bit:
+COMMERCIAL_ELECTRICITY_SEED_OFFSET = 100000
+KWH_ELECTRICITY_PER_YEAR_M2_COMMERCIAL = 118
+COMMERCIAL_ELECTRICITY_RELATIVE_ERROR_STD_DEV = 0.2
+# Constants for the 'commercial' heating bit:
+COMMERCIAL_HEATING_SEED_OFFSET = 10000000
+KWH_HEATING_PER_YEAR_M2_COMMERCIAL = 60
+KWH_SPACE_HEATING_PER_YEAR_M2_COMMERCIAL = KWH_HEATING_PER_YEAR_M2_COMMERCIAL * 0.9
+KWH_HOT_TAP_WATER_PER_YEAR_M2_COMMERCIAL = KWH_HEATING_PER_YEAR_M2_COMMERCIAL * 0.1
+COMMERCIAL_HOT_TAP_WATER_RELATIVE_ERROR_STD_DEV = 0.2
 
 """
 This script generates the following, for ResidentialBuildingAgents:
@@ -68,7 +79,7 @@ def main():
     all_data_sets = load_existing_data_sets(MOCK_DATAS_PICKLE)
 
     # Open config file
-    with open('./tradingplatformpoc/data/{}'.format(CONFIG_FILE), "r") as json_file:
+    with open(resource_filename(DATA_PATH, CONFIG_FILE), "r") as json_file:
         config_data = json.load(json_file)
 
     residential_building_agents, total_gross_floor_area = get_all_residential_building_agents(config_data)
@@ -81,12 +92,12 @@ def main():
         # So we have established that we need to generate new mock data.
 
         # Load model
-        model = sm.load('./tradingplatformpoc/data/models/household_electricity_model.pickle')
+        model = sm.load(resource_filename(DATA_PATH, 'models/household_electricity_model.pickle'))
 
         # Read in-data: Temperature and timestamps
-        df_inputs, df_irrd = create_inputs_df('./tradingplatformpoc/data/temperature_vetelangden.csv',
-                                              './tradingplatformpoc/data/varberg_irradiation_W_m2_h.csv',
-                                              './tradingplatformpoc/data/vetelangden_slim.csv')
+        df_inputs, df_irrd = create_inputs_df(resource_filename(DATA_PATH, 'temperature_vetelangden.csv'),
+                                              resource_filename(DATA_PATH, 'varberg_irradiation_W_m2_h.csv'),
+                                              resource_filename(DATA_PATH, 'vetelangden_slim.csv'))
 
         output_per_building = pd.DataFrame({'datetime': df_inputs.index})
         output_per_building.set_index('datetime', inplace=True)
@@ -115,27 +126,28 @@ def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd:
     logger.debug('Starting work on \'{}\''.format(agent['Name']))
     pv_area = agent['RooftopPVArea'] if "RooftopPVArea" in agent else 0
 
-    seed_commercial = agent['RandomSeed'] * COMMERCIAL_SEED_OFFSET
     seed_residential_electricity = agent['RandomSeed']
     seed_residential_heating = agent['RandomSeed'] + RESIDENTIAL_HEATING_SEED_OFFSET
+    seed_commercial_electricity = agent['RandomSeed'] + COMMERCIAL_ELECTRICITY_SEED_OFFSET
+    seed_commercial_heating = agent['RandomSeed'] + COMMERCIAL_HEATING_SEED_OFFSET
     fraction_commercial = get_fraction_commercial(agent)
     fraction_residential = 1.0 - fraction_commercial
     commercial_gross_floor_area = agent['GrossFloorArea'] * fraction_commercial
     residential_gross_floor_area = agent['GrossFloorArea'] * fraction_residential
 
-    commercial_electricity_cons = simulate_commercial_area(commercial_gross_floor_area, seed_commercial,
-                                                           df_inputs.index)
+    commercial_electricity_cons = simulate_commercial_area_electricity(commercial_gross_floor_area,
+                                                                       seed_commercial_electricity, df_inputs.index)
+    commercial_heating_cons = simulate_commercial_area_heating(commercial_gross_floor_area,
+                                                               seed_commercial_heating, df_inputs)
 
-    residential_heating_consumption = simulate_residential_heating(df_inputs, residential_gross_floor_area,
-                                                                   seed_residential_heating)
-
-    # TODO: Commercial heating
+    residential_heating_cons = simulate_residential_heating(df_inputs, residential_gross_floor_area,
+                                                            seed_residential_heating)
 
     household_electricity_cons = simulate_household_electricity_aggregated(
         df_inputs, model, residential_gross_floor_area, seed_residential_electricity)
 
     output_per_building[get_elec_cons_key(agent['Name'])] = household_electricity_cons + commercial_electricity_cons
-    output_per_building[get_heat_cons_key(agent['Name'])] = residential_heating_consumption
+    output_per_building[get_heat_cons_key(agent['Name'])] = residential_heating_cons + commercial_heating_cons
 
     output_per_building[get_pv_prod_key(agent['Name'])] = calculate_solar_prod(df_irrd['irradiation'], pv_area,
                                                                                PV_EFFICIENCY)
@@ -328,16 +340,76 @@ def get_fraction_commercial(agent: dict) -> float:
         return 0.0
 
 
-def simulate_commercial_area(commercial_gross_floor_area_m2: float, random_seed_commercial: int,
-                             datetimes: pd.DatetimeIndex) -> pd.Series:
-    vectorized_function = np.vectorize(get_commercial_electricity_consumption_hourly_factor)
-    factors = vectorized_function(datetimes.hour.tolist())
-    np.random.seed(random_seed_commercial)
-    relative_errors = np.random.normal(0, COMMERCIAL_RELATIVE_ERROR_STD_DEV, len(factors))
+def simulate_commercial_area_electricity(commercial_gross_floor_area_m2: float, random_seed: int,
+                                         datetimes: pd.DatetimeIndex) -> pd.Series:
+    """
+    For more information, see https://doc.afdrift.se/display/RPJ/Commercial+areas
+    """
+    factors = [get_commercial_electricity_consumption_hourly_factor(x) for x in datetimes.hour]
+    np.random.seed(random_seed)
+    relative_errors = np.random.normal(0, COMMERCIAL_ELECTRICITY_RELATIVE_ERROR_STD_DEV, len(factors))
     unscaled_values = factors * (1 + relative_errors)
     unscaled_series = pd.Series(unscaled_values, index=datetimes)
     scaled_series = scale_energy_consumption(unscaled_series, commercial_gross_floor_area_m2,
-                                             KWH_PER_YEAR_M2_COMMERCIAL)
+                                             KWH_ELECTRICITY_PER_YEAR_M2_COMMERCIAL)
+    return scaled_series
+
+
+def simulate_commercial_area_heating(commercial_gross_floor_area_m2: float, random_seed: int,
+                                     input_df: pd.DataFrame) -> pd.Series:
+    """
+    For more information, see https://doc.afdrift.se/display/RPJ/Commercial+areas and
+    https://doc.afdrift.se/display/RPJ/Coop+heating+energy+use+mock-up
+    Heating = space heating + hot water
+    """
+    space_heating = simulate_commercial_area_space_heating(commercial_gross_floor_area_m2, random_seed, input_df)
+    hot_tap_water = simulate_commercial_area_hot_tap_water(commercial_gross_floor_area_m2, random_seed, input_df.index)
+    return space_heating + hot_tap_water
+
+
+def simulate_commercial_area_hot_tap_water(commercial_gross_floor_area_m2: float, random_seed: int,
+                                           datetimes: pd.DatetimeIndex) -> pd.Series:
+    time_factors = [get_commercial_heating_consumption_hourly_factor(x) for x in datetimes.hour]
+    np.random.seed(random_seed)
+    relative_errors = np.random.normal(0, COMMERCIAL_HOT_TAP_WATER_RELATIVE_ERROR_STD_DEV, len(time_factors))
+    unscaled_values = time_factors * (1 + relative_errors)
+    unscaled_series = pd.Series(unscaled_values, index=datetimes)
+    scaled_series = scale_energy_consumption(unscaled_series, commercial_gross_floor_area_m2,
+                                             KWH_HOT_TAP_WATER_PER_YEAR_M2_COMMERCIAL)
+    return scaled_series
+
+
+def simulate_commercial_area_space_heating(commercial_gross_floor_area_m2: float, random_seed: int,
+                                           input_df: pd.DataFrame) -> pd.Series:
+    """
+    For more information, see https://doc.afdrift.se/display/RPJ/Commercial+areas and
+    https://doc.afdrift.se/display/RPJ/Coop+heating+energy+use+mock-up
+    """
+    np.random.seed(random_seed)
+    # Probability that there is 0 heating demand:
+    predicted_prob_of_0 = input_df['temperature'].\
+        apply(lambda x: commercial_heating_model.probability_of_0_space_heating(x))
+    # Simulate whether there is 0 heating demand:
+    has_heat_demand = np.random.binomial(n=1, p=1 - predicted_prob_of_0)  # 1 if heat demand > 0
+
+    # Now, if heat demand non-zero, how much is it?
+    pred_given_non_0 = input_df['temperature'].\
+        apply(lambda x: commercial_heating_model.space_heating_given_more_than_0(x))
+    # Simulate
+    heat_given_non_0 = np.maximum(0, np.random.normal(loc=pred_given_non_0, scale=commercial_heating_model.LM_STD_DEV))
+
+    # Combine the above
+    sim_energy_unscaled = np.where(has_heat_demand == 0, 0, heat_given_non_0)
+
+    # Adjust for opening times
+    datetimes = input_df.index
+    time_factors = [get_commercial_heating_consumption_hourly_factor(x) for x in datetimes.hour]
+    sim_energy_unscaled = sim_energy_unscaled * time_factors
+
+    # Scale
+    scaled_series = scale_energy_consumption(pd.Series(sim_energy_unscaled, index=datetimes),
+                                             commercial_gross_floor_area_m2, KWH_SPACE_HEATING_PER_YEAR_M2_COMMERCIAL)
+
     return scaled_series
 
 
@@ -380,6 +452,7 @@ def nan_helper(y):
           to convert logical indices of NaNs to 'equivalent' indices
     Example:
         >>> # linear interpolation of NaNs
+        >>> y = np.array([1.0, np.nan, 2.0])
         >>> nans, x= nan_helper(y)
         >>> y[nans]= np.interp(x(nans), x(~nans), y[~nans])
     """
