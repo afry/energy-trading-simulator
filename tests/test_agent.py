@@ -35,10 +35,12 @@ np.random.seed(1)
 # Create data
 nordpool_values = np.random.uniform(MIN_NORDPOOL_PRICE, MAX_NORDPOOL_PRICE, len(DATETIME_ARRAY))
 irradiation_values = np.random.uniform(0, 100.0, len(DATETIME_ARRAY))
+carbon_values = np.ones(shape=len(DATETIME_ARRAY))
 #
 data_store_entity = data_store.DataStore(config_area_info=AREA_INFO,
                                          nordpool_data=pd.Series(nordpool_values, index=DATETIME_ARRAY),
-                                         irradiation_data=pd.Series(irradiation_values, index=DATETIME_ARRAY))
+                                         irradiation_data=pd.Series(irradiation_values, index=DATETIME_ARRAY),
+                                         grid_carbon_intensity=pd.Series(carbon_values, index=DATETIME_ARRAY))
 
 
 class TestGridAgent(unittest.TestCase):

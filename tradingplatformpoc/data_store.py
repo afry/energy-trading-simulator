@@ -18,8 +18,10 @@ class DataStore:
     nordpool_data: pd.Series
     tornet_park_pv_prod: pd.Series
     coop_pv_prod: pd.Series  # Rooftop PV production
+    grid_carbon_intensity: pd.Series
 
-    def __init__(self, config_area_info: dict, nordpool_data: pd.Series, irradiation_data: pd.Series):
+    def __init__(self, config_area_info: dict, nordpool_data: pd.Series, irradiation_data: pd.Series,
+                 grid_carbon_intensity: pd.Series):
         self.pv_efficiency = config_area_info["PVEfficiency"]
         self.store_pv_area = config_area_info["StorePVArea"]
         self.park_pv_area = config_area_info["ParkPVArea"]
@@ -27,17 +29,21 @@ class DataStore:
         self.nordpool_data = nordpool_data
         self.coop_pv_prod = calculate_solar_prod(irradiation_data, self.store_pv_area, self.pv_efficiency)
         self.tornet_park_pv_prod = calculate_solar_prod(irradiation_data, self.park_pv_area, self.pv_efficiency)
+        self.grid_carbon_intensity = grid_carbon_intensity
 
     @staticmethod
     def from_csv_files(config_area_info: dict, data_path: str = "tradingplatformpoc.data",
                        external_price_file: str = "nordpool_area_grid_el_price.csv",
-                       irradiation_file: str = "varberg_irradiation_W_m2_h.csv"):
+                       irradiation_file: str = "varberg_irradiation_W_m2_h.csv",
+                       electricitymap_file: str = "electricity_co2equivalents_year2019.csv"):
 
         external_price_csv_path = resource_filename(data_path, external_price_file)
         irradiation_csv_path = resource_filename(data_path, irradiation_file)
+        electricitymap_csv_path = resource_filename(data_path, electricitymap_file)
 
         return DataStore(config_area_info, read_nordpool_data(external_price_csv_path),
-                         read_solar_irradiation(irradiation_csv_path))
+                         read_solar_irradiation(irradiation_csv_path),
+                         read_electricitymap_csv(electricitymap_csv_path))
 
     def get_nordpool_price_for_period(self, period: datetime.datetime):
         return self.nordpool_data.loc[period]
@@ -124,3 +130,13 @@ def read_solar_irradiation(irradiation_csv_path: str):
     irradiation_series = irradiation_data['irradiation']
     irradiation_series.index = pd.to_datetime(irradiation_series.index)
     return irradiation_series
+
+
+def read_electricitymap_csv(electricitymap_csv_path: str) -> pd.Series:
+    """
+    Reads the electricity map CSV file. Returns a pd.Series with the marginal carbon intensity.
+    """
+    em_data = pd.read_csv(electricitymap_csv_path, delimiter=';')
+    em_data.index = pd.to_datetime(em_data['timestamp'], unit='s')
+    # NOTE: The nordpool prices given in this file are offset by 1 hour compared to the ones in the nordpool CSV!
+    return em_data['marginal_carbon_intensity_avg']
