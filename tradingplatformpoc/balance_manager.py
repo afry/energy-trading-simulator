@@ -9,6 +9,9 @@ def calculate_costs(bids: Collection[BidWithAcceptanceStatus], trades: Collectio
     """
     All bids and trades should be for the same trading period
     """
+    all_periods = set([x.period for x in trades])
+    if len(all_periods) > 1:
+        raise RuntimeError("When calculating costs, received trades for more than 1 trading period!")
     accepted_bids = [x for x in bids if x.was_accepted]
     agent_ids = set([x.source for x in accepted_bids] + [x.source for x in trades])
 

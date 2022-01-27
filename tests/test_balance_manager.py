@@ -99,6 +99,22 @@ class Test(TestCase):
         with self.assertRaises(RuntimeError):
             calculate_costs(bids, trades, 1.0, 0.5)
 
+    def test_different_periods(self):
+        """
+        When there are trades from more than 1 periods, an error should be raised.
+        """
+        next_period = datetime.datetime(2019, 1, 2, 1)
+        bids = [BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 2000, 0.5, "Seller1", False, True),
+                BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 1900, math.inf, "Buyer1", False, True),
+                BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 100, math.inf, "Buyer2", False, True),
+                BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, 1, "Grid", True, False)]
+        trades = [Trade(Action.SELL, Resource.ELECTRICITY, 1990, 0.5, "Seller1", False, Market.LOCAL, SOME_DATETIME),
+                  Trade(Action.BUY, Resource.ELECTRICITY, 2100, 0.5, "Buyer1", False, Market.LOCAL, SOME_DATETIME),
+                  Trade(Action.BUY, Resource.ELECTRICITY, 90, 0.5, "Buyer2", False, Market.LOCAL, next_period),
+                  Trade(Action.SELL, Resource.ELECTRICITY, 200, 1, "Grid", True, Market.LOCAL, SOME_DATETIME)]
+        with self.assertRaises(RuntimeError):
+            calculate_costs(bids, trades, 0.5, 0.5)
+
     def test_2_external_trades(self):
         """
         When there are more than 1 external trade for the same resource, an error should be raised.
