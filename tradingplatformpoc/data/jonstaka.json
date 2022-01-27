@@ -163,6 +163,7 @@
 		{
 			"Type": "StorageAgent",
 			"Name": "BatteryStorageAgent1",
+			"Resource": "ELECTRICITY",
 			"Capacity": 1000,
 			"ChargeRate": 0.4,
 			"NHoursBack": 168,

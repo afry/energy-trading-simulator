@@ -34,19 +34,19 @@ class GridAgent(IAgent):
     def construct_bid(self, action, resource, quantity, price):
         return Bid(action, resource, quantity, price, self.guid, True)
 
-    def make_prognosis(self, period: datetime.datetime):
+    def make_prognosis(self, period: datetime.datetime, resource: Resource):
         # FUTURE: Make prognoses of the price, instead of using actual? Although we are already using the day-ahead?
         pass
 
-    def get_actual_usage(self, period: datetime.datetime):
+    def get_actual_usage(self, period: datetime.datetime, resource: Resource):
         pass
 
-    def make_trade_given_clearing_price(self, period: datetime.datetime, clearing_price: float,
-                                        clearing_prices_dict: dict,
-                                        accepted_bids_for_agent: List[BidWithAcceptanceStatus]):
+    def make_trades_given_clearing_price(self, period: datetime.datetime, clearing_price: float,
+                                         clearing_prices_dict: dict,
+                                         accepted_bids_for_agent: List[BidWithAcceptanceStatus]) -> List[Trade]:
         # The external grid is used to make up for any differences on the local market. Therefore these will be
         # calculated at a later stage (in calculate_external_trades)
-        pass
+        return []
 
     def calculate_external_trades(self, trades_excl_external: Iterable[Trade], local_clearing_price: float):
         trades_to_add: List[Trade] = []

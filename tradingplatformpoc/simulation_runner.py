@@ -92,9 +92,9 @@ def run_trading_simulations(mock_datas_pickle_path: str):
         for agent in agents:
             accepted_bids_for_agent = [bid for bid in bids_with_acceptance_status
                                        if bid.source == agent.guid and bid.was_accepted]
-            trades_excl_external.append(
-                agent.make_trade_given_clearing_price(period, clearing_price, clearing_prices_dict,
-                                                      accepted_bids_for_agent))
+            trades_excl_external.extend(
+                agent.make_trades_given_clearing_price(period, clearing_price, clearing_prices_dict,
+                                                       accepted_bids_for_agent))
 
         trades_excl_external = [i for i in trades_excl_external if i]  # filter out None
         external_trades = grid_agent.calculate_external_trades(trades_excl_external, clearing_price)
@@ -164,6 +164,7 @@ def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings
                                                       max_charge_rate_fraction=agent["ChargeRate"],
                                                       max_discharge_rate_fraction=agent["ChargeRate"])
             agents.append(StorageAgent(data_store_entity, storage_digital_twin,
+                                       resource=Resource[agent["Resource"]],
                                        n_hours_to_look_back=agent["NHoursBack"],
                                        buy_price_percentile=agent["BuyPricePercentile"],
                                        sell_price_percentile=agent["SellPricePercentile"],
