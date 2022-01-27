@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import Any, Dict
 
 import pandas as pd
 
@@ -42,3 +43,18 @@ def calculate_solar_prod(irradiation_data: pd.Series, pv_sqm: float, pv_efficien
         The solar energy production in kWh
     """
     return irradiation_data * pv_sqm * pv_efficiency / 1000
+
+
+def add_numeric_dicts(dict1: Dict[Any, float], dict2: Dict[Any, float]) -> Dict[Any, float]:
+    """
+    Add values for keys that exist in both, keep all keys.
+    This could have been done smoothly with collections.Counter, but that doesn't include keys for which the value is 0,
+    which we want.
+    """
+    combined_dict = dict1.copy()
+    for k, v in dict2.items():
+        if k in combined_dict:
+            combined_dict[k] = combined_dict[k] + v
+        else:
+            combined_dict[k] = v
+    return combined_dict
