@@ -61,3 +61,6 @@ wheels/
 
 # Model files
 /data/models/*.pickle
+
+# Notebook checkpoints
+*/.ipynb_checkpoints/*
