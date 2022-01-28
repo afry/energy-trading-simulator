@@ -1,6 +1,6 @@
 import datetime
 from abc import ABC, abstractmethod
-from typing import List, Union
+from typing import Dict, List, Union
 
 import numpy as np
 
@@ -17,7 +17,8 @@ class IAgent(ABC):
         self.data_store = data_store
 
     @abstractmethod
-    def make_bids(self, period: datetime.datetime, clearing_prices_dict: Union[dict, None]):
+    def make_bids(self, period: datetime.datetime, clearing_prices_historical: Union[Dict[datetime.datetime, Dict[
+            Resource, float]], None]):
         # Make a bid for produced or needed energy for next time step
         pass
 
@@ -33,8 +34,7 @@ class IAgent(ABC):
         pass
 
     @abstractmethod
-    def make_trades_given_clearing_price(self, period: datetime.datetime, clearing_price: float,
-                                         clearing_prices_dict: dict,
+    def make_trades_given_clearing_price(self, period: datetime.datetime, clearing_prices: Dict[Resource, float],
                                          accepted_bids_for_agent: List[BidWithAcceptanceStatus]) -> List[Trade]:
         """
         Once market solver has decided a clearing price for each resource, it will send them to the agents with this

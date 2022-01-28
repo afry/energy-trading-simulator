@@ -1,6 +1,6 @@
 import datetime
 import logging
-from typing import List, Union
+from typing import Dict, List, Union
 
 import numpy as np
 
@@ -47,18 +47,19 @@ class StorageAgent(IAgent):
         self.if_higher_than_this_percentile_then_sell = sell_price_percentile
         self.need_at_least_n_hours = int(self.go_back_n_hours / 2)
 
-    def make_bids(self, period: datetime.datetime, clearing_prices_dict: Union[dict, None]):
+    def make_bids(self, period: datetime.datetime, clearing_prices_historical: Union[Dict[datetime.datetime, Dict[
+            Resource, float]], None]):
 
-        if clearing_prices_dict is not None:
-            clearing_prices_dict = dict(clearing_prices_dict)
+        if clearing_prices_historical is not None:
+            clearing_prices_for_resource = self.get_clearing_prices_for_resource(dict(clearing_prices_historical))
         else:
             logger.warning('No historical clearing prices were provided to StorageAgent! Will use Nordpool spot '
                            'prices instead.')
-            clearing_prices_dict = {}
+            clearing_prices_for_resource = {}
 
         nordpool_prices_last_n_hours_dict = self.data_store.get_nordpool_prices_last_n_hours_dict(period,
                                                                                                   self.go_back_n_hours)
-        prices_last_n_hours = get_prices_last_n_hours(period, self.go_back_n_hours, clearing_prices_dict,
+        prices_last_n_hours = get_prices_last_n_hours(period, self.go_back_n_hours, clearing_prices_for_resource,
                                                       nordpool_prices_last_n_hours_dict)
         if len(prices_last_n_hours) < self.need_at_least_n_hours:
             raise RuntimeError("StorageAgent '{}' needed at least {} hours of historical prices to function, but was "
@@ -75,14 +76,20 @@ class StorageAgent(IAgent):
                                       resource=self.resource)
         return [buy_bid, sell_bid]
 
+    def get_clearing_prices_for_resource(self, clearing_prices_hist: Dict[datetime.datetime, Dict[Resource, float]]) \
+            -> Dict[datetime.datetime, float]:
+        clearing_prices_for_resource: Dict[datetime.datetime, float] = {}
+        for k, v in clearing_prices_hist.items():
+            clearing_prices_for_resource[k] = v[self.resource]
+        return clearing_prices_for_resource
+
     def make_prognosis(self, period: datetime.datetime, resource: Resource):
         pass
 
     def get_actual_usage(self, period: datetime.datetime, resource: Resource):
         pass
 
-    def make_trades_given_clearing_price(self, period: datetime.datetime, clearing_price: float,
-                                         clearing_prices_dict: dict,
+    def make_trades_given_clearing_price(self, period: datetime.datetime, clearing_prices: Dict[Resource, float],
                                          accepted_bids_for_agent: List[BidWithAcceptanceStatus]) -> List[Trade]:
         # In this implementation, the battery never sells or buys directly from the external grid.
         if len(accepted_bids_for_agent) > 1:
@@ -90,6 +97,7 @@ class StorageAgent(IAgent):
             raise RuntimeError("More than 1 accepted bid in period {} for storage agent '{}'".format(period, self.guid))
         elif len(accepted_bids_for_agent) == 1:
             bid_quantity = accepted_bids_for_agent[0].quantity
+            clearing_price = clearing_prices[self.resource]
             if accepted_bids_for_agent[0].action == Action.BUY:
                 actual_charge_quantity = self.digital_twin.charge(bid_quantity)
                 if actual_charge_quantity > 0:
@@ -118,14 +126,14 @@ class StorageAgent(IAgent):
         return min([self.digital_twin.capacity_kwh / 2.0, self.digital_twin.discharge_limit_kwh])
 
 
-def get_prices_last_n_hours(period: datetime.datetime, n_hours: int, clearing_prices_dict: dict,
+def get_prices_last_n_hours(period: datetime.datetime, n_hours: int, clearing_prices_historical: dict,
                             external_prices_last_n_hours_dict: dict) -> List[float]:
     """
     Tries to get the clearing price for the last n hours. If it doesn't exist (i.e. if the market was just started up)
     it will get the Nordpool spot price instead.
     @param period: Current trading period
     @param n_hours: How many hours to go back
-    @param clearing_prices_dict: dict with datetime keys, float values
+    @param clearing_prices_historical: dict with datetime keys, float values
     @param external_prices_last_n_hours_dict: dict with datetime keys, float values
     @return: A list with length at most n_hours with floats. Can be shorter than n_hours if there is no data available
         far enough back.
@@ -133,8 +141,8 @@ def get_prices_last_n_hours(period: datetime.datetime, n_hours: int, clearing_pr
     prices_last_n_hours = []
     for i in range(n_hours):
         t = minus_n_hours(period, i + 1)
-        if t in clearing_prices_dict:
-            prices_last_n_hours.append(clearing_prices_dict[t])
+        if t in clearing_prices_historical:
+            prices_last_n_hours.append(clearing_prices_historical[t])
         elif t in external_prices_last_n_hours_dict:
             prices_last_n_hours.append(external_prices_last_n_hours_dict[t])
     return prices_last_n_hours

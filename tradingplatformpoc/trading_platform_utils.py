@@ -1,7 +1,12 @@
 from datetime import datetime, timedelta
-from typing import Any, Dict
+from typing import Any, Collection, Dict, List
 
 import pandas as pd
+
+from tradingplatformpoc.bid import Resource
+
+
+ALL_IMPLEMENTED_RESOURCES = [Resource.ELECTRICITY, Resource.HEATING]
 
 
 def minus_n_hours(t1: datetime, n_hours: int):
@@ -58,3 +63,7 @@ def add_numeric_dicts(dict1: Dict[Any, float], dict2: Dict[Any, float]) -> Dict[
         else:
             combined_dict[k] = v
     return combined_dict
+
+
+def flatten_collection(collection_of_lists: Collection[Collection[Any]]) -> List[Any]:
+    return [bid for sublist in collection_of_lists for bid in sublist]

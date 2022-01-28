@@ -1,11 +1,13 @@
+from collections import Counter
 from datetime import datetime
 from unittest import TestCase
 
-from tradingplatformpoc.trading_platform_utils import add_numeric_dicts, minus_n_hours
+from tradingplatformpoc.trading_platform_utils import add_numeric_dicts, flatten_collection, minus_n_hours
 
 
 class Test(TestCase):
     def test_minus_n_hours(self):
+        """Test that removing an hour from a datetime, returns a datetime which is one hour earlier."""
         t2 = minus_n_hours(datetime(2021, 12, 10, 11, 0, 0), 1)
         self.assertEqual(datetime(2021, 12, 10, 10, 0, 0), t2)
 
@@ -20,3 +22,15 @@ class Test(TestCase):
         self.assertEqual(6, dict3['d'])
         self.assertEqual(4, dict3['e'])
         self.assertEqual(0, dict3['f'])
+
+    def test_flatten_list_of_lists(self):
+        """Test that flatten_collection works as intended for a list of lists"""
+        list_of_lists = [[1, 2], [3, 4]]
+        self.assertEqual(4, len(flatten_collection(list_of_lists)))
+
+    def test_flatten_list_of_counters(self):
+        """Test that flatten_collection works as intended for a list of Counters"""
+        c1 = Counter({'red': 4, 'blue': 2})
+        c2 = Counter(cats=4, dogs=8)
+        list_of_counters = [c1, c2]
+        self.assertEqual(4, len(flatten_collection(list_of_counters)))

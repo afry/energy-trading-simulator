@@ -187,6 +187,12 @@
 			"Name": "ElectricityGridAgent",
 			"Resource": "ELECTRICITY",
 			"TransferRate": 10000
+		},
+		{
+			"Type": "GridAgent",
+			"Name": "HeatingGridAgent",
+			"Resource": "HEATING",
+			"TransferRate": 10000
 		}
 	],
 	"AreaInfo": {

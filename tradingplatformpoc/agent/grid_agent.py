@@ -1,6 +1,6 @@
 import datetime
 import logging
-from typing import Iterable, List, Union
+from typing import Dict, Iterable, List, Union
 
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.bid import Action, Bid, BidWithAcceptanceStatus, Resource
@@ -19,7 +19,8 @@ class GridAgent(IAgent):
         self.resource = resource
         self.max_transfer_per_hour = max_transfer_per_hour
 
-    def make_bids(self, period: datetime.datetime, clearing_prices_dict: Union[dict, None] = None):
+    def make_bids(self, period: datetime.datetime, clearing_prices_historical: Union[Dict[datetime.datetime, Dict[
+            Resource, float]], None] = None):
         # Submit a bid to sell energy
         # Sell up to MAX_TRANSFER_PER_HOUR kWh at calculate_retail_price(period)
         retail_price = self.data_store.get_retail_price(period, self.resource)
@@ -41,14 +42,13 @@ class GridAgent(IAgent):
     def get_actual_usage(self, period: datetime.datetime, resource: Resource):
         pass
 
-    def make_trades_given_clearing_price(self, period: datetime.datetime, clearing_price: float,
-                                         clearing_prices_dict: dict,
+    def make_trades_given_clearing_price(self, period: datetime.datetime, clearing_prices: Dict[Resource, float],
                                          accepted_bids_for_agent: List[BidWithAcceptanceStatus]) -> List[Trade]:
         # The external grid is used to make up for any differences on the local market. Therefore these will be
         # calculated at a later stage (in calculate_external_trades)
         return []
 
-    def calculate_external_trades(self, trades_excl_external: Iterable[Trade], local_clearing_price: float):
+    def calculate_external_trades(self, trades_excl_external: Iterable[Trade], clearing_prices: Dict[Resource, float]):
         trades_to_add: List[Trade] = []
 
         trades_for_this_resource = [trade for trade in trades_excl_external if trade.resource == self.resource]
@@ -61,11 +61,11 @@ class GridAgent(IAgent):
             self.calculate_external_trades_for_resource_and_market(Market.LOCAL, period, self.resource,
                                                                    trades_for_period_resource, trades_to_add,
                                                                    retail_price, wholesale_price,
-                                                                   local_clearing_price)
+                                                                   clearing_prices[self.resource])
             self.calculate_external_trades_for_resource_and_market(Market.EXTERNAL, period, self.resource,
                                                                    trades_for_period_resource, trades_to_add,
                                                                    retail_price, wholesale_price,
-                                                                   local_clearing_price)
+                                                                   clearing_prices[self.resource])
         return trades_to_add
 
     def calculate_external_trades_for_resource_and_market(self, market: Market, period: datetime.datetime,

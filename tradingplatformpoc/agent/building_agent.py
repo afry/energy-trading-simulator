@@ -1,6 +1,6 @@
 import datetime
 import math
-from typing import List, Union
+from typing import Dict, List, Union
 
 from tradingplatformpoc.agent.iagent import IAgent, get_price_and_market_to_use_when_buying, \
     get_price_and_market_to_use_when_selling
@@ -8,7 +8,7 @@ from tradingplatformpoc.bid import Action, BidWithAcceptanceStatus, Resource
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.trade import Trade
-from tradingplatformpoc.trading_platform_utils import minus_n_hours
+from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES, minus_n_hours
 
 
 class BuildingAgent(IAgent):
@@ -17,10 +17,11 @@ class BuildingAgent(IAgent):
         super().__init__(guid, data_store)
         self.digital_twin = digital_twin
 
-    def make_bids(self, period: datetime.datetime, clearing_prices_dict: Union[dict, None] = None):
+    def make_bids(self, period: datetime.datetime, clearing_prices_historical: Union[Dict[datetime.datetime, Dict[
+            Resource, float]], None] = None):
         # The building should make a bid for purchasing energy, or selling if it has a surplus
         bids = []
-        for resource in [Resource.ELECTRICITY, Resource.HEATING]:
+        for resource in ALL_IMPLEMENTED_RESOURCES:
             resource_needed = self.make_prognosis(period, resource)
             if resource_needed > 0:
                 bids.append(self.construct_bid(Action.BUY, resource, resource_needed, math.inf))
@@ -48,14 +49,14 @@ class BuildingAgent(IAgent):
         actual_production = self.digital_twin.get_production(period, resource)
         return actual_consumption - actual_production
 
-    def make_trades_given_clearing_price(self, period: datetime.datetime, clearing_price: float,
-                                         clearing_prices_dict: dict,
+    def make_trades_given_clearing_price(self, period: datetime.datetime, clearing_prices: Dict[Resource, float],
                                          accepted_bids_for_agent: List[BidWithAcceptanceStatus]) -> List[Trade]:
         trades = []
-        for resource in [Resource.ELECTRICITY, Resource.HEATING]:
+        for resource in ALL_IMPLEMENTED_RESOURCES:
             retail_price = self.data_store.get_retail_price(period, resource)
             wholesale_price = self.data_store.get_wholesale_price(period, resource)
             usage = self.get_actual_usage(period, resource)
+            clearing_price = clearing_prices[resource]
             if usage > 0:
                 price_to_use, market_to_use = get_price_and_market_to_use_when_buying(clearing_price, retail_price)
                 trades.append(self.construct_trade(Action.BUY, resource, usage, price_to_use, market_to_use, period))

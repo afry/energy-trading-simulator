@@ -5,12 +5,13 @@ from tradingplatformpoc.trade import Market, Trade
 from tradingplatformpoc.trading_platform_utils import add_numeric_dicts
 
 
-def calculate_costs(bids: Collection[BidWithAcceptanceStatus], trades: Collection[Trade], clearing_price: float,
-                    external_wholesale_price: float) -> Dict[str, float]:
-    costs_for_elec = calculate_costs_for_resource(bids, trades, clearing_price, external_wholesale_price,
-                                                  Resource.ELECTRICITY)
-    costs_for_heat = calculate_costs_for_resource(bids, trades, clearing_price, external_wholesale_price,
-                                                  Resource.HEATING)
+def calculate_costs(bids: Collection[BidWithAcceptanceStatus], trades: Collection[Trade],
+                    clearing_prices: Dict[Resource, float],
+                    external_wholesale_price_elec: float, external_wholesale_price_heat: float) -> Dict[str, float]:
+    costs_for_elec = calculate_costs_for_resource(bids, trades, clearing_prices[Resource.ELECTRICITY],
+                                                  external_wholesale_price_elec, Resource.ELECTRICITY)
+    costs_for_heat = calculate_costs_for_resource(bids, trades, clearing_prices[Resource.HEATING],
+                                                  external_wholesale_price_heat, Resource.HEATING)
     return add_numeric_dicts(costs_for_elec, costs_for_heat)
 
 
