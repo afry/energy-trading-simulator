@@ -32,12 +32,12 @@ def print_basic_results_for_agent(agent: IAgent, all_trades: Iterable[Trade], al
         saved_on_buy, saved_on_sell = get_savings_vs_only_external(
             data_store_entity, trades_for_agent)
         if sek_bought_for > 0:
-            print_message("For agent {} saved {:.2f} SEK when buying electricity by using local market, versus buying "
+            print_message("For agent {} saved {:.2f} SEK when buying energy by using local market, versus buying "
                           "everything from external grid, saving of {:.2f}%".
                           format(agent.guid, saved_on_buy, 100.0 * saved_on_buy / sek_bought_for))
         if sek_sold_for > 0:
             print_message(
-                "For agent {} saved {:.2f} SEK when selling electricity by using local market, versus selling "
+                "For agent {} saved {:.2f} SEK when selling energy by using local market, versus selling "
                 "everything to external grid, saving of {:.2f}%".
                 format(agent.guid, saved_on_sell, 100.0 * saved_on_sell / sek_sold_for))
 
