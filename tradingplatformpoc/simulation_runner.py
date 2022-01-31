@@ -159,7 +159,8 @@ def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings
         elif agent_type == "StorageAgent":
             storage_digital_twin = StorageDigitalTwin(max_capacity_kwh=agent["Capacity"],
                                                       max_charge_rate_fraction=agent["ChargeRate"],
-                                                      max_discharge_rate_fraction=agent["ChargeRate"])
+                                                      max_discharge_rate_fraction=agent["ChargeRate"],
+                                                      discharging_efficiency=agent["RoundTripEfficiency"])
             agents.append(StorageAgent(data_store_entity, storage_digital_twin,
                                        resource=Resource[agent["Resource"]],
                                        n_hours_to_look_back=agent["NHoursBack"],
