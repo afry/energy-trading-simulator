@@ -16,8 +16,8 @@ class StorageDigitalTwin(IDigitalTwin):
             1.0, then the storage unit can go from totally empty, to totally full, in one time step.
         @param max_discharge_rate_fraction: How much of the total capacity that can be discharged in one time step. If
             this is 1.0, then the storage unit can go from totally full, to totally empty, in one time step.
-        @param discharging_efficiency: How efficient is the battery (round-trip efficiency). If this is 0.93, then the
-            storage unit can only output (discharge) 93% of its full capacity.
+        @param discharging_efficiency: How efficient is the battery (RoundTripEfficiency efficiency). If this is 0.93,
+            then the storage unit can only output (discharge) 93% of its full capacity.
         @param start_capacity_kwh: The amount of energy contained in the storage unit on startup.
         @param start_is_charging: If the storage unit is in charging or discharging mode on startup (some storage units,
             such as a hydrogen storage, may take some time to transition from charging to discharging mode).
