@@ -30,11 +30,15 @@ def load_data():
     nordpool_data = data_store.read_nordpool_data(external_price_csv_path)
     nordpool_data.name = 'nordpool'
 
-    both_df = clearing_prices_df.merge(nordpool_data, left_on="period", right_index=True)
-    both_df[RETAIL_PRICE_STR] = both_df['nordpool'] + data_store.ELECTRICITY_RETAIL_PRICE_OFFSET
-    both_df[WHOLESALE_PRICE_STR] = both_df['nordpool'] + data_store.ELECTRICITY_WHOLESALE_PRICE_OFFSET
-    both_df.drop(['nordpool'], axis=1, inplace=True)
-    return both_df.melt('period')  # Un-pivot the dataframe from wide to long, which is how Altair prefers it
+    prices_df = clearing_prices_df.merge(nordpool_data, left_on="period", right_index=True)
+    prices_df[RETAIL_PRICE_STR] = prices_df['nordpool'] + data_store.ELECTRICITY_RETAIL_PRICE_OFFSET
+    prices_df[WHOLESALE_PRICE_STR] = prices_df['nordpool'] + data_store.ELECTRICITY_WHOLESALE_PRICE_OFFSET
+    prices_df.drop(['nordpool'], axis=1, inplace=True)
+
+    clearing_prices_df = pd.read_csv("clearing_prices.csv")
+    clearing_prices_df['period'] = pd.to_datetime(clearing_prices_df['period'])
+
+    return prices_df
 
 
 # --- Read sys.argv to get logging level, if it is specified ---
@@ -73,11 +77,12 @@ if string_to_log_later is not None:
     logger.info(string_to_log_later)
 
 
-def construct_price_chart():
+def construct_price_chart(prices_df: pd.DataFrame):
+    prices_df = prices_df.melt('period')  # Un-pivot the dataframe from wide to long, which is how Altair prefers it
     domain = [LOCAL_PRICE_STR, RETAIL_PRICE_STR, WHOLESALE_PRICE_STR]
     range_color = ['blue', 'green', 'red']
     range_dash = [[0, 0], [2, 4], [2, 4]]
-    return alt.Chart(combined_price_df).mark_line(). \
+    return alt.Chart(prices_df).mark_line(). \
         encode(x='period',
                y='value',
                color=alt.Color('variable', scale=alt.Scale(domain=domain, range=range_color)),
@@ -122,6 +127,11 @@ if __name__ == '__main__':
         combined_price_df = load_data()
         st.success("Data loaded!")
 
-        chart = construct_price_chart()
+        chart = construct_price_chart(combined_price_df)
 
         st.altair_chart(chart, use_container_width=True)
+
+        price_df_dt_index = combined_price_df.set_index("period")
+        local_price_between_external = (price_df_dt_index[LOCAL_PRICE_STR] > price_df_dt_index[WHOLESALE_PRICE_STR] + 0.0001) & (
+                    price_df_dt_index[LOCAL_PRICE_STR] < price_df_dt_index[RETAIL_PRICE_STR] - 0.0001)
+        st.dataframe(price_df_dt_index.loc[local_price_between_external])

@@ -8,6 +8,7 @@ import pandas as pd
 
 from pkg_resources import resource_filename
 
+import tradingplatformpoc
 from tradingplatformpoc import balance_manager, data_store, market_solver, results_calculator
 from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.grid_agent import GridAgent
@@ -20,7 +21,7 @@ from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
 from tradingplatformpoc.mock_data_generation_functions import get_all_residential_building_agents, get_elec_cons_key, \
     get_pv_prod_key
-from tradingplatformpoc.trade import write_rows
+from tradingplatformpoc.trade import Trade
 from tradingplatformpoc.trading_platform_utils import get_intersection
 
 logger = logging.getLogger(__name__)
@@ -49,13 +50,14 @@ def run_trading_simulations(mock_datas_pickle_path: str):
     clearing_prices_file.write('period,price\n')
     trades_csv_file = open('./trades.csv', 'w')
     trades_csv_file.write('period,agent,by_external,action,resource,market,quantity,price\n')
+    bids_csv_file = open('./bids.csv', 'w')
+    bids_csv_file.write('period,agent,by_external,action,resource,quantity,price,was_accepted\n')
     extra_costs_file = open('./extra_costs.csv', 'w')
     extra_costs_file.write('period,agent,cost\n')
     # Output lists
     clearing_prices_dict: Dict[datetime.datetime, float] = {}
-    all_trades_list = []
-    all_bids_list = []
-    all_extra_costs_dict = {}
+    all_trades_list: List[Trade] = []
+    all_extra_costs_dict: Dict[datetime.datetime, Dict[str, float]] = {}
 
     # Register all agents
     # Keep a list of all agents to iterate over later
@@ -82,7 +84,7 @@ def run_trading_simulations(mock_datas_pickle_path: str):
         clearing_prices_dict[period] = clearing_price
 
         clearing_prices_file.write('{},{}\n'.format(period, clearing_price))
-        all_bids_list.extend(bids_with_acceptance_status)
+        bids_csv_file.write(tradingplatformpoc.bid.write_rows(bids_with_acceptance_status, period))
 
         # Send clearing price back to agents, allow them to "make trades", i.e. decide if they want to buy/sell
         # energy, from/to either the local market or directly from/to the external grid.
@@ -99,7 +101,7 @@ def run_trading_simulations(mock_datas_pickle_path: str):
         trades_excl_external = [i for i in trades_excl_external if i]  # filter out None
         external_trades = grid_agent.calculate_external_trades(trades_excl_external, clearing_price)
         all_trades_for_period = trades_excl_external + external_trades
-        trades_csv_file.write(write_rows(all_trades_for_period))
+        trades_csv_file.write(tradingplatformpoc.trade.write_rows(all_trades_for_period))
         all_trades_list.extend(all_trades_for_period)
 
         wholesale_price = data_store_entity.get_wholesale_price(period, Resource.ELECTRICITY)
@@ -111,6 +113,7 @@ def run_trading_simulations(mock_datas_pickle_path: str):
     # Exit gracefully
     clearing_prices_file.close()
     trades_csv_file.close()
+    bids_csv_file.close()
     extra_costs_file.close()
 
     results_calculator.print_basic_results(agents, all_trades_list, all_extra_costs_dict, data_store_entity)

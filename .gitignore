@@ -29,6 +29,7 @@ trading-platform-poc.log
 
 # Output CSV (quite big)
 clearing_prices.csv
+bids.csv
 trades.csv
 extra_costs.csv
 
