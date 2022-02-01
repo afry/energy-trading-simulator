@@ -47,12 +47,13 @@ class StorageDigitalTwin(IDigitalTwin):
         """Discharges the battery, changing the fields "charging" and "capacity".
         Will return how much the battery was discharged. This will most often be equal to the "quantity" argument, but
         will be adjusted for current "capacity_kwh", "discharging_efficiency" and "max_discharge_rate_fraction".
-        """
+        When discharging "quantity" (X kWh) from the storage, the current capacity is decreased by
+        "X / discharging_efficiency"."""
         self.is_charging = False
         # So that we don't discharge more than self.capacity:
         amount_to_discharge = min(min(float(self.capacity_kwh * self.discharging_efficiency), float(quantity)),
                                   self.discharge_limit_kwh)
-        self.capacity_kwh = self.capacity_kwh - amount_to_discharge
+        self.capacity_kwh = self.capacity_kwh - (amount_to_discharge / self.discharging_efficiency)
         return amount_to_discharge
 
     def get_possible_charge_amount(self):
