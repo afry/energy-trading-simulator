@@ -66,18 +66,19 @@ class StorageAgent(IAgent):
                                "only provided with {} hours.".
                                format(self.guid, self.need_at_least_n_hours, len(prices_last_n_hours)))
 
-        buy_bid = self.construct_bid(action=Action.BUY,
-                                     quantity=self.calculate_buy_quantity(),
-                                     price=self.calculate_buy_price(prices_last_n_hours),
-                                     resource=Resource.ELECTRICITY)
-        if buy_bid.quantity >= LOWEST_BID_QUANTITY:
-            bids.append(buy_bid)
-        sell_bid = self.construct_bid(action=Action.SELL,
-                                      quantity=self.calculate_sell_quantity(),
-                                      price=self.calculate_sell_price(prices_last_n_hours),
-                                      resource=Resource.ELECTRICITY)
-        if sell_bid.quantity >= LOWEST_BID_QUANTITY:
-            bids.append(sell_bid)
+        buy_quantity = self.calculate_buy_quantity()
+        if buy_quantity >= LOWEST_BID_QUANTITY:
+            bids.append(self.construct_bid(action=Action.BUY,
+                                           quantity=buy_quantity,
+                                           price=self.calculate_buy_price(prices_last_n_hours),
+                                           resource=Resource.ELECTRICITY))
+
+        sell_quantity = self.calculate_sell_quantity()
+        if sell_quantity >= LOWEST_BID_QUANTITY:
+            bids.append(self.construct_bid(action=Action.SELL,
+                                           quantity=sell_quantity,
+                                           price=self.calculate_sell_price(prices_last_n_hours),
+                                           resource=Resource.ELECTRICITY))
         return bids
 
     def make_prognosis(self, period: datetime.datetime):

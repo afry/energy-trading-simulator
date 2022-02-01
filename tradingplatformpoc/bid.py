@@ -1,3 +1,4 @@
+import logging
 from enum import Enum
 
 
@@ -10,6 +11,9 @@ class Resource(Enum):
     ELECTRICITY = 0
     HEATING = 1
     COOLING = 2
+
+
+logger = logging.getLogger(__name__)
 
 
 class Bid:
@@ -33,6 +37,8 @@ class Bid:
 
     def __init__(self, action: Action, resource: Resource, quantity: float, price: float, source: str,
                  by_external: bool):
+        if quantity <= 0:
+            logger.warning("Creating bid with quantity {}! Source was '{}'".format(quantity, source))
         self.action = action
         self.resource = resource
         self.quantity = quantity
