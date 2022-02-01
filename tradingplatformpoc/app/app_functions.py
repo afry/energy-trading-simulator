@@ -1,12 +1,15 @@
 import altair as alt
+
 import pandas as pd
-import streamlit as st
+
 from pkg_resources import resource_filename
+
+import streamlit as st
 from streamlit.delta_generator import DeltaGenerator
 from streamlit.type_util import OptionSequence
 
-from tradingplatformpoc.app.app_constants import WHOLESALE_PRICE_STR, RETAIL_PRICE_STR, LOCAL_PRICE_STR, DATA_PATH
 from tradingplatformpoc import data_store
+from tradingplatformpoc.app.app_constants import DATA_PATH, LOCAL_PRICE_STR, RETAIL_PRICE_STR, WHOLESALE_PRICE_STR
 
 
 def get_price_df_when_local_price_inbetween(prices_df: pd.DataFrame) -> pd.DataFrame:
