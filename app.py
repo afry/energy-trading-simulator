@@ -1,7 +1,8 @@
 from pkg_resources import resource_filename
 
 from tradingplatformpoc.app.app_constants import ALL_PAGES, BIDS_PAGE, SELECT_PAGE_RADIO_LABEL, START_PAGE
-from tradingplatformpoc.app.app_functions import construct_price_chart, load_data, select_page_radio
+from tradingplatformpoc.app.app_functions import construct_price_chart, load_data, select_page_radio, \
+    construct_storage_level_chart
 from tradingplatformpoc.simulation_runner import run_trading_simulations
 import logging
 import sys
@@ -80,10 +81,11 @@ if __name__ == '__main__':
             data_button = False
             logger.info("Loading data")
             st.spinner("Loading data")
-            combined_price_df, bids_df, trades_df = load_data()
+            combined_price_df, bids_df, trades_df, storage_levels = load_data()
             st.session_state.combined_price_df = combined_price_df
             st.session_state.bids_df = bids_df
             st.session_state.trades_df = trades_df
+            st.session_state.storage_levels = storage_levels
             st.session_state.agents_sorted = sorted(bids_df.agent.unique())
             st.success("Data loaded!")
             page_selected = select_page_radio(page_sel_placeholder, SELECT_PAGE_RADIO_LABEL, ALL_PAGES, False)
@@ -97,9 +99,14 @@ if __name__ == '__main__':
 
     elif page_selected == BIDS_PAGE:
         agent_chosen = st.selectbox(label='Choose agent', options=st.session_state.agents_sorted)
-        st.write('Bids for ' + agent_chosen)
+        st.write('Bids for ' + agent_chosen + ':')
         st.dataframe(st.session_state.bids_df.loc[st.session_state.bids_df.agent == agent_chosen].
                      drop(['agent'], axis=1))
-        st.write('Trades for ' + agent_chosen)
+        st.write('Trades for ' + agent_chosen + ':')
         st.dataframe(st.session_state.trades_df.loc[st.session_state.trades_df.agent == agent_chosen].
                      drop(['agent'], axis=1))
+
+        if agent_chosen in st.session_state.storage_levels.agent.unique():
+            st.write('Charging level over time for ' + agent_chosen + ':')
+            storage_chart = construct_storage_level_chart(st.session_state.storage_levels, agent_chosen)
+            st.altair_chart(storage_chart, use_container_width=True)

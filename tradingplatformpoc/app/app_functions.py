@@ -36,6 +36,14 @@ def construct_price_chart(prices_df: pd.DataFrame) -> alt.Chart:
         interactive(bind_y=False)
 
 
+def construct_storage_level_chart(storage_levels_df: pd.DataFrame, agent: str) -> alt.Chart:
+    storage_levels = storage_levels_df.loc[storage_levels_df.agent == agent]
+    return alt.Chart(storage_levels).mark_line(). \
+        encode(x='period',
+               y='capacity_kwh'). \
+        interactive(bind_y=False)
+
+
 @st.cache
 def load_data():
     clearing_prices_df = pd.read_csv("clearing_prices.csv")
@@ -59,7 +67,10 @@ def load_data():
     all_trades['period'] = pd.to_datetime(all_trades['period'])
     all_trades.drop(['by_external'], axis=1, inplace=True)  # Don't need this column
 
-    return prices_df, all_bids, all_trades
+    storage_levels = pd.read_csv("storages.csv")
+    storage_levels['period'] = pd.to_datetime(storage_levels['period'])
+
+    return prices_df, all_bids, all_trades, storage_levels
 
 
 def select_page_radio(placeholder: DeltaGenerator, label, selections: OptionSequence, disabled: bool) -> str:

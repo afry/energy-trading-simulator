@@ -32,6 +32,7 @@ clearing_prices.csv
 bids.csv
 trades.csv
 extra_costs.csv
+storages.csv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

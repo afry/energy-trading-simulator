@@ -54,6 +54,8 @@ def run_trading_simulations(mock_datas_pickle_path: str):
     bids_csv_file.write('period,agent,by_external,action,resource,quantity,price,was_accepted\n')
     extra_costs_file = open('./extra_costs.csv', 'w')
     extra_costs_file.write('period,agent,cost\n')
+    storage_levels_csv_file = open('./storages.csv', 'w')
+    storage_levels_csv_file.write('period,agent,capacity_kwh\n')
     # Output lists
     clearing_prices_dict: Dict[datetime.datetime, float] = {}
     all_trades_list: List[Trade] = []
@@ -85,6 +87,12 @@ def run_trading_simulations(mock_datas_pickle_path: str):
 
         clearing_prices_file.write('{},{}\n'.format(period, clearing_price))
         bids_csv_file.write(tradingplatformpoc.bid.write_rows(bids_with_acceptance_status, period))
+
+        # To save information on storage levels, which may be useful:
+        for agent in agents:
+            if isinstance(agent, StorageAgent):
+                capacity_for_agent = agent.digital_twin.capacity_kwh
+                storage_levels_csv_file.write(str(period) + ',' + agent.guid + ',' + str(capacity_for_agent) + '\n')
 
         # Send clearing price back to agents, allow them to "make trades", i.e. decide if they want to buy/sell
         # energy, from/to either the local market or directly from/to the external grid.
