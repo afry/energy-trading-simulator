@@ -54,6 +54,7 @@ This script generates the following, for ResidentialBuildingAgents:
 *Household electricity consumption data
 *Commercial electricity consumption data
 *Residential heating consumption data
+*Commercial heating consumption data
 *Rooftop PV production data
 It stores such data in the MOCK_DATAS_PICKLE file, as a dictionary, where the set of BuildingAgents used to generate the
 data is the key, and a pd.DataFrame of generated data is the value. This way, simulation_runner can get the correct mock
@@ -270,7 +271,10 @@ def create_inputs_df(temperature_csv_path: str, irradiation_csv_path: str, heati
     @param temperature_csv_path: Path to a CSV-file with datetime-stamps and temperature readings, in degrees C.
     @param irradiation_csv_path: Path to a CSV-file with datetime-stamps and solar irradiance readings, in W/m2.
     @param heating_csv_path: Path to a CSV-file with datetime-stamps and heating energy readings, in kW.
-    @return: Two pd.DataFrames
+    @return: Two pd.DataFrames:
+        The first one contains date/time-related columns, as well as outdoor temperature readings and heating energy
+            demand data from Vetelangden. This dataframe will be used to simulate electricity and heat demands.
+        The second one contains irradiation data, which is used to estimate PV production.
     """
     df_temp = pd.read_csv(temperature_csv_path, names=['datetime', 'temperature'],
                           delimiter=';', header=0)
