@@ -11,6 +11,8 @@ from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTw
 from tradingplatformpoc.trade import Market
 from tradingplatformpoc.trading_platform_utils import minus_n_hours
 
+LOWEST_BID_QUANTITY = 0.001  # Bids with a lower quantity than this won't have any real effect, will only clog things up
+
 logger = logging.getLogger(__name__)
 
 
@@ -46,6 +48,7 @@ class StorageAgent(IAgent):
         self.need_at_least_n_hours = int(self.go_back_n_hours / 2)
 
     def make_bids(self, period: datetime.datetime, clearing_prices_dict: Union[dict, None]):
+        bids = []
 
         if clearing_prices_dict is not None:
             clearing_prices_dict = dict(clearing_prices_dict)
@@ -67,11 +70,15 @@ class StorageAgent(IAgent):
                                      quantity=self.calculate_buy_quantity(),
                                      price=self.calculate_buy_price(prices_last_n_hours),
                                      resource=Resource.ELECTRICITY)
+        if buy_bid.quantity >= LOWEST_BID_QUANTITY:
+            bids.append(buy_bid)
         sell_bid = self.construct_bid(action=Action.SELL,
                                       quantity=self.calculate_sell_quantity(),
                                       price=self.calculate_sell_price(prices_last_n_hours),
                                       resource=Resource.ELECTRICITY)
-        return [buy_bid, sell_bid]
+        if sell_bid.quantity >= LOWEST_BID_QUANTITY:
+            bids.append(sell_bid)
+        return bids
 
     def make_prognosis(self, period: datetime.datetime):
         pass
