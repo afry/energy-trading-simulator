@@ -20,7 +20,10 @@ class TestStorageDigitalTwin(TestCase):
             (max_capacity_kwh * max_discharge_rate_fraction), if it does not exceed (capacity * discharging_efficiency),
              at one time step. When discharging the storage X kWh, the current capacity decreased by
              (X / discharging_efficiency)."""
+        # Start capacity is 6
         self.assertAlmostEqual(4.65, self.storage_digital_twin.discharge(4.65))
+        # 4.65 / 0.93 = 5, so we expect 1 here
+        self.assertAlmostEqual(1.0, self.storage_digital_twin.capacity_kwh)
 
     def test_possible_charge_amount(self):
         self.assertAlmostEqual(25, self.storage_digital_twin.get_possible_charge_amount())
