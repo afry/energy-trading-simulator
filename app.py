@@ -1,49 +1,17 @@
 from pkg_resources import resource_filename
-from streamlit.state.session_state import SessionState
 
-from tradingplatformpoc import data_store
+from tradingplatformpoc.app.app_constants import ALL_PAGES, BIDS_PAGE, SELECT_PAGE_RADIO_LABEL, START_PAGE
+from tradingplatformpoc.app.app_functions import construct_price_chart, load_data, select_page_radio
 from tradingplatformpoc.simulation_runner import run_trading_simulations
 import logging
 import sys
 
 import streamlit as st
 
-import pandas as pd
-
-import altair as alt
-
 # Note: To debug a streamlit script, see https://stackoverflow.com/a/60172283
+
 # This would be neat, but haven't been able to get it to work
 # https://altair-viz.github.io/altair-tutorial/notebooks/06-Selections.html#binding-scales-to-other-domains
-START_PAGE = "Start page"
-BIDS_PAGE = "Bids"
-WHOLESALE_PRICE_STR = 'External wholesale price'
-RETAIL_PRICE_STR = 'External retail price'
-LOCAL_PRICE_STR = 'Local price'
-DATA_PATH = "tradingplatformpoc.data"
-
-
-@st.cache
-def load_data():
-    clearing_prices_df = pd.read_csv("clearing_prices.csv")
-    clearing_prices_df['period'] = pd.to_datetime(clearing_prices_df['period'])
-    clearing_prices_df.rename({'price': LOCAL_PRICE_STR}, axis=1, inplace=True)
-
-    external_price_csv_path = resource_filename(DATA_PATH, "nordpool_area_grid_el_price.csv")
-    nordpool_data = data_store.read_nordpool_data(external_price_csv_path)
-    nordpool_data.name = 'nordpool'
-
-    prices_df = clearing_prices_df.merge(nordpool_data, left_on="period", right_index=True)
-    prices_df[RETAIL_PRICE_STR] = prices_df['nordpool'] + data_store.ELECTRICITY_RETAIL_PRICE_OFFSET
-    prices_df[WHOLESALE_PRICE_STR] = prices_df['nordpool'] + data_store.ELECTRICITY_WHOLESALE_PRICE_OFFSET
-    prices_df.drop(['nordpool'], axis=1, inplace=True)
-
-    all_bids = pd.read_csv("bids.csv")
-    all_bids['period'] = pd.to_datetime(all_bids['period'])
-    all_bids.drop(['by_external'], axis=1, inplace=True)  # Don't need this column
-
-    return prices_df, all_bids
-
 
 # --- Read sys.argv to get logging level, if it is specified ---
 string_to_log_later = None
@@ -80,31 +48,6 @@ mock_datas_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickl
 if string_to_log_later is not None:
     logger.info(string_to_log_later)
 
-
-def construct_price_chart(prices_df: pd.DataFrame):
-    prices_df = prices_df.melt('period')  # Un-pivot the dataframe from wide to long, which is how Altair prefers it
-    domain = [LOCAL_PRICE_STR, RETAIL_PRICE_STR, WHOLESALE_PRICE_STR]
-    range_color = ['blue', 'green', 'red']
-    range_dash = [[0, 0], [2, 4], [2, 4]]
-    return alt.Chart(prices_df).mark_line(). \
-        encode(x='period',
-               y='value',
-               color=alt.Color('variable', scale=alt.Scale(domain=domain, range=range_color)),
-               strokeDash=alt.StrokeDash('variable', scale=alt.Scale(domain=domain, range=range_dash))). \
-        interactive(bind_y=False)
-
-
-def get_price_df_when_local_price_inbetween(prices_df: pd.DataFrame) -> pd.DataFrame:
-    """Local price is almost always either equal to the external wholesale or retail price. This method returns the
-    subsection of the prices dataframe where the local price is _not_ equal to either of these two."""
-    price_df_dt_index = prices_df.set_index("period")
-    local_price_between_external = (price_df_dt_index[LOCAL_PRICE_STR]
-                                    > price_df_dt_index[WHOLESALE_PRICE_STR]
-                                    + 0.0001) & (price_df_dt_index[LOCAL_PRICE_STR]
-                                                 < price_df_dt_index[RETAIL_PRICE_STR] - 0.0001)
-    return price_df_dt_index.loc[local_price_between_external]
-
-
 if __name__ == '__main__':
     st.write(
         """
@@ -120,8 +63,8 @@ if __name__ == '__main__':
 
     page_sel_placeholder = st.sidebar.empty()
     # Will be disabled on startup, and enabled once data has been loaded
-    page_selected = page_sel_placeholder.radio("Select page to view", (START_PAGE, BIDS_PAGE),
-                                               disabled='combined_price_df' not in st.session_state)
+    page_selected = select_page_radio(page_sel_placeholder, SELECT_PAGE_RADIO_LABEL, ALL_PAGES,
+                                      'combined_price_df' not in st.session_state)
 
     if page_selected == START_PAGE:
         run_sim = st.button("Click here to run simulation")
@@ -137,12 +80,13 @@ if __name__ == '__main__':
             data_button = False
             logger.info("Loading data")
             st.spinner("Loading data")
-            combined_price_df, bids_df = load_data()
+            combined_price_df, bids_df, trades_df = load_data()
             st.session_state.combined_price_df = combined_price_df
             st.session_state.bids_df = bids_df
+            st.session_state.trades_df = trades_df
             st.session_state.agents_sorted = sorted(bids_df.agent.unique())
             st.success("Data loaded!")
-            page_selected = page_sel_placeholder.radio("Select page to view", (START_PAGE, BIDS_PAGE), disabled=False)
+            page_selected = select_page_radio(page_sel_placeholder, SELECT_PAGE_RADIO_LABEL, ALL_PAGES, False)
 
             price_chart = construct_price_chart(combined_price_df)
 
@@ -153,6 +97,9 @@ if __name__ == '__main__':
 
     elif page_selected == BIDS_PAGE:
         agent_chosen = st.selectbox(label='Choose agent', options=st.session_state.agents_sorted)
-
+        st.write('Bids for ' + agent_chosen)
         st.dataframe(st.session_state.bids_df.loc[st.session_state.bids_df.agent == agent_chosen].
+                     drop(['agent'], axis=1))
+        st.write('Trades for ' + agent_chosen)
+        st.dataframe(st.session_state.trades_df.loc[st.session_state.trades_df.agent == agent_chosen].
                      drop(['agent'], axis=1))
