@@ -5,9 +5,10 @@ from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTw
 
 class TestStorageDigitalTwin(TestCase):
 
-    storage_digital_twin = StorageDigitalTwin(max_capacity_kwh=100.0, max_charge_rate_fraction=0.25,
-                                              max_discharge_rate_fraction=0.2, start_capacity_kwh=6,
-                                              discharging_efficiency=0.93)
+    def setUp(self):
+        self.storage_digital_twin = StorageDigitalTwin(max_capacity_kwh=100.0, max_charge_rate_fraction=0.25,
+                                                       max_discharge_rate_fraction=0.2, start_capacity_kwh=6,
+                                                       discharging_efficiency=0.93)
 
     def test_charge_battery(self):
         """Test charging the battery with the input amount. It will charge the battery with
@@ -21,6 +22,7 @@ class TestStorageDigitalTwin(TestCase):
              at one time step. When discharging the storage X kWh, the current capacity decreased by
              (X / discharging_efficiency)."""
         # Start capacity is 6
+        self.assertAlmostEqual(6.0, self.storage_digital_twin.capacity_kwh)
         self.assertAlmostEqual(4.65, self.storage_digital_twin.discharge(4.65))
         # 4.65 / 0.93 = 5, so we expect 1 here
         self.assertAlmostEqual(1.0, self.storage_digital_twin.capacity_kwh)
