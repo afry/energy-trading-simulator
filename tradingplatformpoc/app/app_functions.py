@@ -29,18 +29,23 @@ def construct_price_chart(prices_df: pd.DataFrame) -> alt.Chart:
     range_color = ['blue', 'green', 'red']
     range_dash = [[0, 0], [2, 4], [2, 4]]
     return alt.Chart(prices_df).mark_line(). \
-        encode(x='period',
-               y='value',
+        encode(x=alt.X('period', axis=alt.Axis(title='Period')),
+               y=alt.Y('value', axis=alt.Axis(title='Price [SEK]')),
                color=alt.Color('variable', scale=alt.Scale(domain=domain, range=range_color)),
-               strokeDash=alt.StrokeDash('variable', scale=alt.Scale(domain=domain, range=range_dash))). \
+               strokeDash=alt.StrokeDash('variable', scale=alt.Scale(domain=domain, range=range_dash)),
+               tooltip=[alt.Tooltip(field='period', title='Period', type='temporal', format='%Y-%m-%d %H:%M'),
+                        alt.Tooltip(field='variable', title='Variable'),
+                        alt.Tooltip(field='value', title='Value')]). \
         interactive(bind_y=False)
 
 
 def construct_storage_level_chart(storage_levels_df: pd.DataFrame, agent: str) -> alt.Chart:
     storage_levels = storage_levels_df.loc[storage_levels_df.agent == agent]
     return alt.Chart(storage_levels).mark_line(). \
-        encode(x='period',
-               y='capacity_kwh'). \
+        encode(x=alt.X('period', axis=alt.Axis(title='Period')),
+               y=alt.Y('capacity_kwh', axis=alt.Axis(title='Capacity [kWh]')),
+               tooltip=[alt.Tooltip(field='period', title='Period', type='temporal', format='%Y-%m-%d %H:%M'),
+                        alt.Tooltip(field='capacity_kwh', title='Capacity [kWh]')]). \
         interactive(bind_y=False)
 
 

@@ -64,7 +64,7 @@ if __name__ == '__main__':
 
     page_sel_placeholder = st.sidebar.empty()
     # Will be disabled on startup, and enabled once data has been loaded
-    page_selected = select_page_radio(page_sel_placeholder, SELECT_PAGE_RADIO_LABEL, ALL_PAGES,
+    page_selected = select_page_radio(page_sel_placeholder, SELECT_PAGE_RADIO_LABEL + " (load data first)", ALL_PAGES,
                                       'combined_price_df' not in st.session_state)
 
     if page_selected == START_PAGE:
