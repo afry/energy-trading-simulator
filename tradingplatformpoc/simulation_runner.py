@@ -19,7 +19,7 @@ from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
 from tradingplatformpoc.mock_data_generation_functions import get_all_residential_building_agents, get_elec_cons_key, \
-    get_pv_prod_key
+    get_heat_cons_key, get_pv_prod_key
 from tradingplatformpoc.trade import write_rows
 from tradingplatformpoc.trading_platform_utils import flatten_collection, get_intersection
 
@@ -151,10 +151,12 @@ def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings
         agent_type = agent["Type"]
         agent_name = agent['Name']
         if agent_type == "ResidentialBuildingAgent":
-            household_elec_cons_series = buildings_mock_data[get_elec_cons_key(agent_name)]
+            elec_cons_series = buildings_mock_data[get_elec_cons_key(agent_name)]
+            heat_cons_series = buildings_mock_data[get_heat_cons_key(agent_name)]
             pv_prod_series = buildings_mock_data[get_pv_prod_key(agent_name)]
-            building_digital_twin = StaticDigitalTwin(electricity_usage=household_elec_cons_series,
-                                                      electricity_production=pv_prod_series)
+            building_digital_twin = StaticDigitalTwin(electricity_usage=elec_cons_series,
+                                                      electricity_production=pv_prod_series,
+                                                      heating_usage=heat_cons_series)
             agents.append(BuildingAgent(data_store_entity, building_digital_twin, guid=agent_name))
         elif agent_type == "StorageAgent":
             storage_digital_twin = StorageDigitalTwin(max_capacity_kwh=agent["Capacity"],
