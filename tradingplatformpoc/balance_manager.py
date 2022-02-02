@@ -1,24 +1,41 @@
 from typing import Collection, Dict, List, Union
 
-from tradingplatformpoc.bid import Action, BidWithAcceptanceStatus
+from tradingplatformpoc.bid import Action, BidWithAcceptanceStatus, Resource
 from tradingplatformpoc.trade import Market, Trade
+from tradingplatformpoc.trading_platform_utils import add_numeric_dicts
 
 
-def calculate_costs(bids: Collection[BidWithAcceptanceStatus], trades: Collection[Trade], clearing_price: float,
-                    external_wholesale_price: float) -> Dict[str, float]:
+def calculate_costs(bids: Collection[BidWithAcceptanceStatus], trades: Collection[Trade],
+                    clearing_prices: Dict[Resource, float],
+                    external_wholesale_price_elec: float, external_wholesale_price_heat: float) -> Dict[str, float]:
+    costs_for_elec = calculate_costs_for_resource(bids, trades, clearing_prices[Resource.ELECTRICITY],
+                                                  external_wholesale_price_elec, Resource.ELECTRICITY)
+    costs_for_heat = calculate_costs_for_resource(bids, trades, clearing_prices[Resource.HEATING],
+                                                  external_wholesale_price_heat, Resource.HEATING)
+    return add_numeric_dicts(costs_for_elec, costs_for_heat)
+
+
+def calculate_costs_for_resource(bids: Collection[BidWithAcceptanceStatus], trades: Collection[Trade],
+                                 clearing_price: float, external_wholesale_price: float, resource: Resource) -> \
+        Dict[str, float]:
     """
     All bids and trades should be for the same trading period
     """
-    accepted_bids = [x for x in bids if x.was_accepted]
-    agent_ids = set([x.source for x in accepted_bids] + [x.source for x in trades])
+    bids_for_resource = [x for x in bids if x.resource == resource]
+    trades_for_resource = [x for x in trades if x.resource == resource]
+    all_periods = set([x.period for x in trades_for_resource])
+    if len(all_periods) > 1:
+        raise RuntimeError("When calculating costs, received trades for more than 1 trading period!")
+    accepted_bids = [x for x in bids_for_resource if x.was_accepted]
+    agent_ids = set([x.source for x in accepted_bids] + [x.source for x in trades_for_resource])
 
-    external_bid = get_external_bid(bids)
-    external_trade_on_local_market = get_external_trade_on_local_market(trades)
+    external_bid = get_external_bid(bids_for_resource)
+    external_trade_on_local_market = get_external_trade_on_local_market(trades_for_resource)
     extra_cost = calculate_extra_cost(external_bid, external_trade_on_local_market, clearing_price,
                                       external_wholesale_price)
     # Now we know how much extra cost that need to be covered. Now we'll figure out how to distribute it.
 
-    error_by_agent = calculate_error_by_agent(accepted_bids, agent_ids, trades)
+    error_by_agent = calculate_error_by_agent(accepted_bids, agent_ids, trades_for_resource)
     cost_to_be_paid_by_agent = distribute_cost(error_by_agent, extra_cost)
     return cost_to_be_paid_by_agent
 

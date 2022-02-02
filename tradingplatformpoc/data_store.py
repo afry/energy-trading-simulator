@@ -1,12 +1,17 @@
 import datetime
 import logging
 
+import numpy as np
+
 import pandas as pd
 
 from pkg_resources import resource_filename
 
 from tradingplatformpoc.bid import Resource
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, minus_n_hours
+
+PLACEHOLDER_HEATING_WHOLESALE_PRICE = 0.005
+PLACEHOLDER_HEATING_RETAIL_PRICE = 0.01
 
 ELECTRICITY_WHOLESALE_PRICE_OFFSET = 0.05
 ELECTRICITY_RETAIL_PRICE_OFFSET = 0.48
@@ -48,8 +53,8 @@ class DataStore:
             # Per https://doc.afdrift.se/pages/viewpage.action?pageId=17072325
             return self.get_nordpool_price_for_period(period) + ELECTRICITY_RETAIL_PRICE_OFFSET
         else:
-            # TODO: Price for heating
-            return 1.0
+            # TODO: Price for heating (RES-163)
+            return PLACEHOLDER_HEATING_RETAIL_PRICE
 
     def get_wholesale_price(self, period: datetime.datetime, resource: Resource):
         """Returns the price at which the external grid operator is willing to buy energy, in SEK/kWh"""
@@ -57,8 +62,8 @@ class DataStore:
             # Per https://doc.afdrift.se/pages/viewpage.action?pageId=17072325
             return self.get_nordpool_price_for_period(period) + ELECTRICITY_WHOLESALE_PRICE_OFFSET
         else:
-            # TODO: Price for heating
-            return 0.5
+            # TODO: Price for heating (RES-163)
+            return PLACEHOLDER_HEATING_WHOLESALE_PRICE
 
     def get_nordpool_data_datetimes(self):
         return self.nordpool_data.index.tolist()
@@ -84,7 +89,7 @@ def read_energy_data(energy_csv_path: str):
         energy_data['coop_electricity_consumed_cooling_kwh'] + \
         energy_data['coop_electricity_consumed_other_kwh'], \
         energy_data['tornet_energy_consumed_heat_kwh'], \
-        energy_data['coop_net_heat_consumed']
+        np.maximum(energy_data['coop_net_heat_consumed'], 0)  # Indications are Coop has no excess heat so setting to 0
 
 
 def read_school_energy_consumption_csv(csv_path: str):
