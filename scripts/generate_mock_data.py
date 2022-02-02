@@ -17,7 +17,7 @@ from tradingplatformpoc import commercial_heating_model
 from tradingplatformpoc.mock_data_generation_functions import get_all_residential_building_agents, \
     get_commercial_electricity_consumption_hourly_factor, \
     get_elec_cons_key, get_heat_cons_key, get_pv_prod_key, load_existing_data_sets, \
-    get_commercial_heating_consumption_hourly_factor
+    get_commercial_heating_consumption_hourly_factor, get_school_heating_consumption_hourly_factor
 
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod
 
@@ -445,7 +445,6 @@ SCHOOL_HOT_TAP_WATER_RELATIVE_ERROR_STD_DEV = 0
 KWH_HOT_TAP_WATER_PER_YEAR_M2_SCHOOL = 0
 KWH_SPACE_HEATING_PER_YEAR_M2_SCHOOL = 0
 
-add function: get_school_heating_consumption_hourly_factor
 
 def simulate_school_area_total_heating(school_gross_floor_area_m2: float, random_seed: int,
                                            input_df: pd.DataFrame) -> pd.Series:

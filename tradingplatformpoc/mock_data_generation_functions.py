@@ -1,5 +1,8 @@
+from calendar import SATURDAY
 import logging
 import pickle
+import datetime
+from time import time
 
 logger = logging.getLogger(__name__)
 
@@ -83,3 +86,21 @@ def get_commercial_heating_consumption_hourly_factor(hour: int) -> float:
         return 1.0
     else:
         return 0.5
+
+def get_school_heating_consumption_hourly_factor(timestamp: datetime.datetime) -> float:
+    """Assuming opening hours 9-20 except for weekends and breaks"""
+    if timestamp.weekday() == 5 or timestamp.weekday() == 6: # Saturday or sunday
+        return 0.5
+    elif is_break(timestamp.date):
+        return 0.5
+    elif not(9 <= timestamp.hour < 20):
+        return 0.5
+    else:
+        return 1
+
+def is_break(timestamp: datetime.datetime):
+    # Define breaks, return true if timestamp falls on break, false if not
+    # Summer break 15/6 - 15/8
+    # Fall break 1/11 - 7/11
+    # Christmas break 22/12 - 2/1
+    # Sportlov 15/2 - 21/2
