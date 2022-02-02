@@ -52,6 +52,7 @@ external_heating_sells['month'] = external_heating_sells.index.month
 external_heating_sells['day_of_month'] = external_heating_sells.index.day
 
 jan_feb_avg_consumption_kw = external_heating_sells.loc[external_heating_sells.month <= 2].quantity.mean()
+print('Average heating need for the microgrid in January-February was {:.4f} kW'.format(jan_feb_avg_consumption_kw))
 
 monthly_sums = external_heating_sells.groupby('month')['quantity'].sum()
 daily_sums = external_heating_sells.groupby(['month', 'day_of_month'], as_index=False)['quantity'].sum()
@@ -59,11 +60,12 @@ max_daily_demand_by_month = daily_sums.groupby('month')['quantity'].max()  # Uni
 max_daily_avg_demand_by_month = max_daily_demand_by_month / 24  # Unit is now kW
 
 for month in np.arange(1, 13):
+    max_daily_avg_demand_kw = max_daily_avg_demand_by_month[month]
     fixed_part = get_grid_fee_for_month(jan_feb_avg_consumption_kw, 2019, month) + \
-                      get_effect_fee(max_daily_avg_demand_by_month[month])
+        get_effect_fee(max_daily_avg_demand_kw)
     consumption_this_month = monthly_sums[month]
     marginal_part = get_base_energy_price(month) * consumption_this_month
     cost_for_month = marginal_part + fixed_part
     price_per_kwh_for_month = cost_for_month / consumption_this_month
 
-    print('For month {} the total price per kWh was {} SEK'.format(month, price_per_kwh_for_month))
+    print('For month {} the maximum daily average consumption was {:.4f} kW'.format(month, max_daily_avg_demand_kw))
