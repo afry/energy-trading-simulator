@@ -138,11 +138,11 @@ def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd:
 
     commercial_electricity_cons = simulate_commercial_area_electricity(commercial_gross_floor_area,
                                                                        seed_commercial_electricity, df_inputs.index)
-    commercial_heating_cons = simulate_commercial_area_heating(commercial_gross_floor_area,
-                                                               seed_commercial_heating, df_inputs)
+    commercial_heating_cons = simulate_commercial_area_total_heating(commercial_gross_floor_area,
+                                                                     seed_commercial_heating, df_inputs)
 
-    residential_heating_cons = simulate_residential_heating(df_inputs, residential_gross_floor_area,
-                                                            seed_residential_heating)
+    residential_heating_cons = simulate_residential_total_heating(df_inputs, residential_gross_floor_area,
+                                                                  seed_residential_heating)
 
     household_electricity_cons = simulate_household_electricity_aggregated(
         df_inputs, model, residential_gross_floor_area, seed_residential_electricity)
@@ -360,12 +360,12 @@ def simulate_commercial_area_electricity(commercial_gross_floor_area_m2: float, 
     return scaled_series
 
 
-def simulate_commercial_area_heating(commercial_gross_floor_area_m2: float, random_seed: int,
-                                     input_df: pd.DataFrame) -> pd.Series:
+def simulate_commercial_area_total_heating(commercial_gross_floor_area_m2: float, random_seed: int,
+                                           input_df: pd.DataFrame) -> pd.Series:
     """
     For more information, see https://doc.afdrift.se/display/RPJ/Commercial+areas and
     https://doc.afdrift.se/display/RPJ/Coop+heating+energy+use+mock-up
-    Heating = space heating + hot water
+    Total heating = space heating + hot water
     @return A pd.Series with hourly total heating load, in kWh.
     """
     space_heating = simulate_commercial_area_space_heating(commercial_gross_floor_area_m2, random_seed, input_df)
@@ -424,10 +424,12 @@ def simulate_commercial_area_space_heating(commercial_gross_floor_area_m2: float
     return scaled_series
 
 
-def simulate_residential_heating(df_inputs: pd.DataFrame, gross_floor_area_m2: float, random_seed: int) -> pd.Series:
+def simulate_residential_total_heating(df_inputs: pd.DataFrame, gross_floor_area_m2: float, random_seed: int) -> \
+        pd.Series:
     """
     Following along with https://doc.afdrift.se/display/RPJ/Jonstaka+heating+mock-up
     But as for electricity, we'll just see the whole sub-area as 1 house, shouldn't matter too much.
+    Total heating meaning space heating and hot tap water combined.
     df_inputs needs to contain a 'heating_energy_kwh' column, with the Vetelangden data.
     Returns a pd.Series with simulated data.
     """
