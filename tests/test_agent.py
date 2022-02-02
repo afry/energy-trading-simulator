@@ -66,11 +66,12 @@ class TestGridAgent(unittest.TestCase):
     def test_calculate_trades_1(self):
         """Test basic functionality of GridAgent's calculate_external_trades method when there is a local deficit."""
         retail_price = 3.938725389630498
+        clearing_prices = {Resource.ELECTRICITY: retail_price, Resource.HEATING: np.nan}
         trades_excl_external = [
             Trade(Action.BUY, Resource.ELECTRICITY, 100, retail_price, "BuildingAgent", False, Market.LOCAL,
                   SOME_DATETIME)
         ]
-        external_trades = self.electricity_grid_agent.calculate_external_trades(trades_excl_external, retail_price)
+        external_trades = self.electricity_grid_agent.calculate_external_trades(trades_excl_external, clearing_prices)
         self.assertEqual(1, len(external_trades))
         self.assertEqual(Action.SELL, external_trades[0].action)
         self.assertEqual(Resource.ELECTRICITY, external_trades[0].resource)
@@ -83,24 +84,26 @@ class TestGridAgent(unittest.TestCase):
     def test_calculate_trades_local_equilibrium(self):
         """Test the calculate_external_trades method when there is no need for any external trades."""
         retail_price = 0.99871
+        clearing_prices = {Resource.ELECTRICITY: retail_price, Resource.HEATING: np.nan}
         trades_excl_external = [
             Trade(Action.BUY, Resource.ELECTRICITY, 100, retail_price, "BuildingAgent", False, Market.LOCAL,
                   SOME_DATETIME),
             Trade(Action.SELL, Resource.ELECTRICITY, 100, retail_price, "PVAgent", False, Market.LOCAL,
                   SOME_DATETIME)
         ]
-        external_trades = self.electricity_grid_agent.calculate_external_trades(trades_excl_external, retail_price)
+        external_trades = self.electricity_grid_agent.calculate_external_trades(trades_excl_external, clearing_prices)
         self.assertEqual(0, len(external_trades))
 
     def test_calculate_trades_price_not_matching(self):
         """Test that a warning is logged when the local price is specified as greater than the external retail price."""
         local_price = MAX_NORDPOOL_PRICE + 1.0
+        clearing_prices = {Resource.ELECTRICITY: local_price, Resource.HEATING: np.nan}
         trades_excl_external = [
             Trade(Action.BUY, Resource.ELECTRICITY, 100, local_price, "BuildingAgent", False, Market.LOCAL,
                   SOME_DATETIME)
         ]
         with self.assertLogs() as captured:
-            self.electricity_grid_agent.calculate_external_trades(trades_excl_external, local_price)
+            self.electricity_grid_agent.calculate_external_trades(trades_excl_external, clearing_prices)
         self.assertEqual(len(captured.records), 1)
         self.assertEqual(captured.records[0].levelname, 'WARNING')
 
@@ -108,24 +111,26 @@ class TestGridAgent(unittest.TestCase):
         """Test calculate_external_trades when local price is lower than the retail price, but there is a need for
         importing of energy. This will lead to penalisation of someone, but shouldn't raise an error."""
         local_price = MIN_NORDPOOL_PRICE - 1.0
+        clearing_prices = {Resource.ELECTRICITY: local_price, Resource.HEATING: np.nan}
         trades_excl_external = [
             Trade(Action.BUY, Resource.ELECTRICITY, 100, local_price, "BuildingAgent", False, Market.LOCAL,
                   SOME_DATETIME)
         ]
         # Should log a line about external grid and market clearing price being different
-        external_trades = self.electricity_grid_agent.calculate_external_trades(trades_excl_external, local_price)
+        external_trades = self.electricity_grid_agent.calculate_external_trades(trades_excl_external, clearing_prices)
         self.assertEqual(1, len(external_trades))
 
     def test_calculate_trades_2(self):
         """Test basic functionality of GridAgent's calculate_external_trades method when there is a local surplus."""
         wholesale_price = 3.5087253896304977
+        clearing_prices = {Resource.ELECTRICITY: wholesale_price, Resource.HEATING: np.nan}
         period = SOME_DATETIME
         trades_excl_external = [
             Trade(Action.BUY, Resource.ELECTRICITY, 100, wholesale_price, "BuildingAgent", False, Market.LOCAL, period),
             Trade(Action.BUY, Resource.ELECTRICITY, 200, wholesale_price, "GSAgent", False, Market.LOCAL, period),
             Trade(Action.SELL, Resource.ELECTRICITY, 400, wholesale_price, "PvAgent", False, Market.LOCAL, period)
         ]
-        external_trades = self.electricity_grid_agent.calculate_external_trades(trades_excl_external, wholesale_price)
+        external_trades = self.electricity_grid_agent.calculate_external_trades(trades_excl_external, clearing_prices)
         self.assertEqual(1, len(external_trades))
         self.assertEqual(Action.BUY, external_trades[0].action)
         self.assertEqual(Resource.ELECTRICITY, external_trades[0].resource)
@@ -138,13 +143,14 @@ class TestGridAgent(unittest.TestCase):
     def test_calculate_trades_with_some_bids_with_other_resource(self):
         """When sent into an electricity grid agent, heating trades should be ignored."""
         retail_price = 3.938725389630498
+        clearing_prices = {Resource.ELECTRICITY: retail_price, Resource.HEATING: np.nan}
         trades_excl_external = [
             Trade(Action.BUY, Resource.ELECTRICITY, 100, retail_price, "BuildingAgent", False, Market.LOCAL,
                   SOME_DATETIME),
             Trade(Action.BUY, Resource.HEATING, 100, retail_price, "BuildingAgent", False, Market.LOCAL,
                   SOME_DATETIME)
         ]
-        external_trades = self.electricity_grid_agent.calculate_external_trades(trades_excl_external, retail_price)
+        external_trades = self.electricity_grid_agent.calculate_external_trades(trades_excl_external, clearing_prices)
         self.assertEqual(1, len(external_trades))
         self.assertEqual(Action.SELL, external_trades[0].action)
         self.assertEqual(Resource.ELECTRICITY, external_trades[0].resource)
@@ -158,7 +164,8 @@ class TestGridAgent(unittest.TestCase):
 class TestStorageAgent(unittest.TestCase):
     twin = StorageDigitalTwin(max_capacity_kwh=1000, max_charge_rate_fraction=0.1, max_discharge_rate_fraction=0.1,
                               discharging_efficiency=0.93)
-    battery_agent = tradingplatformpoc.agent.storage_agent.StorageAgent(data_store_entity, twin, 168, 20, 80)
+    battery_agent = tradingplatformpoc.agent.storage_agent.StorageAgent(data_store_entity, twin, Resource.ELECTRICITY,
+                                                                        168, 20, 80)
 
     def test_make_bids(self):
         """Test basic functionality of StorageAgent's make_bids method."""
@@ -206,8 +213,9 @@ class TestStorageAgent(unittest.TestCase):
             BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 100, 1, 'StorageAgent', False, True),
             BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 100, 1, 'StorageAgent', False, True)
         ]
+        clearing_prices = {Resource.ELECTRICITY: 1.0, Resource.HEATING: np.nan}
         with self.assertRaises(RuntimeError):
-            self.battery_agent.make_trade_given_clearing_price(SOME_DATETIME, 1.0, {}, accepted_bids_for_agent)
+            self.battery_agent.make_trades_given_clearing_price(SOME_DATETIME, clearing_prices, accepted_bids_for_agent)
 
 
 class TestBuildingAgent(TestCase):
@@ -220,6 +228,9 @@ class TestBuildingAgent(TestCase):
     building_digital_twin_prod = StaticDigitalTwin(electricity_usage=-pd.Series(elec_values, index=DATETIME_ARRAY),
                                                    heating_usage=-pd.Series(heat_values, index=DATETIME_ARRAY))
     building_agent_prod = agent.building_agent.BuildingAgent(data_store_entity, building_digital_twin_prod)
+    building_digital_twin_zeros = StaticDigitalTwin(electricity_usage=pd.Series(elec_values * 0, index=DATETIME_ARRAY),
+                                                    heating_usage=pd.Series(heat_values * 0, index=DATETIME_ARRAY))
+    building_agent_zeros = agent.building_agent.BuildingAgent(data_store_entity, building_digital_twin_zeros)
 
     def test_make_bids_consumer(self):
         """Test basic functionality of BuildingAgent's make_bids method."""
@@ -239,68 +250,95 @@ class TestBuildingAgent(TestCase):
 
     def test_make_prognosis(self):
         """Test basic functionality of BuildingAgent's make_prognosis method."""
-        prognosis_consumer = self.building_agent_cons.make_prognosis(SOME_DATETIME)
+        prognosis_consumer = self.building_agent_cons.make_prognosis(SOME_DATETIME, Resource.ELECTRICITY)
         self.assertFalse(np.isnan(prognosis_consumer))
         self.assertTrue(prognosis_consumer > 0)
-        prognosis_producer = self.building_agent_prod.make_prognosis(SOME_DATETIME)
+        prognosis_producer = self.building_agent_prod.make_prognosis(SOME_DATETIME, Resource.ELECTRICITY)
         self.assertFalse(np.isnan(prognosis_producer))
         self.assertTrue(prognosis_producer < 0)
 
     def test_make_prognosis_for_first_data_point(self):
         """BuildingAgent's make_prognosis method currently just looks up the previous actual value, so here we test
         what happens when we try to make a prognosis for the first value."""
-        prognosis_consumer = self.building_agent_cons.make_prognosis(DATETIME_ARRAY[0])
+        prognosis_consumer = self.building_agent_cons.make_prognosis(DATETIME_ARRAY[0], Resource.ELECTRICITY)
         self.assertFalse(np.isnan(prognosis_consumer))
         self.assertTrue(prognosis_consumer > 0)
-        prognosis_producer = self.building_agent_prod.make_prognosis(DATETIME_ARRAY[0])
+        prognosis_producer = self.building_agent_prod.make_prognosis(DATETIME_ARRAY[0], Resource.ELECTRICITY)
         self.assertFalse(np.isnan(prognosis_producer))
         self.assertTrue(prognosis_producer < 0)
 
     def test_get_actual_usage(self):
         """Test basic functionality of BuildingAgent's get_actual_usage method."""
-        usage_consumer = self.building_agent_cons.get_actual_usage(SOME_DATETIME)
+        usage_consumer = self.building_agent_cons.get_actual_usage(SOME_DATETIME, Resource.ELECTRICITY)
         self.assertFalse(np.isnan(usage_consumer))
         self.assertTrue(usage_consumer > 0)
-        usage_producer = self.building_agent_prod.get_actual_usage(SOME_DATETIME)
+        usage_producer = self.building_agent_prod.get_actual_usage(SOME_DATETIME, Resource.ELECTRICITY)
         self.assertFalse(np.isnan(usage_producer))
         self.assertTrue(usage_producer < 0)
 
-    def test_make_trade_given_clearing_price_consumer(self):
-        """Test basic functionality of BuildingAgent's make_trade_given_clearing_price method."""
-        trade = self.building_agent_cons.make_trade_given_clearing_price(SOME_DATETIME, 0.01, {}, [])
-        self.assertEqual(trade.resource, Resource.ELECTRICITY)
-        self.assertEqual(trade.action, Action.BUY)
-        self.assertTrue(trade.quantity > 0)
-        self.assertTrue(trade.price > 0)
-        self.assertEqual(trade.source, self.building_agent_cons.guid)
-        self.assertFalse(trade.by_external)
-        self.assertEqual(trade.market, Market.LOCAL)
-        self.assertEqual(trade.period, SOME_DATETIME)
+    def test_make_trades_given_clearing_price_consumer(self):
+        """Test basic functionality of BuildingAgent's make_trades_given_clearing_price method."""
+        clearing_prices = {Resource.ELECTRICITY: 0.01, Resource.HEATING: np.nan}
+        trades = self.building_agent_cons.make_trades_given_clearing_price(SOME_DATETIME, clearing_prices, [])
+        self.assertEqual(2, len(trades))
+        elec_trades = [x for x in trades if x.resource == Resource.ELECTRICITY]
+        heat_trades = [x for x in trades if x.resource == Resource.HEATING]
+        self.assertEqual(1, len(elec_trades))
+        self.assertEqual(1, len(heat_trades))
+        elec_trade = elec_trades[0]
+        self.assertEqual(elec_trade.resource, Resource.ELECTRICITY)
+        self.assertEqual(elec_trade.action, Action.BUY)
+        self.assertTrue(elec_trade.quantity > 0)
+        self.assertTrue(elec_trade.price > 0)
+        self.assertEqual(elec_trade.source, self.building_agent_cons.guid)
+        self.assertFalse(elec_trade.by_external)
+        self.assertEqual(elec_trade.market, Market.LOCAL)
+        self.assertEqual(elec_trade.period, SOME_DATETIME)
 
-    def test_make_trade_given_low_clearing_price_producer(self):
-        """Test basic functionality of BuildingAgent's make_trade_given_clearing_price method."""
-        trade = self.building_agent_prod.make_trade_given_clearing_price(SOME_DATETIME, 0.01, {}, [])
-        self.assertEqual(trade.resource, Resource.ELECTRICITY)
-        self.assertEqual(trade.action, Action.SELL)
-        self.assertTrue(trade.quantity > 0)
-        self.assertTrue(trade.price >= MIN_NORDPOOL_PRICE)
-        self.assertEqual(trade.source, self.building_agent_prod.guid)
-        self.assertFalse(trade.by_external)
-        self.assertEqual(trade.market, Market.EXTERNAL)  # Very low local price, so should sell to external
-        self.assertEqual(trade.period, SOME_DATETIME)
+    def test_make_trades_given_low_clearing_price_producer(self):
+        """Test basic functionality of BuildingAgent's make_trades_given_clearing_price method."""
+        clearing_prices = {Resource.ELECTRICITY: 0.01, Resource.HEATING: np.nan}
+        trades = self.building_agent_prod.make_trades_given_clearing_price(SOME_DATETIME, clearing_prices, [])
+        self.assertEqual(2, len(trades))
+        elec_trades = [x for x in trades if x.resource == Resource.ELECTRICITY]
+        heat_trades = [x for x in trades if x.resource == Resource.HEATING]
+        self.assertEqual(1, len(elec_trades))
+        self.assertEqual(1, len(heat_trades))
+        elec_trade = elec_trades[0]
+        self.assertEqual(elec_trade.resource, Resource.ELECTRICITY)
+        self.assertEqual(elec_trade.action, Action.SELL)
+        self.assertTrue(elec_trade.quantity > 0)
+        self.assertTrue(elec_trade.price >= MIN_NORDPOOL_PRICE)
+        self.assertEqual(elec_trade.source, self.building_agent_prod.guid)
+        self.assertFalse(elec_trade.by_external)
+        self.assertEqual(elec_trade.market, Market.EXTERNAL)  # Very low local price, so should sell to external
+        self.assertEqual(elec_trade.period, SOME_DATETIME)
 
-    def test_make_trade_given_high_clearing_price_producer(self):
-        """Test basic functionality of BuildingAgent's make_trade_given_clearing_price method."""
-        local_clearing_price = 100.0
-        trade = self.building_agent_prod.make_trade_given_clearing_price(SOME_DATETIME, local_clearing_price, {}, [])
-        self.assertEqual(trade.resource, Resource.ELECTRICITY)
-        self.assertEqual(trade.action, Action.SELL)
-        self.assertTrue(trade.quantity > 0)
-        self.assertAlmostEqual(trade.price, local_clearing_price)
-        self.assertEqual(trade.source, self.building_agent_prod.guid)
-        self.assertFalse(trade.by_external)
-        self.assertEqual(trade.market, Market.LOCAL)  # Very low local price, so should sell to external
-        self.assertEqual(trade.period, SOME_DATETIME)
+    def test_make_trades_given_high_clearing_price_producer(self):
+        """Test basic functionality of BuildingAgent's make_trades_given_clearing_price method."""
+        clearing_prices = {Resource.ELECTRICITY: 100.0, Resource.HEATING: np.nan}
+        trades = self.building_agent_prod.make_trades_given_clearing_price(SOME_DATETIME, clearing_prices, [])
+        self.assertEqual(2, len(trades))
+        elec_trades = [x for x in trades if x.resource == Resource.ELECTRICITY]
+        heat_trades = [x for x in trades if x.resource == Resource.HEATING]
+        self.assertEqual(1, len(elec_trades))
+        self.assertEqual(1, len(heat_trades))
+        elec_trade = elec_trades[0]
+        self.assertEqual(elec_trade.resource, Resource.ELECTRICITY)
+        self.assertEqual(elec_trade.action, Action.SELL)
+        self.assertTrue(elec_trade.quantity > 0)
+        self.assertAlmostEqual(elec_trade.price, clearing_prices[Resource.ELECTRICITY])
+        self.assertEqual(elec_trade.source, self.building_agent_prod.guid)
+        self.assertFalse(elec_trade.by_external)
+        self.assertEqual(elec_trade.market, Market.LOCAL)  # Very low local price, so should sell to external
+        self.assertEqual(elec_trade.period, SOME_DATETIME)
+
+    def test_make_trades_with_0(self):
+        """Test that when the net consumption is 0, BuildingAgent's make_trades_given_clearing_price method returns an
+        empty list."""
+        clearing_prices = {Resource.ELECTRICITY: 1.0, Resource.HEATING: np.nan}
+        trades = self.building_agent_zeros.make_trades_given_clearing_price(SOME_DATETIME, clearing_prices, [])
+        self.assertEqual(0, len(trades))
 
 
 class TestPVAgent(TestCase):

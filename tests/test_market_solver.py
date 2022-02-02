@@ -5,7 +5,8 @@ from unittest import TestCase
 import numpy as np
 
 from tradingplatformpoc.bid import Action, Bid, Resource
-from tradingplatformpoc.market_solver import resolve_bids
+from tradingplatformpoc.market_solver import no_bids_accepted, resolve_bids
+from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES
 
 SOME_DATETIME = datetime.datetime(2019, 1, 2)
 
@@ -19,8 +20,9 @@ class TestMarketSolver(TestCase):
         # Someone willing to sell 100 kWh at 1 SEK/kWh,
         # someone willing to buy 100 kWh at 1.5 SEK/kWh.
         # Clearing price should be 1 SEK/kWh
-        clearing_price, bids_with_acceptance_status = resolve_bids(SOME_DATETIME, bids)
-        self.assertEqual(1, clearing_price)
+        clearing_prices, bids_with_acceptance_status = resolve_bids(SOME_DATETIME, bids)
+        self.assertEqual(len(ALL_IMPLEMENTED_RESOURCES), len(clearing_prices))
+        self.assertEqual(1, clearing_prices[Resource.ELECTRICITY])
         for bid in bids_with_acceptance_status:
             self.assertIsNotNone(bid.was_accepted)
             self.assertTrue(bid.was_accepted)
@@ -32,8 +34,9 @@ class TestMarketSolver(TestCase):
         # Someone willing to sell 100 kWh at 1 SEK/kWh,
         # someone willing to buy 100 kWh at 0.5 SEK/kWh.
         # Clearing price should be 1 SEK/kWh
-        clearing_price, bids_with_acceptance_status = resolve_bids(SOME_DATETIME, bids)
-        self.assertEqual(1, clearing_price)
+        clearing_prices, bids_with_acceptance_status = resolve_bids(SOME_DATETIME, bids)
+        self.assertEqual(len(ALL_IMPLEMENTED_RESOURCES), len(clearing_prices))
+        self.assertEqual(1, clearing_prices[Resource.ELECTRICITY])
         for bid in bids_with_acceptance_status:
             self.assertIsNotNone(bid.was_accepted)
             if bid.source == 'Buyer1':
@@ -52,8 +55,9 @@ class TestMarketSolver(TestCase):
         # someone willing to sell 10000 kWh at 10 SEK/kWh,
         # someone willing to buy 300 kWh at Inf SEK/kWh.
         # Clearing price should be 10 SEK/kWh
-        clearing_price, bids_with_acceptance_status = resolve_bids(SOME_DATETIME, bids)
-        self.assertEqual(10, clearing_price)
+        clearing_prices, bids_with_acceptance_status = resolve_bids(SOME_DATETIME, bids)
+        self.assertEqual(len(ALL_IMPLEMENTED_RESOURCES), len(clearing_prices))
+        self.assertEqual(10, clearing_prices[Resource.ELECTRICITY])
         for bid in bids_with_acceptance_status:
             self.assertTrue(bid.was_accepted)
 
@@ -69,8 +73,9 @@ class TestMarketSolver(TestCase):
         # someone willing to sell 100 kWh at 1 SEK/kWh,
         # someone willing to buy 200 kWh at Inf SEK/kWh.
         # Clearing price should be 1 SEK/kWh
-        clearing_price, bids_with_acceptance_status = resolve_bids(SOME_DATETIME, bids)
-        self.assertEqual(1, clearing_price)
+        clearing_prices, bids_with_acceptance_status = resolve_bids(SOME_DATETIME, bids)
+        self.assertEqual(len(ALL_IMPLEMENTED_RESOURCES), len(clearing_prices))
+        self.assertEqual(1, clearing_prices[Resource.ELECTRICITY])
         for bid in bids_with_acceptance_status:
             self.assertIsNotNone(bid.was_accepted)
             if bid.source == 'Grid':
@@ -85,8 +90,9 @@ class TestMarketSolver(TestCase):
         """
         bids = [Bid(Action.SELL, Resource.ELECTRICITY, 100, 0.75, "Seller1", False),
                 Bid(Action.BUY, Resource.ELECTRICITY, 200, math.inf, "Buyer1", False)]
-        clearing_price, bids_with_acceptance_status = resolve_bids(SOME_DATETIME, bids)
-        self.assertTrue(np.isnan(clearing_price))
+        clearing_prices, bids_with_acceptance_status = resolve_bids(SOME_DATETIME, bids)
+        self.assertEqual(len(ALL_IMPLEMENTED_RESOURCES), len(clearing_prices))
+        self.assertTrue(np.isnan(clearing_prices[Resource.ELECTRICITY]))
         for bid in bids_with_acceptance_status:
             self.assertFalse(bid.was_accepted)
 
@@ -99,11 +105,50 @@ class TestMarketSolver(TestCase):
                 Bid(Action.SELL, Resource.ELECTRICITY, 10000, 0.89069, 'ElectricityGridAgent', True)]
         # Local surplus
         # Clearing price should be 0.46069 SEK/kWh
-        clearing_price, bids_with_acceptance_status = resolve_bids(SOME_DATETIME, bids)
-        self.assertEqual(0.46069, clearing_price)
+        clearing_prices, bids_with_acceptance_status = resolve_bids(SOME_DATETIME, bids)
+        self.assertEqual(len(ALL_IMPLEMENTED_RESOURCES), len(clearing_prices))
+        self.assertEqual(0.46069, clearing_prices[Resource.ELECTRICITY])
         for bid in bids_with_acceptance_status:
             self.assertIsNotNone(bid.was_accepted)
             if bid.source == 'ElectricityGridAgent':
                 self.assertFalse(bid.was_accepted)
             else:
                 self.assertTrue(bid.was_accepted)
+
+    def test_resolve_bids_with_only_sell_bid_for_heating(self):
+        """Test that if for a resource, there are only sell bids and no buy bids, the clearing price is nan. Also, it
+        shouldn't break anything for other resources."""
+        bids = [Bid(Action.BUY, Resource.ELECTRICITY, 200, math.inf, 'BuildingAgent', False),
+                Bid(Action.SELL, Resource.ELECTRICITY, 10000, 0.8, 'ElectricityGridAgent', True),
+                Bid(Action.SELL, Resource.HEATING, 10000, 2.0, 'HeatingGridAgent', True)]
+        # Local surplus
+        # Clearing price for electricity should be 0.8 SEK/kWh, for heating np.nan
+        clearing_prices, bids_with_acceptance_status = resolve_bids(SOME_DATETIME, bids)
+        self.assertEqual(len(ALL_IMPLEMENTED_RESOURCES), len(clearing_prices))
+        self.assertEqual(0.8, clearing_prices[Resource.ELECTRICITY])
+        self.assertTrue(np.isnan(clearing_prices[Resource.HEATING]))
+        for bid in bids_with_acceptance_status:
+            self.assertIsNotNone(bid.was_accepted)
+            if bid.source == 'HeatingGridAgent':
+                self.assertFalse(bid.was_accepted)
+            else:
+                self.assertTrue(bid.was_accepted)
+
+    def test_resolve_bids_with_two_resources(self):
+        """Test that clearing prices are calculated correctly for two resources."""
+        bids = [Bid(Action.BUY, Resource.ELECTRICITY, 200, math.inf, 'BuildingAgent', False),
+                Bid(Action.SELL, Resource.ELECTRICITY, 10000, 0.8, 'ElectricityGridAgent', True),
+                Bid(Action.BUY, Resource.HEATING, 400, math.inf, 'BuildingAgent', False),
+                Bid(Action.SELL, Resource.HEATING, 10000, 2.0, 'HeatingGridAgent', True)]
+        clearing_prices, bids_with_acceptance_status = resolve_bids(SOME_DATETIME, bids)
+        self.assertEqual(len(ALL_IMPLEMENTED_RESOURCES), len(clearing_prices))
+        self.assertEqual(0.8, clearing_prices[Resource.ELECTRICITY])
+        self.assertEqual(2, clearing_prices[Resource.HEATING])
+        for bid in bids_with_acceptance_status:
+            self.assertIsNotNone(bid.was_accepted)
+            self.assertTrue(bid.was_accepted)
+
+    def test_no_bids_accepted(self):
+        """Test that the no_bids_accepted method doesn't throw a fit when an empty list is passed in."""
+        with_acceptance_status = no_bids_accepted([])
+        self.assertEqual(0, len(with_acceptance_status))

@@ -1,6 +1,6 @@
 import datetime
 from abc import ABC, abstractmethod
-from typing import List, Union
+from typing import Dict, List, Union
 
 import numpy as np
 
@@ -17,27 +17,30 @@ class IAgent(ABC):
         self.data_store = data_store
 
     @abstractmethod
-    def make_bids(self, period: datetime.datetime, clearing_prices_dict: Union[dict, None]):
+    def make_bids(self, period: datetime.datetime, clearing_prices_historical: Union[Dict[datetime.datetime, Dict[
+            Resource, float]], None]):
         # Make a bid for produced or needed energy for next time step
         pass
 
     @abstractmethod
-    def make_prognosis(self, period: datetime.datetime):
-        # Make resource prognosis for the trading horizon
+    def make_prognosis(self, period: datetime.datetime, resource: Resource):
+        # Make resource prognosis for the trading horizon, and the specified resource
         pass
 
     @abstractmethod
-    def get_actual_usage(self, period: datetime.datetime):
-        # Return actual resource usage/supply for the trading horizon
+    def get_actual_usage(self, period: datetime.datetime, resource: Resource):
+        # Return actual usage/supply for the trading horizon, and the specified resource
         # If negative, it means the agent was a net-producer for the trading period
         pass
 
     @abstractmethod
-    def make_trade_given_clearing_price(self, period: datetime.datetime, clearing_price: float,
-                                        clearing_prices_dict: dict,
-                                        accepted_bids_for_agent: List[BidWithAcceptanceStatus]):
-        # Once market solver has decided a clearing price, it will send it to the agents with this method
-        # Should return a Trade
+    def make_trades_given_clearing_price(self, period: datetime.datetime, clearing_prices: Dict[Resource, float],
+                                         accepted_bids_for_agent: List[BidWithAcceptanceStatus]) -> List[Trade]:
+        """
+        Once market solver has decided a clearing price for each resource, it will send them to the agents with this
+        method.
+        @return: Some trades - but not more than 1 per resource
+        """
         pass
 
     def construct_bid(self, action: Action, resource: Resource, quantity: float, price: float) -> Bid:
@@ -47,8 +50,8 @@ class IAgent(ABC):
                         period: datetime.datetime) -> Trade:
         return Trade(action, resource, quantity, price, self.guid, False, market, period)
 
-    def get_external_grid_buy_price(self, period: datetime.datetime):
-        wholesale_price = self.data_store.get_wholesale_price(period, Resource.ELECTRICITY)
+    def get_external_grid_buy_price(self, period: datetime.datetime, resource: Resource):
+        wholesale_price = self.data_store.get_wholesale_price(period, resource)
 
         # Per https://doc.afdrift.se/pages/viewpage.action?pageId=17072325, Varberg Energi can pay an extra
         # remuneration on top of the Nordpool spot price. This can vary, "depending on for example membership".
