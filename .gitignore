@@ -24,8 +24,9 @@ coverage.xml
 *.cover
 .hypothesis/
 
-# Runtime log
+# Runtime logs
 trading-platform-poc.log
+generate-mock-data.log
 
 # Output CSV (quite big)
 clearing_prices.csv
