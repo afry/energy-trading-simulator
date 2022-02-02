@@ -348,6 +348,7 @@ def simulate_commercial_area_electricity(commercial_gross_floor_area_m2: float, 
                                          datetimes: pd.DatetimeIndex) -> pd.Series:
     """
     For more information, see https://doc.afdrift.se/display/RPJ/Commercial+areas
+    @return A pd.Series with hourly electricity consumption, in kWh.
     """
     factors = [get_commercial_electricity_consumption_hourly_factor(x) for x in datetimes.hour]
     np.random.seed(random_seed)
@@ -365,6 +366,7 @@ def simulate_commercial_area_heating(commercial_gross_floor_area_m2: float, rand
     For more information, see https://doc.afdrift.se/display/RPJ/Commercial+areas and
     https://doc.afdrift.se/display/RPJ/Coop+heating+energy+use+mock-up
     Heating = space heating + hot water
+    @return A pd.Series with hourly total heating load, in kWh.
     """
     space_heating = simulate_commercial_area_space_heating(commercial_gross_floor_area_m2, random_seed, input_df)
     hot_tap_water = simulate_commercial_area_hot_tap_water(commercial_gross_floor_area_m2, random_seed, input_df.index)
@@ -373,7 +375,10 @@ def simulate_commercial_area_heating(commercial_gross_floor_area_m2: float, rand
 
 def simulate_commercial_area_hot_tap_water(commercial_gross_floor_area_m2: float, random_seed: int,
                                            datetimes: pd.DatetimeIndex) -> pd.Series:
-    """Gets a factor based on the hour of day, multiplies it by a noise-factor, and scales it."""
+    """
+    Gets a factor based on the hour of day, multiplies it by a noise-factor, and scales it.
+    @return A pd.Series with hot tap water load for the area, scaled to KWH_SPACE_HEATING_PER_YEAR_M2_COMMERCIAL.
+    """
     time_factors = [get_commercial_heating_consumption_hourly_factor(x) for x in datetimes.hour]
     np.random.seed(random_seed)
     relative_errors = np.random.normal(0, COMMERCIAL_HOT_TAP_WATER_RELATIVE_ERROR_STD_DEV, len(time_factors))
@@ -389,6 +394,7 @@ def simulate_commercial_area_space_heating(commercial_gross_floor_area_m2: float
     """
     For more information, see https://doc.afdrift.se/display/RPJ/Commercial+areas and
     https://doc.afdrift.se/display/RPJ/Coop+heating+energy+use+mock-up
+    @return A pd.Series with space heating load for the area, scaled to KWH_SPACE_HEATING_PER_YEAR_M2_COMMERCIAL.
     """
     np.random.seed(random_seed)
     # Probability that there is 0 heating demand:
