@@ -88,19 +88,33 @@ def get_commercial_heating_consumption_hourly_factor(hour: int) -> float:
         return 0.5
 
 def get_school_heating_consumption_hourly_factor(timestamp: datetime.datetime) -> float:
-    """Assuming opening hours 9-20 except for weekends and breaks"""
+    """Assuming opening hours 8-17:00 except for weekends and breaks"""
     if timestamp.weekday() == 5 or timestamp.weekday() == 6: # Saturday or sunday
         return 0.5
     elif is_break(timestamp.date):
         return 0.5
-    elif not(9 <= timestamp.hour < 20):
+    elif not(8 <= timestamp.hour < 17):
         return 0.5
     else:
         return 1
 
+
 def is_break(timestamp: datetime.datetime):
+    current_year = timestamp.year
+
     # Define breaks, return true if timestamp falls on break, false if not
     # Summer break 15/6 - 15/8
+    summer_start = datetime.date(current_year, 6, 1)
+    summer_length = datetime.timedelta(days=60)
+
     # Fall break 1/11 - 7/11
+    fall_start = datetime.date(current_year, 11, 1)
+    fall_length = datetime.timedelta(days=7)
+
     # Christmas break 22/12 - 2/1
+    christmas_start = datetime.date(current_year, 12, 22)
+    christmas_length = datetime.timedelta(days=14)
+
     # Sportlov 15/2 - 21/2
+    spring_start = datetime.date(current_year, 2, 1)
+    spring_length = datetime.timedelta(days=7)
