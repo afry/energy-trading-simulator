@@ -122,7 +122,7 @@ class TestMarketSolver(TestCase):
                 Bid(Action.SELL, Resource.ELECTRICITY, 10000, 0.8, 'ElectricityGridAgent', True),
                 Bid(Action.SELL, Resource.HEATING, 10000, 2.0, 'HeatingGridAgent', True)]
         # Local surplus
-        # Clearing price for electricity should be 0.46069 SEK/kWh
+        # Clearing price for electricity should be 0.8 SEK/kWh, for heating np.nan
         clearing_prices, bids_with_acceptance_status = resolve_bids(SOME_DATETIME, bids)
         self.assertEqual(len(ALL_IMPLEMENTED_RESOURCES), len(clearing_prices))
         self.assertEqual(0.8, clearing_prices[Resource.ELECTRICITY])
