@@ -183,7 +183,8 @@ class TestStorageAgent(unittest.TestCase):
         non_empty_twin = StorageDigitalTwin(max_capacity_kwh=1000, max_charge_rate_fraction=0.1,
                                             max_discharge_rate_fraction=0.1, discharging_efficiency=0.93,
                                             start_capacity_kwh=500)
-        ba = tradingplatformpoc.agent.storage_agent.StorageAgent(data_store_entity, non_empty_twin, 168, 20, 80)
+        ba = tradingplatformpoc.agent.storage_agent.StorageAgent(data_store_entity, non_empty_twin,
+                                                                 Resource.ELECTRICITY, 168, 20, 80)
         bids = ba.make_bids(SOME_DATETIME, {})
         self.assertEqual(2, len(bids))
 
@@ -192,7 +193,8 @@ class TestStorageAgent(unittest.TestCase):
         full_twin = StorageDigitalTwin(max_capacity_kwh=1000, max_charge_rate_fraction=0.1,
                                        max_discharge_rate_fraction=0.1, discharging_efficiency=0.93,
                                        start_capacity_kwh=1000)
-        ba = tradingplatformpoc.agent.storage_agent.StorageAgent(data_store_entity, full_twin, 168, 20, 80)
+        ba = tradingplatformpoc.agent.storage_agent.StorageAgent(data_store_entity, full_twin,
+                                                                 Resource.ELECTRICITY, 168, 20, 80)
         bids = ba.make_bids(SOME_DATETIME, {})
         self.assertEqual(1, len(bids))
         self.assertEqual(Action.SELL, bids[0].action)
