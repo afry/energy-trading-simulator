@@ -44,18 +44,21 @@ def get_effect_fee(monthly_peak_day_avg_consumption_kw: float):
 
 
 trades = pd.read_csv("../trades.csv", index_col=0)
-external_heating_sells = trades.loc[(trades.action == Action.SELL.name) &
-                                    (trades.resource == Resource.HEATING.name) &
-                                    trades.by_external].copy()
-external_heating_sells.index = pd.to_datetime(external_heating_sells.index)
-external_heating_sells['month'] = external_heating_sells.index.month
-external_heating_sells['day_of_month'] = external_heating_sells.index.day
+# all_heating_use = trades.loc[(trades.action == Action.SELL.name) &
+#                              (trades.resource == Resource.HEATING.name) &
+#                              trades.by_external].copy()
+all_heating_use = trades.loc[(trades.action == Action.BUY.name) &
+                             (trades.resource == Resource.HEATING.name) &
+                             (trades.agent == 'ResidentialBuildingAgentBC1')].copy()
+all_heating_use.index = pd.to_datetime(all_heating_use.index)
+all_heating_use['month'] = all_heating_use.index.month
+all_heating_use['day_of_month'] = all_heating_use.index.day
 
-jan_feb_avg_consumption_kw = external_heating_sells.loc[external_heating_sells.month <= 2].quantity.mean()
+jan_feb_avg_consumption_kw = all_heating_use.loc[all_heating_use.month <= 2].quantity.mean()
 print('Average heating need for the microgrid in January-February was {:.4f} kW'.format(jan_feb_avg_consumption_kw))
 
-monthly_sums = external_heating_sells.groupby('month')['quantity'].sum()
-daily_sums = external_heating_sells.groupby(['month', 'day_of_month'], as_index=False)['quantity'].sum()
+monthly_sums = all_heating_use.groupby('month')['quantity'].sum()
+daily_sums = all_heating_use.groupby(['month', 'day_of_month'], as_index=False)['quantity'].sum()
 max_daily_demand_by_month = daily_sums.groupby('month')['quantity'].max()  # Unit kWh
 max_daily_avg_demand_by_month = max_daily_demand_by_month / 24  # Unit is now kW
 
@@ -69,3 +72,4 @@ for month in np.arange(1, 13):
     price_per_kwh_for_month = cost_for_month / consumption_this_month
 
     print('For month {} the maximum daily average consumption was {:.4f} kW'.format(month, max_daily_avg_demand_kw))
+    # print(max_daily_avg_demand_kw)
