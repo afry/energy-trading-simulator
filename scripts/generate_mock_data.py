@@ -3,6 +3,7 @@ import math
 import time
 from typing import Tuple
 
+import datetime
 import numpy as np
 import pandas as pd
 import json
@@ -135,6 +136,7 @@ def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd:
     fraction_residential = 1.0 - fraction_commercial
     commercial_gross_floor_area = agent['GrossFloorArea'] * fraction_commercial
     residential_gross_floor_area = agent['GrossFloorArea'] * fraction_residential
+    school_gross_floor_area_m2 = agent['GrossFloorArea'] * fraction_school
 
     commercial_electricity_cons = simulate_commercial_area_electricity(commercial_gross_floor_area,
                                                                        seed_commercial_electricity, df_inputs.index)
@@ -422,6 +424,101 @@ def simulate_commercial_area_space_heating(commercial_gross_floor_area_m2: float
                                              commercial_gross_floor_area_m2, KWH_SPACE_HEATING_PER_YEAR_M2_COMMERCIAL)
 
     return scaled_series
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SCHOOL_GROSS_FLOOR_AREA_M2 = 0
+SCHOOL_HOT_TAP_WATER_RELATIVE_ERROR_STD_DEV = 0
+KWH_HOT_TAP_WATER_PER_YEAR_M2_SCHOOL = 0
+KWH_SPACE_HEATING_PER_YEAR_M2_SCHOOL = 0
+
+add function: get_school_heating_consumption_hourly_factor
+
+def simulate_school_area_total_heating(school_gross_floor_area_m2: float, random_seed: int,
+                                           input_df: pd.DataFrame) -> pd.Series:
+    """
+    This function follows the recipe outlined in the corresponding function for commerical buildings.
+    Total energy demand ("load function") = space heating + hot water
+    @return A pd.Series with hourly total heating load, in kWh.
+    """
+    space_heating = simulate_school_area_space_heating(school_gross_floor_area_m2, random_seed, input_df)
+    hot_tap_water = simulate_school_area_hot_tap_water(school_gross_floor_area_m2, random_seed, input_df.index)
+    return space_heating + hot_tap_water
+
+
+def simulate_school_area_hot_tap_water(school_gross_floor_area_m2: float, random_seed: int,
+                                           datetimes: pd.DatetimeIndex) -> pd.Series:
+    """
+    Gets a factor based on the hour of day, multiplies it by a noise-factor, and scales it.
+    @return A pd.Series with hot tap water load for the area, scaled to KWH_SPACE_HEATING_PER_YEAR_M2_COMMERCIAL.
+    """
+    time_factors = [get_school_heating_consumption_hourly_factor(x) for x in datetimes.hour]
+    np.random.seed(random_seed)
+    relative_errors = np.random.normal(0, SCHOOL_HOT_TAP_WATER_RELATIVE_ERROR_STD_DEV, len(time_factors))
+    unscaled_values = time_factors * (1 + relative_errors)
+    unscaled_series = pd.Series(unscaled_values, index=datetimes)
+    scaled_series = scale_energy_consumption(unscaled_series, school_gross_floor_area_m2,
+                                             KWH_HOT_TAP_WATER_PER_YEAR_M2_SCHOOL)
+    return scaled_series
+
+
+def simulate_school_area_space_heating(school_gross_floor_area_m2: float, random_seed: int,
+                                           input_df: pd.DataFrame) -> pd.Series:
+    """
+    For more information, see https://doc.afdrift.se/display/RPJ/Commercial+areas and
+    https://doc.afdrift.se/display/RPJ/Coop+heating+energy+use+mock-up
+    @return A pd.Series with space heating load for the area, scaled to KWH_SPACE_HEATING_PER_YEAR_M2_COMMERCIAL.
+    """
+    np.random.seed(random_seed)
+    # Assumption: commersial and school "heating models" are equivalent: probability depends on temperature in same way
+    # TODO: refactor commersial and school into a common heating model if assumption is valid!
+
+    # Probability that there is 0 heating demand:
+    predicted_prob_of_0 = input_df['temperature'].\
+        apply(lambda x: commercial_heating_model.probability_of_0_space_heating(x))
+    # Simulate whether there is 0 heating demand:
+    has_heat_demand = np.random.binomial(n=1, p=1 - predicted_prob_of_0)  # 1 if heat demand > 0
+
+    # Now, if heat demand non-zero, how much is it?
+    pred_given_non_0 = input_df['temperature'].\
+        apply(lambda x: commercial_heating_model.space_heating_given_more_than_0(x))
+    # Simulate
+    heat_given_non_0 = np.maximum(0, np.random.normal(loc=pred_given_non_0, scale=commercial_heating_model.LM_STD_DEV))
+
+    # Combine the above
+    sim_energy_unscaled = np.where(has_heat_demand == 0, 0, heat_given_non_0)
+
+    # Adjust for opening times
+    datetimes = input_df.index
+    time_factors = [get_school_heating_consumption_hourly_factor(x) for x in datetimes.hour]
+    sim_energy_unscaled = sim_energy_unscaled * time_factors
+
+    # Scale
+    scaled_series = scale_energy_consumption(pd.Series(sim_energy_unscaled, index=datetimes),
+                                             school_gross_floor_area_m2, KWH_SPACE_HEATING_PER_YEAR_M2_SCHOOL)
+
+    return scaled_series
+
+
+
+
+
+
+
+
 
 
 def simulate_residential_total_heating(df_inputs: pd.DataFrame, gross_floor_area_m2: float, random_seed: int) -> \
