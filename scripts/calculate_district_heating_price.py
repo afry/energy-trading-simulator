@@ -40,7 +40,7 @@ def get_effect_fee(monthly_peak_day_avg_consumption_kw: float):
     @param monthly_peak_day_avg_consumption_kw Calculated by taking the day during the month which has the highest
         heating energy use, and taking the average hourly heating use that day.
     """
-    return 0.74 * monthly_peak_day_avg_consumption_kw
+    return 74 * monthly_peak_day_avg_consumption_kw
 
 
 trades = pd.read_csv("../trades.csv", index_col=0)
