@@ -8,10 +8,10 @@ import pandas as pd
 from pkg_resources import resource_filename
 
 from tradingplatformpoc.bid import Resource
+from tradingplatformpoc.district_heating_calculations import estimate_district_heating_price
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, minus_n_hours
 
-PLACEHOLDER_HEATING_WHOLESALE_PRICE = 0.005
-PLACEHOLDER_HEATING_RETAIL_PRICE = 0.01
+HEATING_WHOLESALE_PRICE_FRACTION = 0.5  # External grid buys heating at 50% of the price they buy for - quite arbitrary
 
 ELECTRICITY_WHOLESALE_PRICE_OFFSET = 0.05
 ELECTRICITY_RETAIL_PRICE_OFFSET = 0.48
@@ -53,8 +53,8 @@ class DataStore:
             # Per https://doc.afdrift.se/pages/viewpage.action?pageId=17072325
             return self.get_nordpool_price_for_period(period) + ELECTRICITY_RETAIL_PRICE_OFFSET
         else:
-            # TODO: Price for heating (RES-163)
-            return PLACEHOLDER_HEATING_RETAIL_PRICE
+            # Per https://doc.afdrift.se/display/RPJ/District+heating+Varberg%3A+Pricing
+            return estimate_district_heating_price(period)
 
     def get_wholesale_price(self, period: datetime.datetime, resource: Resource):
         """Returns the price at which the external grid operator is willing to buy energy, in SEK/kWh"""
@@ -62,8 +62,7 @@ class DataStore:
             # Per https://doc.afdrift.se/pages/viewpage.action?pageId=17072325
             return self.get_nordpool_price_for_period(period) + ELECTRICITY_WHOLESALE_PRICE_OFFSET
         else:
-            # TODO: Price for heating (RES-163)
-            return PLACEHOLDER_HEATING_WHOLESALE_PRICE
+            return estimate_district_heating_price(period) * HEATING_WHOLESALE_PRICE_FRACTION
 
     def get_nordpool_data_datetimes(self):
         return self.nordpool_data.index.tolist()
