@@ -21,7 +21,6 @@ from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
 from tradingplatformpoc.mock_data_generation_functions import get_all_residential_building_agents, get_elec_cons_key, \
     get_heat_cons_key, get_pv_prod_key
-from tradingplatformpoc.trade import get_pv_prod_key
 from tradingplatformpoc.trade import Trade
 from tradingplatformpoc.trading_platform_utils import flatten_collection, get_intersection
 
