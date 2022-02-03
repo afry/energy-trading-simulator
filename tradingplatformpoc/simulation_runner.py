@@ -19,9 +19,9 @@ from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
 from tradingplatformpoc.mock_data_generation_functions import get_all_residential_building_agents, get_elec_cons_key, \
-    get_pv_prod_key
+    get_heat_cons_key, get_pv_prod_key
 from tradingplatformpoc.trade import write_rows
-from tradingplatformpoc.trading_platform_utils import get_intersection
+from tradingplatformpoc.trading_platform_utils import flatten_collection, get_intersection
 
 logger = logging.getLogger(__name__)
 
@@ -52,36 +52,31 @@ def run_trading_simulations(mock_datas_pickle_path: str):
     extra_costs_file = open('./extra_costs.csv', 'w')
     extra_costs_file.write('period,agent,cost\n')
     # Output lists
-    clearing_prices_dict: Dict[datetime.datetime, float] = {}
+    clearing_prices_historical: Dict[datetime.datetime, Dict[Resource, float]] = {}
     all_trades_list = []
     all_bids_list = []
     all_extra_costs_dict = {}
 
     # Register all agents
     # Keep a list of all agents to iterate over later
-    agents: List[IAgent]
-    try:
-        agents, grid_agent = initialize_agents(data_store_entity, config_data, buildings_mock_data,
-                                               energy_data_csv_path, school_data_csv_path)
-    except RuntimeError as e:
-        clearing_prices_file.write(str(e.args))
-        exit(1)
+    agents, grid_agents = initialize_agents(data_store_entity, config_data, buildings_mock_data,
+                                            energy_data_csv_path, school_data_csv_path)
 
     # Main loop
     trading_periods = get_intersection(buildings_mock_data.index.tolist(),
                                        data_store_entity.get_nordpool_data_datetimes())
     for period in trading_periods:
         # Get all bids
-        bids = [agent.make_bids(period, clearing_prices_dict) for agent in agents]
+        bids = [agent.make_bids(period, clearing_prices_historical) for agent in agents]
 
         # Flatten bids list
-        bids_flat: List[Bid] = [bid for sublist in bids for bid in sublist]
+        bids_flat: List[Bid] = flatten_collection(bids)
 
         # Resolve bids
-        clearing_price, bids_with_acceptance_status = market_solver.resolve_bids(period, bids_flat)
-        clearing_prices_dict[period] = clearing_price
+        clearing_prices, bids_with_acceptance_status = market_solver.resolve_bids(period, bids_flat)
+        clearing_prices_historical[period] = clearing_prices
 
-        clearing_prices_file.write('{},{}\n'.format(period, clearing_price))
+        clearing_prices_file.write('{},{}\n'.format(period, clearing_prices))
         all_bids_list.extend(bids_with_acceptance_status)
 
         # Send clearing price back to agents, allow them to "make trades", i.e. decide if they want to buy/sell
@@ -92,19 +87,20 @@ def run_trading_simulations(mock_datas_pickle_path: str):
         for agent in agents:
             accepted_bids_for_agent = [bid for bid in bids_with_acceptance_status
                                        if bid.source == agent.guid and bid.was_accepted]
-            trades_excl_external.append(
-                agent.make_trade_given_clearing_price(period, clearing_price, clearing_prices_dict,
-                                                      accepted_bids_for_agent))
+            trades_excl_external.extend(
+                agent.make_trades_given_clearing_price(period, clearing_prices, accepted_bids_for_agent))
 
         trades_excl_external = [i for i in trades_excl_external if i]  # filter out None
-        external_trades = grid_agent.calculate_external_trades(trades_excl_external, clearing_price)
+        external_trades = flatten_collection([ga.calculate_external_trades(trades_excl_external, clearing_prices)
+                                              for ga in grid_agents])
         all_trades_for_period = trades_excl_external + external_trades
         trades_csv_file.write(write_rows(all_trades_for_period))
         all_trades_list.extend(all_trades_for_period)
 
-        wholesale_price = data_store_entity.get_wholesale_price(period, Resource.ELECTRICITY)
+        wholesale_price_elec = data_store_entity.get_wholesale_price(period, Resource.ELECTRICITY)
+        wholesale_price_heat = data_store_entity.get_wholesale_price(period, Resource.HEATING)
         extra_costs = balance_manager.calculate_costs(bids_with_acceptance_status, all_trades_for_period,
-                                                      clearing_price, wholesale_price)
+                                                      clearing_prices, wholesale_price_elec, wholesale_price_heat)
         extra_costs_file.write(write_extra_costs_rows(period, extra_costs))
         all_extra_costs_dict[period] = extra_costs
 
@@ -115,7 +111,7 @@ def run_trading_simulations(mock_datas_pickle_path: str):
 
     results_calculator.print_basic_results(agents, all_trades_list, all_extra_costs_dict, data_store_entity)
 
-    return clearing_prices_dict, all_trades_list, all_extra_costs_dict
+    return clearing_prices_historical, all_trades_list, all_extra_costs_dict
 
 
 def get_generated_mock_data(config_data: dict, mock_datas_pickle_path: str):
@@ -143,6 +139,7 @@ def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings
     # Register all agents
     # Keep a list of all agents to iterate over later
     agents: List[IAgent] = []
+    grid_agents: List[GridAgent] = []
 
     # Read energy CSV file
     tornet_household_elec_cons, coop_elec_cons, tornet_heat_cons, coop_heat_cons = \
@@ -154,10 +151,12 @@ def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings
         agent_type = agent["Type"]
         agent_name = agent['Name']
         if agent_type == "ResidentialBuildingAgent":
-            household_elec_cons_series = buildings_mock_data[get_elec_cons_key(agent_name)]
+            elec_cons_series = buildings_mock_data[get_elec_cons_key(agent_name)]
+            heat_cons_series = buildings_mock_data[get_heat_cons_key(agent_name)]
             pv_prod_series = buildings_mock_data[get_pv_prod_key(agent_name)]
-            building_digital_twin = StaticDigitalTwin(electricity_usage=household_elec_cons_series,
-                                                      electricity_production=pv_prod_series)
+            building_digital_twin = StaticDigitalTwin(electricity_usage=elec_cons_series,
+                                                      electricity_production=pv_prod_series,
+                                                      heating_usage=heat_cons_series)
             agents.append(BuildingAgent(data_store_entity, building_digital_twin, guid=agent_name))
         elif agent_type == "StorageAgent":
             storage_digital_twin = StorageDigitalTwin(max_capacity_kwh=agent["Capacity"],
@@ -165,6 +164,7 @@ def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings
                                                       max_discharge_rate_fraction=agent["ChargeRate"],
                                                       discharging_efficiency=agent["RoundTripEfficiency"])
             agents.append(StorageAgent(data_store_entity, storage_digital_twin,
+                                       resource=Resource[agent["Resource"]],
                                        n_hours_to_look_back=agent["NHoursBack"],
                                        buy_price_percentile=agent["BuyPricePercentile"],
                                        sell_price_percentile=agent["SellPricePercentile"],
@@ -185,15 +185,13 @@ def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings
             grid_agent = GridAgent(data_store_entity, Resource[agent["Resource"]],
                                    max_transfer_per_hour=agent["TransferRate"], guid=agent_name)
             agents.append(grid_agent)
-
-    # TODO: As of right now, grid agents are treated as configurable, but the code is hard coded with the assumption
-    #  that they'll always exist. Should probably be refactored
+            grid_agents.append(grid_agent)
 
     # Verify that we have a Grid Agent
     if not any(isinstance(agent, GridAgent) for agent in agents):
         raise RuntimeError("No grid agent initialized")
 
-    return agents, grid_agent
+    return agents, grid_agents
 
 
 def write_extra_costs_rows(period: datetime.datetime, extra_costs: dict):

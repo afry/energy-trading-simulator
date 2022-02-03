@@ -4,6 +4,7 @@ from pkg_resources import resource_filename
 
 from tradingplatformpoc import simulation_runner
 from tradingplatformpoc.bid import Action
+from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES
 
 
 class Test(TestCase):
@@ -22,9 +23,11 @@ class Test(TestCase):
         for period in clearing_prices.keys():
             trades_for_period = [x for x in all_trades if x.period == period]
             extra_costs_for_period = all_extra_costs[period]
-            elec_bought_kwh = sum([x.quantity for x in trades_for_period if x.action == Action.BUY])
-            elec_sold_kwh = sum([x.quantity for x in trades_for_period if x.action == Action.SELL])
-            self.assertAlmostEqual(elec_bought_kwh, elec_sold_kwh, places=7)
+            for resource in ALL_IMPLEMENTED_RESOURCES:
+                trades_for_period_and_resource = [x for x in trades_for_period if x.resource == resource]
+                energy_bought_kwh = sum([x.quantity for x in trades_for_period_and_resource if x.action == Action.BUY])
+                energy_sold_kwh = sum([x.quantity for x in trades_for_period_and_resource if x.action == Action.SELL])
+                self.assertAlmostEqual(energy_bought_kwh, energy_sold_kwh, places=7)
 
             total_cost = 0  # Should sum to 0 at the end of this loop
             agents_who_traded_or_were_penalized = set([x.source for x in trades_for_period] +

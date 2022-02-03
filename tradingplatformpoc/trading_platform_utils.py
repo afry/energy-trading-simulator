@@ -1,6 +1,12 @@
 from datetime import datetime, timedelta
+from typing import Any, Collection, Dict, List
 
 import pandas as pd
+
+from tradingplatformpoc.bid import Resource
+
+
+ALL_IMPLEMENTED_RESOURCES = [Resource.ELECTRICITY, Resource.HEATING]
 
 
 def minus_n_hours(t1: datetime, n_hours: int):
@@ -42,3 +48,22 @@ def calculate_solar_prod(irradiation_data: pd.Series, pv_sqm: float, pv_efficien
         The solar energy production in kWh
     """
     return irradiation_data * pv_sqm * pv_efficiency / 1000
+
+
+def add_numeric_dicts(dict1: Dict[Any, float], dict2: Dict[Any, float]) -> Dict[Any, float]:
+    """
+    Add values for keys that exist in both, keep all keys.
+    This could have been done smoothly with collections.Counter, but that doesn't include keys for which the value is 0,
+    which we want.
+    """
+    combined_dict = dict1.copy()
+    for k, v in dict2.items():
+        if k in combined_dict:
+            combined_dict[k] = combined_dict[k] + v
+        else:
+            combined_dict[k] = v
+    return combined_dict
+
+
+def flatten_collection(collection_of_lists: Collection[Collection[Any]]) -> List[Any]:
+    return [bid for sublist in collection_of_lists for bid in sublist]
