@@ -64,6 +64,24 @@ def get_all_residential_building_agents(config_data: dict):
     return residential_building_agents, total_gross_floor_area
 
 
+def get_all_school_building_agents(config_data: dict):
+    """
+    Gets all school agents specified in config_data, and also returns the total gross floor area, summed
+    over all school building agents.
+    @param config_data: A dictionary
+    @return: school_agents: Set of dictionaries, total_gross_floor_area: a float
+    """
+    total_gross_floor_area = 0
+    school_agents = set()
+    for agent in config_data["Agents"]:
+        agent_type = agent["Type"]
+        if agent_type == "SchoolBuildingAgent":
+            key = frozenset(agent.items())
+            school_agents.add(key)
+            total_gross_floor_area = total_gross_floor_area + agent['GrossFloorArea']
+    return school_agents, total_gross_floor_area
+
+
 def get_elec_cons_key(agent_name: str):
     return agent_name + '_elec_cons'
 
@@ -87,16 +105,16 @@ def get_commercial_heating_consumption_hourly_factor(hour: int) -> float:
     else:
         return 0.5
 
+
 def get_school_heating_consumption_hourly_factor(timestamp: datetime.datetime) -> float:
     """Assuming opening hours 8-17:00 except for weekends and breaks"""
     if timestamp.weekday() == 5 or timestamp.weekday() == 6: # Saturday or sunday
         return 0.5
-    elif is_break(timestamp.date):
+    if is_break(timestamp.date):
         return 0.5
-    elif not(8 <= timestamp.hour < 17):
+    if not(8 <= timestamp.hour < 17):
         return 0.5
-    else:
-        return 1
+    return 1
 
 
 def is_break(timestamp: datetime.datetime):
@@ -107,14 +125,31 @@ def is_break(timestamp: datetime.datetime):
     summer_start = datetime.date(current_year, 6, 1)
     summer_length = datetime.timedelta(days=60)
 
+    if summer_start <= timestamp <= summer_start + summer_length:
+        return True
+
     # Fall break 1/11 - 7/11
     fall_start = datetime.date(current_year, 11, 1)
     fall_length = datetime.timedelta(days=7)
+    if fall_start <= timestamp <= fall_start + fall_length:
+        return True
 
     # Christmas break 22/12 - 2/1
     christmas_start = datetime.date(current_year, 12, 22)
     christmas_length = datetime.timedelta(days=14)
+    if christmas_start <= timestamp <= christmas_start + christmas_length:
+        return True
 
     # Sportlov 15/2 - 21/2
     spring_start = datetime.date(current_year, 2, 1)
     spring_length = datetime.timedelta(days=7)
+    if spring_start <= timestamp <= spring_start + spring_length:
+        return True
+
+    # Easter 07/04 - 14/04
+    easter_start = datetime.date(current_year, 4, 7)
+    easter_length = datetime.timedelta(days=7)
+    if easter_start <= timestamp <= easter_start + easter_length:
+        return True
+
+    return False

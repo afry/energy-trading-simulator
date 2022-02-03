@@ -150,7 +150,7 @@ def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings
     for agent in config_data["Agents"]:
         agent_type = agent["Type"]
         agent_name = agent['Name']
-        if agent_type == "ResidentialBuildingAgent":
+        if agent_type == "BuildingAgent":
             elec_cons_series = buildings_mock_data[get_elec_cons_key(agent_name)]
             heat_cons_series = buildings_mock_data[get_heat_cons_key(agent_name)]
             pv_prod_series = buildings_mock_data[get_pv_prod_key(agent_name)]

@@ -17,7 +17,9 @@ from tradingplatformpoc import commercial_heating_model
 from tradingplatformpoc.mock_data_generation_functions import get_all_residential_building_agents, \
     get_commercial_electricity_consumption_hourly_factor, \
     get_elec_cons_key, get_heat_cons_key, get_pv_prod_key, load_existing_data_sets, \
-    get_commercial_heating_consumption_hourly_factor, get_school_heating_consumption_hourly_factor
+    get_commercial_heating_consumption_hourly_factor, get_school_heating_consumption_hourly_factor, \
+    get_all_school_building_agents
+
 
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod
 
@@ -48,6 +50,14 @@ COMMERCIAL_HEATING_SEED_OFFSET = 10000000
 KWH_SPACE_HEATING_PER_YEAR_M2_COMMERCIAL = 32
 KWH_HOT_TAP_WATER_PER_YEAR_M2_COMMERCIAL = 3.5
 COMMERCIAL_HOT_TAP_WATER_RELATIVE_ERROR_STD_DEV = 0.2
+# Constants for school
+SCHOOL_HOT_TAP_WATER_RELATIVE_ERROR_STD_DEV = 0.2  # TODO: verify these factors and their origin
+KWH_HOT_TAP_WATER_PER_YEAR_M2_SCHOOL = 7
+KWH_SPACE_HEATING_PER_YEAR_M2_SCHOOL = 25
+
+
+
+
 
 """
 This script generates the following, for ResidentialBuildingAgents:
@@ -84,9 +94,13 @@ def main():
     with open(resource_filename(DATA_PATH, CONFIG_FILE), "r") as json_file:
         config_data = json.load(json_file)
 
-    residential_building_agents, total_gross_floor_area = get_all_residential_building_agents(config_data)
+    residential_building_agents, total_gross_floor_area_residential = get_all_residential_building_agents(config_data)
+    school_building_agents, total_gross_floor_area_school = get_all_school_building_agents(config_data)
+
     # Need to freeze, else can't use it as key in dict
     residential_building_agents_frozen_set = frozenset(residential_building_agents)
+    school_building_agents_frozen_set = frozenset(school_building_agents)
+
     if residential_building_agents_frozen_set in all_data_sets:
         logger.info('Already had mock data for the configuration described in %s, exiting generate_mock_data' %
                     CONFIG_FILE)
@@ -149,6 +163,7 @@ def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd:
     household_electricity_cons = simulate_household_electricity_aggregated(
         df_inputs, model, residential_gross_floor_area, seed_residential_electricity)
 
+    # TODO: verify whether naming convention "per_buildings" is correct or should be "per_subarea" or other?
     output_per_building[get_elec_cons_key(agent['Name'])] = household_electricity_cons + commercial_electricity_cons
     output_per_building[get_heat_cons_key(agent['Name'])] = residential_heating_cons + commercial_heating_cons
 
@@ -426,26 +441,6 @@ def simulate_commercial_area_space_heating(commercial_gross_floor_area_m2: float
     return scaled_series
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-SCHOOL_GROSS_FLOOR_AREA_M2 = 0
-SCHOOL_HOT_TAP_WATER_RELATIVE_ERROR_STD_DEV = 0
-KWH_HOT_TAP_WATER_PER_YEAR_M2_SCHOOL = 0
-KWH_SPACE_HEATING_PER_YEAR_M2_SCHOOL = 0
-
-
 def simulate_school_area_total_heating(school_gross_floor_area_m2: float, random_seed: int,
                                            input_df: pd.DataFrame) -> pd.Series:
     """
@@ -464,7 +459,7 @@ def simulate_school_area_hot_tap_water(school_gross_floor_area_m2: float, random
     Gets a factor based on the hour of day, multiplies it by a noise-factor, and scales it.
     @return A pd.Series with hot tap water load for the area, scaled to KWH_SPACE_HEATING_PER_YEAR_M2_COMMERCIAL.
     """
-    time_factors = [get_school_heating_consumption_hourly_factor(x) for x in datetimes.hour]
+    time_factors = [get_school_heating_consumption_hourly_factor(x) for x in datetimes]
     np.random.seed(random_seed)
     relative_errors = np.random.normal(0, SCHOOL_HOT_TAP_WATER_RELATIVE_ERROR_STD_DEV, len(time_factors))
     unscaled_values = time_factors * (1 + relative_errors)
@@ -502,7 +497,7 @@ def simulate_school_area_space_heating(school_gross_floor_area_m2: float, random
 
     # Adjust for opening times
     datetimes = input_df.index
-    time_factors = [get_school_heating_consumption_hourly_factor(x) for x in datetimes.hour]
+    time_factors = [get_school_heating_consumption_hourly_factor(x) for x in datetimes]
     sim_energy_unscaled = sim_energy_unscaled * time_factors
 
     # Scale
