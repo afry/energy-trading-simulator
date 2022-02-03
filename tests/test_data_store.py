@@ -30,13 +30,17 @@ class TestDataStore(TestCase):
         self.assertEqual(CONSTANT_NORDPOOL_PRICE,
                          self.data_store_entity.get_nordpool_price_for_period(datetime(2019, 2, 1, 1, 0, 0)))
 
-    def test_retail_price_greater_than_wholesale_price(self):
+    def test_estimated_retail_price_greater_than_wholesale_price(self):
         """Test that the retail price is always greater than the wholesale price"""
         # May want to test for other resources than ELECTRICITY
         for dt in DATETIME_ARRAY:
-            retail_price = self.data_store_entity.get_retail_price(dt, Resource.ELECTRICITY)
-            wholesale_price = self.data_store_entity.get_wholesale_price(dt, Resource.ELECTRICITY)
+            retail_price = self.data_store_entity.get_estimated_retail_price(dt, Resource.ELECTRICITY)
+            wholesale_price = self.data_store_entity.get_estimated_wholesale_price(dt, Resource.ELECTRICITY)
             self.assertTrue(retail_price > wholesale_price)
+
+    def test_get_estimated_price_for_non_implemented_resource(self):
+        with self.assertRaises(RuntimeError):
+            self.data_store_entity.get_estimated_retail_price(datetime(2019, 2, 1, 1, 0, 0), Resource.COOLING)
 
     def test_read_school_csv(self):
         """Test that the CSV file with school energy data reads correctly."""

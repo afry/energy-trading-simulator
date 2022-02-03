@@ -97,8 +97,8 @@ def run_trading_simulations(mock_datas_pickle_path: str):
         trades_csv_file.write(write_rows(all_trades_for_period))
         all_trades_list.extend(all_trades_for_period)
 
-        wholesale_price_elec = data_store_entity.get_wholesale_price(period, Resource.ELECTRICITY)
-        wholesale_price_heat = data_store_entity.get_wholesale_price(period, Resource.HEATING)
+        wholesale_price_elec = data_store_entity.get_exact_wholesale_price(period, Resource.ELECTRICITY)
+        wholesale_price_heat = data_store_entity.get_exact_wholesale_price(period, Resource.HEATING)
         extra_costs = balance_manager.calculate_costs(bids_with_acceptance_status, all_trades_for_period,
                                                       clearing_prices, wholesale_price_elec, wholesale_price_heat)
         extra_costs_file.write(write_extra_costs_rows(period, extra_costs))

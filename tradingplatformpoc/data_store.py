@@ -8,7 +8,8 @@ import pandas as pd
 from pkg_resources import resource_filename
 
 from tradingplatformpoc.bid import Resource
-from tradingplatformpoc.district_heating_calculations import estimate_district_heating_price
+from tradingplatformpoc.district_heating_calculations import estimate_district_heating_price, \
+    exact_district_heating_price_for_month
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, minus_n_hours
 
 HEATING_WHOLESALE_PRICE_FRACTION = 0.5  # External grid buys heating at 50% of the price they buy for - quite arbitrary
@@ -47,22 +48,77 @@ class DataStore:
     def get_nordpool_price_for_period(self, period: datetime.datetime):
         return self.nordpool_data.loc[period]
 
-    def get_retail_price(self, period: datetime.datetime, resource: Resource):
+    def get_estimated_retail_price(self, period: datetime.datetime, resource: Resource):
+        """
+        Returns the price at which the external grid operator is believed to be willing to sell energy, in SEK/kWh.
+        For some energy carriers the price may be known, but for others it may in fact be set after the fact. That is
+        why this method is named 'estimated'.
+        """
+        if resource == Resource.ELECTRICITY:
+            """For electricity, the price is known, so 'estimated' and 'exact' are the same."""
+            return self.get_electricity_retail_price(period)
+        elif resource == Resource.HEATING:
+            return estimate_district_heating_price(period)
+        else:
+            raise RuntimeError('Method not implemented for {}'.format(resource))
+
+    def get_estimated_wholesale_price(self, period: datetime.datetime, resource: Resource):
+        """
+        Returns the price at which the external grid operator is believed to be willing to buy energy, in SEK/kWh.
+        For some energy carriers the price may be known, but for others it may in fact be set after the fact. That is
+        why this method is named 'estimated'.
+        """
+        if resource == Resource.ELECTRICITY:
+            return self.get_electricity_wholesale_price(period)
+        elif resource == Resource.HEATING:
+            return estimate_district_heating_price(period) * HEATING_WHOLESALE_PRICE_FRACTION
+        else:
+            raise RuntimeError('Method not implemented for {}'.format(resource))
+
+    def get_exact_retail_price(self, period: datetime.datetime, resource: Resource):
         """Returns the price at which the external grid operator is willing to sell energy, in SEK/kWh"""
         if resource == Resource.ELECTRICITY:
-            # Per https://doc.afdrift.se/pages/viewpage.action?pageId=17072325
-            return self.get_nordpool_price_for_period(period) + ELECTRICITY_RETAIL_PRICE_OFFSET
+            return self.get_electricity_retail_price(period)
+        elif resource == Resource.HEATING:
+            # TODO: Calculate these in some way
+            consumption_this_month_kwh = 0
+            jan_feb_avg_consumption_kw = 0
+            prev_month_peak_day_avg_consumption_kw = 0
+            return exact_district_heating_price_for_month(period.month, period.year, consumption_this_month_kwh,
+                                                          jan_feb_avg_consumption_kw,
+                                                          prev_month_peak_day_avg_consumption_kw)
         else:
-            # Per https://doc.afdrift.se/display/RPJ/District+heating+Varberg%3A+Pricing
-            return estimate_district_heating_price(period)
+            raise RuntimeError('Method not implemented for {}'.format(resource))
 
-    def get_wholesale_price(self, period: datetime.datetime, resource: Resource):
+    def get_exact_wholesale_price(self, period: datetime.datetime, resource: Resource):
         """Returns the price at which the external grid operator is willing to buy energy, in SEK/kWh"""
         if resource == Resource.ELECTRICITY:
-            # Per https://doc.afdrift.se/pages/viewpage.action?pageId=17072325
-            return self.get_nordpool_price_for_period(period) + ELECTRICITY_WHOLESALE_PRICE_OFFSET
+            return self.get_electricity_wholesale_price(period)
+        elif resource == Resource.HEATING:
+            # TODO: Calculate these in some way
+            consumption_this_month_kwh = 0
+            jan_feb_avg_consumption_kw = 0
+            prev_month_peak_day_avg_consumption_kw = 0
+            return exact_district_heating_price_for_month(period.month, period.year, consumption_this_month_kwh,
+                                                          jan_feb_avg_consumption_kw,
+                                                          prev_month_peak_day_avg_consumption_kw) * \
+                HEATING_WHOLESALE_PRICE_FRACTION
         else:
-            return estimate_district_heating_price(period) * HEATING_WHOLESALE_PRICE_FRACTION
+            raise RuntimeError('Method not implemented for {}'.format(resource))
+
+    def get_electricity_retail_price(self, period):
+        """
+        For electricity, the price is known, so 'estimated' and 'exact' are the same.
+        See also https://doc.afdrift.se/pages/viewpage.action?pageId=17072325
+        """
+        return self.get_nordpool_price_for_period(period) + ELECTRICITY_RETAIL_PRICE_OFFSET
+
+    def get_electricity_wholesale_price(self, period):
+        """
+        For electricity, the price is known, so 'estimated' and 'exact' are the same.
+        See also https://doc.afdrift.se/pages/viewpage.action?pageId=17072325
+        """
+        return self.get_nordpool_price_for_period(period) + ELECTRICITY_WHOLESALE_PRICE_OFFSET
 
     def get_nordpool_data_datetimes(self):
         return self.nordpool_data.index.tolist()
