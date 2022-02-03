@@ -14,7 +14,7 @@ from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.agent.storage_agent import StorageAgent
-from tradingplatformpoc.bid import Bid, Resource
+from tradingplatformpoc.bid import Action, Bid, Resource
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
@@ -96,6 +96,9 @@ def run_trading_simulations(mock_datas_pickle_path: str):
         all_trades_for_period = trades_excl_external + external_trades
         trades_csv_file.write(write_rows(all_trades_for_period))
         all_trades_list.extend(all_trades_for_period)
+
+        external_heating_sell_quantity = get_quantity_heating_sold_by_external_grid(external_trades)
+        data_store_entity.add_external_heating_sell(period, external_heating_sell_quantity)
 
         wholesale_price_elec = data_store_entity.get_exact_wholesale_price(period, Resource.ELECTRICITY)
         wholesale_price_heat = data_store_entity.get_exact_wholesale_price(period, Resource.HEATING)
@@ -200,3 +203,8 @@ def write_extra_costs_rows(period: datetime.datetime, extra_costs: dict):
         if v != 0:
             full_string = full_string + str(period) + "," + k + "," + str(v) + "\n"
     return full_string
+
+
+def get_quantity_heating_sold_by_external_grid(external_trades):
+    return [x.quantity for x in external_trades if
+            (x.resource == Resource.HEATING) & (x.action == Action.SELL)]

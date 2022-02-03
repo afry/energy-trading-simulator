@@ -24,6 +24,7 @@ class DataStore:
     nordpool_data: pd.Series
     tornet_park_pv_prod: pd.Series
     coop_pv_prod: pd.Series  # Rooftop PV production
+    all_external_heating_sells: pd.Series
 
     def __init__(self, config_area_info: dict, nordpool_data: pd.Series, irradiation_data: pd.Series):
         self.pv_efficiency = config_area_info["PVEfficiency"]
@@ -33,6 +34,7 @@ class DataStore:
         self.nordpool_data = nordpool_data
         self.coop_pv_prod = calculate_solar_prod(irradiation_data, self.store_pv_area, self.pv_efficiency)
         self.tornet_park_pv_prod = calculate_solar_prod(irradiation_data, self.park_pv_area, self.pv_efficiency)
+        self.all_external_heating_sells = pd.Series(dtype=float)
 
     @staticmethod
     def from_csv_files(config_area_info: dict, data_path: str = "tradingplatformpoc.data",
@@ -135,6 +137,17 @@ class DataStore:
                             format(t, len(nordpool_prices_last_n_hours), go_back_n_hours))
                 break
         return nordpool_prices_last_n_hours
+
+    def add_external_heating_sell(self, period: datetime.datetime, external_heating_sell_quantity: float):
+        """The data_store needs this information to be able to calculate the exact district heating cost."""
+        if period in self.all_external_heating_sells.index:
+            existing_value = self.all_external_heating_sells[period]
+            logger.warning('Already had a value for external heating sell for period {}. Was {}, will overwrite it '
+                           'with new value {}.'.format(period, existing_value, external_heating_sell_quantity))
+            self.all_external_heating_sells[period] = external_heating_sell_quantity
+        else:
+            to_add_in = pd.Series(external_heating_sell_quantity, index=[period])
+            self.all_external_heating_sells = pd.concat([self.all_external_heating_sells, to_add_in])
 
 
 def read_energy_data(energy_csv_path: str):
