@@ -1,8 +1,9 @@
 from pkg_resources import resource_filename
 
 from tradingplatformpoc.app.app_constants import ALL_PAGES, BIDS_PAGE, SELECT_PAGE_RADIO_LABEL, START_PAGE
-from tradingplatformpoc.app.app_functions import construct_price_chart, load_data, select_page_radio, \
-    construct_storage_level_chart
+from tradingplatformpoc.app.app_functions import construct_price_chart, construct_storage_level_chart, load_data, \
+    select_page_radio
+from tradingplatformpoc.bid import Resource
 from tradingplatformpoc.simulation_runner import run_trading_simulations
 import logging
 import sys
@@ -90,7 +91,7 @@ if __name__ == '__main__':
             st.success("Data loaded!")
             page_selected = select_page_radio(page_sel_placeholder, SELECT_PAGE_RADIO_LABEL, ALL_PAGES, False)
 
-            price_chart = construct_price_chart(combined_price_df)
+            price_chart = construct_price_chart(combined_price_df, Resource.ELECTRICITY)
 
             st.session_state.price_chart = price_chart
 

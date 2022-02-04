@@ -47,7 +47,7 @@ def run_trading_simulations(mock_datas_pickle_path: str):
 
     # Output files
     clearing_prices_file = open('./clearing_prices.csv', 'w')
-    clearing_prices_file.write('period,price\n')
+    clearing_prices_file.write('period,electricity,heating\n')
     trades_csv_file = open('./trades.csv', 'w')
     trades_csv_file.write('period,agent,by_external,action,resource,market,quantity,price\n')
     bids_csv_file = open('./bids.csv', 'w')
@@ -80,7 +80,8 @@ def run_trading_simulations(mock_datas_pickle_path: str):
         clearing_prices, bids_with_acceptance_status = market_solver.resolve_bids(period, bids_flat)
         clearing_prices_historical[period] = clearing_prices
 
-        clearing_prices_file.write('{},{}\n'.format(period, clearing_prices))
+        clearing_prices_file.write('{},{},{}\n'.format(period, clearing_prices[Resource.ELECTRICITY],
+                                                       clearing_prices[Resource.HEATING]))
         bids_csv_file.write(tradingplatformpoc.bid.write_rows(bids_with_acceptance_status, period))
 
         # To save information on storage levels, which may be useful:
