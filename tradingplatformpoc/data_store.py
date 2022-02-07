@@ -8,8 +8,8 @@ import pandas as pd
 from pkg_resources import resource_filename
 
 from tradingplatformpoc.bid import Resource
-from tradingplatformpoc.district_heating_calculations import estimate_district_heating_price, \
-    exact_district_heating_price_for_month
+from tradingplatformpoc.district_heating_calculations import calculate_jan_feb_avg_heating_sold, \
+    calculate_peak_day_avg_cons_kw, estimate_district_heating_price, exact_district_heating_price_for_month
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, minus_n_hours
 
 HEATING_WHOLESALE_PRICE_FRACTION = 0.5  # External grid buys heating at 50% of the price they buy for - quite arbitrary
@@ -82,13 +82,15 @@ class DataStore:
         if resource == Resource.ELECTRICITY:
             return self.get_electricity_retail_price(period)
         elif resource == Resource.HEATING:
-            # TODO: Calculate these in some way
-            consumption_this_month_kwh = 0
-            jan_feb_avg_consumption_kw = 0
-            prev_month_peak_day_avg_consumption_kw = 0
-            return exact_district_heating_price_for_month(period.month, period.year, consumption_this_month_kwh,
-                                                          jan_feb_avg_consumption_kw,
-                                                          prev_month_peak_day_avg_consumption_kw)
+            consumption_this_month_kwh = self.calculate_consumption_this_month(period.year, period.month)
+            jan_feb_avg_consumption_kw = calculate_jan_feb_avg_heating_sold(self.all_external_heating_sells, period)
+            prev_month_peak_day_avg_consumption_kw = calculate_peak_day_avg_cons_kw(self.all_external_heating_sells,
+                                                                                    period.year, period.month)
+            total_cost_for_month = exact_district_heating_price_for_month(period.month, period.year,
+                                                                          consumption_this_month_kwh,
+                                                                          jan_feb_avg_consumption_kw,
+                                                                          prev_month_peak_day_avg_consumption_kw)
+            return total_cost_for_month / consumption_this_month_kwh
         else:
             raise RuntimeError('Method not implemented for {}'.format(resource))
 
@@ -97,25 +99,36 @@ class DataStore:
         if resource == Resource.ELECTRICITY:
             return self.get_electricity_wholesale_price(period)
         elif resource == Resource.HEATING:
-            # TODO: Calculate these in some way
-            consumption_this_month_kwh = 0
-            jan_feb_avg_consumption_kw = 0
-            prev_month_peak_day_avg_consumption_kw = 0
-            return exact_district_heating_price_for_month(period.month, period.year, consumption_this_month_kwh,
-                                                          jan_feb_avg_consumption_kw,
-                                                          prev_month_peak_day_avg_consumption_kw) * \
-                HEATING_WHOLESALE_PRICE_FRACTION
+            consumption_this_month_kwh = self.calculate_consumption_this_month(period.year, period.month)
+            jan_feb_avg_consumption_kw = calculate_jan_feb_avg_heating_sold(self.all_external_heating_sells, period)
+            prev_month_peak_day_avg_consumption_kw = calculate_peak_day_avg_cons_kw(self.all_external_heating_sells,
+                                                                                    period.year, period.month)
+            total_cost_for_month = exact_district_heating_price_for_month(period.month, period.year,
+                                                                          consumption_this_month_kwh,
+                                                                          jan_feb_avg_consumption_kw,
+                                                                          prev_month_peak_day_avg_consumption_kw)
+            return (total_cost_for_month / consumption_this_month_kwh) * HEATING_WHOLESALE_PRICE_FRACTION
+
         else:
             raise RuntimeError('Method not implemented for {}'.format(resource))
 
-    def get_electricity_retail_price(self, period):
+    def calculate_consumption_this_month(self, year: int, month: int) -> float:
+        """
+        Calculate the sum of all external heating sells for the specified year-month combination.
+        Returns a float with the unit kWh.
+        """
+        subset = (self.all_external_heating_sells.index.year == year) & \
+                 (self.all_external_heating_sells.index.month == month)
+        return sum(self.all_external_heating_sells[subset])
+
+    def get_electricity_retail_price(self, period: datetime.datetime) -> float:
         """
         For electricity, the price is known, so 'estimated' and 'exact' are the same.
         See also https://doc.afdrift.se/pages/viewpage.action?pageId=17072325
         """
         return self.get_nordpool_price_for_period(period) + ELECTRICITY_RETAIL_PRICE_OFFSET
 
-    def get_electricity_wholesale_price(self, period):
+    def get_electricity_wholesale_price(self, period: datetime.datetime) -> float:
         """
         For electricity, the price is known, so 'estimated' and 'exact' are the same.
         See also https://doc.afdrift.se/pages/viewpage.action?pageId=17072325
@@ -139,7 +152,11 @@ class DataStore:
         return nordpool_prices_last_n_hours
 
     def add_external_heating_sell(self, period: datetime.datetime, external_heating_sell_quantity: float):
-        """The data_store needs this information to be able to calculate the exact district heating cost."""
+        """
+        The data_store needs this information to be able to calculate the exact district heating cost.
+        Note: When there is 0 heating sold, this still needs to be added as a value - if there are values "missing" in
+        self.all_external_heating_sells, then some methods will break (calculate_jan_feb_avg_heating_sold for example)
+        """
         if period in self.all_external_heating_sells.index:
             existing_value = self.all_external_heating_sells[period]
             logger.warning('Already had a value for external heating sell for period {}. Was {}, will overwrite it '

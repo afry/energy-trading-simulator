@@ -8,6 +8,7 @@ from tests import utility_test_objects
 
 from tradingplatformpoc import simulation_runner
 from tradingplatformpoc.data_store import DataStore
+from tradingplatformpoc.simulation_runner import get_quantity_heating_sold_by_external_grid
 
 
 class Test(TestCase):
@@ -28,3 +29,7 @@ class Test(TestCase):
         with self.assertRaises(RuntimeError):
             simulation_runner.initialize_agents(empty_data_store, self.fake_config, pd.DataFrame(),
                                                 energy_data_csv_path, school_data_csv_path)
+
+    def test_get_quantity_heating_sold_by_external_grid(self):
+        """Test that get_quantity_heating_sold_by_external_grid doesn't break when there are no external trades."""
+        self.assertEqual(0, get_quantity_heating_sold_by_external_grid([]))
