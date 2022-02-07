@@ -1,5 +1,7 @@
+import datetime
 import logging
 from enum import Enum
+from typing import Iterable
 
 
 class Action(Enum):
@@ -14,6 +16,15 @@ class Resource(Enum):
 
 
 logger = logging.getLogger(__name__)
+
+
+def action_string(action: Action) -> str:
+    return "BUY" if action == Action.BUY else "SELL"
+
+
+def resource_string(resource: Resource) -> str:
+    return "ELECTRICITY" if resource == Resource.ELECTRICITY else \
+        ("HEATING" if resource == Resource.HEATING else "COOLING")
 
 
 class Bid:
@@ -62,3 +73,20 @@ class BidWithAcceptanceStatus(Bid):
     def from_bid(bid: Bid, was_accepted: bool):
         return BidWithAcceptanceStatus(bid.action, bid.resource, bid.quantity, bid.price, bid.source, bid.by_external,
                                        was_accepted)
+
+    def to_string_with_period(self, period: datetime.datetime):
+        return "{},{},{},{},{},{},{},{}".format(period,
+                                                self.source,
+                                                self.by_external,
+                                                action_string(self.action),
+                                                resource_string(self.resource),
+                                                self.quantity,
+                                                self.price,
+                                                self.was_accepted)
+
+
+def write_rows(bids_with_acceptance_status: Iterable[BidWithAcceptanceStatus], period: datetime.datetime) -> str:
+    full_string = ""
+    for bid in bids_with_acceptance_status:
+        full_string = full_string + bid.to_string_with_period(period) + "\n"
+    return full_string
