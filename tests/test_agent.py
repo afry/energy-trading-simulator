@@ -170,11 +170,34 @@ class TestStorageAgent(unittest.TestCase):
     def test_make_bids(self):
         """Test basic functionality of StorageAgent's make_bids method."""
         bids = self.battery_agent.make_bids(SOME_DATETIME, {})
+        self.assertEqual(1, len(bids))  # Digital twin has capacity = 0, so should only make a BUY bid
         self.assertEqual(Resource.ELECTRICITY, bids[0].resource)
         self.assertEqual(Action.BUY, bids[0].action)
         self.assertTrue(bids[0].quantity > 0)
         self.assertTrue(bids[0].quantity <= 1000)
         self.assertTrue(bids[0].price > 0)
+
+    def test_make_bids_when_nonempty(self):
+        """Test that StorageAgent make_bids method returns 2 bids, when the digital twin's capacity is neither full nor
+        empty."""
+        non_empty_twin = StorageDigitalTwin(max_capacity_kwh=1000, max_charge_rate_fraction=0.1,
+                                            max_discharge_rate_fraction=0.1, discharging_efficiency=0.93,
+                                            start_capacity_kwh=500)
+        ba = tradingplatformpoc.agent.storage_agent.StorageAgent(data_store_entity, non_empty_twin,
+                                                                 Resource.ELECTRICITY, 168, 20, 80)
+        bids = ba.make_bids(SOME_DATETIME, {})
+        self.assertEqual(2, len(bids))
+
+    def test_make_bids_when_full(self):
+        """Test that StorageAgent make_bids method only returns 1 bid, when the digital twin's capacity is full."""
+        full_twin = StorageDigitalTwin(max_capacity_kwh=1000, max_charge_rate_fraction=0.1,
+                                       max_discharge_rate_fraction=0.1, discharging_efficiency=0.93,
+                                       start_capacity_kwh=1000)
+        ba = tradingplatformpoc.agent.storage_agent.StorageAgent(data_store_entity, full_twin,
+                                                                 Resource.ELECTRICITY, 168, 20, 80)
+        bids = ba.make_bids(SOME_DATETIME, {})
+        self.assertEqual(1, len(bids))
+        self.assertEqual(Action.SELL, bids[0].action)
 
     def test_make_bids_without_historical_prices(self):
         """Test that a warning is logged when calling StorageAgent's make_bids with None clearing_prices_dict"""

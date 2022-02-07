@@ -11,6 +11,8 @@ from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTw
 from tradingplatformpoc.trade import Market, Trade
 from tradingplatformpoc.trading_platform_utils import minus_n_hours
 
+LOWEST_BID_QUANTITY = 0.001  # Bids with a lower quantity than this won't have any real effect, will only clog things up
+
 logger = logging.getLogger(__name__)
 
 
@@ -49,6 +51,7 @@ class StorageAgent(IAgent):
 
     def make_bids(self, period: datetime.datetime, clearing_prices_historical: Union[Dict[datetime.datetime, Dict[
             Resource, float]], None]):
+        bids = []
 
         if clearing_prices_historical is not None:
             clearing_prices_for_resource = self.get_clearing_prices_for_resource(dict(clearing_prices_historical))
@@ -66,15 +69,20 @@ class StorageAgent(IAgent):
                                "only provided with {} hours.".
                                format(self.guid, self.need_at_least_n_hours, len(prices_last_n_hours)))
 
-        buy_bid = self.construct_bid(action=Action.BUY,
-                                     quantity=self.calculate_buy_quantity(),
-                                     price=self.calculate_buy_price(prices_last_n_hours),
-                                     resource=self.resource)
-        sell_bid = self.construct_bid(action=Action.SELL,
-                                      quantity=self.calculate_sell_quantity(),
-                                      price=self.calculate_sell_price(prices_last_n_hours),
-                                      resource=self.resource)
-        return [buy_bid, sell_bid]
+        buy_quantity = self.calculate_buy_quantity()
+        if buy_quantity >= LOWEST_BID_QUANTITY:
+            bids.append(self.construct_bid(action=Action.BUY,
+                                           quantity=buy_quantity,
+                                           price=self.calculate_buy_price(prices_last_n_hours),
+                                           resource=self.resource))
+
+        sell_quantity = self.calculate_sell_quantity()
+        if sell_quantity >= LOWEST_BID_QUANTITY:
+            bids.append(self.construct_bid(action=Action.SELL,
+                                           quantity=sell_quantity,
+                                           price=self.calculate_sell_price(prices_last_n_hours),
+                                           resource=self.resource))
+        return bids
 
     def get_clearing_prices_for_resource(self, clearing_prices_hist: Dict[datetime.datetime, Dict[Resource, float]]) \
             -> Dict[datetime.datetime, float]:

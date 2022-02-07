@@ -67,8 +67,8 @@ def get_savings_vs_only_external(data_store_entity: DataStore, trades_for_agent:
     for trade in trades_for_agent:
         period = trade.period
         resource = trade.resource
-        external_retail_price = data_store_entity.get_retail_price(period, resource)
-        external_wholesale_price = data_store_entity.get_wholesale_price(period, resource)
+        external_retail_price = data_store_entity.get_exact_retail_price(period, resource)
+        external_wholesale_price = data_store_entity.get_exact_wholesale_price(period, resource)
         if trade.action == Action.BUY:
             saved_on_buy_vs_using_only_external = saved_on_buy_vs_using_only_external + \
                 trade.quantity * (external_retail_price - trade.price)

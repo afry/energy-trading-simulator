@@ -2,7 +2,7 @@ import datetime
 from enum import Enum
 from typing import Iterable
 
-from tradingplatformpoc.bid import Action, Resource
+from tradingplatformpoc.bid import Action, Resource, action_string, resource_string
 
 
 class Market(Enum):
@@ -67,15 +67,6 @@ class Trade:
 
 def market_string(market: Market) -> str:
     return "LOCAL" if market == Market.LOCAL else "EXTERNAL"
-
-
-def action_string(action: Action) -> str:
-    return "BUY" if action == Action.BUY else "SELL"
-
-
-def resource_string(resource: Resource) -> str:
-    return "ELECTRICITY" if resource == Resource.ELECTRICITY else \
-        ("HEATING" if resource == Resource.HEATING else "COOLING")
 
 
 def write_rows(trades: Iterable[Trade]) -> str:
