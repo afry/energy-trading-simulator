@@ -14,7 +14,6 @@ from tradingplatformpoc import data_store
 from tradingplatformpoc.bid import Resource
 from tradingplatformpoc.trading_platform_utils import datetime_array_between
 
-
 DATETIME_ARRAY = datetime_array_between(datetime(2018, 12, 31, 23), datetime(2020, 1, 31, 22))
 CONSTANT_NORDPOOL_PRICE = 0.6  # Doesn't matter what this is
 ONES_SERIES = pd.Series(np.ones(shape=len(DATETIME_ARRAY)), index=DATETIME_ARRAY)
@@ -23,7 +22,8 @@ ONES_SERIES = pd.Series(np.ones(shape=len(DATETIME_ARRAY)), index=DATETIME_ARRAY
 class TestDataStore(TestCase):
     data_store_entity = data_store.DataStore(config_area_info=utility_test_objects.AREA_INFO,
                                              nordpool_data=ONES_SERIES * CONSTANT_NORDPOOL_PRICE,
-                                             irradiation_data=ONES_SERIES)
+                                             irradiation_data=ONES_SERIES,
+                                             grid_carbon_intensity=ONES_SERIES)
 
     def test_get_nordpool_price_for_period(self):
         """Test that what we put into data_store is the same as we get out"""
@@ -44,3 +44,10 @@ class TestDataStore(TestCase):
         school_energy_data = data_store.read_school_energy_consumption_csv(file_path)
         self.assertTrue(school_energy_data.shape[0] > 0)
         self.assertIsInstance(school_energy_data.index, DatetimeIndex)
+
+    def test_read_electricitymap_csv(self):
+        """Test that the CSV file with ElectricityMap carbon intensity data reads correctly."""
+        file_path = resource_filename("tradingplatformpoc.data", "electricity_co2equivalents_year2019.csv")
+        data = data_store.read_electricitymap_csv(file_path)
+        self.assertTrue(data.shape[0] > 0)
+        self.assertIsInstance(data.index, DatetimeIndex)
