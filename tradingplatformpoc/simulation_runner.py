@@ -118,6 +118,9 @@ def run_trading_simulations(mock_datas_pickle_path: str):
         extra_costs_file.write(write_extra_costs_rows(period, extra_costs))
         all_extra_costs_dict[period] = extra_costs
 
+    # TODO: Calculate exact district heating prices. Calculate "extra_costs" based on this.
+    #  For months where the exact price exceeded the estimated price, distribute the cost among agents,
+    #  and vice versa when the estimated price exceeded the estimated price.
     # Exit gracefully
     clearing_prices_file.close()
     trades_csv_file.close()
@@ -217,6 +220,6 @@ def write_extra_costs_rows(period: datetime.datetime, extra_costs: dict):
     return full_string
 
 
-def get_quantity_heating_sold_by_external_grid(external_trades):
-    return [x.quantity for x in external_trades if
-            (x.resource == Resource.HEATING) & (x.action == Action.SELL)]
+def get_quantity_heating_sold_by_external_grid(external_trades: List[Trade]) -> float:
+    return sum([x.quantity for x in external_trades if
+                (x.resource == Resource.HEATING) & (x.action == Action.SELL)])

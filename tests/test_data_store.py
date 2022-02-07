@@ -75,3 +75,26 @@ class TestDataStore(TestCase):
         # Then test that the result of the operation is expected
         self.assertEqual(1, len(ds.all_external_heating_sells))
         self.assertAlmostEqual(70.0, ds.all_external_heating_sells[FEB_1_1_AM])
+
+    def test_calculate_consumption_this_month(self):
+        """Test basic functionality of calculate_consumption_this_month"""
+        ds = data_store.DataStore(config_area_info=utility_test_objects.AREA_INFO,
+                                  nordpool_data=ONES_SERIES * CONSTANT_NORDPOOL_PRICE,
+                                  irradiation_data=ONES_SERIES)
+        ds.add_external_heating_sell(FEB_1_1_AM, 50)
+        ds.add_external_heating_sell(datetime(2019, 3, 1, 1), 100)
+        self.assertAlmostEqual(50, ds.calculate_consumption_this_month(2019, 2))
+        self.assertAlmostEqual(0, ds.calculate_consumption_this_month(2019, 4))
+
+    def test_get_exact_retail_price_heating(self):
+        """Test basic functionality of get_exact_retail_price for HEATING"""
+        ds = data_store.DataStore(config_area_info=utility_test_objects.AREA_INFO,
+                                  nordpool_data=ONES_SERIES * CONSTANT_NORDPOOL_PRICE,
+                                  irradiation_data=ONES_SERIES)
+        ds.add_external_heating_sell(datetime(2019, 2, 1, 1), 100)
+        ds.add_external_heating_sell(datetime(2019, 3, 1, 1), 100)
+        ds.add_external_heating_sell(datetime(2019, 3, 1, 2), 140)
+        ds.add_external_heating_sell(datetime(2019, 3, 2, 1), 50)
+        ds.add_external_heating_sell(datetime(2019, 3, 2, 2), 50)
+        ds.add_external_heating_sell(datetime(2019, 3, 2, 3), 50)
+        self.assertAlmostEqual(26.546859852476288, ds.get_exact_retail_price(datetime(2019, 3, 2, 3), Resource.HEATING))
