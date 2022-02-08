@@ -98,14 +98,9 @@ def exact_district_heating_price_for_month(month: int, year: int, consumption_th
                                                         calculate the "effect fee" price component.
     """
     effect_fee = exact_effect_fee(prev_month_peak_day_avg_consumption_kw)
-    #print("effect_fee = ", effect_fee)
     grid_fee = get_grid_fee_for_month(jan_feb_avg_consumption_kw, year, month)
-    #print("grid_fee = ", grid_fee)
     base_marginal_price = get_base_marginal_price(month)
-    #print("base_marginal_price = ", base_marginal_price)
-    #print("exact_price = ", base_marginal_price * consumption_this_month_kwh + effect_fee + grid_fee)
-    #print("--------------------------------------------------")
-    return effect_fee, grid_fee, base_marginal_price, base_marginal_price * consumption_this_month_kwh + effect_fee + grid_fee
+    return base_marginal_price * consumption_this_month_kwh + effect_fee + grid_fee
 
 
 def exact_effect_fee(monthly_peak_day_avg_consumption_kw: float) -> float:
