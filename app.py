@@ -1,41 +1,19 @@
 from pkg_resources import resource_filename
 
-from tradingplatformpoc import data_store
+from tradingplatformpoc.app.app_constants import ALL_PAGES, BIDS_PAGE, SELECT_PAGE_RADIO_LABEL, START_PAGE
+from tradingplatformpoc.app.app_functions import construct_price_chart, construct_storage_level_chart, load_data, \
+    select_page_radio
+from tradingplatformpoc.bid import Resource
 from tradingplatformpoc.simulation_runner import run_trading_simulations
 import logging
 import sys
 
 import streamlit as st
 
-import pandas as pd
-
-import altair as alt
-
 # Note: To debug a streamlit script, see https://stackoverflow.com/a/60172283
+
 # This would be neat, but haven't been able to get it to work
 # https://altair-viz.github.io/altair-tutorial/notebooks/06-Selections.html#binding-scales-to-other-domains
-WHOLESALE_PRICE_STR = 'External wholesale price'
-RETAIL_PRICE_STR = 'External retail price'
-LOCAL_PRICE_STR = 'Local price'
-DATA_PATH = "tradingplatformpoc.data"
-
-
-@st.cache
-def load_data():
-    clearing_prices_df = pd.read_csv("clearing_prices.csv")
-    clearing_prices_df['period'] = pd.to_datetime(clearing_prices_df['period'])
-    clearing_prices_df.rename({'price': LOCAL_PRICE_STR}, axis=1, inplace=True)
-
-    external_price_csv_path = resource_filename(DATA_PATH, "nordpool_area_grid_el_price.csv")
-    nordpool_data = data_store.read_nordpool_data(external_price_csv_path)
-    nordpool_data.name = 'nordpool'
-
-    both_df = clearing_prices_df.merge(nordpool_data, left_on="period", right_index=True)
-    both_df[RETAIL_PRICE_STR] = both_df['nordpool'] + data_store.ELECTRICITY_RETAIL_PRICE_OFFSET
-    both_df[WHOLESALE_PRICE_STR] = both_df['nordpool'] + data_store.ELECTRICITY_WHOLESALE_PRICE_OFFSET
-    both_df.drop(['nordpool'], axis=1, inplace=True)
-    return both_df.melt('period')  # Un-pivot the dataframe from wide to long, which is how Altair prefers it
-
 
 # --- Read sys.argv to get logging level, if it is specified ---
 string_to_log_later = None
@@ -72,19 +50,6 @@ mock_datas_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickl
 if string_to_log_later is not None:
     logger.info(string_to_log_later)
 
-
-def construct_price_chart():
-    domain = [LOCAL_PRICE_STR, RETAIL_PRICE_STR, WHOLESALE_PRICE_STR]
-    range_color = ['blue', 'green', 'red']
-    range_dash = [[0, 0], [2, 4], [2, 4]]
-    return alt.Chart(combined_price_df).mark_line(). \
-        encode(x='period',
-               y='value',
-               color=alt.Color('variable', scale=alt.Scale(domain=domain, range=range_color)),
-               strokeDash=alt.StrokeDash('variable', scale=alt.Scale(domain=domain, range=range_dash))). \
-        interactive(bind_y=False)
-
-
 if __name__ == '__main__':
     st.write(
         """
@@ -95,33 +60,54 @@ if __name__ == '__main__':
     )
 
     st.sidebar.write("""
-    # This is a sidebar where we can have navigation options
+    # Navigation
     """)
 
-    # These options in the sidebar combined with if clauses can be used to build a
-    # multi-page app for more advanced interactions, like switching between experiments
-    # or upload/run/analysis pages
+    page_sel_placeholder = st.sidebar.empty()
+    # Will be disabled on startup, and enabled once data has been loaded
+    page_selected = select_page_radio(page_sel_placeholder, SELECT_PAGE_RADIO_LABEL + " (load data first)", ALL_PAGES,
+                                      'combined_price_df' not in st.session_state)
 
-    selection = st.sidebar.selectbox("Options", ("Option 1", "Option 2", "Option 3"))
+    if page_selected == START_PAGE:
+        run_sim = st.button("Click here to run simulation")
+        if run_sim:
+            run_sim = False
+            logger.info("Running simulation")
+            st.spinner("Running simulation")
+            clearing_prices_dict, all_trades_list, all_extra_costs_dict = run_trading_simulations(mock_datas_path)
+            st.success('Simulation finished!')
 
-    radio_selection = st.sidebar.radio("Radio options", ("radio 1", "radio 2"))
+        data_button = st.button("Click here to load data")
+        if data_button:
+            data_button = False
+            logger.info("Loading data")
+            st.spinner("Loading data")
+            combined_price_df, bids_df, trades_df, storage_levels = load_data()
+            st.session_state.combined_price_df = combined_price_df
+            st.session_state.bids_df = bids_df
+            st.session_state.trades_df = trades_df
+            st.session_state.storage_levels = storage_levels
+            st.session_state.agents_sorted = sorted(bids_df.agent.unique())
+            st.success("Data loaded!")
+            page_selected = select_page_radio(page_sel_placeholder, SELECT_PAGE_RADIO_LABEL, ALL_PAGES, False)
 
-    run_sim = st.button("Click here to run simulation")
-    if run_sim:
-        run_sim = False
-        logger.info("Running simulation")
-        st.spinner("Running simulation")
-        clearing_prices_dict, all_trades_list, all_extra_costs_dict = run_trading_simulations(mock_datas_path)
-        st.success('Simulation finished!')
+            price_chart = construct_price_chart(combined_price_df, Resource.ELECTRICITY)
 
-    data_button = st.button("Click here to load data")
-    if data_button:
-        data_button = False
-        logger.info("Loading data")
-        st.spinner("Loading data")
-        combined_price_df = load_data()
-        st.success("Data loaded!")
+            st.session_state.price_chart = price_chart
 
-        chart = construct_price_chart()
+        if 'price_chart' in st.session_state:
+            st.altair_chart(st.session_state.price_chart, use_container_width=True)
 
-        st.altair_chart(chart, use_container_width=True)
+    elif page_selected == BIDS_PAGE:
+        agent_chosen = st.selectbox(label='Choose agent', options=st.session_state.agents_sorted)
+        st.write('Bids for ' + agent_chosen + ':')
+        st.dataframe(st.session_state.bids_df.loc[st.session_state.bids_df.agent == agent_chosen].
+                     drop(['agent'], axis=1))
+        st.write('Trades for ' + agent_chosen + ':')
+        st.dataframe(st.session_state.trades_df.loc[st.session_state.trades_df.agent == agent_chosen].
+                     drop(['agent'], axis=1))
+
+        if agent_chosen in st.session_state.storage_levels.agent.unique():
+            st.write('Charging level over time for ' + agent_chosen + ':')
+            storage_chart = construct_storage_level_chart(st.session_state.storage_levels, agent_chosen)
+            st.altair_chart(storage_chart, use_container_width=True)

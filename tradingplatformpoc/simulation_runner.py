@@ -8,6 +8,7 @@ import pandas as pd
 
 from pkg_resources import resource_filename
 
+import tradingplatformpoc
 from tradingplatformpoc import balance_manager, data_store, market_solver, results_calculator
 from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.grid_agent import GridAgent
@@ -20,7 +21,7 @@ from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
 from tradingplatformpoc.mock_data_generation_functions import get_all_residential_building_agents, get_elec_cons_key, \
     get_heat_cons_key, get_pv_prod_key
-from tradingplatformpoc.trade import write_rows
+from tradingplatformpoc.trade import Trade
 from tradingplatformpoc.trading_platform_utils import flatten_collection, get_intersection
 
 logger = logging.getLogger(__name__)
@@ -46,16 +47,19 @@ def run_trading_simulations(mock_datas_pickle_path: str):
 
     # Output files
     clearing_prices_file = open('./clearing_prices.csv', 'w')
-    clearing_prices_file.write('period,price\n')
+    clearing_prices_file.write('period,electricity,heating\n')
     trades_csv_file = open('./trades.csv', 'w')
     trades_csv_file.write('period,agent,by_external,action,resource,market,quantity,price\n')
+    bids_csv_file = open('./bids.csv', 'w')
+    bids_csv_file.write('period,agent,by_external,action,resource,quantity,price,was_accepted\n')
     extra_costs_file = open('./extra_costs.csv', 'w')
     extra_costs_file.write('period,agent,cost\n')
+    storage_levels_csv_file = open('./storages.csv', 'w')
+    storage_levels_csv_file.write('period,agent,capacity_kwh\n')
     # Output lists
     clearing_prices_historical: Dict[datetime.datetime, Dict[Resource, float]] = {}
-    all_trades_list = []
-    all_bids_list = []
-    all_extra_costs_dict = {}
+    all_trades_list: List[Trade] = []
+    all_extra_costs_dict: Dict[datetime.datetime, Dict[str, float]] = {}
 
     # Register all agents
     # Keep a list of all agents to iterate over later
@@ -76,8 +80,15 @@ def run_trading_simulations(mock_datas_pickle_path: str):
         clearing_prices, bids_with_acceptance_status = market_solver.resolve_bids(period, bids_flat)
         clearing_prices_historical[period] = clearing_prices
 
-        clearing_prices_file.write('{},{}\n'.format(period, clearing_prices))
-        all_bids_list.extend(bids_with_acceptance_status)
+        clearing_prices_file.write('{},{},{}\n'.format(period, clearing_prices[Resource.ELECTRICITY],
+                                                       clearing_prices[Resource.HEATING]))
+        bids_csv_file.write(tradingplatformpoc.bid.write_rows(bids_with_acceptance_status, period))
+
+        # To save information on storage levels, which may be useful:
+        for agent in agents:
+            if isinstance(agent, StorageAgent):
+                capacity_for_agent = agent.digital_twin.capacity_kwh
+                storage_levels_csv_file.write(str(period) + ',' + agent.guid + ',' + str(capacity_for_agent) + '\n')
 
         # Send clearing price back to agents, allow them to "make trades", i.e. decide if they want to buy/sell
         # energy, from/to either the local market or directly from/to the external grid.
@@ -94,7 +105,7 @@ def run_trading_simulations(mock_datas_pickle_path: str):
         external_trades = flatten_collection([ga.calculate_external_trades(trades_excl_external, clearing_prices)
                                               for ga in grid_agents])
         all_trades_for_period = trades_excl_external + external_trades
-        trades_csv_file.write(write_rows(all_trades_for_period))
+        trades_csv_file.write(tradingplatformpoc.trade.write_rows(all_trades_for_period))
         all_trades_list.extend(all_trades_for_period)
 
         wholesale_price_elec = data_store_entity.get_wholesale_price(period, Resource.ELECTRICITY)
@@ -107,6 +118,7 @@ def run_trading_simulations(mock_datas_pickle_path: str):
     # Exit gracefully
     clearing_prices_file.close()
     trades_csv_file.close()
+    bids_csv_file.close()
     extra_costs_file.close()
 
     results_calculator.print_basic_results(agents, all_trades_list, all_extra_costs_dict, data_store_entity)
