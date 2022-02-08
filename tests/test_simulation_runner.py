@@ -12,7 +12,6 @@ from tradingplatformpoc.simulation_runner import get_quantity_heating_sold_by_ex
 
 
 class Test(TestCase):
-
     mock_datas_file_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
     fake_config = {'Agents': []}
 
@@ -25,7 +24,8 @@ class Test(TestCase):
     def test_initialize_agents(self):
         energy_data_csv_path = resource_filename("tradingplatformpoc.data", "full_mock_energy_data.csv")
         school_data_csv_path = resource_filename("tradingplatformpoc.data", "school_electricity_consumption.csv")
-        empty_data_store = DataStore(utility_test_objects.AREA_INFO, pd.Series(dtype=float), pd.Series(dtype=float))
+        empty_data_store = DataStore(utility_test_objects.AREA_INFO, pd.Series(dtype=float), pd.Series(dtype=float),
+                                     pd.Series(dtype=float))
         with self.assertRaises(RuntimeError):
             simulation_runner.initialize_agents(empty_data_store, self.fake_config, pd.DataFrame(),
                                                 energy_data_csv_path, school_data_csv_path)
