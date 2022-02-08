@@ -57,7 +57,7 @@ def get_all_residential_building_agents(config_data: dict):
     residential_building_agents = set()
     for agent in config_data["Agents"]:
         agent_type = agent["Type"]
-        if agent_type == "ResidentialBuildingAgent":
+        if agent_type == "BuildingAgent":
             key = frozenset(agent.items())
             residential_building_agents.add(key)
             total_gross_floor_area = total_gross_floor_area + agent['GrossFloorArea']
@@ -110,7 +110,7 @@ def get_school_heating_consumption_hourly_factor(timestamp: datetime.datetime) -
     """Assuming opening hours 8-17:00 except for weekends and breaks"""
     if timestamp.weekday() == 5 or timestamp.weekday() == 6: # Saturday or sunday
         return 0.5
-    if is_break(timestamp.date):
+    if is_break(timestamp):
         return 0.5
     if not(8 <= timestamp.hour < 17):
         return 0.5
@@ -118,6 +118,7 @@ def get_school_heating_consumption_hourly_factor(timestamp: datetime.datetime) -
 
 
 def is_break(timestamp: datetime.datetime):
+    
     current_year = timestamp.year
 
     # Define breaks, return true if timestamp falls on break, false if not

@@ -46,6 +46,7 @@ KWH_ELECTRICITY_PER_YEAR_M2_COMMERCIAL = 118
 COMMERCIAL_ELECTRICITY_RELATIVE_ERROR_STD_DEV = 0.2
 # Constants for the 'commercial' heating bit:
 COMMERCIAL_HEATING_SEED_OFFSET = 10000000
+SCHOOL_HEATING_SEED_OFFSET = 100000000
 # As per https://doc.afdrift.se/display/RPJ/Commercial+areas
 KWH_SPACE_HEATING_PER_YEAR_M2_COMMERCIAL = 32
 KWH_HOT_TAP_WATER_PER_YEAR_M2_COMMERCIAL = 3.5
@@ -95,33 +96,36 @@ def main():
         config_data = json.load(json_file)
 
     residential_building_agents, total_gross_floor_area_residential = get_all_residential_building_agents(config_data)
-    school_building_agents, total_gross_floor_area_school = get_all_school_building_agents(config_data)
 
     # Need to freeze, else can't use it as key in dict
     residential_building_agents_frozen_set = frozenset(residential_building_agents)
-    school_building_agents_frozen_set = frozenset(school_building_agents)
 
     if residential_building_agents_frozen_set in all_data_sets:
         logger.info('Already had mock data for the configuration described in %s, exiting generate_mock_data' %
                     CONFIG_FILE)
     else:
         # So we have established that we need to generate new mock data.
-
+        logger.debug('Beginning mock data generation')
         # Load model
         model = sm.load(resource_filename(DATA_PATH, 'models/household_electricity_model.pickle'))
+        logger.debug('Model loaded')
 
         # Read in-data: Temperature and timestamps
         df_inputs, df_irrd = create_inputs_df(resource_filename(DATA_PATH, 'temperature_vetelangden.csv'),
                                               resource_filename(DATA_PATH, 'varberg_irradiation_W_m2_h.csv'),
                                               resource_filename(DATA_PATH, 'vetelangden_slim.csv'))
 
+        logger.debug('Input dataframes created')
         output_per_building = pd.DataFrame({'datetime': df_inputs.index})
         output_per_building.set_index('datetime', inplace=True)
+        logger.debug('Output dataframes created')
 
         total_time_elapsed = 0
         n_areas_done = 0
         n_areas = len(residential_building_agents)
+        logger.debug('{} areas to iterate over'.format(n_areas))
         for agent in residential_building_agents:
+            logger.debug('Entered agent loop')
             time_elapsed = simulate_and_add_to_output_df(dict(agent), df_inputs, df_irrd, model, output_per_building)
             n_areas_done = n_areas_done + 1
             n_areas_remaining = n_areas - n_areas_done
@@ -146,8 +150,14 @@ def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd:
     seed_residential_heating = agent['RandomSeed'] + RESIDENTIAL_HEATING_SEED_OFFSET
     seed_commercial_electricity = agent['RandomSeed'] + COMMERCIAL_ELECTRICITY_SEED_OFFSET
     seed_commercial_heating = agent['RandomSeed'] + COMMERCIAL_HEATING_SEED_OFFSET
+    seed_school_heating = agent["RandomSeed"] + SCHOOL_HEATING_SEED_OFFSET
     fraction_commercial = get_fraction_commercial(agent)
-    fraction_residential = 1.0 - fraction_commercial
+    fraction_school = get_fraction_school(agent)
+    logger.debug("Total non-residential fraction {}".format(fraction_commercial + fraction_school))
+    if fraction_school + fraction_commercial > 1:
+        logger.error("Total non-residential fractions for agent {} larger than 100%".format(agent["Name"]))
+        exit(1)
+    fraction_residential = 1.0 - fraction_commercial - fraction_school
     commercial_gross_floor_area = agent['GrossFloorArea'] * fraction_commercial
     residential_gross_floor_area = agent['GrossFloorArea'] * fraction_residential
     school_gross_floor_area_m2 = agent['GrossFloorArea'] * fraction_school
@@ -163,9 +173,14 @@ def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd:
     household_electricity_cons = simulate_household_electricity_aggregated(
         df_inputs, model, residential_gross_floor_area, seed_residential_electricity)
 
+    school_heating_cons = simulate_school_area_total_heating(school_gross_floor_area_m2, seed_school_heating, 
+                                                             df_inputs)
+
     # TODO: verify whether naming convention "per_buildings" is correct or should be "per_subarea" or other?
+    # TODO: Migrate school electricity consumption from hardcoded to simulation
+    print("Adding output for agent {}", agent['Name'])
     output_per_building[get_elec_cons_key(agent['Name'])] = household_electricity_cons + commercial_electricity_cons
-    output_per_building[get_heat_cons_key(agent['Name'])] = residential_heating_cons + commercial_heating_cons
+    output_per_building[get_heat_cons_key(agent['Name'])] = residential_heating_cons + commercial_heating_cons + school_heating_cons
 
     output_per_building[get_pv_prod_key(agent['Name'])] = calculate_solar_prod(df_irrd['irradiation'], pv_area,
                                                                                PV_EFFICIENCY)
@@ -357,6 +372,15 @@ def get_fraction_commercial(agent: dict) -> float:
     """If available, gets the 'FractionCommercial' field from the agent dict. Else returns 0."""
     if 'FractionCommercial' in agent:
         return agent['FractionCommercial']
+    else:
+        return 0.0
+
+
+#TODO: merge this with above method?
+def get_fraction_school(agent: dict) -> float:
+    """If available, gets the 'FractionSchool' field from the agent dict. Else returns 0."""
+    if 'FractionSchool' in agent:
+        return agent['FractionSchool']
     else:
         return 0.0
 

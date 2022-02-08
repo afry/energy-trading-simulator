@@ -32,6 +32,8 @@ generate-mock-data.log
 clearing_prices.csv
 trades.csv
 extra_costs.csv
+bids.csv
+storages.csv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -61,7 +63,7 @@ wheels/
 *.egg
 
 # Model files
-/data/models/*.pickle
+tradingplatformpoc/data/models/*.pickle
 
 # Notebook checkpoints
 */.ipynb_checkpoints/*
