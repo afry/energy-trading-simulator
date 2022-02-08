@@ -61,7 +61,7 @@ class TestDataStore(TestCase):
     def test_add_external_heating_sell(self):
         ds = data_store.DataStore(config_area_info=utility_test_objects.AREA_INFO,
                                   nordpool_data=ONES_SERIES * CONSTANT_NORDPOOL_PRICE,
-                                  irradiation_data=ONES_SERIES)
+                                  irradiation_data=ONES_SERIES, grid_carbon_intensity=ONES_SERIES)
         self.assertEqual(0, len(ds.all_external_heating_sells))
         ds.add_external_heating_sell(FEB_1_1_AM, 50.0)
         self.assertEqual(1, len(ds.all_external_heating_sells))
@@ -69,7 +69,7 @@ class TestDataStore(TestCase):
     def test_add_external_heating_sell_where_already_exists(self):
         ds = data_store.DataStore(config_area_info=utility_test_objects.AREA_INFO,
                                   nordpool_data=ONES_SERIES * CONSTANT_NORDPOOL_PRICE,
-                                  irradiation_data=ONES_SERIES)
+                                  irradiation_data=ONES_SERIES, grid_carbon_intensity=ONES_SERIES)
         self.assertEqual(0, len(ds.all_external_heating_sells))
         ds.add_external_heating_sell(FEB_1_1_AM, 50.0)
         self.assertEqual(1, len(ds.all_external_heating_sells))
@@ -88,7 +88,7 @@ class TestDataStore(TestCase):
         """Test basic functionality of calculate_consumption_this_month"""
         ds = data_store.DataStore(config_area_info=utility_test_objects.AREA_INFO,
                                   nordpool_data=ONES_SERIES * CONSTANT_NORDPOOL_PRICE,
-                                  irradiation_data=ONES_SERIES)
+                                  irradiation_data=ONES_SERIES, grid_carbon_intensity=ONES_SERIES)
         ds.add_external_heating_sell(FEB_1_1_AM, 50)
         ds.add_external_heating_sell(datetime(2019, 3, 1, 1), 100)
         self.assertAlmostEqual(50, ds.calculate_consumption_this_month(2019, 2))
@@ -98,7 +98,7 @@ class TestDataStore(TestCase):
         """Test basic functionality of get_exact_retail_price for HEATING"""
         ds = data_store.DataStore(config_area_info=utility_test_objects.AREA_INFO,
                                   nordpool_data=ONES_SERIES * CONSTANT_NORDPOOL_PRICE,
-                                  irradiation_data=ONES_SERIES)
+                                  irradiation_data=ONES_SERIES, grid_carbon_intensity=ONES_SERIES)
         ds.add_external_heating_sell(datetime(2019, 2, 1, 1), 100)
         ds.add_external_heating_sell(datetime(2019, 3, 1, 1), 100)
         ds.add_external_heating_sell(datetime(2019, 3, 1, 2), 140)
