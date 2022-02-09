@@ -25,14 +25,14 @@ coverage.xml
 .hypothesis/
 
 # Runtime logs
-trading-platform-poc.log
+results/trading-platform-poc.log
 generate-mock-data.log
 
 # Output CSV (quite big)
-clearing_prices.csv
+results/clearing_prices.csv
 bids.csv
-trades.csv
-extra_costs.csv
+results/trades.csv
+results/extra_costs.csv
 bids.csv
 storages.csv
 scripts/agent_elec_cons.csv
