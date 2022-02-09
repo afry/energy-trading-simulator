@@ -173,7 +173,7 @@ def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd:
     school_heating_cons = simulate_school_area_total_heating(school_gross_floor_area_m2, seed_school_heating,
                                                              df_inputs)
 
-    # TODO: Migrate school electricity consumption from hardcoded to simulation
+    # TODO: Migrate school electricity consumption from hardcoded to simulation (RES-175)
     print("Adding output for agent {}", agent['Name'])
     output_per_actor[get_elec_cons_key(agent['Name'])] = household_electricity_cons + commercial_electricity_cons
     output_per_actor[get_heat_cons_key(agent['Name'])] = residential_heating_cons + commercial_heating_cons + \
@@ -448,7 +448,7 @@ def simulate_commercial_area_space_heating(commercial_gross_floor_area_m2: float
 def simulate_school_area_total_heating(school_gross_floor_area_m2: float, random_seed: int,
                                        input_df: pd.DataFrame) -> pd.Series:
     """
-    This function follows the recipe outlined in the corresponding function for commerical buildings.
+    This function follows the recipe outlined in the corresponding function for commercial buildings.
     Total energy demand ("load function") = space heating + hot water
     @return A pd.Series with hourly total heating load, in kWh.
     """
@@ -480,9 +480,10 @@ def simulate_school_area_space_heating(school_gross_floor_area_m2: float, random
     https://doc.afdrift.se/display/RPJ/Coop+heating+energy+use+mock-up
     @return A pd.Series with space heating load for the area, scaled to KWH_SPACE_HEATING_PER_YEAR_M2_SCHOOL.
     """
+    # TODO: simulate_school_area_space_heating and simulate_commercial_area_space_heating could be generified, if we
+    #  extract the get_school_heating_consumption_hourly_factor function and the KWH_SPACE_HEATING_PER_YEAR_M2_SCHOOL
+    #  constant to parameters.
     np.random.seed(random_seed)
-    # Assumption: commersial and school "heating models" are equivalent: probability depends on temperature in same way
-    # TODO: refactor commersial and school into a common heating model if assumption is valid!
 
     # Probability that there is 0 heating demand:
     predicted_prob_of_0 = input_df['temperature'].\
