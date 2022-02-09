@@ -39,7 +39,8 @@ Install package as editable (command automatically searches for the setup.py fil
 
         python scripts/generate_mock_data.py
 
-
+The resulting data is stored in a pickle file. To verify its contents, save an extract in a .csv file using the 
+[extraction script](scripts/extract_df_from_mock_datas_pickle_file.py).
 ## Run POC
 
 ### As script from terminal
