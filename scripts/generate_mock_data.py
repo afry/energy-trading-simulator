@@ -136,7 +136,7 @@ def main():
 
 
 def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd: pd.DataFrame,
-                                  model: RegressionResultsWrapper, output_per_building: pd.DataFrame):
+                                  model: RegressionResultsWrapper, output_per_actor: pd.DataFrame):
     start = time.time()
     agent = dict(agent)  # "Unfreezing" the frozenset
     logger.debug('Starting work on \'{}\''.format(agent['Name']))
@@ -147,8 +147,8 @@ def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd:
     seed_commercial_electricity = agent['RandomSeed'] + COMMERCIAL_ELECTRICITY_SEED_OFFSET
     seed_commercial_heating = agent['RandomSeed'] + COMMERCIAL_HEATING_SEED_OFFSET
     seed_school_heating = agent["RandomSeed"] + SCHOOL_HEATING_SEED_OFFSET
-    fraction_commercial = get_fraction_commercial(agent)
-    fraction_school = get_fraction_school(agent)
+    fraction_commercial = agent['FractionCommercial'] if 'FractionCommercial' in agent else 0.0
+    fraction_school = agent['FractionSchool'] if 'FractionSchool' in agent else 0.0
     logger.debug("Total non-residential fraction {}".format(fraction_commercial + fraction_school))
     if fraction_school + fraction_commercial > 1:
         logger.error("Total non-residential fractions for agent {} larger than 100%".format(agent["Name"]))
@@ -175,10 +175,10 @@ def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd:
     # TODO: verify whether naming convention "per_buildings" is correct or should be "per_subarea" or other?
     # TODO: Migrate school electricity consumption from hardcoded to simulation
     print("Adding output for agent {}", agent['Name'])
-    output_per_building[get_elec_cons_key(agent['Name'])] = household_electricity_cons + commercial_electricity_cons
-    output_per_building[get_heat_cons_key(agent['Name'])] = residential_heating_cons + commercial_heating_cons + school_heating_cons
+    output_per_actor[get_elec_cons_key(agent['Name'])] = household_electricity_cons + commercial_electricity_cons
+    output_per_actor[get_heat_cons_key(agent['Name'])] = residential_heating_cons + commercial_heating_cons + school_heating_cons
 
-    output_per_building[get_pv_prod_key(agent['Name'])] = calculate_solar_prod(df_irrd['irradiation'], pv_area,
+    output_per_actor[get_pv_prod_key(agent['Name'])] = calculate_solar_prod(df_irrd['irradiation'], pv_area,
                                                                                PV_EFFICIENCY)
     end = time.time()
     time_elapsed = end - start
@@ -362,23 +362,6 @@ def scale_energy_consumption(unscaled_simulated_values_kwh: pd.Series, m2: float
     current_yearly_sum = unscaled_simulated_values_kwh.iloc[:8766].sum()
     wanted_yearly_sum = m2 * kwh_per_year_per_m2
     return unscaled_simulated_values_kwh * (wanted_yearly_sum / current_yearly_sum)
-
-
-def get_fraction_commercial(agent: dict) -> float:
-    """If available, gets the 'FractionCommercial' field from the agent dict. Else returns 0."""
-    if 'FractionCommercial' in agent:
-        return agent['FractionCommercial']
-    else:
-        return 0.0
-
-
-#TODO: merge this with above method?
-def get_fraction_school(agent: dict) -> float:
-    """If available, gets the 'FractionSchool' field from the agent dict. Else returns 0."""
-    if 'FractionSchool' in agent:
-        return agent['FractionSchool']
-    else:
-        return 0.0
 
 
 def simulate_commercial_area_electricity(commercial_gross_floor_area_m2: float, random_seed: int,
