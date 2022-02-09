@@ -17,8 +17,7 @@ from tradingplatformpoc import commercial_heating_model
 from tradingplatformpoc.mock_data_generation_functions import get_all_residential_building_agents, \
     get_commercial_electricity_consumption_hourly_factor, \
     get_elec_cons_key, get_heat_cons_key, get_pv_prod_key, load_existing_data_sets, \
-    get_commercial_heating_consumption_hourly_factor, get_school_heating_consumption_hourly_factor, \
-    get_all_school_building_agents
+    get_commercial_heating_consumption_hourly_factor, get_school_heating_consumption_hourly_factor
 
 
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod
@@ -55,9 +54,6 @@ COMMERCIAL_HOT_TAP_WATER_RELATIVE_ERROR_STD_DEV = 0.2
 SCHOOL_HOT_TAP_WATER_RELATIVE_ERROR_STD_DEV = 0.2  # TODO: verify these factors and their origin
 KWH_HOT_TAP_WATER_PER_YEAR_M2_SCHOOL = 7
 KWH_SPACE_HEATING_PER_YEAR_M2_SCHOOL = 25
-
-
-
 
 
 """
@@ -481,7 +477,7 @@ def simulate_school_area_hot_tap_water(school_gross_floor_area_m2: float, random
                                            datetimes: pd.DatetimeIndex) -> pd.Series:
     """
     Gets a factor based on the hour of day, multiplies it by a noise-factor, and scales it.
-    @return A pd.Series with hot tap water load for the area, scaled to KWH_SPACE_HEATING_PER_YEAR_M2_COMMERCIAL.
+    @return A pd.Series with hot tap water load for the area, scaled to KWH_SPACE_HEATING_PER_YEAR_M2_SCHOOL.
     """
     time_factors = [get_school_heating_consumption_hourly_factor(x) for x in datetimes]
     np.random.seed(random_seed)
@@ -498,7 +494,7 @@ def simulate_school_area_space_heating(school_gross_floor_area_m2: float, random
     """
     For more information, see https://doc.afdrift.se/display/RPJ/Commercial+areas and
     https://doc.afdrift.se/display/RPJ/Coop+heating+energy+use+mock-up
-    @return A pd.Series with space heating load for the area, scaled to KWH_SPACE_HEATING_PER_YEAR_M2_COMMERCIAL.
+    @return A pd.Series with space heating load for the area, scaled to KWH_SPACE_HEATING_PER_YEAR_M2_SCHOOL.
     """
     np.random.seed(random_seed)
     # Assumption: commersial and school "heating models" are equivalent: probability depends on temperature in same way
@@ -529,14 +525,6 @@ def simulate_school_area_space_heating(school_gross_floor_area_m2: float, random
                                              school_gross_floor_area_m2, KWH_SPACE_HEATING_PER_YEAR_M2_SCHOOL)
 
     return scaled_series
-
-
-
-
-
-
-
-
 
 
 def simulate_residential_total_heating(df_inputs: pd.DataFrame, gross_floor_area_m2: float, random_seed: int) -> \

@@ -62,24 +62,6 @@ def get_all_residential_building_agents(config_data: dict):
     return residential_building_agents, total_gross_floor_area
 
 
-def get_all_school_building_agents(config_data: dict):
-    """
-    Gets all school agents specified in config_data, and also returns the total gross floor area, summed
-    over all school building agents.
-    @param config_data: A dictionary
-    @return: school_agents: Set of dictionaries, total_gross_floor_area: a float
-    """
-    total_gross_floor_area = 0
-    school_agents = set()
-    for agent in config_data["Agents"]:
-        agent_type = agent["Type"]
-        if agent_type == "SchoolBuildingAgent":
-            key = frozenset(agent.items())
-            school_agents.add(key)
-            total_gross_floor_area = total_gross_floor_area + agent['GrossFloorArea']
-    return school_agents, total_gross_floor_area
-
-
 def get_elec_cons_key(agent_name: str):
     return agent_name + '_elec_cons'
 
@@ -146,6 +128,8 @@ def is_break(timestamp: datetime.datetime):
         return True
 
     # Easter 07/04 - 14/04
+    # Easter moves yearly, but the since we are only interested in capturing the feature
+    # of a week off school sometime in mid-spring, we simply chose an average date.
     easter_start = datetime.date(current_year, 4, 7)
     easter_length = datetime.timedelta(days=7)
     if easter_start <= timestamp <= easter_start + easter_length:
