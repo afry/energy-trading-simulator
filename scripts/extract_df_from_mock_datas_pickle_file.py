@@ -2,9 +2,10 @@ import json
 import pickle
 
 import pandas as pd
+
 from pkg_resources import resource_filename
 
-from tradingplatformpoc.mock_data_generation_functions import get_elec_cons_key, get_all_residential_building_agents, \
+from tradingplatformpoc.mock_data_generation_functions import get_all_residential_building_agents, get_elec_cons_key, \
     get_heat_cons_key
 
 DATA_PATH = 'tradingplatformpoc.data'

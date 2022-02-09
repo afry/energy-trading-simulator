@@ -162,14 +162,19 @@ def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings
     for agent in config_data["Agents"]:
         agent_type = agent["Type"]
         agent_name = agent['Name']
-        if agent_type == "ResidentialBuildingAgent":
+        if agent_type == "BuildingAgent":
             elec_cons_series = buildings_mock_data[get_elec_cons_key(agent_name)]
             heat_cons_series = buildings_mock_data[get_heat_cons_key(agent_name)]
             pv_prod_series = buildings_mock_data[get_pv_prod_key(agent_name)]
-            building_digital_twin = StaticDigitalTwin(electricity_usage=elec_cons_series,
-                                                      electricity_production=pv_prod_series,
-                                                      heating_usage=heat_cons_series)
-            agents.append(BuildingAgent(data_store_entity, building_digital_twin, guid=agent_name))
+            if agent_name == "SchoolBuildingAgent":
+                school_digital_twin = StaticDigitalTwin(electricity_usage=school_elec_cons,
+                                                        heating_usage=heat_cons_series)
+                agents.append(BuildingAgent(data_store_entity, school_digital_twin, guid=agent_name))
+            else:
+                building_digital_twin = StaticDigitalTwin(electricity_usage=elec_cons_series,
+                                                          electricity_production=pv_prod_series,
+                                                          heating_usage=heat_cons_series)
+                agents.append(BuildingAgent(data_store_entity, building_digital_twin, guid=agent_name))
         elif agent_type == "StorageAgent":
             storage_digital_twin = StorageDigitalTwin(max_capacity_kwh=agent["Capacity"],
                                                       max_charge_rate_fraction=agent["ChargeRate"],
@@ -185,14 +190,10 @@ def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings
             pv_digital_twin = StaticDigitalTwin(electricity_production=data_store_entity.tornet_park_pv_prod)
             agents.append(PVAgent(data_store_entity, pv_digital_twin, guid=agent_name))
         elif agent_type == "CommercialBuildingAgent":
-            if agent_name == "GroceryStoreAgent":
-                grocery_store_digital_twin = StaticDigitalTwin(electricity_usage=coop_elec_cons,
-                                                               heating_usage=coop_heat_cons,
-                                                               electricity_production=data_store_entity.coop_pv_prod)
-                agents.append(BuildingAgent(data_store_entity, grocery_store_digital_twin, guid=agent_name))
-            if agent_name == "SchoolBuildingAgent":
-                school_digital_twin = StaticDigitalTwin(electricity_usage=school_elec_cons)
-                agents.append(BuildingAgent(data_store_entity, school_digital_twin, guid=agent_name))
+            grocery_store_digital_twin = StaticDigitalTwin(electricity_usage=coop_elec_cons,
+                                                           heating_usage=coop_heat_cons,
+                                                           electricity_production=data_store_entity.coop_pv_prod)
+            agents.append(BuildingAgent(data_store_entity, grocery_store_digital_twin, guid=agent_name))
         elif agent_type == "GridAgent":
             grid_agent = GridAgent(data_store_entity, Resource[agent["Resource"]],
                                    max_transfer_per_hour=agent["TransferRate"], guid=agent_name)

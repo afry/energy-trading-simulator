@@ -33,6 +33,13 @@ Install package as editable (command automatically searches for the setup.py fil
         
         pip install -e .
 
+## Generate mock data
+* Verify that you have a json config file under the data folder specifying the area to be simulated.
+* Run the mock data generation script:
+
+        python scripts/generate_mock_data.py
+
+
 ## Run POC
 
 ### As script from terminal

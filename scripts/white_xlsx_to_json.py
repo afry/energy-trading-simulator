@@ -23,6 +23,6 @@ if __name__ == '__main__':
     areas['Type'] = 'ResidentialBuildingAgent'
     areas['Name'] = 'ResidentialBuildingAgent' + areas['Name']
     areas['RooftopPVArea'] = areas['BYA'] * PERCENT_OF_BYA_TO_COVER_WITH_PV_PANELS
-    areas['RandomSeed'] = range(1, len(areas)+1)
+    areas['RandomSeed'] = range(1, len(areas) + 1)
     areas = areas[['Type', 'Name', 'RandomSeed', 'GrossFloorArea', 'RooftopPVArea', 'FractionCommercial']]
     print(areas.to_json(orient='records'))

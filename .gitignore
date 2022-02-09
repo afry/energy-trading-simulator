@@ -33,6 +33,7 @@ clearing_prices.csv
 bids.csv
 trades.csv
 extra_costs.csv
+bids.csv
 storages.csv
 
 # Byte-compiled / optimized / DLL files
@@ -63,7 +64,7 @@ wheels/
 *.egg
 
 # Model files
-/data/models/*.pickle
+tradingplatformpoc/data/models/*.pickle
 
 # Notebook checkpoints
 */.ipynb_checkpoints/*
