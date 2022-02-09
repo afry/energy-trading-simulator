@@ -1,25 +1,26 @@
+import json
 import logging
 import math
+import pickle
 import time
 from typing import Tuple
 
-import datetime
 import numpy as np
+
 import pandas as pd
-import json
-import statsmodels.api as sm
-import pickle
 
 from pkg_resources import resource_filename
+
+import statsmodels.api as sm
 from statsmodels.regression.linear_model import RegressionResultsWrapper
 
 from tradingplatformpoc import commercial_heating_model
 from tradingplatformpoc.mock_data_generation_functions import get_all_residential_building_agents, \
     get_commercial_electricity_consumption_hourly_factor, \
-    get_elec_cons_key, get_heat_cons_key, get_pv_prod_key, load_existing_data_sets, \
-    get_commercial_heating_consumption_hourly_factor, get_school_heating_consumption_hourly_factor
-
-
+    get_commercial_heating_consumption_hourly_factor, \
+    get_elec_cons_key, get_heat_cons_key, get_pv_prod_key, \
+    get_school_heating_consumption_hourly_factor, \
+    load_existing_data_sets
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod
 
 CONFIG_FILE = 'jonstaka.json'
@@ -169,17 +170,18 @@ def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd:
     household_electricity_cons = simulate_household_electricity_aggregated(
         df_inputs, model, residential_gross_floor_area, seed_residential_electricity)
 
-    school_heating_cons = simulate_school_area_total_heating(school_gross_floor_area_m2, seed_school_heating, 
+    school_heating_cons = simulate_school_area_total_heating(school_gross_floor_area_m2, seed_school_heating,
                                                              df_inputs)
 
     # TODO: verify whether naming convention "per_buildings" is correct or should be "per_subarea" or other?
     # TODO: Migrate school electricity consumption from hardcoded to simulation
     print("Adding output for agent {}", agent['Name'])
     output_per_actor[get_elec_cons_key(agent['Name'])] = household_electricity_cons + commercial_electricity_cons
-    output_per_actor[get_heat_cons_key(agent['Name'])] = residential_heating_cons + commercial_heating_cons + school_heating_cons
+    output_per_actor[get_heat_cons_key(agent['Name'])] = residential_heating_cons + commercial_heating_cons + \
+        school_heating_cons
 
     output_per_actor[get_pv_prod_key(agent['Name'])] = calculate_solar_prod(df_irrd['irradiation'], pv_area,
-                                                                               PV_EFFICIENCY)
+                                                                            PV_EFFICIENCY)
     end = time.time()
     time_elapsed = end - start
     logger.debug('Finished work on \'{}\', took {:.2f} seconds'.format(agent['Name'], time_elapsed))
@@ -284,11 +286,11 @@ def calculate_adjustment_for_energy_prev(model: RegressionResultsWrapper, energy
     @return: The autoregressive part of the simulated energy, as a float
     """
     return model.params['np.where(np.isnan(energy_prev), 0, energy_prev)'] * energy_prev + \
-           model.params['np.where(np.isnan(energy_prev), 0, np.power(energy_prev, 2))'] * np.power(energy_prev, 2) + \
-           model.params['np.where(np.isnan(energy_prev), 0, np.minimum(energy_prev, 0.3))'] * np.minimum(energy_prev,
-                                                                                                         0.3) + \
-           model.params['np.where(np.isnan(energy_prev), 0, np.minimum(energy_prev, 0.7))'] * np.minimum(energy_prev,
-                                                                                                         0.7)
+        model.params['np.where(np.isnan(energy_prev), 0, np.power(energy_prev, 2))'] * np.power(energy_prev, 2) + \
+        model.params['np.where(np.isnan(energy_prev), 0, np.minimum(energy_prev, 0.3))'] * np.minimum(energy_prev,
+                                                                                                      0.3) + \
+        model.params['np.where(np.isnan(energy_prev), 0, np.minimum(energy_prev, 0.7))'] * np.minimum(energy_prev,
+                                                                                                      0.7)
 
 
 def create_inputs_df(temperature_csv_path: str, irradiation_csv_path: str, heating_csv_path: str) -> \
@@ -445,7 +447,7 @@ def simulate_commercial_area_space_heating(commercial_gross_floor_area_m2: float
 
 
 def simulate_school_area_total_heating(school_gross_floor_area_m2: float, random_seed: int,
-                                           input_df: pd.DataFrame) -> pd.Series:
+                                       input_df: pd.DataFrame) -> pd.Series:
     """
     This function follows the recipe outlined in the corresponding function for commerical buildings.
     Total energy demand ("load function") = space heating + hot water
@@ -457,7 +459,7 @@ def simulate_school_area_total_heating(school_gross_floor_area_m2: float, random
 
 
 def simulate_school_area_hot_tap_water(school_gross_floor_area_m2: float, random_seed: int,
-                                           datetimes: pd.DatetimeIndex) -> pd.Series:
+                                       datetimes: pd.DatetimeIndex) -> pd.Series:
     """
     Gets a factor based on the hour of day, multiplies it by a noise-factor, and scales it.
     @return A pd.Series with hot tap water load for the area, scaled to KWH_SPACE_HEATING_PER_YEAR_M2_SCHOOL.
@@ -473,7 +475,7 @@ def simulate_school_area_hot_tap_water(school_gross_floor_area_m2: float, random
 
 
 def simulate_school_area_space_heating(school_gross_floor_area_m2: float, random_seed: int,
-                                           input_df: pd.DataFrame) -> pd.Series:
+                                       input_df: pd.DataFrame) -> pd.Series:
     """
     For more information, see https://doc.afdrift.se/display/RPJ/Commercial+areas and
     https://doc.afdrift.se/display/RPJ/Coop+heating+energy+use+mock-up
