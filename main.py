@@ -37,7 +37,8 @@ if string_to_log_later is not None:
 
 # --- Define path to mock data
 mock_datas_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
+results_path = "./results/"
 
 if __name__ == '__main__':
     logger.info("Running main")
-    clearing_prices_dict, all_trades_list, all_extra_costs_dict = run_trading_simulations(mock_datas_path)
+    clearing_prices_dict, all_trades_list, all_extra_costs_dict = run_trading_simulations(mock_datas_path, results_path)

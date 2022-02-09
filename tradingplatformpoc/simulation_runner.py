@@ -27,7 +27,7 @@ from tradingplatformpoc.trading_platform_utils import flatten_collection, get_in
 logger = logging.getLogger(__name__)
 
 
-def run_trading_simulations(mock_datas_pickle_path: str):
+def run_trading_simulations(mock_datas_pickle_path: str, results_path: str):
     """The core loop of the simulation, running through the desired time period and performing trades."""
 
     logger.info("Starting trading simulations")
@@ -46,15 +46,15 @@ def run_trading_simulations(mock_datas_pickle_path: str):
     buildings_mock_data = get_generated_mock_data(config_data, mock_datas_pickle_path)
 
     # Output files
-    clearing_prices_file = open('./clearing_prices.csv', 'w')
+    clearing_prices_file = open(results_path + 'clearing_prices.csv', 'w')
     clearing_prices_file.write('period,electricity,heating\n')
-    trades_csv_file = open('./trades.csv', 'w')
+    trades_csv_file = open(results_path + 'trades.csv', 'w')
     trades_csv_file.write('period,agent,by_external,action,resource,market,quantity,price\n')
-    bids_csv_file = open('./bids.csv', 'w')
+    bids_csv_file = open(results_path + 'bids.csv', 'w')
     bids_csv_file.write('period,agent,by_external,action,resource,quantity,price,was_accepted\n')
-    extra_costs_file = open('./extra_costs.csv', 'w')
+    extra_costs_file = open(results_path + 'extra_costs.csv', 'w')
     extra_costs_file.write('period,agent,cost\n')
-    storage_levels_csv_file = open('./storages.csv', 'w')
+    storage_levels_csv_file = open(results_path + 'storages.csv', 'w')
     storage_levels_csv_file.write('period,agent,capacity_kwh\n')
     # Output lists
     clearing_prices_historical: Dict[datetime.datetime, Dict[Resource, float]] = {}
