@@ -1,24 +1,34 @@
-from typing import Iterable
+import datetime
+from typing import Dict, Iterable, Tuple
 
 import streamlit as st
 
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.storage_agent import StorageAgent
-from tradingplatformpoc.bid import Action
-from tradingplatformpoc.data_store import DataStore
+from tradingplatformpoc.bid import Action, Resource
 from tradingplatformpoc.trade import Trade
 
 
 def print_basic_results(agents: Iterable[IAgent], all_trades: Iterable[Trade], all_extra_costs_dict: dict,
-                        data_store_entity: DataStore):
+                        exact_retail_electricity_prices_by_period: Dict[datetime.datetime, float],
+                        exact_wholesale_electricity_prices_by_period: Dict[datetime.datetime, float],
+                        exact_retail_heating_prices_by_year_and_month: Dict[Tuple[int, int], float],
+                        exact_wholesale_heating_prices_by_year_and_month: Dict[Tuple[int, int], float]):
     st.write(""" ## Results: """)
     for agent in agents:
-        print_basic_results_for_agent(agent, all_trades, all_extra_costs_dict, data_store_entity)
+        print_basic_results_for_agent(agent, all_trades, all_extra_costs_dict,
+                                      exact_retail_electricity_prices_by_period,
+                                      exact_wholesale_electricity_prices_by_period,
+                                      exact_retail_heating_prices_by_year_and_month,
+                                      exact_wholesale_heating_prices_by_year_and_month)
 
 
 def print_basic_results_for_agent(agent: IAgent, all_trades: Iterable[Trade], all_extra_costs_dict: dict,
-                                  data_store_entity: DataStore):
+                                  exact_retail_electricity_prices_by_period: Dict[datetime.datetime, float],
+                                  exact_wholesale_electricity_prices_by_period: Dict[datetime.datetime, float],
+                                  exact_retail_heating_prices_by_year_and_month: Dict[Tuple[int, int], float],
+                                  exact_wholesale_heating_prices_by_year_and_month: Dict[Tuple[int, int], float]):
     trades_for_agent = [x for x in all_trades if x.source == agent.guid]
     all_extra_costs = list(all_extra_costs_dict.values())
 
@@ -29,8 +39,11 @@ def print_basic_results_for_agent(agent: IAgent, all_trades: Iterable[Trade], al
 
     if not isinstance(agent, GridAgent):
         extra_costs_for_agent = sum([d[agent.guid] for d in all_extra_costs if (agent.guid in d.keys())])
-        saved_on_buy, saved_on_sell = get_savings_vs_only_external(
-            data_store_entity, trades_for_agent)
+        saved_on_buy, saved_on_sell = get_savings_vs_only_external(trades_for_agent,
+                                                                   exact_retail_electricity_prices_by_period,
+                                                                   exact_wholesale_electricity_prices_by_period,
+                                                                   exact_retail_heating_prices_by_year_and_month,
+                                                                   exact_wholesale_heating_prices_by_year_and_month)
         if sek_bought_for > 0:
             print_message("For agent {} saved {:.2f} SEK when buying energy by using local market, versus buying "
                           "everything from external grid, saving of {:.2f}%".
@@ -61,21 +74,38 @@ def print_basic_results_for_agent(agent: IAgent, all_trades: Iterable[Trade], al
         print_message("For agent {} average sell price was {:.3f} SEK/kWh".format(agent.guid, avg_sell_price))
 
 
-def get_savings_vs_only_external(data_store_entity: DataStore, trades_for_agent: Iterable[Trade]):
+def get_savings_vs_only_external(trades_for_agent: Iterable[Trade],
+                                 exact_retail_electricity_prices_by_period: Dict[datetime.datetime, float],
+                                 exact_wholesale_electricity_prices_by_period: Dict[datetime.datetime, float],
+                                 exact_retail_heating_prices_by_year_and_month: Dict[Tuple[int, int], float],
+                                 exact_wholesale_heating_prices_by_year_and_month: Dict[Tuple[int, int], float]):
     saved_on_buy_vs_using_only_external = 0
     saved_on_sell_vs_using_only_external = 0
     for trade in trades_for_agent:
         period = trade.period
         resource = trade.resource
-        external_retail_price = data_store_entity.get_retail_price(period, resource)
-        external_wholesale_price = data_store_entity.get_wholesale_price(period, resource)
         if trade.action == Action.BUY:
+            retail_price = get_relevant_price(exact_retail_electricity_prices_by_period,
+                                              exact_retail_heating_prices_by_year_and_month, period, resource)
             saved_on_buy_vs_using_only_external = saved_on_buy_vs_using_only_external + \
-                trade.quantity * (external_retail_price - trade.price)
+                trade.quantity * (retail_price - trade.price)
         elif trade.action == Action.SELL:
+            wholesale_price = get_relevant_price(exact_wholesale_electricity_prices_by_period,
+                                                 exact_wholesale_heating_prices_by_year_and_month, period, resource)
             saved_on_sell_vs_using_only_external = saved_on_sell_vs_using_only_external + \
-                trade.quantity * (trade.price - external_wholesale_price)
+                trade.quantity * (trade.price - wholesale_price)
     return saved_on_buy_vs_using_only_external, saved_on_sell_vs_using_only_external
+
+
+def get_relevant_price(electricity_prices_by_period: Dict[datetime.datetime, float],
+                       heating_prices_by_year_and_month: Dict[Tuple[int, int], float],
+                       period: datetime.datetime, resource: Resource):
+    if resource == Resource.ELECTRICITY:
+        return electricity_prices_by_period[period]
+    elif resource == Resource.HEATING:
+        return heating_prices_by_year_and_month[(period.year, period.month)]
+    else:
+        raise RuntimeError("Method not implemented for resource " + resource.name)
 
 
 def print_message(message: str):
