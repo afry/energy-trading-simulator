@@ -1,23 +1,26 @@
+import json
 import logging
 import math
+import pickle
 import time
 from typing import Tuple
 
 import numpy as np
+
 import pandas as pd
-import json
-import statsmodels.api as sm
-import pickle
 
 from pkg_resources import resource_filename
+
+import statsmodels.api as sm
 from statsmodels.regression.linear_model import RegressionResultsWrapper
 
 from tradingplatformpoc import commercial_heating_model
 from tradingplatformpoc.mock_data_generation_functions import get_all_residential_building_agents, \
     get_commercial_electricity_consumption_hourly_factor, \
-    get_elec_cons_key, get_heat_cons_key, get_pv_prod_key, load_existing_data_sets, \
-    get_commercial_heating_consumption_hourly_factor
-
+    get_commercial_heating_consumption_hourly_factor, \
+    get_elec_cons_key, get_heat_cons_key, get_pv_prod_key, \
+    get_school_heating_consumption_hourly_factor, \
+    load_existing_data_sets
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod
 
 CONFIG_FILE = 'jonstaka.json'
@@ -43,10 +46,16 @@ KWH_ELECTRICITY_PER_YEAR_M2_COMMERCIAL = 118
 COMMERCIAL_ELECTRICITY_RELATIVE_ERROR_STD_DEV = 0.2
 # Constants for the 'commercial' heating bit:
 COMMERCIAL_HEATING_SEED_OFFSET = 10000000
+SCHOOL_HEATING_SEED_OFFSET = 100000000
 # As per https://doc.afdrift.se/display/RPJ/Commercial+areas
 KWH_SPACE_HEATING_PER_YEAR_M2_COMMERCIAL = 32
 KWH_HOT_TAP_WATER_PER_YEAR_M2_COMMERCIAL = 3.5
 COMMERCIAL_HOT_TAP_WATER_RELATIVE_ERROR_STD_DEV = 0.2
+# Constants for school
+SCHOOL_HOT_TAP_WATER_RELATIVE_ERROR_STD_DEV = 0.2
+KWH_HOT_TAP_WATER_PER_YEAR_M2_SCHOOL = 7
+KWH_SPACE_HEATING_PER_YEAR_M2_SCHOOL = 25
+
 
 """
 This script generates the following, for ResidentialBuildingAgents:
@@ -83,30 +92,37 @@ def main():
     with open(resource_filename(DATA_PATH, CONFIG_FILE), "r") as json_file:
         config_data = json.load(json_file)
 
-    residential_building_agents, total_gross_floor_area = get_all_residential_building_agents(config_data)
+    residential_building_agents, total_gross_floor_area_residential = get_all_residential_building_agents(config_data)
+
     # Need to freeze, else can't use it as key in dict
     residential_building_agents_frozen_set = frozenset(residential_building_agents)
+
     if residential_building_agents_frozen_set in all_data_sets:
         logger.info('Already had mock data for the configuration described in %s, exiting generate_mock_data' %
                     CONFIG_FILE)
     else:
         # So we have established that we need to generate new mock data.
-
+        logger.debug('Beginning mock data generation')
         # Load model
         model = sm.load(resource_filename(DATA_PATH, 'models/household_electricity_model.pickle'))
+        logger.debug('Model loaded')
 
         # Read in-data: Temperature and timestamps
         df_inputs, df_irrd = create_inputs_df(resource_filename(DATA_PATH, 'temperature_vetelangden.csv'),
                                               resource_filename(DATA_PATH, 'varberg_irradiation_W_m2_h.csv'),
                                               resource_filename(DATA_PATH, 'vetelangden_slim.csv'))
 
+        logger.debug('Input dataframes created')
         output_per_building = pd.DataFrame({'datetime': df_inputs.index})
         output_per_building.set_index('datetime', inplace=True)
+        logger.debug('Output dataframes created')
 
         total_time_elapsed = 0
         n_areas_done = 0
         n_areas = len(residential_building_agents)
+        logger.debug('{} areas to iterate over'.format(n_areas))
         for agent in residential_building_agents:
+            logger.debug('Entered agent loop')
             time_elapsed = simulate_and_add_to_output_df(dict(agent), df_inputs, df_irrd, model, output_per_building)
             n_areas_done = n_areas_done + 1
             n_areas_remaining = n_areas - n_areas_done
@@ -121,7 +137,7 @@ def main():
 
 
 def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd: pd.DataFrame,
-                                  model: RegressionResultsWrapper, output_per_building: pd.DataFrame):
+                                  model: RegressionResultsWrapper, output_per_actor: pd.DataFrame):
     start = time.time()
     agent = dict(agent)  # "Unfreezing" the frozenset
     logger.debug('Starting work on \'{}\''.format(agent['Name']))
@@ -131,10 +147,17 @@ def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd:
     seed_residential_heating = agent['RandomSeed'] + RESIDENTIAL_HEATING_SEED_OFFSET
     seed_commercial_electricity = agent['RandomSeed'] + COMMERCIAL_ELECTRICITY_SEED_OFFSET
     seed_commercial_heating = agent['RandomSeed'] + COMMERCIAL_HEATING_SEED_OFFSET
-    fraction_commercial = get_fraction_commercial(agent)
-    fraction_residential = 1.0 - fraction_commercial
+    seed_school_heating = agent["RandomSeed"] + SCHOOL_HEATING_SEED_OFFSET
+    fraction_commercial = agent['FractionCommercial'] if 'FractionCommercial' in agent else 0.0
+    fraction_school = agent['FractionSchool'] if 'FractionSchool' in agent else 0.0
+    logger.debug("Total non-residential fraction {}".format(fraction_commercial + fraction_school))
+    if fraction_school + fraction_commercial > 1:
+        logger.error("Total non-residential fractions for agent {} larger than 100%".format(agent["Name"]))
+        exit(1)
+    fraction_residential = 1.0 - fraction_commercial - fraction_school
     commercial_gross_floor_area = agent['GrossFloorArea'] * fraction_commercial
     residential_gross_floor_area = agent['GrossFloorArea'] * fraction_residential
+    school_gross_floor_area_m2 = agent['GrossFloorArea'] * fraction_school
 
     commercial_electricity_cons = simulate_commercial_area_electricity(commercial_gross_floor_area,
                                                                        seed_commercial_electricity, df_inputs.index)
@@ -147,11 +170,17 @@ def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd:
     household_electricity_cons = simulate_household_electricity_aggregated(
         df_inputs, model, residential_gross_floor_area, seed_residential_electricity)
 
-    output_per_building[get_elec_cons_key(agent['Name'])] = household_electricity_cons + commercial_electricity_cons
-    output_per_building[get_heat_cons_key(agent['Name'])] = residential_heating_cons + commercial_heating_cons
+    school_heating_cons = simulate_school_area_total_heating(school_gross_floor_area_m2, seed_school_heating,
+                                                             df_inputs)
 
-    output_per_building[get_pv_prod_key(agent['Name'])] = calculate_solar_prod(df_irrd['irradiation'], pv_area,
-                                                                               PV_EFFICIENCY)
+    # TODO: Migrate school electricity consumption from hardcoded to simulation (RES-175)
+    print("Adding output for agent {}", agent['Name'])
+    output_per_actor[get_elec_cons_key(agent['Name'])] = household_electricity_cons + commercial_electricity_cons
+    output_per_actor[get_heat_cons_key(agent['Name'])] = residential_heating_cons + commercial_heating_cons + \
+        school_heating_cons
+
+    output_per_actor[get_pv_prod_key(agent['Name'])] = calculate_solar_prod(df_irrd['irradiation'], pv_area,
+                                                                            PV_EFFICIENCY)
     end = time.time()
     time_elapsed = end - start
     logger.debug('Finished work on \'{}\', took {:.2f} seconds'.format(agent['Name'], time_elapsed))
@@ -256,11 +285,11 @@ def calculate_adjustment_for_energy_prev(model: RegressionResultsWrapper, energy
     @return: The autoregressive part of the simulated energy, as a float
     """
     return model.params['np.where(np.isnan(energy_prev), 0, energy_prev)'] * energy_prev + \
-           model.params['np.where(np.isnan(energy_prev), 0, np.power(energy_prev, 2))'] * np.power(energy_prev, 2) + \
-           model.params['np.where(np.isnan(energy_prev), 0, np.minimum(energy_prev, 0.3))'] * np.minimum(energy_prev,
-                                                                                                         0.3) + \
-           model.params['np.where(np.isnan(energy_prev), 0, np.minimum(energy_prev, 0.7))'] * np.minimum(energy_prev,
-                                                                                                         0.7)
+        model.params['np.where(np.isnan(energy_prev), 0, np.power(energy_prev, 2))'] * np.power(energy_prev, 2) + \
+        model.params['np.where(np.isnan(energy_prev), 0, np.minimum(energy_prev, 0.3))'] * np.minimum(energy_prev,
+                                                                                                      0.3) + \
+        model.params['np.where(np.isnan(energy_prev), 0, np.minimum(energy_prev, 0.7))'] * np.minimum(energy_prev,
+                                                                                                      0.7)
 
 
 def create_inputs_df(temperature_csv_path: str, irradiation_csv_path: str, heating_csv_path: str) -> \
@@ -334,14 +363,6 @@ def scale_energy_consumption(unscaled_simulated_values_kwh: pd.Series, m2: float
     current_yearly_sum = unscaled_simulated_values_kwh.iloc[:8766].sum()
     wanted_yearly_sum = m2 * kwh_per_year_per_m2
     return unscaled_simulated_values_kwh * (wanted_yearly_sum / current_yearly_sum)
-
-
-def get_fraction_commercial(agent: dict) -> float:
-    """If available, gets the 'FractionCommercial' field from the agent dict. Else returns 0."""
-    if 'FractionCommercial' in agent:
-        return agent['FractionCommercial']
-    else:
-        return 0.0
 
 
 def simulate_commercial_area_electricity(commercial_gross_floor_area_m2: float, random_seed: int,
@@ -420,6 +441,73 @@ def simulate_commercial_area_space_heating(commercial_gross_floor_area_m2: float
     # Scale
     scaled_series = scale_energy_consumption(pd.Series(sim_energy_unscaled, index=datetimes),
                                              commercial_gross_floor_area_m2, KWH_SPACE_HEATING_PER_YEAR_M2_COMMERCIAL)
+
+    return scaled_series
+
+
+def simulate_school_area_total_heating(school_gross_floor_area_m2: float, random_seed: int,
+                                       input_df: pd.DataFrame) -> pd.Series:
+    """
+    This function follows the recipe outlined in the corresponding function for commercial buildings.
+    Total energy demand ("load function") = space heating + hot water
+    @return A pd.Series with hourly total heating load, in kWh.
+    """
+    space_heating = simulate_school_area_space_heating(school_gross_floor_area_m2, random_seed, input_df)
+    hot_tap_water = simulate_school_area_hot_tap_water(school_gross_floor_area_m2, random_seed, input_df.index)
+    return space_heating + hot_tap_water
+
+
+def simulate_school_area_hot_tap_water(school_gross_floor_area_m2: float, random_seed: int,
+                                       datetimes: pd.DatetimeIndex) -> pd.Series:
+    """
+    Gets a factor based on the hour of day, multiplies it by a noise-factor, and scales it.
+    @return A pd.Series with hot tap water load for the area, scaled to KWH_SPACE_HEATING_PER_YEAR_M2_SCHOOL.
+    """
+    time_factors = [get_school_heating_consumption_hourly_factor(x) for x in datetimes]
+    np.random.seed(random_seed)
+    relative_errors = np.random.normal(0, SCHOOL_HOT_TAP_WATER_RELATIVE_ERROR_STD_DEV, len(time_factors))
+    unscaled_values = time_factors * (1 + relative_errors)
+    unscaled_series = pd.Series(unscaled_values, index=datetimes)
+    scaled_series = scale_energy_consumption(unscaled_series, school_gross_floor_area_m2,
+                                             KWH_HOT_TAP_WATER_PER_YEAR_M2_SCHOOL)
+    return scaled_series
+
+
+def simulate_school_area_space_heating(school_gross_floor_area_m2: float, random_seed: int,
+                                       input_df: pd.DataFrame) -> pd.Series:
+    """
+    For more information, see https://doc.afdrift.se/display/RPJ/Commercial+areas and
+    https://doc.afdrift.se/display/RPJ/Coop+heating+energy+use+mock-up
+    @return A pd.Series with space heating load for the area, scaled to KWH_SPACE_HEATING_PER_YEAR_M2_SCHOOL.
+    """
+    # TODO: simulate_school_area_space_heating and simulate_commercial_area_space_heating could be generified, if we
+    #  extract the get_school_heating_consumption_hourly_factor function and the KWH_SPACE_HEATING_PER_YEAR_M2_SCHOOL
+    #  constant to parameters.
+    np.random.seed(random_seed)
+
+    # Probability that there is 0 heating demand:
+    predicted_prob_of_0 = input_df['temperature'].\
+        apply(lambda x: commercial_heating_model.probability_of_0_space_heating(x))
+    # Simulate whether there is 0 heating demand:
+    has_heat_demand = np.random.binomial(n=1, p=1 - predicted_prob_of_0)  # 1 if heat demand > 0
+
+    # Now, if heat demand non-zero, how much is it?
+    pred_given_non_0 = input_df['temperature'].\
+        apply(lambda x: commercial_heating_model.space_heating_given_more_than_0(x))
+    # Simulate
+    heat_given_non_0 = np.maximum(0, np.random.normal(loc=pred_given_non_0, scale=commercial_heating_model.LM_STD_DEV))
+
+    # Combine the above
+    sim_energy_unscaled = np.where(has_heat_demand == 0, 0, heat_given_non_0)
+
+    # Adjust for opening times
+    datetimes = input_df.index
+    time_factors = [get_school_heating_consumption_hourly_factor(x) for x in datetimes]
+    sim_energy_unscaled = sim_energy_unscaled * time_factors
+
+    # Scale
+    scaled_series = scale_energy_consumption(pd.Series(sim_energy_unscaled, index=datetimes),
+                                             school_gross_floor_area_m2, KWH_SPACE_HEATING_PER_YEAR_M2_SCHOOL)
 
     return scaled_series
 

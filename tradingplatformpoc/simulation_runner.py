@@ -2,7 +2,7 @@ import datetime
 import json
 import logging
 import pickle
-from typing import Dict, List
+from typing import Collection, Dict, List, Tuple
 
 import pandas as pd
 
@@ -27,7 +27,7 @@ from tradingplatformpoc.trading_platform_utils import flatten_collection, get_in
 logger = logging.getLogger(__name__)
 
 
-def run_trading_simulations(mock_datas_pickle_path: str):
+def run_trading_simulations(mock_datas_pickle_path: str, results_path: str):
     """The core loop of the simulation, running through the desired time period and performing trades."""
 
     logger.info("Starting trading simulations")
@@ -46,15 +46,15 @@ def run_trading_simulations(mock_datas_pickle_path: str):
     buildings_mock_data = get_generated_mock_data(config_data, mock_datas_pickle_path)
 
     # Output files
-    clearing_prices_file = open('./clearing_prices.csv', 'w')
+    clearing_prices_file = open(results_path + 'clearing_prices.csv', 'w')
     clearing_prices_file.write('period,electricity,heating\n')
-    trades_csv_file = open('./trades.csv', 'w')
+    trades_csv_file = open(results_path + 'trades.csv', 'w')
     trades_csv_file.write('period,agent,by_external,action,resource,market,quantity,price\n')
-    bids_csv_file = open('./bids.csv', 'w')
+    bids_csv_file = open(results_path + 'bids.csv', 'w')
     bids_csv_file.write('period,agent,by_external,action,resource,quantity,price,was_accepted\n')
-    extra_costs_file = open('./extra_costs.csv', 'w')
+    extra_costs_file = open(results_path + 'extra_costs.csv', 'w')
     extra_costs_file.write('period,agent,cost\n')
-    storage_levels_csv_file = open('./storages.csv', 'w')
+    storage_levels_csv_file = open(results_path + 'storages.csv', 'w')
     storage_levels_csv_file.write('period,agent,capacity_kwh\n')
     # Output lists
     clearing_prices_historical: Dict[datetime.datetime, Dict[Resource, float]] = {}
@@ -112,24 +112,69 @@ def run_trading_simulations(mock_datas_pickle_path: str):
         data_store_entity.add_external_heating_sell(period, external_heating_sell_quantity)
 
         wholesale_price_elec = data_store_entity.get_exact_wholesale_price(period, Resource.ELECTRICITY)
+        # This can't actually be calculated until the end of the month. Should be changed as part of the TODO below
         wholesale_price_heat = data_store_entity.get_exact_wholesale_price(period, Resource.HEATING)
         extra_costs = balance_manager.calculate_costs(bids_with_acceptance_status, all_trades_for_period,
                                                       clearing_prices, wholesale_price_elec, wholesale_price_heat)
         extra_costs_file.write(write_extra_costs_rows(period, extra_costs))
         all_extra_costs_dict[period] = extra_costs
 
-    # TODO: Calculate exact district heating prices. Calculate "extra_costs" based on this.
+    # TODO: Calculate "extra_costs" based on the below (exact district heating prices)
     #  For months where the exact price exceeded the estimated price, distribute the cost among agents,
     #  and vice versa when the estimated price exceeded the estimated price.
+    # These are needed in results_calculator
+    exact_retail_electricity_prices_by_period, \
+        exact_wholesale_electricity_prices_by_period, \
+        exact_retail_heating_prices_by_year_and_month, \
+        exact_wholesale_heating_prices_by_year_and_month = get_exact_external_prices(data_store_entity, trading_periods)
+
     # Exit gracefully
     clearing_prices_file.close()
     trades_csv_file.close()
     bids_csv_file.close()
     extra_costs_file.close()
 
-    results_calculator.print_basic_results(agents, all_trades_list, all_extra_costs_dict, data_store_entity)
+    results_calculator.print_basic_results(agents, all_trades_list, all_extra_costs_dict,
+                                           exact_retail_electricity_prices_by_period,
+                                           exact_wholesale_electricity_prices_by_period,
+                                           exact_retail_heating_prices_by_year_and_month,
+                                           exact_wholesale_heating_prices_by_year_and_month)
 
     return clearing_prices_historical, all_trades_list, all_extra_costs_dict
+
+
+def get_exact_external_prices(data_store_entity: DataStore, trading_periods: Collection[datetime.datetime]) -> \
+        Tuple[Dict[datetime.datetime, float], Dict[datetime.datetime, float],
+              Dict[Tuple[int, int], float], Dict[Tuple[int, int], float]]:
+    """
+    Gets the exact external prices for resource and period. It saves a lot of time to do these calculations once,
+    instead of for example once for each trade. Will be used in results_calculator and when calculating cost
+    corrections based on the difference between estimated and exact prices for district heating.
+    @return Four dictionaries:
+        exact_retail_electricity_prices_by_period
+        exact_wholesale_electricity_prices_by_period
+        exact_retail_heating_prices_by_year_and_month
+        exact_wholesale_heating_prices_by_year_and_month
+    """
+    exact_retail_electricity_prices_by_period: Dict[datetime.datetime, float] = {}
+    exact_wholesale_electricity_prices_by_period: Dict[datetime.datetime, float] = {}
+    exact_retail_heating_prices_by_year_and_month: Dict[Tuple[int, int], float] = {}
+    exact_wholesale_heating_prices_by_year_and_month: Dict[Tuple[int, int], float] = {}
+    for period in trading_periods:
+        exact_retail_electricity_prices_by_period[period] = \
+            data_store_entity.get_exact_retail_price(period, Resource.ELECTRICITY)
+        exact_wholesale_electricity_prices_by_period[period] = \
+            data_store_entity.get_exact_wholesale_price(period, Resource.ELECTRICITY)
+    for (year, month) in set([(dt.year, dt.month) for dt in trading_periods]):
+        first_day_of_month = datetime.datetime(year, month, 1)  # Which day it is doesn't matter
+        exact_retail_heating_prices_by_year_and_month[(year, month)] = \
+            data_store_entity.get_exact_retail_price(first_day_of_month, Resource.HEATING)
+        exact_wholesale_heating_prices_by_year_and_month[(year, month)] = \
+            data_store_entity.get_exact_wholesale_price(first_day_of_month, Resource.HEATING)
+    return exact_retail_electricity_prices_by_period, \
+        exact_wholesale_electricity_prices_by_period, \
+        exact_retail_heating_prices_by_year_and_month, \
+        exact_wholesale_heating_prices_by_year_and_month
 
 
 def get_generated_mock_data(config_data: dict, mock_datas_pickle_path: str):
@@ -168,14 +213,19 @@ def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings
     for agent in config_data["Agents"]:
         agent_type = agent["Type"]
         agent_name = agent['Name']
-        if agent_type == "ResidentialBuildingAgent":
+        if agent_type == "BuildingAgent":
             elec_cons_series = buildings_mock_data[get_elec_cons_key(agent_name)]
             heat_cons_series = buildings_mock_data[get_heat_cons_key(agent_name)]
             pv_prod_series = buildings_mock_data[get_pv_prod_key(agent_name)]
-            building_digital_twin = StaticDigitalTwin(electricity_usage=elec_cons_series,
-                                                      electricity_production=pv_prod_series,
-                                                      heating_usage=heat_cons_series)
-            agents.append(BuildingAgent(data_store_entity, building_digital_twin, guid=agent_name))
+            if agent_name == "SchoolBuildingAgent":
+                school_digital_twin = StaticDigitalTwin(electricity_usage=school_elec_cons,
+                                                        heating_usage=heat_cons_series)
+                agents.append(BuildingAgent(data_store_entity, school_digital_twin, guid=agent_name))
+            else:
+                building_digital_twin = StaticDigitalTwin(electricity_usage=elec_cons_series,
+                                                          electricity_production=pv_prod_series,
+                                                          heating_usage=heat_cons_series)
+                agents.append(BuildingAgent(data_store_entity, building_digital_twin, guid=agent_name))
         elif agent_type == "StorageAgent":
             storage_digital_twin = StorageDigitalTwin(max_capacity_kwh=agent["Capacity"],
                                                       max_charge_rate_fraction=agent["ChargeRate"],
@@ -191,14 +241,10 @@ def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings
             pv_digital_twin = StaticDigitalTwin(electricity_production=data_store_entity.tornet_park_pv_prod)
             agents.append(PVAgent(data_store_entity, pv_digital_twin, guid=agent_name))
         elif agent_type == "CommercialBuildingAgent":
-            if agent_name == "GroceryStoreAgent":
-                grocery_store_digital_twin = StaticDigitalTwin(electricity_usage=coop_elec_cons,
-                                                               heating_usage=coop_heat_cons,
-                                                               electricity_production=data_store_entity.coop_pv_prod)
-                agents.append(BuildingAgent(data_store_entity, grocery_store_digital_twin, guid=agent_name))
-            if agent_name == "SchoolBuildingAgent":
-                school_digital_twin = StaticDigitalTwin(electricity_usage=school_elec_cons)
-                agents.append(BuildingAgent(data_store_entity, school_digital_twin, guid=agent_name))
+            grocery_store_digital_twin = StaticDigitalTwin(electricity_usage=coop_elec_cons,
+                                                           heating_usage=coop_heat_cons,
+                                                           electricity_production=data_store_entity.coop_pv_prod)
+            agents.append(BuildingAgent(data_store_entity, grocery_store_digital_twin, guid=agent_name))
         elif agent_type == "GridAgent":
             grid_agent = GridAgent(data_store_entity, Resource[agent["Resource"]],
                                    max_transfer_per_hour=agent["TransferRate"], guid=agent_name)

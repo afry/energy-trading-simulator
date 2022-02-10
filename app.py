@@ -32,7 +32,7 @@ else:
 # --- Format logger for print statements
 FORMAT = "%(asctime)-15s | %(levelname)-7s | %(name)-35.35s | %(message)s"
 
-file_handler = logging.FileHandler("./trading-platform-poc.log")
+file_handler = logging.FileHandler("trading-platform-poc.log")
 file_handler.setLevel(logging.DEBUG)  # File logging always DEBUG
 stream_handler = logging.StreamHandler()
 stream_handler.setLevel(console_log_level)
@@ -44,8 +44,9 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-# --- Define path to mock data
+# --- Define path to mock data and results
 mock_datas_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
+results_path = "./results/"
 
 if string_to_log_later is not None:
     logger.info(string_to_log_later)
@@ -74,7 +75,8 @@ if __name__ == '__main__':
             run_sim = False
             logger.info("Running simulation")
             st.spinner("Running simulation")
-            clearing_prices_dict, all_trades_list, all_extra_costs_dict = run_trading_simulations(mock_datas_path)
+            clearing_prices_dict, all_trades_list, all_extra_costs_dict = run_trading_simulations(mock_datas_path,
+                                                                                                  results_path)
             st.success('Simulation finished!')
 
         data_button = st.button("Click here to load data")
@@ -82,7 +84,7 @@ if __name__ == '__main__':
             data_button = False
             logger.info("Loading data")
             st.spinner("Loading data")
-            combined_price_df, bids_df, trades_df, storage_levels = load_data()
+            combined_price_df, bids_df, trades_df, storage_levels = load_data(results_path)
             st.session_state.combined_price_df = combined_price_df
             st.session_state.bids_df = bids_df
             st.session_state.trades_df = trades_df

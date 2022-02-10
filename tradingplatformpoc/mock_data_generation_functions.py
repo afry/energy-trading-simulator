@@ -1,3 +1,4 @@
+import datetime
 import logging
 import pickle
 
@@ -54,7 +55,7 @@ def get_all_residential_building_agents(config_data: dict):
     residential_building_agents = set()
     for agent in config_data["Agents"]:
         agent_type = agent["Type"]
-        if agent_type == "ResidentialBuildingAgent":
+        if agent_type == "BuildingAgent":
             key = frozenset(agent.items())
             residential_building_agents.add(key)
             total_gross_floor_area = total_gross_floor_area + agent['GrossFloorArea']
@@ -83,3 +84,55 @@ def get_commercial_heating_consumption_hourly_factor(hour: int) -> float:
         return 1.0
     else:
         return 0.5
+
+
+def get_school_heating_consumption_hourly_factor(timestamp: datetime.datetime) -> float:
+    """Assuming opening hours 8-17:00 except for weekends and breaks"""
+    if timestamp.weekday() == 5 or timestamp.weekday() == 6:  # Saturday or sunday
+        return 0.5
+    if is_break(timestamp):
+        return 0.5
+    if not(8 <= timestamp.hour < 17):
+        return 0.5
+    return 1
+
+
+def is_break(timestamp: datetime.datetime):
+    
+    current_year = timestamp.year
+
+    # Define breaks, return true if timestamp falls on break, false if not
+    # Summer break 15/6 - 15/8
+    summer_start = datetime.date(current_year, 6, 1)
+    summer_length = datetime.timedelta(days=60)
+
+    if summer_start <= timestamp <= summer_start + summer_length:
+        return True
+
+    # Fall break 1/11 - 7/11
+    fall_start = datetime.date(current_year, 11, 1)
+    fall_length = datetime.timedelta(days=7)
+    if fall_start <= timestamp <= fall_start + fall_length:
+        return True
+
+    # Christmas break 22/12 - 2/1
+    christmas_start = datetime.date(current_year, 12, 22)
+    christmas_length = datetime.timedelta(days=14)
+    if christmas_start <= timestamp <= christmas_start + christmas_length:
+        return True
+
+    # Sportlov 15/2 - 21/2
+    spring_start = datetime.date(current_year, 2, 1)
+    spring_length = datetime.timedelta(days=7)
+    if spring_start <= timestamp <= spring_start + spring_length:
+        return True
+
+    # Easter 07/04 - 14/04
+    # Easter moves yearly, but the since we are only interested in capturing the feature
+    # of a week off school sometime in mid-spring, we simply chose an average date.
+    easter_start = datetime.date(current_year, 4, 7)
+    easter_length = datetime.timedelta(days=7)
+    if easter_start <= timestamp <= easter_start + easter_length:
+        return True
+
+    return False

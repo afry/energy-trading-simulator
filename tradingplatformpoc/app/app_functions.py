@@ -53,8 +53,8 @@ def construct_storage_level_chart(storage_levels_df: pd.DataFrame, agent: str) -
 
 
 @st.cache
-def load_data():
-    clearing_prices_df = pd.read_csv("clearing_prices.csv")
+def load_data(results_path: str):
+    clearing_prices_df = pd.read_csv(results_path + "clearing_prices.csv")
     clearing_prices_df['period'] = pd.to_datetime(clearing_prices_df['period'])
     # Un-pivot the dataframe from wide to long, which is how Altair prefers it
     clearing_prices_df = clearing_prices_df.melt('period')
@@ -78,15 +78,15 @@ def load_data():
 
     prices_df = pd.concat([clearing_prices_df, retail_df, wholesale_df])
 
-    all_bids = pd.read_csv("bids.csv")
+    all_bids = pd.read_csv(results_path + "bids.csv")
     all_bids['period'] = pd.to_datetime(all_bids['period'])
     all_bids.drop(['by_external'], axis=1, inplace=True)  # Don't need this column
 
-    all_trades = pd.read_csv("trades.csv")
+    all_trades = pd.read_csv(results_path + "trades.csv")
     all_trades['period'] = pd.to_datetime(all_trades['period'])
     all_trades.drop(['by_external'], axis=1, inplace=True)  # Don't need this column
 
-    storage_levels = pd.read_csv("storages.csv")
+    storage_levels = pd.read_csv(results_path + "storages.csv")
     storage_levels['period'] = pd.to_datetime(storage_levels['period'])
 
     return prices_df, all_bids, all_trades, storage_levels
