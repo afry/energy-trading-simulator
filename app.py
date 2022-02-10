@@ -5,6 +5,7 @@ from tradingplatformpoc.app.app_constants import ALL_PAGES, BIDS_PAGE, LOAD_PAGE
 from tradingplatformpoc.app.app_functions import construct_price_chart, construct_storage_level_chart, load_data
 from tradingplatformpoc.bid import Resource
 from tradingplatformpoc.simulation_runner import run_trading_simulations
+import json
 import logging
 import sys
 
@@ -46,6 +47,7 @@ logger = logging.getLogger(__name__)
 
 # --- Define path to mock data and results
 mock_datas_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
+config_path = resource_filename("tradingplatformpoc.data", "jonstaka.json")
 results_path = "./results/"
 
 if string_to_log_later is not None:
@@ -68,7 +70,14 @@ if __name__ == '__main__':
             """
         )
     elif page_selected == SETUP_PAGE:
+        with open(config_path, "r") as jsonfile:
+            config_data = json.load(jsonfile)
+
         run_sim = st.button("Click here to run simulation")
+
+        st.write("Current experiment configuration:")
+        st.json(config_data)
+
         if run_sim:
             run_sim = False
             logger.info("Running simulation")
