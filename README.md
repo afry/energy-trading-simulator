@@ -39,7 +39,8 @@ Install package as editable (command automatically searches for the setup.py fil
 
         python scripts/generate_mock_data.py
 
-
+The resulting data is stored in a pickle file. To verify its contents, save an extract in a .csv file using the 
+[extraction script](scripts/extract_df_from_mock_datas_pickle_file.py).
 ## Run POC
 
 ### As script from terminal
@@ -47,6 +48,7 @@ From the root of the repository, run the main file:
 
         python main.py
 
+This will populate the results folder with outputs. In addition, a [log file](trading-platform-poc.log) is generated and stored in the repository root.
 ### As docker container
 Install Docker (verify installation by running "docker run hello-world"). Navigate to the root of the trading 
 platform-poc repository; build a docker image based on the Dockerfile
