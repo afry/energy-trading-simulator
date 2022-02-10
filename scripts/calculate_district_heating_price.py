@@ -1,7 +1,8 @@
-import numpy as np
-import pandas as pd
+from calendar import isleap, monthrange
 
-from calendar import monthrange, isleap
+import numpy as np
+
+import pandas as pd
 
 from tradingplatformpoc.bid import Action, Resource
 
@@ -12,7 +13,7 @@ This script calculates some numbers that are needed to exactly calculate the dis
 pricing model used by Varberg Energi. It is based on the trades specified in the PATH_TO_TRADES_CSV file. If the script
 fails to run properly, double check that this path is indeed correct!
 The script was used to gather numbers for the https://doc.afdrift.se/display/RPJ/District+heating+Varberg%3A+Pricing
-Confluence page. 
+Confluence page.
 """
 
 
@@ -57,9 +58,9 @@ trades = pd.read_csv(PATH_TO_TRADES_CSV, index_col=0)
 # all_heating_use = trades.loc[(trades.action == Action.SELL.name) &
 #                              (trades.resource == Resource.HEATING.name) &
 #                              trades.by_external].copy()
-all_heating_use = trades.loc[(trades.action == Action.BUY.name) &
-                             (trades.resource == Resource.HEATING.name) &
-                             (trades.agent == 'ResidentialBuildingAgentBC1')].copy()
+all_heating_use = trades.loc[(trades.action == Action.BUY.name)
+                             & (trades.resource == Resource.HEATING.name)
+                             & (trades.agent == 'ResidentialBuildingAgentBC1')].copy()
 all_heating_use.index = pd.to_datetime(all_heating_use.index)
 all_heating_use['month'] = all_heating_use.index.month
 all_heating_use['day_of_month'] = all_heating_use.index.day
