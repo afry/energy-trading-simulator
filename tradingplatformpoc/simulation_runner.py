@@ -2,7 +2,7 @@ import datetime
 import json
 import logging
 import pickle
-from typing import Dict, List
+from typing import Collection, Dict, List, Tuple
 
 import pandas as pd
 
@@ -112,24 +112,69 @@ def run_trading_simulations(mock_datas_pickle_path: str):
         data_store_entity.add_external_heating_sell(period, external_heating_sell_quantity)
 
         wholesale_price_elec = data_store_entity.get_exact_wholesale_price(period, Resource.ELECTRICITY)
+        # This can't actually be calculated until the end of the month. Should be changed as part of the TODO below
         wholesale_price_heat = data_store_entity.get_exact_wholesale_price(period, Resource.HEATING)
         extra_costs = balance_manager.calculate_costs(bids_with_acceptance_status, all_trades_for_period,
                                                       clearing_prices, wholesale_price_elec, wholesale_price_heat)
         extra_costs_file.write(write_extra_costs_rows(period, extra_costs))
         all_extra_costs_dict[period] = extra_costs
 
-    # TODO: Calculate exact district heating prices. Calculate "extra_costs" based on this.
+    # TODO: Calculate "extra_costs" based on the below (exact district heating prices)
     #  For months where the exact price exceeded the estimated price, distribute the cost among agents,
     #  and vice versa when the estimated price exceeded the estimated price.
+    # These are needed in results_calculator
+    exact_retail_electricity_prices_by_period, \
+        exact_wholesale_electricity_prices_by_period, \
+        exact_retail_heating_prices_by_year_and_month, \
+        exact_wholesale_heating_prices_by_year_and_month = get_exact_external_prices(data_store_entity, trading_periods)
+
     # Exit gracefully
     clearing_prices_file.close()
     trades_csv_file.close()
     bids_csv_file.close()
     extra_costs_file.close()
 
-    results_calculator.print_basic_results(agents, all_trades_list, all_extra_costs_dict, data_store_entity)
+    results_calculator.print_basic_results(agents, all_trades_list, all_extra_costs_dict,
+                                           exact_retail_electricity_prices_by_period,
+                                           exact_wholesale_electricity_prices_by_period,
+                                           exact_retail_heating_prices_by_year_and_month,
+                                           exact_wholesale_heating_prices_by_year_and_month)
 
     return clearing_prices_historical, all_trades_list, all_extra_costs_dict
+
+
+def get_exact_external_prices(data_store_entity: DataStore, trading_periods: Collection[datetime.datetime]) -> \
+        Tuple[Dict[datetime.datetime, float], Dict[datetime.datetime, float],
+              Dict[Tuple[int, int], float], Dict[Tuple[int, int], float]]:
+    """
+    Gets the exact external prices for resource and period. It saves a lot of time to do these calculations once,
+    instead of for example once for each trade. Will be used in results_calculator and when calculating cost
+    corrections based on the difference between estimated and exact prices for district heating.
+    @return Four dictionaries:
+        exact_retail_electricity_prices_by_period
+        exact_wholesale_electricity_prices_by_period
+        exact_retail_heating_prices_by_year_and_month
+        exact_wholesale_heating_prices_by_year_and_month
+    """
+    exact_retail_electricity_prices_by_period: Dict[datetime.datetime, float] = {}
+    exact_wholesale_electricity_prices_by_period: Dict[datetime.datetime, float] = {}
+    exact_retail_heating_prices_by_year_and_month: Dict[Tuple[int, int], float] = {}
+    exact_wholesale_heating_prices_by_year_and_month: Dict[Tuple[int, int], float] = {}
+    for period in trading_periods:
+        exact_retail_electricity_prices_by_period[period] = \
+            data_store_entity.get_exact_retail_price(period, Resource.ELECTRICITY)
+        exact_wholesale_electricity_prices_by_period[period] = \
+            data_store_entity.get_exact_wholesale_price(period, Resource.ELECTRICITY)
+    for (year, month) in set([(dt.year, dt.month) for dt in trading_periods]):
+        first_day_of_month = datetime.datetime(year, month, 1)  # Which day it is doesn't matter
+        exact_retail_heating_prices_by_year_and_month[(year, month)] = \
+            data_store_entity.get_exact_retail_price(first_day_of_month, Resource.HEATING)
+        exact_wholesale_heating_prices_by_year_and_month[(year, month)] = \
+            data_store_entity.get_exact_wholesale_price(first_day_of_month, Resource.HEATING)
+    return exact_retail_electricity_prices_by_period, \
+        exact_wholesale_electricity_prices_by_period, \
+        exact_retail_heating_prices_by_year_and_month, \
+        exact_wholesale_heating_prices_by_year_and_month
 
 
 def get_generated_mock_data(config_data: dict, mock_datas_pickle_path: str):
