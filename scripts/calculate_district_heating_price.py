@@ -6,6 +6,15 @@ from calendar import monthrange, isleap
 from tradingplatformpoc.bid import Action, Resource
 
 
+"""
+This script calculates some numbers that are needed to exactly calculate the district heating cost, according to the
+pricing model used by Varberg Energi. It is based on the data from the last ran experiment, since it reads data from the
+"trades.csv" file.
+It was used to gather numbers for the https://doc.afdrift.se/display/RPJ/District+heating+Varberg%3A+Pricing
+Confluence page. 
+"""
+
+
 def get_base_energy_price(month_of_year: int):
     if 5 <= month_of_year <= 9:
         return 0.33  # Cheaper in summer
