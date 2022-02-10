@@ -53,8 +53,8 @@ class BuildingAgent(IAgent):
                                          accepted_bids_for_agent: List[BidWithAcceptanceStatus]) -> List[Trade]:
         trades = []
         for resource in ALL_IMPLEMENTED_RESOURCES:
-            retail_price = self.data_store.get_retail_price(period, resource)
-            wholesale_price = self.data_store.get_wholesale_price(period, resource)
+            retail_price = self.data_store.get_estimated_retail_price(period, resource)
+            wholesale_price = self.data_store.get_estimated_wholesale_price(period, resource)
             usage = self.get_actual_usage(period, resource)
             clearing_price = clearing_prices[resource]
             if usage > 0:
