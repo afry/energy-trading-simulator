@@ -5,5 +5,5 @@ This folder holds the outputs generated during a job of the trading-platform-poc
 - clearing_prices.csv: 
 - extra_costs.csv: 
 - trades.csv: 
-- trading-platform-poc.log
-- 
+- storages.csv: 
+- bids.csv: 
