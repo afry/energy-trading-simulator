@@ -5,12 +5,13 @@ from calendar import monthrange, isleap
 
 from tradingplatformpoc.bid import Action, Resource
 
+PATH_TO_TRADES_CSV = "../trades.csv"
 
 """
 This script calculates some numbers that are needed to exactly calculate the district heating cost, according to the
-pricing model used by Varberg Energi. It is based on the data from the last ran experiment, since it reads data from the
-"trades.csv" file.
-It was used to gather numbers for the https://doc.afdrift.se/display/RPJ/District+heating+Varberg%3A+Pricing
+pricing model used by Varberg Energi. It is based on the trades specified in the PATH_TO_TRADES_CSV file. If the script
+fails to run properly, double check that this path is indeed correct!
+The script was used to gather numbers for the https://doc.afdrift.se/display/RPJ/District+heating+Varberg%3A+Pricing
 Confluence page. 
 """
 
@@ -52,7 +53,7 @@ def get_effect_fee(monthly_peak_day_avg_consumption_kw: float):
     return 74 * monthly_peak_day_avg_consumption_kw
 
 
-trades = pd.read_csv("../trades.csv", index_col=0)
+trades = pd.read_csv(PATH_TO_TRADES_CSV, index_col=0)
 # all_heating_use = trades.loc[(trades.action == Action.SELL.name) &
 #                              (trades.resource == Resource.HEATING.name) &
 #                              trades.by_external].copy()
