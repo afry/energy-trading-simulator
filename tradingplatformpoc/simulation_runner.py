@@ -2,6 +2,7 @@ import datetime
 import json
 import logging
 import pickle
+import shutil
 from typing import Dict, List
 
 import pandas as pd
@@ -32,8 +33,10 @@ def run_trading_simulations(mock_datas_pickle_path: str, results_path: str):
 
     logger.info("Starting trading simulations")
 
-    with open(resource_filename("tradingplatformpoc.data", "jonstaka.json"), "r") as jsonfile:
+    config_filename = resource_filename("tradingplatformpoc.data", "jonstaka.json")
+    with open(config_filename, "r") as jsonfile:
         config_data = json.load(jsonfile)
+        shutil.copyfile(config_filename, results_path + 'config_used.json')
 
     # Initialize data store
     data_store_entity = DataStore.from_csv_files(config_area_info=config_data["AreaInfo"])

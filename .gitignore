@@ -33,9 +33,9 @@ clearing_prices.csv
 bids.csv
 trades.csv
 extra_costs.csv
-bids.csv
 storages.csv
 scripts/agent_elec_cons.csv
+/results/config_used.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
