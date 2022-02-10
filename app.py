@@ -1,8 +1,8 @@
 from pkg_resources import resource_filename
 
-from tradingplatformpoc.app.app_constants import ALL_PAGES, BIDS_PAGE, SELECT_PAGE_RADIO_LABEL, START_PAGE
-from tradingplatformpoc.app.app_functions import construct_price_chart, construct_storage_level_chart, load_data, \
-    select_page_radio
+from tradingplatformpoc.app.app_constants import ALL_PAGES, BIDS_PAGE, LOAD_PAGE, SELECT_PAGE_RADIO_LABEL, SETUP_PAGE, \
+    START_PAGE
+from tradingplatformpoc.app.app_functions import construct_price_chart, construct_storage_level_chart, load_data
 from tradingplatformpoc.bid import Resource
 from tradingplatformpoc.simulation_runner import run_trading_simulations
 import logging
@@ -52,24 +52,22 @@ if string_to_log_later is not None:
     logger.info(string_to_log_later)
 
 if __name__ == '__main__':
-    st.write(
-        """
-        # Prototype data presentation app for energy microgrid trading platform
-        
-        We want to be able to upload, select and run simulations, and evaluate the results with plots.
-        """
-    )
 
     st.sidebar.write("""
     # Navigation
     """)
 
-    page_sel_placeholder = st.sidebar.empty()
-    # Will be disabled on startup, and enabled once data has been loaded
-    page_selected = select_page_radio(page_sel_placeholder, SELECT_PAGE_RADIO_LABEL + " (load data first)", ALL_PAGES,
-                                      'combined_price_df' not in st.session_state)
+    page_selected = st.sidebar.radio(SELECT_PAGE_RADIO_LABEL, ALL_PAGES)
 
     if page_selected == START_PAGE:
+        st.write(
+            """
+            # Prototype data presentation app for energy microgrid trading platform
+
+            We want to be able to upload, select and run simulations, and evaluate the results with plots.
+            """
+        )
+    elif page_selected == SETUP_PAGE:
         run_sim = st.button("Click here to run simulation")
         if run_sim:
             run_sim = False
@@ -79,6 +77,7 @@ if __name__ == '__main__':
                                                                                                   results_path)
             st.success('Simulation finished!')
 
+    elif page_selected == LOAD_PAGE:
         data_button = st.button("Click here to load data")
         if data_button:
             data_button = False
@@ -91,7 +90,6 @@ if __name__ == '__main__':
             st.session_state.storage_levels = storage_levels
             st.session_state.agents_sorted = sorted(bids_df.agent.unique())
             st.success("Data loaded!")
-            page_selected = select_page_radio(page_sel_placeholder, SELECT_PAGE_RADIO_LABEL, ALL_PAGES, False)
 
             price_chart = construct_price_chart(combined_price_df, Resource.ELECTRICITY)
 
@@ -101,15 +99,18 @@ if __name__ == '__main__':
             st.altair_chart(st.session_state.price_chart, use_container_width=True)
 
     elif page_selected == BIDS_PAGE:
-        agent_chosen = st.selectbox(label='Choose agent', options=st.session_state.agents_sorted)
-        st.write('Bids for ' + agent_chosen + ':')
-        st.dataframe(st.session_state.bids_df.loc[st.session_state.bids_df.agent == agent_chosen].
-                     drop(['agent'], axis=1))
-        st.write('Trades for ' + agent_chosen + ':')
-        st.dataframe(st.session_state.trades_df.loc[st.session_state.trades_df.agent == agent_chosen].
-                     drop(['agent'], axis=1))
+        if 'combined_price_df' in st.session_state:
+            agent_chosen = st.selectbox(label='Choose agent', options=st.session_state.agents_sorted)
+            st.write('Bids for ' + agent_chosen + ':')
+            st.dataframe(st.session_state.bids_df.loc[st.session_state.bids_df.agent == agent_chosen].
+                         drop(['agent'], axis=1))
+            st.write('Trades for ' + agent_chosen + ':')
+            st.dataframe(st.session_state.trades_df.loc[st.session_state.trades_df.agent == agent_chosen].
+                         drop(['agent'], axis=1))
 
-        if agent_chosen in st.session_state.storage_levels.agent.unique():
-            st.write('Charging level over time for ' + agent_chosen + ':')
-            storage_chart = construct_storage_level_chart(st.session_state.storage_levels, agent_chosen)
-            st.altair_chart(storage_chart, use_container_width=True)
+            if agent_chosen in st.session_state.storage_levels.agent.unique():
+                st.write('Charging level over time for ' + agent_chosen + ':')
+                storage_chart = construct_storage_level_chart(st.session_state.storage_levels, agent_chosen)
+                st.altair_chart(storage_chart, use_container_width=True)
+        else:
+            st.write('Run simulations and load data first!')

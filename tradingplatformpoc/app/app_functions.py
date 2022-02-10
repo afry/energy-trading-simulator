@@ -7,8 +7,6 @@ import pandas as pd
 from pkg_resources import resource_filename
 
 import streamlit as st
-from streamlit.delta_generator import DeltaGenerator
-from streamlit.type_util import OptionSequence
 
 from tradingplatformpoc import data_store
 from tradingplatformpoc.app.app_constants import DATA_PATH, LOCAL_PRICE_STR, RETAIL_PRICE_STR, WHOLESALE_PRICE_STR
@@ -90,7 +88,3 @@ def load_data(results_path: str):
     storage_levels['period'] = pd.to_datetime(storage_levels['period'])
 
     return prices_df, all_bids, all_trades, storage_levels
-
-
-def select_page_radio(placeholder: DeltaGenerator, label, selections: OptionSequence, disabled: bool) -> str:
-    return placeholder.radio(label, selections, disabled=disabled)
