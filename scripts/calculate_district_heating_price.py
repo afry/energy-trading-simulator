@@ -5,7 +5,7 @@ from calendar import monthrange, isleap
 
 from tradingplatformpoc.bid import Action, Resource
 
-PATH_TO_TRADES_CSV = "../trades.csv"
+PATH_TO_TRADES_CSV = "../results/trades.csv"
 
 """
 This script calculates some numbers that are needed to exactly calculate the district heating cost, according to the
