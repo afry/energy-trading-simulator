@@ -47,6 +47,10 @@ class Trade:
         self.market = market
         self.period = period
 
+    def with_modified_price(self, new_price: float):
+        return Trade(self.action, self.resource, self.quantity, new_price, self.source, self.by_external, self.market,
+                     self.period)
+
     def __str__(self):
         return "{},{},{},{},{},{},{},{}".format(self.period,
                                                 self.source,
