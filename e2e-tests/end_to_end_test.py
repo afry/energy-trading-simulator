@@ -18,7 +18,8 @@ class Test(TestCase):
         """
         mock_datas_file_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
 
-        clearing_prices, all_trades, all_extra_costs = simulation_runner.run_trading_simulations(mock_datas_file_path)
+        clearing_prices, all_trades, all_extra_costs = simulation_runner.run_trading_simulations(mock_datas_file_path,
+                                                                                                 "../results/")
 
         for period in clearing_prices.keys():
             trades_for_period = [x for x in all_trades if x.period == period]
