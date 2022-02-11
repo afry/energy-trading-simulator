@@ -61,7 +61,6 @@ def expected_effect_fee(period: datetime.datetime) -> float:
 
 def get_base_marginal_price(month_of_year: int) -> float:
     """'Summer price' during May-September, 'Winter price' other months."""
-    # TODO: Unit test
     if 5 <= month_of_year <= 9:
         return MARGINAL_PRICE_SUMMER  # Cheaper in summer
     else:
@@ -108,7 +107,6 @@ def exact_effect_fee(monthly_peak_day_avg_consumption_kw: float) -> float:
     @param monthly_peak_day_avg_consumption_kw Calculated by taking the day during the month which has the highest
         heating energy use, and taking the average hourly heating use that day.
     """
-    # TODO: Unit test
     return EFFECT_PRICE * monthly_peak_day_avg_consumption_kw
 
 
@@ -131,7 +129,6 @@ def get_grid_fee_for_month(jan_feb_hourly_avg_consumption_kw: float, year: int, 
     The grid fee is based on the average consumption in kW during January and February.
     This fee is then spread out evenly during the year.
     """
-    # TODO: Unit test
     days_in_month = monthrange(year, month_of_year)[1]
     days_in_year = 366 if isleap(year) else 365
     fraction_of_year = days_in_month / days_in_year
