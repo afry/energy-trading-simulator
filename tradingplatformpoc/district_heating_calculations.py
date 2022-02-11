@@ -1,4 +1,5 @@
 import datetime
+import logging
 from calendar import isleap, monthrange
 
 import pandas as pd
@@ -18,6 +19,8 @@ GRID_FEE_MARGINAL_400_PLUS = 938
 
 MARGINAL_PRICE_WINTER = 0.55
 MARGINAL_PRICE_SUMMER = 0.33
+
+logger = logging.getLogger(__name__)
 
 """
 For a more thorough explanation of the district heating pricing mechanism, see
@@ -140,11 +143,12 @@ def calculate_jan_feb_avg_heating_sold(all_external_heating_sells: pd.Series, pe
     """
     Calculates the average effect (in kW) of heating sold in the previous January-February.
     """
-    # TODO: When we haven't got the necessary data in self.all_external_heating_sells, this will return np.nan.
-    #  Need to figure out a way around this, where we can use an estimate or something
     year_we_are_interested_in = period.year - 1 if period.month <= 2 else period.year
     subset = (all_external_heating_sells.index.year == year_we_are_interested_in) & \
-             (all_external_heating_sells.index.month.isin([1, 2]))
+             (all_external_heating_sells.index.month <= 2)
+    if not any(subset):
+        logger.warning("No data to base grid fee on, will 'cheat' and use future data")
+        subset = (all_external_heating_sells.index.month <= 2)
     return all_external_heating_sells[subset].mean()
 
 
