@@ -133,6 +133,7 @@ def run_trading_simulations(mock_datas_pickle_path: str, results_path: str):
     trades_csv_file.close()
     bids_csv_file.close()
     extra_costs_file.close()
+    storage_levels_csv_file.close()
 
     results_calculator.print_basic_results(agents, all_trades_list, all_extra_costs_dict,
                                            exact_retail_electricity_prices_by_period,
