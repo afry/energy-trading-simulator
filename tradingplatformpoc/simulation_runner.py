@@ -75,6 +75,9 @@ def run_trading_simulations(mock_datas_pickle_path: str, results_path: str):
     trading_periods = get_intersection(buildings_mock_data.index.tolist(),
                                        data_store_entity.get_nordpool_data_datetimes())
     for period in trading_periods:
+        if period.day == period.hour == 1:
+            logger.info("Simulations entering {:%B}".format(period))
+
         # Get all bids
         bids = [agent.make_bids(period, clearing_prices_historical) for agent in agents]
 
@@ -130,26 +133,19 @@ def run_trading_simulations(mock_datas_pickle_path: str, results_path: str):
         all_extra_costs_dict[period] = extra_costs
 
     # Simulations finished. Now, we need to go through and calculate the exact district heating price for each month
-    exact_retail_heating_prices_by_year_and_month: Dict[Tuple[int, int], float] = {}
-    exact_wholesale_heating_prices_by_year_and_month: Dict[Tuple[int, int], float] = {}
-    estimated_retail_heating_prices_by_year_and_month: Dict[Tuple[int, int], float] = {}
-    estimated_wholesale_heating_prices_by_year_and_month: Dict[Tuple[int, int], float] = {}
-    for (year, month) in set([(dt.year, dt.month) for dt in trading_periods]):
-        first_day_of_month = datetime.datetime(year, month, 1)  # Which day it is doesn't matter
-        exact_retail_heating_prices_by_year_and_month[(year, month)] = \
-            data_store_entity.get_exact_retail_price(first_day_of_month, Resource.HEATING)
-        exact_wholesale_heating_prices_by_year_and_month[(year, month)] = \
-            data_store_entity.get_exact_wholesale_price(first_day_of_month, Resource.HEATING)
-        estimated_retail_heating_prices_by_year_and_month[(year, month)] = \
-            data_store_entity.get_estimated_retail_price(first_day_of_month, Resource.HEATING)
-        estimated_wholesale_heating_prices_by_year_and_month[(year, month)] = \
-            data_store_entity.get_estimated_wholesale_price(first_day_of_month, Resource.HEATING)
+    estimated_retail_heating_prices_by_year_and_month, \
+        estimated_wholesale_heating_prices_by_year_and_month, \
+        exact_retail_heating_prices_by_year_and_month, \
+        exact_wholesale_heating_prices_by_year_and_month = get_external_heating_prices(data_store_entity,
+                                                                                       trading_periods)
 
     heat_cost_discr_corrections = correct_for_exact_heating_price(trading_periods, all_trades_list,
                                                                   exact_retail_heating_prices_by_year_and_month,
                                                                   exact_wholesale_heating_prices_by_year_and_month,
                                                                   estimated_retail_heating_prices_by_year_and_month,
                                                                   estimated_wholesale_heating_prices_by_year_and_month)
+
+    # Add these corrections based on external heating cost discrepancies into extra_costs_file and all_extra_costs_dict
     for period in trading_periods:
         extra_costs_file.write(write_extra_costs_rows(period, heat_cost_discr_corrections[period]))
         all_extra_costs_dict[period] = add_numeric_dicts(all_extra_costs_dict[period],
@@ -170,6 +166,31 @@ def run_trading_simulations(mock_datas_pickle_path: str, results_path: str):
                                            exact_wholesale_heating_prices_by_year_and_month)
 
     return clearing_prices_historical, all_trades_list, all_extra_costs_dict
+
+
+def get_external_heating_prices(data_store_entity: DataStore, trading_periods: Collection[datetime.datetime]) -> \
+        Tuple[Dict[Tuple[int, int], float],
+              Dict[Tuple[int, int], float],
+              Dict[Tuple[int, int], float],
+              Dict[Tuple[int, int], float]]:
+    exact_retail_heating_prices_by_year_and_month: Dict[Tuple[int, int], float] = {}
+    exact_wholesale_heating_prices_by_year_and_month: Dict[Tuple[int, int], float] = {}
+    estimated_retail_heating_prices_by_year_and_month: Dict[Tuple[int, int], float] = {}
+    estimated_wholesale_heating_prices_by_year_and_month: Dict[Tuple[int, int], float] = {}
+    for (year, month) in set([(dt.year, dt.month) for dt in trading_periods]):
+        first_day_of_month = datetime.datetime(year, month, 1)  # Which day it is doesn't matter
+        exact_retail_heating_prices_by_year_and_month[(year, month)] = \
+            data_store_entity.get_exact_retail_price(first_day_of_month, Resource.HEATING)
+        exact_wholesale_heating_prices_by_year_and_month[(year, month)] = \
+            data_store_entity.get_exact_wholesale_price(first_day_of_month, Resource.HEATING)
+        estimated_retail_heating_prices_by_year_and_month[(year, month)] = \
+            data_store_entity.get_estimated_retail_price(first_day_of_month, Resource.HEATING)
+        estimated_wholesale_heating_prices_by_year_and_month[(year, month)] = \
+            data_store_entity.get_estimated_wholesale_price(first_day_of_month, Resource.HEATING)
+    return estimated_retail_heating_prices_by_year_and_month, \
+        estimated_wholesale_heating_prices_by_year_and_month, \
+        exact_retail_heating_prices_by_year_and_month, \
+        exact_wholesale_heating_prices_by_year_and_month
 
 
 def get_generated_mock_data(config_data: dict, mock_datas_pickle_path: str):

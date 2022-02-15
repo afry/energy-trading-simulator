@@ -89,14 +89,16 @@ class Test(TestCase):
         Actual: Locally produced electricity does cover local demand, surplus needs to be exported (100 kWh) at a lower
             price (0.5) than the local clearing price. Loss of revenue (1-0.5)*100=50 need to be distributed.
         """
+        rp = 1
+        wp = 0.5
         bids = [BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 2000, math.inf, "Buyer1", False, True),
                 BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 100, math.inf, "Buyer2", False, True),
-                BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, 1, "Grid", True, True)]
-        trades = [Trade(Action.SELL, Resource.ELECTRICITY, 2000, 1, "Seller1", False, Market.LOCAL, SOME_DATETIME),
-                  Trade(Action.BUY, Resource.ELECTRICITY, 1800, 1, "Buyer1", False, Market.LOCAL, SOME_DATETIME),
-                  Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Buyer2", False, Market.LOCAL, SOME_DATETIME),
-                  Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Grid", True, Market.LOCAL, SOME_DATETIME)]
-        costs = calculate_penalty_costs_for_period_and_resource(bids, trades, 1.0, 0.5)
+                BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, rp, "Grid", True, True)]
+        trades = [Trade(Action.SELL, Resource.ELECTRICITY, 2000, rp, "Seller1", False, Market.LOCAL, SOME_DATETIME),
+                  Trade(Action.BUY, Resource.ELECTRICITY, 1800, rp, "Buyer1", False, Market.LOCAL, SOME_DATETIME),
+                  Trade(Action.BUY, Resource.ELECTRICITY, 100, rp, "Buyer2", False, Market.LOCAL, SOME_DATETIME),
+                  Trade(Action.BUY, Resource.ELECTRICITY, 100, rp, "Grid", True, Market.LOCAL, SOME_DATETIME)]
+        costs = calculate_penalty_costs_for_period_and_resource(bids, trades, rp, wp)
         self.assertAlmostEqual(45.4545, costs["Seller1"], places=3)
         self.assertAlmostEqual(4.54545, costs["Buyer1"], places=3)
         self.assertAlmostEqual(0, costs["Buyer2"], places=3)
@@ -105,103 +107,118 @@ class Test(TestCase):
         """
         When there are more than 1 external bid for the same resource, an error should be raised.
         """
+        rp = 1
+        wp = 0.5
         bids = [BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 2000, math.inf, "Buyer1", False, True),
                 BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 100, math.inf, "Buyer2", False, True),
-                BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, 1, "Grid", True, True),
-                BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 10000, 1, "Grid", True, True)]
-        trades = [Trade(Action.SELL, Resource.ELECTRICITY, 2000, 1, "Seller1", False, Market.LOCAL, SOME_DATETIME),
-                  Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Buyer2", False, Market.LOCAL, SOME_DATETIME),
-                  Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Grid", True, Market.LOCAL, SOME_DATETIME)]
+                BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, rp, "Grid", True, True),
+                BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 10000, rp, "Grid", True, True)]
+        trades = [Trade(Action.SELL, Resource.ELECTRICITY, 2000, rp, "Seller1", False, Market.LOCAL, SOME_DATETIME),
+                  Trade(Action.BUY, Resource.ELECTRICITY, 100, rp, "Buyer2", False, Market.LOCAL, SOME_DATETIME),
+                  Trade(Action.BUY, Resource.ELECTRICITY, 100, rp, "Grid", True, Market.LOCAL, SOME_DATETIME)]
         with self.assertRaises(RuntimeError):
-            calculate_penalty_costs_for_period_and_resource(bids, trades, 1.0, 0.5)
+            calculate_penalty_costs_for_period_and_resource(bids, trades, rp, wp)
 
     def test_different_periods(self):
         """
         When there are trades from more than 1 periods, an error should be raised.
         """
         next_period = datetime.datetime(2019, 1, 2, 1)
+        rp = 1
+        wp = 0.5
         bids = [BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 2000, 0.5, "Seller1", False, True),
                 BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 1900, math.inf, "Buyer1", False, True),
                 BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 100, math.inf, "Buyer2", False, True),
-                BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, 1, "Grid", True, False)]
-        trades = [Trade(Action.SELL, Resource.ELECTRICITY, 1990, 0.5, "Seller1", False, Market.LOCAL, SOME_DATETIME),
-                  Trade(Action.BUY, Resource.ELECTRICITY, 2100, 0.5, "Buyer1", False, Market.LOCAL, SOME_DATETIME),
-                  Trade(Action.BUY, Resource.ELECTRICITY, 90, 0.5, "Buyer2", False, Market.LOCAL, next_period),
-                  Trade(Action.SELL, Resource.ELECTRICITY, 200, 1, "Grid", True, Market.LOCAL, SOME_DATETIME)]
+                BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, rp, "Grid", True, False)]
+        trades = [Trade(Action.SELL, Resource.ELECTRICITY, 1990, wp, "Seller1", False, Market.LOCAL, SOME_DATETIME),
+                  Trade(Action.BUY, Resource.ELECTRICITY, 2100, wp, "Buyer1", False, Market.LOCAL, SOME_DATETIME),
+                  Trade(Action.BUY, Resource.ELECTRICITY, 90, wp, "Buyer2", False, Market.LOCAL, next_period),
+                  Trade(Action.SELL, Resource.ELECTRICITY, 200, rp, "Grid", True, Market.LOCAL, SOME_DATETIME)]
         with self.assertRaises(RuntimeError):
-            calculate_penalty_costs_for_period_and_resource(bids, trades, 0.5, 0.5)
+            calculate_penalty_costs_for_period_and_resource(bids, trades, wp, wp)
 
     def test_2_external_trades(self):
         """
         When there are more than 1 external trade for the same resource, an error should be raised.
         """
+        rp = 1
+        wp = 0.5
         bids = [BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 2000, math.inf, "Buyer1", False, True),
                 BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 100, math.inf, "Buyer2", False, True),
-                BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, 1, "Grid", True, True)]
-        trades = [Trade(Action.SELL, Resource.ELECTRICITY, 2000, 1, "Seller1", False, Market.LOCAL, SOME_DATETIME),
-                  Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Buyer2", False, Market.LOCAL, SOME_DATETIME),
-                  Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Grid", True, Market.LOCAL, SOME_DATETIME),
-                  Trade(Action.SELL, Resource.ELECTRICITY, 100, 1, "Grid", True, Market.LOCAL, SOME_DATETIME)]
+                BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, rp, "Grid", True, True)]
+        trades = [Trade(Action.SELL, Resource.ELECTRICITY, 2000, rp, "Seller1", False, Market.LOCAL, SOME_DATETIME),
+                  Trade(Action.BUY, Resource.ELECTRICITY, 100, rp, "Buyer2", False, Market.LOCAL, SOME_DATETIME),
+                  Trade(Action.BUY, Resource.ELECTRICITY, 100, rp, "Grid", True, Market.LOCAL, SOME_DATETIME),
+                  Trade(Action.SELL, Resource.ELECTRICITY, 100, rp, "Grid", True, Market.LOCAL, SOME_DATETIME)]
         with self.assertRaises(RuntimeError):
-            calculate_penalty_costs_for_period_and_resource(bids, trades, 1.0, 0.5)
+            calculate_penalty_costs_for_period_and_resource(bids, trades, rp, wp)
 
     def test_retail_price_less_than_local(self):
         """
         If the external retail price is lower than the local clearing price, an error should be raised.
         """
+        rp = 0.9
+        wp = 0.5
+        lp = 1.0
         bids = [BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 2000, math.inf, "Buyer1", False, True),
                 BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 100, math.inf, "Buyer2", False, True),
-                BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, 0.9, "Grid", True, True)]
-        trades = [Trade(Action.SELL, Resource.ELECTRICITY, 2000, 1, "Seller1", False, Market.LOCAL, SOME_DATETIME),
-                  Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Buyer2", False, Market.LOCAL, SOME_DATETIME),
-                  Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Grid", True, Market.LOCAL, SOME_DATETIME)]
+                BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, rp, "Grid", True, True)]
+        trades = [Trade(Action.SELL, Resource.ELECTRICITY, 2000, lp, "Seller1", False, Market.LOCAL, SOME_DATETIME),
+                  Trade(Action.BUY, Resource.ELECTRICITY, 100, lp, "Buyer2", False, Market.LOCAL, SOME_DATETIME),
+                  Trade(Action.BUY, Resource.ELECTRICITY, 100, lp, "Grid", True, Market.LOCAL, SOME_DATETIME)]
         with self.assertRaises(RuntimeError):
-            calculate_penalty_costs_for_period_and_resource(bids, trades, 1.0, 0.5)
+            calculate_penalty_costs_for_period_and_resource(bids, trades, lp, wp)
 
     def test_no_external_bid(self):
         """
         If there is no bid from an external grid agent, an error should be raised.
         """
+        lp = 1.0
+        wp = 0.5
         bids = [BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 2000, math.inf, "Buyer1", False, True),
                 BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 100, math.inf, "Buyer2", False, True),
-                BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, 1.0, "Seller1", False, True)]
-        trades = [Trade(Action.SELL, Resource.ELECTRICITY, 2000, 1, "Seller1", False, Market.LOCAL, SOME_DATETIME),
-                  Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Buyer2", False, Market.LOCAL, SOME_DATETIME),
-                  Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Seller1", False, Market.LOCAL, SOME_DATETIME)]
+                BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, lp, "Seller1", False, True)]
+        trades = [Trade(Action.SELL, Resource.ELECTRICITY, 2000, lp, "Seller1", False, Market.LOCAL, SOME_DATETIME),
+                  Trade(Action.BUY, Resource.ELECTRICITY, 100, lp, "Buyer2", False, Market.LOCAL, SOME_DATETIME),
+                  Trade(Action.BUY, Resource.ELECTRICITY, 100, lp, "Seller1", False, Market.LOCAL, SOME_DATETIME)]
         with self.assertRaises(RuntimeError):
-            calculate_penalty_costs_for_period_and_resource(bids, trades, 1.0, 0.5)
+            calculate_penalty_costs_for_period_and_resource(bids, trades, lp, wp)
 
     def test_2_bids_accepted_for_internal_agent(self):
         """
         Test that when more than 1 bids are accepted, for a single agent in a trading period, an error is thrown
         """
-        bids = [BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 2000, 0.5, "Seller1", False, True),
+        wp = 0.5
+        rp = 1
+        bids = [BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 2000, wp, "Seller1", False, True),
                 BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 1900, math.inf, "Buyer1", False, True),
-                BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10, 0.5, "Buyer1", False, True),
+                BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10, wp, "Buyer1", False, True),
                 BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 100, math.inf, "Buyer2", False, True),
-                BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, 1, "Grid", True, False)]
-        trades = [Trade(Action.SELL, Resource.ELECTRICITY, 1990, 0.5, "Seller1", False, Market.LOCAL, SOME_DATETIME),
-                  Trade(Action.BUY, Resource.ELECTRICITY, 2100, 0.5, "Buyer1", False, Market.LOCAL, SOME_DATETIME),
-                  Trade(Action.BUY, Resource.ELECTRICITY, 90, 0.5, "Buyer2", False, Market.LOCAL, SOME_DATETIME),
-                  Trade(Action.SELL, Resource.ELECTRICITY, 200, 1, "Grid", True, Market.LOCAL, SOME_DATETIME)]
+                BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, rp, "Grid", True, False)]
+        trades = [Trade(Action.SELL, Resource.ELECTRICITY, 1990, wp, "Seller1", False, Market.LOCAL, SOME_DATETIME),
+                  Trade(Action.BUY, Resource.ELECTRICITY, 2100, wp, "Buyer1", False, Market.LOCAL, SOME_DATETIME),
+                  Trade(Action.BUY, Resource.ELECTRICITY, 90, wp, "Buyer2", False, Market.LOCAL, SOME_DATETIME),
+                  Trade(Action.SELL, Resource.ELECTRICITY, 200, rp, "Grid", True, Market.LOCAL, SOME_DATETIME)]
         with self.assertRaises(RuntimeError):
-            calculate_penalty_costs_for_period_and_resource(bids, trades, 0.5, 0.5)
+            calculate_penalty_costs_for_period_and_resource(bids, trades, wp, wp)
 
     def test_2_trades_for_internal_agent(self):
         """
         Test that when there are more than 1 trades for a single agent in a trading period, an error is thrown
         """
-        bids = [BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 2000, 0.5, "Seller1", False, True),
+        wp = 0.5
+        rp = 1
+        bids = [BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 2000, wp, "Seller1", False, True),
                 BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 1900, math.inf, "Buyer1", False, True),
                 BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 100, math.inf, "Buyer2", False, True),
-                BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, 1, "Grid", True, False)]
-        trades = [Trade(Action.SELL, Resource.ELECTRICITY, 1990, 0.5, "Seller1", False, Market.LOCAL, SOME_DATETIME),
-                  Trade(Action.BUY, Resource.ELECTRICITY, 2100, 0.5, "Buyer1", False, Market.LOCAL, SOME_DATETIME),
-                  Trade(Action.SELL, Resource.ELECTRICITY, 100, 0.5, "Buyer1", False, Market.LOCAL, SOME_DATETIME),
-                  Trade(Action.BUY, Resource.ELECTRICITY, 90, 0.5, "Buyer2", False, Market.LOCAL, SOME_DATETIME),
-                  Trade(Action.SELL, Resource.ELECTRICITY, 200, 1, "Grid", True, Market.LOCAL, SOME_DATETIME)]
+                BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, rp, "Grid", True, False)]
+        trades = [Trade(Action.SELL, Resource.ELECTRICITY, 1990, wp, "Seller1", False, Market.LOCAL, SOME_DATETIME),
+                  Trade(Action.BUY, Resource.ELECTRICITY, 2100, wp, "Buyer1", False, Market.LOCAL, SOME_DATETIME),
+                  Trade(Action.SELL, Resource.ELECTRICITY, 100, wp, "Buyer1", False, Market.LOCAL, SOME_DATETIME),
+                  Trade(Action.BUY, Resource.ELECTRICITY, 90, wp, "Buyer2", False, Market.LOCAL, SOME_DATETIME),
+                  Trade(Action.SELL, Resource.ELECTRICITY, 200, rp, "Grid", True, Market.LOCAL, SOME_DATETIME)]
         with self.assertRaises(RuntimeError):
-            calculate_penalty_costs_for_period_and_resource(bids, trades, 0.5, 0.5)
+            calculate_penalty_costs_for_period_and_resource(bids, trades, wp, wp)
 
     def test_correct_for_exact_heating_price_external_sell(self):
         """
@@ -364,6 +381,8 @@ class Test(TestCase):
         self.assertAlmostEqual(0, cost_to_be_paid_by_agent["Buyer1"], places=3)
         self.assertAlmostEqual(0.133, cost_to_be_paid_by_agent["Buyer2"], places=3)
         self.assertAlmostEqual(0.067, cost_to_be_paid_by_agent["Seller"], places=3)
+
+        # These two steps are independent of each other, so doesn't matter which one is done first
 
     def test_calculate_heating_costs_two_steps_external_sell(self):
         """
