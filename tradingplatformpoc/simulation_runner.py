@@ -202,8 +202,6 @@ def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings
     # Read energy CSV file
     tornet_household_elec_cons, coop_elec_cons, tornet_heat_cons, coop_heat_cons = \
         data_store.read_energy_data(energy_data_csv_path)
-    # Read school CSV file
-    school_elec_cons = data_store.read_school_energy_consumption_csv(school_data_csv_path)
 
     for agent in config_data["Agents"]:
         agent_type = agent["Type"]
@@ -212,15 +210,12 @@ def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings
             elec_cons_series = buildings_mock_data[get_elec_cons_key(agent_name)]
             heat_cons_series = buildings_mock_data[get_heat_cons_key(agent_name)]
             pv_prod_series = buildings_mock_data[get_pv_prod_key(agent_name)]
-            if agent_name == "SchoolBuildingAgent":
-                school_digital_twin = StaticDigitalTwin(electricity_usage=school_elec_cons,
-                                                        heating_usage=heat_cons_series)
-                agents.append(BuildingAgent(data_store_entity, school_digital_twin, guid=agent_name))
-            else:
-                building_digital_twin = StaticDigitalTwin(electricity_usage=elec_cons_series,
-                                                          electricity_production=pv_prod_series,
-                                                          heating_usage=heat_cons_series)
-                agents.append(BuildingAgent(data_store_entity, building_digital_twin, guid=agent_name))
+
+            building_digital_twin = StaticDigitalTwin(electricity_usage=elec_cons_series,
+                                                      electricity_production=pv_prod_series,
+                                                      heating_usage=heat_cons_series)
+            agents.append(BuildingAgent(data_store_entity, building_digital_twin, guid=agent_name))
+
         elif agent_type == "StorageAgent":
             storage_digital_twin = StorageDigitalTwin(max_capacity_kwh=agent["Capacity"],
                                                       max_charge_rate_fraction=agent["ChargeRate"],

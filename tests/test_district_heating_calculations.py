@@ -4,7 +4,8 @@ from unittest import TestCase
 import pandas as pd
 
 from tradingplatformpoc.district_heating_calculations import calculate_jan_feb_avg_heating_sold, \
-    calculate_peak_day_avg_cons_kw, estimate_district_heating_price
+    calculate_peak_day_avg_cons_kw, estimate_district_heating_price, exact_district_heating_price_for_month, \
+    exact_effect_fee, get_base_marginal_price, get_grid_fee_for_month
 
 
 class Test(TestCase):
@@ -79,3 +80,17 @@ class Test(TestCase):
         all_external_heating_sells[datetime.datetime(2019, 3, 2, 2)] = 50
         all_external_heating_sells[datetime.datetime(2019, 3, 2, 3)] = 50
         self.assertAlmostEqual(10, calculate_peak_day_avg_cons_kw(all_external_heating_sells, 2019, 3))
+
+    def test_get_base_marginal_price(self):
+        """Test Marginal_Price_Value for summer/winter periods,
+            Marginal_Price_Value in summer < Marginal_Price_Value in winter"""
+        self.assertTrue(get_base_marginal_price(5) < get_base_marginal_price(2))
+
+    def test_get_grid_fee_for_month(self):
+        self.assertAlmostEqual(570.31506849, get_grid_fee_for_month(5, 2019, 10))
+
+    def test_exact_effect_fee(self):
+        self.assertAlmostEqual(185, exact_effect_fee(2.5))
+
+    def test_exact_district_heating_price_for_month(self):
+        self.assertAlmostEqual(793.81506849, exact_district_heating_price_for_month(10, 2019, 70, 5, 2.5))
