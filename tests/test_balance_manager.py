@@ -4,14 +4,13 @@ from unittest import TestCase
 
 import numpy as np
 
-from tradingplatformpoc.balance_manager import calculate_penalty_costs_for_electricity, correct_for_exact_heating_price
+from tradingplatformpoc.balance_manager import calculate_penalty_costs_for_period_and_resource, \
+    correct_for_exact_heating_price
 from tradingplatformpoc.bid import Action, BidWithAcceptanceStatus, Resource
 from tradingplatformpoc.trade import Market, Trade
 
 SOME_DATETIME = datetime.datetime(2019, 1, 2)
 DEFAULT_HEAT_WHOLESALE_PRICE = 1.5
-ELEC_1_HEAT_NAN = {Resource.ELECTRICITY: 1.0, Resource.HEATING: np.nan}
-ELEC_0_5_HEAT_NAN = {Resource.ELECTRICITY: 0.5, Resource.HEATING: np.nan}
 
 
 class Test(TestCase):
@@ -23,19 +22,20 @@ class Test(TestCase):
             kWh) at a higher price (1.0) than the local clearing price. Extra cost of (1-0.5)*200=100 need to be
             distributed.
         """
-        bids = [BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 2000, 0.5, "Seller1", False, True),
-                BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 1900, math.inf, "Buyer1", False, True),
-                BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 100, math.inf, "Buyer2", False, True),
-                BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, 1, "Grid", True, False),
-                BidWithAcceptanceStatus(Action.SELL, Resource.HEATING, 10000, 2, "Grid", True, True)]
-        trades = [Trade(Action.SELL, Resource.ELECTRICITY, 1990, 0.5, "Seller1", False, Market.LOCAL, SOME_DATETIME),
-                  Trade(Action.BUY, Resource.ELECTRICITY, 2100, 0.5, "Buyer1", False, Market.LOCAL, SOME_DATETIME),
-                  Trade(Action.BUY, Resource.ELECTRICITY, 90, 0.5, "Buyer2", False, Market.LOCAL, SOME_DATETIME),
-                  Trade(Action.SELL, Resource.ELECTRICITY, 200, 1, "Grid", True, Market.LOCAL, SOME_DATETIME)]
-        costs = calculate_penalty_costs_for_electricity(bids, trades, ELEC_0_5_HEAT_NAN, 0.5)
-        self.assertAlmostEqual(4.545, costs["Seller1"], places=3)
-        self.assertAlmostEqual(90.909, costs["Buyer1"], places=3)
-        self.assertAlmostEqual(4.545, costs["Buyer2"], places=3)
+        ws_price = 0.5
+        ret_price = 1
+        bids = [BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 200, ws_price, "Seller", False, True),
+                BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 190, math.inf, "Buyer1", False, True),
+                BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 10, math.inf, "Buyer2", False, True),
+                BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, ret_price, "Grid", True, False)]
+        trades = [Trade(Action.SELL, Resource.ELECTRICITY, 199, ws_price, "Seller", False, Market.LOCAL, SOME_DATETIME),
+                  Trade(Action.BUY, Resource.ELECTRICITY, 210, ws_price, "Buyer1", False, Market.LOCAL, SOME_DATETIME),
+                  Trade(Action.BUY, Resource.ELECTRICITY, 9, ws_price, "Buyer2", False, Market.LOCAL, SOME_DATETIME),
+                  Trade(Action.SELL, Resource.ELECTRICITY, 20, ret_price, "Grid", True, Market.LOCAL, SOME_DATETIME)]
+        costs = calculate_penalty_costs_for_period_and_resource(bids, trades, ws_price, ws_price)
+        self.assertAlmostEqual(0.455, costs["Seller"], places=3)
+        self.assertAlmostEqual(9.091, costs["Buyer1"], places=3)
+        self.assertAlmostEqual(0.455, costs["Buyer2"], places=3)
 
     def test_calculate_costs_no_extra(self):
         """
@@ -44,31 +44,40 @@ class Test(TestCase):
         """
         bids = [BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 100, 0.5, "Seller1", False, True),
                 BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 200, math.inf, "Buyer1", False, True),
-                BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, 1, "Grid", True, True),
-                BidWithAcceptanceStatus(Action.SELL, Resource.HEATING, 10000, 2, "Grid", True, True)]
+                BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, 1, "Grid", True, True)]
         trades = [Trade(Action.SELL, Resource.ELECTRICITY, 80, 1, "Seller1", False, Market.LOCAL, SOME_DATETIME),
                   Trade(Action.BUY, Resource.ELECTRICITY, 200, 1, "Buyer1", False, Market.LOCAL, SOME_DATETIME),
                   Trade(Action.SELL, Resource.ELECTRICITY, 120, 1, "Grid", True, Market.LOCAL, SOME_DATETIME)]
-        costs = calculate_penalty_costs_for_electricity(bids, trades, ELEC_1_HEAT_NAN, 0.5)
+        costs = calculate_penalty_costs_for_period_and_resource(bids, trades, 1.0, 0.5)
         self.assertAlmostEqual(0, costs["Seller1"], places=3)
         self.assertAlmostEqual(0, costs["Buyer1"], places=3)
 
     def test_calculate_costs_local_deficit_becomes_surplus(self):
         """
-        Expected: Locally produced electricity won't cover local demand, so clearing price gets set to 1.0.
+        Expected: Locally produced electricity won't cover local demand, so clearing price gets set to the retail price.
         Actual: Locally produced electricity does cover local demand, surplus needs to be exported (100 kWh) at a lower
             price (0.5) than the local clearing price. Loss of revenue (1-0.5)*100=50 need to be distributed.
         """
-        bids = [BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 2000, 0.5, "Seller1", False, True),
+        ret_price = 1
+        ws_price = 0.5
+        bids = [BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 2000, ws_price, "Seller1", False, True),
                 BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 2000, math.inf, "Buyer1", False, True),
                 BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 100, math.inf, "Buyer2", False, True),
-                BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, 1, "Grid", True, True),
-                BidWithAcceptanceStatus(Action.SELL, Resource.HEATING, 10000, 2, "Grid", True, True)]
-        trades = [Trade(Action.SELL, Resource.ELECTRICITY, 2000, 1, "Seller1", False, Market.LOCAL, SOME_DATETIME),
-                  Trade(Action.BUY, Resource.ELECTRICITY, 1800, 1, "Buyer1", False, Market.LOCAL, SOME_DATETIME),
-                  Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Buyer2", False, Market.LOCAL, SOME_DATETIME),
-                  Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Grid", True, Market.LOCAL, SOME_DATETIME)]
-        costs = calculate_penalty_costs_for_electricity(bids, trades, ELEC_1_HEAT_NAN, 0.5)
+                BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, ret_price, "Grid", True, True)]
+        trades = [Trade(Action.SELL, Resource.ELECTRICITY, 2000, ret_price, "Seller1", False, Market.LOCAL,
+                        SOME_DATETIME),
+                  Trade(Action.BUY, Resource.ELECTRICITY, 1800, ret_price, "Buyer1", False, Market.LOCAL,
+                        SOME_DATETIME),
+                  Trade(Action.BUY, Resource.ELECTRICITY, 100, ret_price, "Buyer2", False, Market.LOCAL,
+                        SOME_DATETIME),
+                  Trade(Action.BUY, Resource.ELECTRICITY, 100, ws_price, "Grid", True, Market.LOCAL,
+                        SOME_DATETIME)]
+        # Buyer1 pays 1800*1 = 1800
+        # Buyer2 pays 100*1 = 100
+        # Grid pays 100*0.5 = 50
+        # Seller receives 2000*1 = 2000
+        # Discrepancy of 50: 1800+100+50 = 1950 paid in, 2000 paid out. Need 50 more paid in.
+        costs = calculate_penalty_costs_for_period_and_resource(bids, trades, ret_price, ws_price)
         self.assertAlmostEqual(0, costs["Seller1"], places=3)
         self.assertAlmostEqual(50, costs["Buyer1"], places=3)
         self.assertAlmostEqual(0, costs["Buyer2"], places=3)
@@ -82,13 +91,12 @@ class Test(TestCase):
         """
         bids = [BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 2000, math.inf, "Buyer1", False, True),
                 BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 100, math.inf, "Buyer2", False, True),
-                BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, 1, "Grid", True, True),
-                BidWithAcceptanceStatus(Action.SELL, Resource.HEATING, 10000, 2, "Grid", True, True)]
+                BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, 1, "Grid", True, True)]
         trades = [Trade(Action.SELL, Resource.ELECTRICITY, 2000, 1, "Seller1", False, Market.LOCAL, SOME_DATETIME),
                   Trade(Action.BUY, Resource.ELECTRICITY, 1800, 1, "Buyer1", False, Market.LOCAL, SOME_DATETIME),
                   Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Buyer2", False, Market.LOCAL, SOME_DATETIME),
                   Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Grid", True, Market.LOCAL, SOME_DATETIME)]
-        costs = calculate_penalty_costs_for_electricity(bids, trades, ELEC_1_HEAT_NAN, 0.5)
+        costs = calculate_penalty_costs_for_period_and_resource(bids, trades, 1.0, 0.5)
         self.assertAlmostEqual(45.4545, costs["Seller1"], places=3)
         self.assertAlmostEqual(4.54545, costs["Buyer1"], places=3)
         self.assertAlmostEqual(0, costs["Buyer2"], places=3)
@@ -105,7 +113,7 @@ class Test(TestCase):
                   Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Buyer2", False, Market.LOCAL, SOME_DATETIME),
                   Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Grid", True, Market.LOCAL, SOME_DATETIME)]
         with self.assertRaises(RuntimeError):
-            calculate_penalty_costs_for_electricity(bids, trades, ELEC_1_HEAT_NAN, 0.5)
+            calculate_penalty_costs_for_period_and_resource(bids, trades, 1.0, 0.5)
 
     def test_different_periods(self):
         """
@@ -121,7 +129,7 @@ class Test(TestCase):
                   Trade(Action.BUY, Resource.ELECTRICITY, 90, 0.5, "Buyer2", False, Market.LOCAL, next_period),
                   Trade(Action.SELL, Resource.ELECTRICITY, 200, 1, "Grid", True, Market.LOCAL, SOME_DATETIME)]
         with self.assertRaises(RuntimeError):
-            calculate_penalty_costs_for_electricity(bids, trades, ELEC_0_5_HEAT_NAN, 0.5)
+            calculate_penalty_costs_for_period_and_resource(bids, trades, 0.5, 0.5)
 
     def test_2_external_trades(self):
         """
@@ -135,7 +143,7 @@ class Test(TestCase):
                   Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Grid", True, Market.LOCAL, SOME_DATETIME),
                   Trade(Action.SELL, Resource.ELECTRICITY, 100, 1, "Grid", True, Market.LOCAL, SOME_DATETIME)]
         with self.assertRaises(RuntimeError):
-            calculate_penalty_costs_for_electricity(bids, trades, ELEC_1_HEAT_NAN, 0.5)
+            calculate_penalty_costs_for_period_and_resource(bids, trades, 1.0, 0.5)
 
     def test_retail_price_less_than_local(self):
         """
@@ -148,7 +156,7 @@ class Test(TestCase):
                   Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Buyer2", False, Market.LOCAL, SOME_DATETIME),
                   Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Grid", True, Market.LOCAL, SOME_DATETIME)]
         with self.assertRaises(RuntimeError):
-            calculate_penalty_costs_for_electricity(bids, trades, ELEC_1_HEAT_NAN, 0.5)
+            calculate_penalty_costs_for_period_and_resource(bids, trades, 1.0, 0.5)
 
     def test_no_external_bid(self):
         """
@@ -161,7 +169,7 @@ class Test(TestCase):
                   Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Buyer2", False, Market.LOCAL, SOME_DATETIME),
                   Trade(Action.BUY, Resource.ELECTRICITY, 100, 1, "Seller1", False, Market.LOCAL, SOME_DATETIME)]
         with self.assertRaises(RuntimeError):
-            calculate_penalty_costs_for_electricity(bids, trades, ELEC_1_HEAT_NAN, 0.5)
+            calculate_penalty_costs_for_period_and_resource(bids, trades, 1.0, 0.5)
 
     def test_2_bids_accepted_for_internal_agent(self):
         """
@@ -177,7 +185,7 @@ class Test(TestCase):
                   Trade(Action.BUY, Resource.ELECTRICITY, 90, 0.5, "Buyer2", False, Market.LOCAL, SOME_DATETIME),
                   Trade(Action.SELL, Resource.ELECTRICITY, 200, 1, "Grid", True, Market.LOCAL, SOME_DATETIME)]
         with self.assertRaises(RuntimeError):
-            calculate_penalty_costs_for_electricity(bids, trades, ELEC_0_5_HEAT_NAN, 0.5)
+            calculate_penalty_costs_for_period_and_resource(bids, trades, 0.5, 0.5)
 
     def test_2_trades_for_internal_agent(self):
         """
@@ -193,7 +201,7 @@ class Test(TestCase):
                   Trade(Action.BUY, Resource.ELECTRICITY, 90, 0.5, "Buyer2", False, Market.LOCAL, SOME_DATETIME),
                   Trade(Action.SELL, Resource.ELECTRICITY, 200, 1, "Grid", True, Market.LOCAL, SOME_DATETIME)]
         with self.assertRaises(RuntimeError):
-            calculate_penalty_costs_for_electricity(bids, trades, ELEC_0_5_HEAT_NAN, 0.5)
+            calculate_penalty_costs_for_period_and_resource(bids, trades, 0.5, 0.5)
 
     def test_correct_for_exact_heating_price_external_sell(self):
         """
@@ -302,3 +310,112 @@ class Test(TestCase):
                                                       estimated_wholesale_heating_prices_by_year_and_month)
         self.assertEqual(187.5, extra_costs[SOME_DATETIME]["Buyer1"])
         self.assertEqual(62.5, extra_costs[SOME_DATETIME]["Buyer2"])
+
+    def test_calculate_heating_costs_two_steps(self):
+        """
+        Test both steps of heating balancing calculations: First, costs stemming from a discrepancy between estimated
+        external price and exact external price. Second, costs stemming from bid inaccuracies which led to imports when
+        there weren't expected to be any.
+        """
+        est_ws_price = 0.4
+        est_retail_price = 0.5
+        exact_ws_price = 0.6  # Irrelevant
+        exact_retail_price = 0.75
+        bids = [
+            BidWithAcceptanceStatus(Action.SELL, Resource.HEATING, 200, est_retail_price, "Grid", True, False),
+            BidWithAcceptanceStatus(Action.BUY, Resource.HEATING, 6, math.inf, "Buyer1", False, True),
+            BidWithAcceptanceStatus(Action.BUY, Resource.HEATING, 4, math.inf, "Buyer2", False, True),
+            BidWithAcceptanceStatus(Action.SELL, Resource.HEATING, 11, 0, "Seller", False, True)]
+        # In market solver clearing price gets set to est_ws_price
+        trades = [
+            Trade(Action.SELL, Resource.HEATING, 2, est_retail_price, "Grid", True, Market.LOCAL, SOME_DATETIME),
+            Trade(Action.BUY, Resource.HEATING, 6, est_ws_price, "Buyer1", False, Market.LOCAL, SOME_DATETIME),
+            Trade(Action.BUY, Resource.HEATING, 6, est_ws_price, "Buyer2", False, Market.LOCAL, SOME_DATETIME),
+            Trade(Action.SELL, Resource.HEATING, 10, est_ws_price, "Seller", False, Market.LOCAL, SOME_DATETIME)]
+        # Buyer1 pays 6*0.4 = 2.4
+        # Buyer2 pays 6*0.4 = 2.4
+        # Grid receives 2*0.5 = 1.0 (estimated)
+        # Seller receives 10*0.4 = 4.0
+        # Total paid in 4.8, total paid out 5.0 estimated, discrepancy of 0.2.
+        # Correcting for estimated - exact difference, grid is owed 2 * (0.75 - 0.5) = 0.5.
+        # This cost is split proportionally between net consumers, Buyer1 and Buyer2.
+        exact_retail_heating_prices_by_year_and_month = {
+            (SOME_DATETIME.year, SOME_DATETIME.month): exact_retail_price}
+        exact_wholesale_heating_prices_by_year_and_month = {
+            (SOME_DATETIME.year, SOME_DATETIME.month): exact_ws_price}
+        estimated_retail_heating_prices_by_year_and_month = {
+            (SOME_DATETIME.year, SOME_DATETIME.month): est_retail_price}
+        estimated_wholesale_heating_prices_by_year_and_month = {
+            (SOME_DATETIME.year, SOME_DATETIME.month): est_ws_price}
+        cost_discr_corrections = correct_for_exact_heating_price([SOME_DATETIME], trades,
+                                                                 exact_retail_heating_prices_by_year_and_month,
+                                                                 exact_wholesale_heating_prices_by_year_and_month,
+                                                                 estimated_retail_heating_prices_by_year_and_month,
+                                                                 estimated_wholesale_heating_prices_by_year_and_month)
+        self.assertAlmostEqual(0.25, cost_discr_corrections[SOME_DATETIME]["Buyer1"], places=3)
+        self.assertAlmostEqual(0.25, cost_discr_corrections[SOME_DATETIME]["Buyer2"], places=3)
+        self.assertAlmostEqual(-0.5, cost_discr_corrections[SOME_DATETIME]["Grid"], places=3)
+
+        # Step 2
+        cost_to_be_paid_by_agent = calculate_penalty_costs_for_period_and_resource(bids,
+                                                                                   trades,
+                                                                                   est_ws_price,
+                                                                                   est_ws_price)
+        self.assertAlmostEqual(0, cost_to_be_paid_by_agent["Buyer1"], places=3)
+        self.assertAlmostEqual(0.133, cost_to_be_paid_by_agent["Buyer2"], places=3)
+        self.assertAlmostEqual(0.067, cost_to_be_paid_by_agent["Seller"], places=3)
+
+    def test_calculate_heating_costs_two_steps_external_sell(self):
+        """
+        Test both steps of heating balancing calculations: First, costs stemming from a discrepancy between estimated
+        external price and exact external price. Second, costs stemming from bid inaccuracies which led to exports when
+        there weren't expected to be any.
+        """
+        est_wholesale_price = 0.4
+        est_retail_price = 0.5
+        exact_wholesale_price = 0.42
+        bids = [
+            BidWithAcceptanceStatus(Action.SELL, Resource.HEATING, 200, est_retail_price, "Grid", True, False),
+            BidWithAcceptanceStatus(Action.BUY, Resource.HEATING, 6, math.inf, "Buyer1", False, True),
+            BidWithAcceptanceStatus(Action.BUY, Resource.HEATING, 4, math.inf, "Buyer2", False, True),
+            BidWithAcceptanceStatus(Action.SELL, Resource.HEATING, 9, 0, "Seller", False, True)]
+        # In market solver clearing price gets set to est_retail_price
+        trades = [
+            Trade(Action.BUY, Resource.HEATING, 1, est_wholesale_price, "Grid", True, Market.LOCAL, SOME_DATETIME),
+            Trade(Action.BUY, Resource.HEATING, 6, est_retail_price, "Buyer1", False, Market.LOCAL, SOME_DATETIME),
+            Trade(Action.BUY, Resource.HEATING, 2, est_retail_price, "Buyer2", False, Market.LOCAL, SOME_DATETIME),
+            Trade(Action.SELL, Resource.HEATING, 9, est_retail_price, "Seller", False, Market.LOCAL, SOME_DATETIME)]
+        # Buyer2 turned out to only need 2, so 1 had to get sold to grid, at a lower price
+        # Buyer1 pays 6*0.5 = 3.0
+        # Buyer2 pays 2*0.5 = 1.0
+        # Grid pays 1*0.4 = 0.4
+        # Seller receives 9*0.5 = 4.5
+        # Total paid in 4.4 estimated, total paid out 4.5, discrepancy of 0.1.
+        # In estimated - exact discrepancy calculation, Grid pays 1*(0.42-0.4) = 0.02 more, this is distributed among
+        # sellers, but we have just one seller here, so +0.02 to "Seller" (i.e. a negative cost).
+        # 0.02 - 0.02 = 0 so discrepancy is still 0.1.
+        # Next, we look at bid inaccuracies. "Buyer2" was the only one who made an inaccurate bid, so she will take on
+        # the full penalty of 0.1.
+        exact_retail_heating_prices_by_year_and_month = {(SOME_DATETIME.year, SOME_DATETIME.month): np.nan}
+        exact_wholesale_heating_prices_by_year_and_month = {
+            (SOME_DATETIME.year, SOME_DATETIME.month): exact_wholesale_price}
+        estimated_retail_heating_prices_by_year_and_month = {
+            (SOME_DATETIME.year, SOME_DATETIME.month): est_retail_price}
+        estimated_wholesale_heating_prices_by_year_and_month = {
+            (SOME_DATETIME.year, SOME_DATETIME.month): est_wholesale_price}
+        cost_discr_corrections = correct_for_exact_heating_price([SOME_DATETIME], trades,
+                                                                 exact_retail_heating_prices_by_year_and_month,
+                                                                 exact_wholesale_heating_prices_by_year_and_month,
+                                                                 estimated_retail_heating_prices_by_year_and_month,
+                                                                 estimated_wholesale_heating_prices_by_year_and_month)
+        self.assertAlmostEqual(0.02, cost_discr_corrections[SOME_DATETIME]["Grid"], places=3)
+        self.assertAlmostEqual(-0.02, cost_discr_corrections[SOME_DATETIME]["Seller"], places=3)
+
+        # Step 2
+        cost_to_be_paid_by_agent = calculate_penalty_costs_for_period_and_resource(bids,
+                                                                                   trades,
+                                                                                   est_retail_price,
+                                                                                   est_wholesale_price)
+        self.assertAlmostEqual(0, cost_to_be_paid_by_agent["Buyer1"], places=3)
+        self.assertAlmostEqual(0.1, cost_to_be_paid_by_agent["Buyer2"], places=3)
+        self.assertAlmostEqual(0, cost_to_be_paid_by_agent["Seller"], places=3)

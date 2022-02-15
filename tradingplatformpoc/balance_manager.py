@@ -3,17 +3,32 @@ from typing import Collection, Dict, List, Tuple, Union
 
 from tradingplatformpoc.bid import Action, BidWithAcceptanceStatus, Resource
 from tradingplatformpoc.trade import Market, Trade
+from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES, add_numeric_dicts
 
 
-def calculate_penalty_costs_for_electricity(bids: Collection[BidWithAcceptanceStatus], trades: Collection[Trade],
-                                            clearing_price: float, external_wholesale_price: float) -> Dict[str, float]:
+def calculate_penalty_costs_for_period(bids_for_period: Collection[BidWithAcceptanceStatus],
+                                       trades_for_period: Collection[Trade],
+                                       clearing_prices: Dict[Resource, float],
+                                       external_wholesale_prices: Dict[Resource, float]) -> Dict[str, float]:
+    summed_dict: Dict[str, float] = {}
+    for resource in ALL_IMPLEMENTED_RESOURCES:
+        bids_for_resource = [x for x in bids_for_period if x.resource == resource]
+        trades_for_resource = [x for x in trades_for_period if x.resource == resource]
+        for_resource = calculate_penalty_costs_for_period_and_resource(bids_for_resource, trades_for_resource,
+                                                                       clearing_prices[resource],
+                                                                       external_wholesale_prices[resource])
+        summed_dict = add_numeric_dicts(summed_dict, for_resource)
+    return summed_dict
+
+
+def calculate_penalty_costs_for_period_and_resource(bids_for_resource: Collection[BidWithAcceptanceStatus],
+                                                    trades_for_resource: Collection[Trade], clearing_price: float,
+                                                    external_wholesale_price: float) -> Dict[str, float]:
     """
     All bids and trades should be for the same trading period.
     Sometimes, inaccurate bids lead to extra costs being created. This method attributes those extra costs to those who
     have submitted bids that are "most incorrect".
     """
-    bids_for_resource = [x for x in bids if x.resource == Resource.ELECTRICITY]
-    trades_for_resource = [x for x in trades if x.resource == Resource.ELECTRICITY]
     all_periods = set([x.period for x in trades_for_resource])
     if len(all_periods) > 1:
         raise RuntimeError("When calculating costs, received trades for more than 1 trading period!")
@@ -22,8 +37,11 @@ def calculate_penalty_costs_for_electricity(bids: Collection[BidWithAcceptanceSt
 
     external_bid = get_external_bid(bids_for_resource)
     external_trade_on_local_market = get_external_trade_on_local_market(trades_for_resource)
-    extra_cost = calculate_total_extra_cost_for_period(external_trade_on_local_market, clearing_price,
-                                                       external_wholesale_price, external_bid.price)
+    external_retail_price = external_bid.price  # Since GridAgent only places SELL-bid, this is accurate
+    extra_cost = calculate_total_extra_cost_for_period(external_trade_on_local_market,
+                                                       clearing_price,
+                                                       external_wholesale_price,
+                                                       external_retail_price)
     # Now we know how much extra cost that need to be covered. Now we'll figure out how to distribute it.
 
     error_by_agent = calculate_error_by_agent(accepted_bids, agent_ids, trades_for_resource)
@@ -32,12 +50,10 @@ def calculate_penalty_costs_for_electricity(bids: Collection[BidWithAcceptanceSt
 
 
 def calculate_costs_for_heating(trading_periods: Collection[datetime.datetime],
-                                agent_ids: Collection[str],
                                 all_bids: Dict[datetime.datetime, Collection[BidWithAcceptanceStatus]],
                                 all_trades: Collection[Trade],
                                 clearing_prices_historical: Dict[datetime.datetime, Dict[Resource, float]],
-                                exact_wholesale_heating_prices_by_year_and_month: Dict[Tuple[int, int], float],
-                                exact_retail_heating_prices_by_year_and_month: Dict[Tuple[int, int], float]) -> \
+                                est_wholesale_heating_prices_by_year_and_month: Dict[Tuple[int, int], float]) -> \
         Dict[datetime.datetime, Dict[str, float]]:
     trades = [x for x in all_trades if x.resource == Resource.HEATING]
 
@@ -45,18 +61,16 @@ def calculate_costs_for_heating(trading_periods: Collection[datetime.datetime],
 
     # Loop through periods
     for period in trading_periods:
-        bids_for_period = [x for x in all_bids[period] if (x.resource == Resource.HEATING) & x.was_accepted]
+        bids_for_period = [x for x in all_bids[period] if x.resource == Resource.HEATING]
         trades_for_period = [x for x in trades if x.period == period]
         clearing_price = clearing_prices_historical[period][Resource.HEATING]
-        external_wholesale_price = exact_wholesale_heating_prices_by_year_and_month[(period.year, period.month)]
-        external_retail_price = exact_retail_heating_prices_by_year_and_month[(period.year, period.month)]
+        est_external_wholesale_price = est_wholesale_heating_prices_by_year_and_month[(period.year, period.month)]
 
-        external_trade_on_local_market = get_external_trade_on_local_market(trades_for_period)
-        extra_cost = calculate_total_extra_cost_for_period(external_trade_on_local_market, clearing_price,
-                                                           external_wholesale_price, external_retail_price)
-        # Now we know how much extra cost that need to be covered. Now we'll figure out how to distribute it.
-        error_by_agent = calculate_error_by_agent(bids_for_period, agent_ids, trades_for_period)
-        costs_by_period[period] = distribute_cost(error_by_agent, extra_cost)
+        costs_this_period = calculate_penalty_costs_for_period_and_resource(bids_for_period,
+                                                                            trades_for_period,
+                                                                            clearing_price,
+                                                                            est_external_wholesale_price)
+        costs_by_period[period] = costs_this_period
     return costs_by_period
 
 
@@ -85,6 +99,19 @@ def get_external_bid(bids: Collection[BidWithAcceptanceStatus]) -> BidWithAccept
 
 def calculate_total_extra_cost_for_period(external_trade: Union[Trade, None], clearing_price: float,
                                           external_wholesale_price: float, external_retail_price: float) -> float:
+    """
+    Calculates the total "extra cost" for a period and resource, stemming from bid inaccuracies which led to the
+    external grid selling to the microgrid at a higher price than the local clearing price, or the external grid buying
+    from the microgrid at a lower price than the local clearing price.
+
+    @param external_trade: An external trade, on the local market, for the period and resource in question. May be None.
+    @param clearing_price: The clearing price for the period and resource.
+    @param external_wholesale_price: The external wholesale price for the period and resource.
+    @param external_retail_price: The external retail price for the period and resource.
+
+    @return The total extra cost which the external grid will be owed. This will presumably be divided amongst market
+        participants.
+    """
     if external_retail_price < clearing_price:
         raise RuntimeError("Unexpected state: External retail price ({}) < local clearing price ({})".
                            format(external_retail_price, clearing_price))
@@ -210,11 +237,11 @@ def correct_for_exact_heating_price(trading_periods: Collection[datetime.datetim
                 total_debt = (exact_ext_retail_price - est_ext_retail_price) * external_trade_quantity
                 dict_for_this_period[external_trade.source] = -total_debt
                 for internal_trade in internal_buy_trades:
-                    if internal_trade.price != est_ext_retail_price:
-                        raise RuntimeError("External grid sold, so local market price should have been equal to "
-                                           "estimated external retail price ({} SEK/kWh), but it was {} SEK/kWh. "
-                                           "Period {}".format(est_ext_retail_price, internal_trade.price,
-                                                              period))
+                    # if internal_trade.price != est_ext_retail_price:
+                    #     raise RuntimeError("External grid sold, so local market price should have been equal to "
+                    #                        "estimated external retail price ({} SEK/kWh), but it was {} SEK/kWh. "
+                    #                        "Period {}".format(est_ext_retail_price, internal_trade.price,
+                    #                                           period))
                     net_usage = internal_trade.quantity
                     share_of_debt = net_usage / total_internal_usage
                     dict_for_this_period[internal_trade.source] = share_of_debt * total_debt
@@ -224,11 +251,11 @@ def correct_for_exact_heating_price(trading_periods: Collection[datetime.datetim
                 total_debt = (est_ext_wholesale_price - exact_ext_wholesale_price) * external_trade_quantity
                 dict_for_this_period[external_trade.source] = -total_debt
                 for internal_trade in internal_sell_trades:
-                    if internal_trade.price != est_ext_wholesale_price:
-                        raise RuntimeError("External grid bought, so local market price should have been equal to "
-                                           "estimated external wholesale price ({} SEK/kWh), but it was {} SEK/kWh. "
-                                           "Period {}".format(est_ext_wholesale_price, internal_trade.price,
-                                                              period))
+                    # if internal_trade.price != est_ext_wholesale_price:
+                    #     raise RuntimeError("External grid bought, so local market price should have been equal to "
+                    #                        "estimated external wholesale price ({} SEK/kWh), but it was {} SEK/kWh. "
+                    #                        "Period {}".format(est_ext_wholesale_price, internal_trade.price,
+                    #                                           period))
                     net_prod = internal_trade.quantity
                     share_of_debt = net_prod / total_internal_prod
                     dict_for_this_period[internal_trade.source] = share_of_debt * total_debt

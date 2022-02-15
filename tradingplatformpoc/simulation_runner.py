@@ -23,7 +23,7 @@ from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTw
 from tradingplatformpoc.mock_data_generation_functions import get_all_residential_building_agents, get_elec_cons_key, \
     get_heat_cons_key, get_pv_prod_key
 from tradingplatformpoc.trade import Trade
-from tradingplatformpoc.trading_platform_utils import flatten_collection, get_intersection
+from tradingplatformpoc.trading_platform_utils import add_numeric_dicts, flatten_collection, get_intersection
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +61,7 @@ def run_trading_simulations(mock_datas_pickle_path: str, results_path: str):
     clearing_prices_historical: Dict[datetime.datetime, Dict[Resource, float]] = {}
     all_trades_list: List[Trade] = []
     all_bids: Dict[datetime.datetime, Collection[BidWithAcceptanceStatus]] = {}
-    all_extra_costs_elec_dict: Dict[datetime.datetime, Dict[str, float]] = {}
+    all_extra_costs_dict: Dict[datetime.datetime, Dict[str, float]] = {}
     # Store the exact external prices, need them for some calculations
     exact_retail_electricity_prices_by_period: Dict[datetime.datetime, float] = {}
     exact_wholesale_electricity_prices_by_period: Dict[datetime.datetime, float] = {}
@@ -118,15 +118,16 @@ def run_trading_simulations(mock_datas_pickle_path: str, results_path: str):
 
         wholesale_price_elec = data_store_entity.get_exact_wholesale_price(period, Resource.ELECTRICITY)
         retail_price_elec = data_store_entity.get_exact_retail_price(period, Resource.ELECTRICITY)
-        extra_costs_elec = balance_manager.calculate_penalty_costs_for_electricity(bids_with_acceptance_status,
-                                                                                   all_trades_for_period,
-                                                                                   clearing_prices[
-                                                                                       Resource.ELECTRICITY],
-                                                                                   wholesale_price_elec)
+        wholesale_prices = {Resource.ELECTRICITY: wholesale_price_elec,
+                            Resource.HEATING: data_store_entity.get_estimated_wholesale_price(period, Resource.HEATING)}
+        extra_costs = balance_manager.calculate_penalty_costs_for_period(bids_with_acceptance_status,
+                                                                         all_trades_for_period,
+                                                                         clearing_prices,
+                                                                         wholesale_prices)
         exact_wholesale_electricity_prices_by_period[period] = wholesale_price_elec
         exact_retail_electricity_prices_by_period[period] = retail_price_elec
-        extra_costs_file.write(write_extra_costs_rows(period, extra_costs_elec))
-        all_extra_costs_elec_dict[period] = extra_costs_elec
+        extra_costs_file.write(write_extra_costs_rows(period, extra_costs))
+        all_extra_costs_dict[period] = extra_costs
 
     # Simulations finished. Now, we need to go through and calculate the exact district heating price for each month
     exact_retail_heating_prices_by_year_and_month: Dict[Tuple[int, int], float] = {}
@@ -149,18 +150,10 @@ def run_trading_simulations(mock_datas_pickle_path: str, results_path: str):
                                                                   exact_wholesale_heating_prices_by_year_and_month,
                                                                   estimated_retail_heating_prices_by_year_and_month,
                                                                   estimated_wholesale_heating_prices_by_year_and_month)
-    # The "normal" extra costs, i.e. those that stem from inaccurate bids, leading to for example district heating
-    # being imported at a higher price than the local price: For electricity, those are calculated during simulations,
-    # at the end of each trading period. But for heat, should we instead calculate them once we know the exact district
-    # heating price? This is TODO
-
-    # extra_costs_heat = balance_manager.calculate_costs_for_heating(trading_periods,
-    #                                                                [agent.guid for agent in agents],
-    #                                                                all_bids,
-    #                                                                all_trades_list,
-    #                                                                clearing_prices_historical,
-    #                                                                exact_wholesale_heating_prices_by_year_and_month,
-    #                                                                exact_retail_heating_prices_by_year_and_month)
+    for period in trading_periods:
+        extra_costs_file.write(write_extra_costs_rows(period, heat_cost_discr_corrections[period]))
+        all_extra_costs_dict[period] = add_numeric_dicts(all_extra_costs_dict[period],
+                                                         heat_cost_discr_corrections[period])
 
     trades_csv_file.write(tradingplatformpoc.trade.write_rows(all_trades_list))
     # Exit gracefully
@@ -170,13 +163,13 @@ def run_trading_simulations(mock_datas_pickle_path: str, results_path: str):
     extra_costs_file.close()
     storage_levels_csv_file.close()
 
-    results_calculator.print_basic_results(agents, all_trades_list, all_extra_costs_elec_dict,
+    results_calculator.print_basic_results(agents, all_trades_list, all_extra_costs_dict,
                                            exact_retail_electricity_prices_by_period,
                                            exact_wholesale_electricity_prices_by_period,
                                            exact_retail_heating_prices_by_year_and_month,
                                            exact_wholesale_heating_prices_by_year_and_month)
 
-    return clearing_prices_historical, all_trades_list, all_extra_costs_elec_dict
+    return clearing_prices_historical, all_trades_list, all_extra_costs_dict
 
 
 def get_generated_mock_data(config_data: dict, mock_datas_pickle_path: str):

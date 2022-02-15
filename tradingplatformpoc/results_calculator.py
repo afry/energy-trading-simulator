@@ -63,6 +63,7 @@ def print_basic_results_for_agent(agent: IAgent, all_trades: Iterable[Trade], al
             total_profit = sek_sold_for - sek_bought_for
             print_message("For agent {} total profit was {:.2f} SEK".format(agent.guid, total_profit))
 
+    # Maybe we want to split this up by energy carrier?
     print_message("For agent {} quantity bought was {:.2f} kWh".format(agent.guid, quantity_bought))
     print_message("For agent {} quantity sold was {:.2f} kWh".format(agent.guid, quantity_sold))
 
