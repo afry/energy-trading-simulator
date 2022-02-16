@@ -237,11 +237,6 @@ def correct_for_exact_heating_price(trading_periods: Collection[datetime.datetim
                 total_debt = (exact_ext_retail_price - est_ext_retail_price) * external_trade_quantity
                 dict_for_this_period[external_trade.source] = -total_debt
                 for internal_trade in internal_buy_trades:
-                    # if internal_trade.price != est_ext_retail_price:
-                    #     raise RuntimeError("External grid sold, so local market price should have been equal to "
-                    #                        "estimated external retail price ({} SEK/kWh), but it was {} SEK/kWh. "
-                    #                        "Period {}".format(est_ext_retail_price, internal_trade.price,
-                    #                                           period))
                     net_usage = internal_trade.quantity
                     share_of_debt = net_usage / total_internal_usage
                     dict_for_this_period[internal_trade.source] = share_of_debt * total_debt
@@ -251,11 +246,6 @@ def correct_for_exact_heating_price(trading_periods: Collection[datetime.datetim
                 total_debt = (est_ext_wholesale_price - exact_ext_wholesale_price) * external_trade_quantity
                 dict_for_this_period[external_trade.source] = -total_debt
                 for internal_trade in internal_sell_trades:
-                    # if internal_trade.price != est_ext_wholesale_price:
-                    #     raise RuntimeError("External grid bought, so local market price should have been equal to "
-                    #                        "estimated external wholesale price ({} SEK/kWh), but it was {} SEK/kWh. "
-                    #                        "Period {}".format(est_ext_wholesale_price, internal_trade.price,
-                    #                                           period))
                     net_prod = internal_trade.quantity
                     share_of_debt = net_prod / total_internal_prod
                     dict_for_this_period[internal_trade.source] = share_of_debt * total_debt
