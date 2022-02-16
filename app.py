@@ -2,7 +2,8 @@ from pkg_resources import resource_filename
 
 from tradingplatformpoc.app.app_constants import ALL_PAGES, BIDS_PAGE, LOAD_PAGE, SELECT_PAGE_RADIO_LABEL, SETUP_PAGE, \
     START_PAGE
-from tradingplatformpoc.app.app_functions import construct_price_chart, construct_storage_level_chart, load_data
+from tradingplatformpoc.app.app_functions import construct_price_chart, construct_storage_level_chart, \
+    get_price_df_when_local_price_inbetween, load_data
 from tradingplatformpoc.bid import Resource
 from tradingplatformpoc.simulation_runner import run_trading_simulations
 import json
@@ -106,6 +107,9 @@ if __name__ == '__main__':
 
         if 'price_chart' in st.session_state:
             st.altair_chart(st.session_state.price_chart, use_container_width=True)
+            st.write("Periods where local electricity price was between external retail and wholesale price:")
+            st.dataframe(get_price_df_when_local_price_inbetween(st.session_state.combined_price_df,
+                                                                 Resource.ELECTRICITY))
 
     elif page_selected == BIDS_PAGE:
         if 'combined_price_df' in st.session_state:
