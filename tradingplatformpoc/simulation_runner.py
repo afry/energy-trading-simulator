@@ -130,7 +130,6 @@ def run_trading_simulations(mock_datas_pickle_path: str, results_path: str):
                                                                          wholesale_prices)
         exact_wholesale_electricity_prices_by_period[period] = wholesale_price_elec
         exact_retail_electricity_prices_by_period[period] = retail_price_elec
-        extra_costs_file.write(write_rows(extra_costs))
         all_extra_costs.extend(extra_costs)
 
     # Simulations finished. Now, we need to go through and calculate the exact district heating price for each month
@@ -145,10 +144,10 @@ def run_trading_simulations(mock_datas_pickle_path: str, results_path: str):
                                                                   exact_wholesale_heating_prices_by_year_and_month,
                                                                   estimated_retail_heating_prices_by_year_and_month,
                                                                   estimated_wholesale_heating_prices_by_year_and_month)
-    extra_costs_file.write(write_rows(heat_cost_discr_corrections))
     all_extra_costs.extend(heat_cost_discr_corrections)
 
     trades_csv_file.write(write_rows(all_trades_list))
+    extra_costs_file.write(write_rows(all_extra_costs))
     # Exit gracefully
     clearing_prices_file.close()
     trades_csv_file.close()
