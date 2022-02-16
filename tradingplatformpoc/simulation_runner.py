@@ -146,8 +146,8 @@ def run_trading_simulations(mock_datas_pickle_path: str, results_path: str):
                                                                   estimated_wholesale_heating_prices_by_year_and_month)
     all_extra_costs.extend(heat_cost_discr_corrections)
 
-    trades_csv_file.writelines([str(trade) for trade in all_trades_list])
-    extra_costs_file.writelines([str(ec) for ec in all_extra_costs])
+    trades_csv_file.writelines([str(trade) + "\n" for trade in all_trades_list])
+    extra_costs_file.writelines([str(ec) + "\n" for ec in all_extra_costs])
 
     # Exit gracefully
     clearing_prices_file.close()
