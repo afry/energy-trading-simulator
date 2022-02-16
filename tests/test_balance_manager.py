@@ -243,8 +243,8 @@ class Test(TestCase):
                                                       exact_wholesale_heating_prices_by_year_and_month,
                                                       estimated_retail_heating_prices_by_year_and_month,
                                                       estimated_wholesale_heating_prices_by_year_and_month)
-        self.assertEqual(1.5, extra_costs[SOME_DATETIME]["Buyer1"])
-        self.assertEqual(1.0, extra_costs[SOME_DATETIME]["Buyer2"])
+        self.assertEqual(1.5, [x.cost for x in extra_costs if x.agent == "Buyer1"][0])
+        self.assertEqual(1.0, [x.cost for x in extra_costs if x.agent == "Buyer2"][0])
 
     def test_correct_for_exact_heating_price_external_buy(self):
         """
@@ -270,8 +270,8 @@ class Test(TestCase):
                                                       exact_wholesale_heating_prices_by_year_and_month,
                                                       estimated_retail_heating_prices_by_year_and_month,
                                                       estimated_wholesale_heating_prices_by_year_and_month)
-        self.assertEqual(1.5, extra_costs[SOME_DATETIME]["Seller1"])
-        self.assertEqual(1.0, extra_costs[SOME_DATETIME]["Seller2"])
+        self.assertEqual(1.5, [x.cost for x in extra_costs if x.agent == "Seller1"][0])
+        self.assertEqual(1.0, [x.cost for x in extra_costs if x.agent == "Seller2"][0])
 
     def test_correct_for_exact_heating_price_external_sell_lower_price(self):
         """
@@ -296,8 +296,8 @@ class Test(TestCase):
                                                       exact_wholesale_heating_prices_by_year_and_month,
                                                       estimated_retail_heating_prices_by_year_and_month,
                                                       estimated_wholesale_heating_prices_by_year_and_month)
-        self.assertEqual(-1.5, extra_costs[SOME_DATETIME]["Buyer1"])
-        self.assertEqual(-1.0, extra_costs[SOME_DATETIME]["Buyer2"])
+        self.assertEqual(-1.5, [x.cost for x in extra_costs if x.agent == "Buyer1"][0])
+        self.assertEqual(-1.0, [x.cost for x in extra_costs if x.agent == "Buyer2"][0])
 
     def test_correct_for_exact_heating_price_with_local_producer(self):
         """
@@ -325,8 +325,8 @@ class Test(TestCase):
                                                       exact_wholesale_heating_prices_by_year_and_month,
                                                       estimated_retail_heating_prices_by_year_and_month,
                                                       estimated_wholesale_heating_prices_by_year_and_month)
-        self.assertEqual(187.5, extra_costs[SOME_DATETIME]["Buyer1"])
-        self.assertEqual(62.5, extra_costs[SOME_DATETIME]["Buyer2"])
+        self.assertEqual(187.5, [x.cost for x in extra_costs if x.agent == "Buyer1"][0])
+        self.assertEqual(62.5, [x.cost for x in extra_costs if x.agent == "Buyer2"][0])
 
     def test_calculate_heating_costs_two_steps(self):
         """
@@ -364,14 +364,14 @@ class Test(TestCase):
             (SOME_DATETIME.year, SOME_DATETIME.month): est_retail_price}
         estimated_wholesale_heating_prices_by_year_and_month = {
             (SOME_DATETIME.year, SOME_DATETIME.month): est_ws_price}
-        cost_discr_corrections = correct_for_exact_heating_price([SOME_DATETIME], trades,
-                                                                 exact_retail_heating_prices_by_year_and_month,
-                                                                 exact_wholesale_heating_prices_by_year_and_month,
-                                                                 estimated_retail_heating_prices_by_year_and_month,
-                                                                 estimated_wholesale_heating_prices_by_year_and_month)
-        self.assertAlmostEqual(0.25, cost_discr_corrections[SOME_DATETIME]["Buyer1"], places=3)
-        self.assertAlmostEqual(0.25, cost_discr_corrections[SOME_DATETIME]["Buyer2"], places=3)
-        self.assertAlmostEqual(-0.5, cost_discr_corrections[SOME_DATETIME]["Grid"], places=3)
+        cost_discr_corrs = correct_for_exact_heating_price([SOME_DATETIME], trades,
+                                                           exact_retail_heating_prices_by_year_and_month,
+                                                           exact_wholesale_heating_prices_by_year_and_month,
+                                                           estimated_retail_heating_prices_by_year_and_month,
+                                                           estimated_wholesale_heating_prices_by_year_and_month)
+        self.assertAlmostEqual(0.25, [x.cost for x in cost_discr_corrs if x.agent == "Buyer1"][0], places=3)
+        self.assertAlmostEqual(0.25, [x.cost for x in cost_discr_corrs if x.agent == "Buyer2"][0], places=3)
+        self.assertAlmostEqual(-0.5, [x.cost for x in cost_discr_corrs if x.agent == "Grid"][0], places=3)
 
         # Step 2
         cost_to_be_paid_by_agent = calculate_penalty_costs_for_period_and_resource(bids,
@@ -422,13 +422,13 @@ class Test(TestCase):
             (SOME_DATETIME.year, SOME_DATETIME.month): est_retail_price}
         estimated_wholesale_heating_prices_by_year_and_month = {
             (SOME_DATETIME.year, SOME_DATETIME.month): est_wholesale_price}
-        cost_discr_corrections = correct_for_exact_heating_price([SOME_DATETIME], trades,
-                                                                 exact_retail_heating_prices_by_year_and_month,
-                                                                 exact_wholesale_heating_prices_by_year_and_month,
-                                                                 estimated_retail_heating_prices_by_year_and_month,
-                                                                 estimated_wholesale_heating_prices_by_year_and_month)
-        self.assertAlmostEqual(0.02, cost_discr_corrections[SOME_DATETIME]["Grid"], places=3)
-        self.assertAlmostEqual(-0.02, cost_discr_corrections[SOME_DATETIME]["Seller"], places=3)
+        cost_discr_corrs = correct_for_exact_heating_price([SOME_DATETIME], trades,
+                                                           exact_retail_heating_prices_by_year_and_month,
+                                                           exact_wholesale_heating_prices_by_year_and_month,
+                                                           estimated_retail_heating_prices_by_year_and_month,
+                                                           estimated_wholesale_heating_prices_by_year_and_month)
+        self.assertAlmostEqual(0.02, [x.cost for x in cost_discr_corrs if x.agent == "Grid"][0], places=3)
+        self.assertAlmostEqual(-0.02, [x.cost for x in cost_discr_corrs if x.agent == "Seller"][0], places=3)
 
         # Step 2
         cost_to_be_paid_by_agent = calculate_penalty_costs_for_period_and_resource(bids,

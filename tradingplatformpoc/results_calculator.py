@@ -1,5 +1,5 @@
 import datetime
-from typing import Dict, Iterable, Tuple
+from typing import Dict, Iterable, List, Tuple
 
 import streamlit as st
 
@@ -7,30 +7,30 @@ from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.storage_agent import StorageAgent
 from tradingplatformpoc.bid import Action, Resource
+from tradingplatformpoc.data.extra_cost import ExtraCost
 from tradingplatformpoc.trade import Trade
 
 
-def print_basic_results(agents: Iterable[IAgent], all_trades: Iterable[Trade], all_extra_costs_dict: dict,
+def print_basic_results(agents: Iterable[IAgent], all_trades: Iterable[Trade], all_extra_costs: List[ExtraCost],
                         exact_retail_electricity_prices_by_period: Dict[datetime.datetime, float],
                         exact_wholesale_electricity_prices_by_period: Dict[datetime.datetime, float],
                         exact_retail_heating_prices_by_year_and_month: Dict[Tuple[int, int], float],
                         exact_wholesale_heating_prices_by_year_and_month: Dict[Tuple[int, int], float]):
     st.write(""" ## Results: """)
     for agent in agents:
-        print_basic_results_for_agent(agent, all_trades, all_extra_costs_dict,
+        print_basic_results_for_agent(agent, all_trades, all_extra_costs,
                                       exact_retail_electricity_prices_by_period,
                                       exact_wholesale_electricity_prices_by_period,
                                       exact_retail_heating_prices_by_year_and_month,
                                       exact_wholesale_heating_prices_by_year_and_month)
 
 
-def print_basic_results_for_agent(agent: IAgent, all_trades: Iterable[Trade], all_extra_costs_dict: dict,
+def print_basic_results_for_agent(agent: IAgent, all_trades: Iterable[Trade], all_extra_costs: List[ExtraCost],
                                   exact_retail_electricity_prices_by_period: Dict[datetime.datetime, float],
                                   exact_wholesale_electricity_prices_by_period: Dict[datetime.datetime, float],
                                   exact_retail_heating_prices_by_year_and_month: Dict[Tuple[int, int], float],
                                   exact_wholesale_heating_prices_by_year_and_month: Dict[Tuple[int, int], float]):
     trades_for_agent = [x for x in all_trades if x.source == agent.guid]
-    all_extra_costs = list(all_extra_costs_dict.values())
 
     quantity_bought = sum([x.quantity for x in trades_for_agent if x.action == Action.BUY])
     quantity_sold = sum([x.quantity for x in trades_for_agent if x.action == Action.SELL])
@@ -38,7 +38,7 @@ def print_basic_results_for_agent(agent: IAgent, all_trades: Iterable[Trade], al
     sek_sold_for = sum([x.quantity * x.price for x in trades_for_agent if x.action == Action.SELL])
 
     if not isinstance(agent, GridAgent):
-        extra_costs_for_agent = sum([d[agent.guid] for d in all_extra_costs if (agent.guid in d.keys())])
+        extra_costs_for_agent = sum([ec.cost for ec in all_extra_costs if (ec.agent == agent.guid)])
         saved_on_buy, saved_on_sell = get_savings_vs_only_external(trades_for_agent,
                                                                    exact_retail_electricity_prices_by_period,
                                                                    exact_wholesale_electricity_prices_by_period,

@@ -3,7 +3,7 @@ from datetime import datetime
 from unittest import TestCase
 
 from tradingplatformpoc.trading_platform_utils import add_numeric_dicts, flatten_collection, get_intersection, \
-    minus_n_hours
+    minus_n_hours, write_rows
 
 
 class Test(TestCase):
@@ -47,3 +47,8 @@ class Test(TestCase):
         c2 = Counter(cats=4, dogs=8)
         list_of_counters = [c1, c2]
         self.assertEqual(4, len(flatten_collection(list_of_counters)))
+
+    def test_write_rows(self):
+        """Test that write_rows works on some numbers"""
+        string = write_rows([1, 2, 3])
+        self.assertEqual(4, len(string.split("\n")))

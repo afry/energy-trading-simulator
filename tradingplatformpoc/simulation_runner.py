@@ -8,7 +8,6 @@ import pandas as pd
 
 from pkg_resources import resource_filename
 
-import tradingplatformpoc
 from tradingplatformpoc import balance_manager, data_store, market_solver, results_calculator
 from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.grid_agent import GridAgent
@@ -16,14 +15,15 @@ from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.agent.storage_agent import StorageAgent
 from tradingplatformpoc.balance_manager import correct_for_exact_heating_price
-from tradingplatformpoc.bid import Action, Bid, BidWithAcceptanceStatus, Resource
+from tradingplatformpoc.bid import Action, Bid, BidWithAcceptanceStatus, Resource, write_bid_rows
+from tradingplatformpoc.data.extra_cost import ExtraCost
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
 from tradingplatformpoc.mock_data_generation_functions import get_all_residential_building_agents, get_elec_cons_key, \
     get_heat_cons_key, get_pv_prod_key
 from tradingplatformpoc.trade import Trade
-from tradingplatformpoc.trading_platform_utils import add_numeric_dicts, flatten_collection, get_intersection
+from tradingplatformpoc.trading_platform_utils import flatten_collection, get_intersection, write_rows
 
 logger = logging.getLogger(__name__)
 
@@ -54,14 +54,14 @@ def run_trading_simulations(mock_datas_pickle_path: str, results_path: str):
     bids_csv_file = open(results_path + 'bids.csv', 'w')
     bids_csv_file.write('period,agent,by_external,action,resource,quantity,price,was_accepted\n')
     extra_costs_file = open(results_path + 'extra_costs.csv', 'w')
-    extra_costs_file.write('period,agent,cost\n')
+    extra_costs_file.write('period,agent,cost_type,cost\n')
     storage_levels_csv_file = open(results_path + 'storages.csv', 'w')
     storage_levels_csv_file.write('period,agent,capacity_kwh\n')
     # Output lists
     clearing_prices_historical: Dict[datetime.datetime, Dict[Resource, float]] = {}
     all_trades_list: List[Trade] = []
     all_bids: Dict[datetime.datetime, Collection[BidWithAcceptanceStatus]] = {}
-    all_extra_costs_dict: Dict[datetime.datetime, Dict[str, float]] = {}
+    all_extra_costs: List[ExtraCost] = []
     # Store the exact external prices, need them for some calculations
     exact_retail_electricity_prices_by_period: Dict[datetime.datetime, float] = {}
     exact_wholesale_electricity_prices_by_period: Dict[datetime.datetime, float] = {}
@@ -91,7 +91,7 @@ def run_trading_simulations(mock_datas_pickle_path: str, results_path: str):
 
         clearing_prices_file.write('{},{},{}\n'.format(period, clearing_prices[Resource.ELECTRICITY],
                                                        clearing_prices[Resource.HEATING]))
-        bids_csv_file.write(tradingplatformpoc.bid.write_rows(bids_with_acceptance_status, period))
+        bids_csv_file.write(write_bid_rows(bids_with_acceptance_status, period))
 
         # To save information on storage levels, which may be useful:
         for agent in agents:
@@ -125,12 +125,13 @@ def run_trading_simulations(mock_datas_pickle_path: str, results_path: str):
                             Resource.HEATING: data_store_entity.get_estimated_wholesale_price(period, Resource.HEATING)}
         extra_costs = balance_manager.calculate_penalty_costs_for_period(bids_with_acceptance_status,
                                                                          all_trades_for_period,
+                                                                         period,
                                                                          clearing_prices,
                                                                          wholesale_prices)
         exact_wholesale_electricity_prices_by_period[period] = wholesale_price_elec
         exact_retail_electricity_prices_by_period[period] = retail_price_elec
-        extra_costs_file.write(write_extra_costs_rows(period, extra_costs))
-        all_extra_costs_dict[period] = extra_costs
+        extra_costs_file.write(write_rows(extra_costs))
+        all_extra_costs.extend(extra_costs)
 
     # Simulations finished. Now, we need to go through and calculate the exact district heating price for each month
     estimated_retail_heating_prices_by_year_and_month, \
@@ -144,14 +145,10 @@ def run_trading_simulations(mock_datas_pickle_path: str, results_path: str):
                                                                   exact_wholesale_heating_prices_by_year_and_month,
                                                                   estimated_retail_heating_prices_by_year_and_month,
                                                                   estimated_wholesale_heating_prices_by_year_and_month)
+    extra_costs_file.write(write_rows(heat_cost_discr_corrections))
+    all_extra_costs.extend(heat_cost_discr_corrections)
 
-    # Add these corrections based on external heating cost discrepancies into extra_costs_file and all_extra_costs_dict
-    for period in trading_periods:
-        extra_costs_file.write(write_extra_costs_rows(period, heat_cost_discr_corrections[period]))
-        all_extra_costs_dict[period] = add_numeric_dicts(all_extra_costs_dict[period],
-                                                         heat_cost_discr_corrections[period])
-
-    trades_csv_file.write(tradingplatformpoc.trade.write_rows(all_trades_list))
+    trades_csv_file.write(write_rows(all_trades_list))
     # Exit gracefully
     clearing_prices_file.close()
     trades_csv_file.close()
@@ -159,13 +156,13 @@ def run_trading_simulations(mock_datas_pickle_path: str, results_path: str):
     extra_costs_file.close()
     storage_levels_csv_file.close()
 
-    results_calculator.print_basic_results(agents, all_trades_list, all_extra_costs_dict,
+    results_calculator.print_basic_results(agents, all_trades_list, all_extra_costs,
                                            exact_retail_electricity_prices_by_period,
                                            exact_wholesale_electricity_prices_by_period,
                                            exact_retail_heating_prices_by_year_and_month,
                                            exact_wholesale_heating_prices_by_year_and_month)
 
-    return clearing_prices_historical, all_trades_list, all_extra_costs_dict
+    return clearing_prices_historical, all_trades_list, all_extra_costs
 
 
 def get_external_heating_prices(data_store_entity: DataStore, trading_periods: Collection[datetime.datetime]) -> \
@@ -267,14 +264,6 @@ def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings
         raise RuntimeError("No grid agent initialized")
 
     return agents, grid_agents
-
-
-def write_extra_costs_rows(period: datetime.datetime, extra_costs: dict):
-    full_string = ""
-    for k, v in extra_costs.items():
-        if v != 0:
-            full_string = full_string + str(period) + "," + k + "," + str(v) + "\n"
-    return full_string
 
 
 def get_quantity_heating_sold_by_external_grid(external_trades: List[Trade]) -> float:

@@ -2,23 +2,29 @@ import datetime
 from typing import Collection, Dict, List, Tuple, Union
 
 from tradingplatformpoc.bid import Action, BidWithAcceptanceStatus, Resource
+from tradingplatformpoc.data.extra_cost import ExtraCost, ExtraCostType, get_extra_cost_type_for_bid_inaccuracy
 from tradingplatformpoc.trade import Market, Trade
-from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES, add_numeric_dicts
+from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES
 
 
 def calculate_penalty_costs_for_period(bids_for_period: Collection[BidWithAcceptanceStatus],
                                        trades_for_period: Collection[Trade],
+                                       period: datetime.datetime,
                                        clearing_prices: Dict[Resource, float],
-                                       external_wholesale_prices: Dict[Resource, float]) -> Dict[str, float]:
-    summed_dict: Dict[str, float] = {}
+                                       external_wholesale_prices: Dict[Resource, float]) -> List[ExtraCost]:
+    extra_costs_for_period: List[ExtraCost] = []
     for resource in ALL_IMPLEMENTED_RESOURCES:
         bids_for_resource = [x for x in bids_for_period if x.resource == resource]
         trades_for_resource = [x for x in trades_for_period if x.resource == resource]
         for_resource = calculate_penalty_costs_for_period_and_resource(bids_for_resource, trades_for_resource,
                                                                        clearing_prices[resource],
                                                                        external_wholesale_prices[resource])
-        summed_dict = add_numeric_dicts(summed_dict, for_resource)
-    return summed_dict
+        # Using period and resource, create ExtraCost entities
+        extra_cost_type = get_extra_cost_type_for_bid_inaccuracy(resource)
+        for (agent, cost) in for_resource.items():
+            extra_costs_for_period.append(ExtraCost(period, agent, extra_cost_type, cost))
+
+    return extra_costs_for_period
 
 
 def calculate_penalty_costs_for_period_and_resource(bids_for_resource: Collection[BidWithAcceptanceStatus],
@@ -200,8 +206,7 @@ def correct_for_exact_heating_price(trading_periods: Collection[datetime.datetim
                                     exact_wholesale_heating_prices_by_year_and_month: Dict[Tuple[int, int], float],
                                     estimated_retail_heating_prices_by_year_and_month: Dict[Tuple[int, int], float],
                                     estimated_wholesale_heating_prices_by_year_and_month: Dict[
-                                        Tuple[int, int], float]) -> \
-        Dict[datetime.datetime, Dict[str, float]]:
+                                        Tuple[int, int], float]) -> List[ExtraCost]:
     """
     The price of external heating isn't known when making trades - it is only known after the month has concluded.
     If we for simplicity regard only the retail prices (external grid selling, and not buying), and we define:
@@ -217,11 +222,10 @@ def correct_for_exact_heating_price(trading_periods: Collection[datetime.datetim
         rather than owing the money to someone else.
     """
 
-    costs_per_period_and_agent: Dict[datetime.datetime, Dict[str, float]] = {}
+    extra_costs: List[ExtraCost] = []
     heating_trades = [trade for trade in all_trades_list if trade.resource == Resource.HEATING]
 
     for period in trading_periods:
-        dict_for_this_period: Dict[str, float] = {}
 
         trades_for_period = [trade for trade in heating_trades if trade.period == period]
         external_trade = get_external_trade_on_local_market(trades_for_period)
@@ -235,20 +239,27 @@ def correct_for_exact_heating_price(trading_periods: Collection[datetime.datetim
                 internal_buy_trades = [x for x in trades_for_period if (not x.by_external) & (x.action == Action.BUY)]
                 total_internal_usage = sum([x.quantity for x in internal_buy_trades])
                 total_debt = (exact_ext_retail_price - est_ext_retail_price) * external_trade_quantity
-                dict_for_this_period[external_trade.source] = -total_debt
+
+                extra_costs.append(ExtraCost(period, external_trade.source, ExtraCostType.HEAT_EXT_COST_CORR,
+                                             -total_debt))
+
                 for internal_trade in internal_buy_trades:
                     net_usage = internal_trade.quantity
                     share_of_debt = net_usage / total_internal_usage
-                    dict_for_this_period[internal_trade.source] = share_of_debt * total_debt
+                    extra_costs.append(ExtraCost(period, internal_trade.source, ExtraCostType.HEAT_EXT_COST_CORR,
+                                                 share_of_debt * total_debt))
             else:
                 internal_sell_trades = [x for x in trades_for_period if (not x.by_external) & (x.action == Action.SELL)]
                 total_internal_prod = sum([x.quantity for x in internal_sell_trades])
                 total_debt = (est_ext_wholesale_price - exact_ext_wholesale_price) * external_trade_quantity
-                dict_for_this_period[external_trade.source] = -total_debt
+
+                extra_costs.append(ExtraCost(period, external_trade.source, ExtraCostType.HEAT_EXT_COST_CORR,
+                                             -total_debt))
+
                 for internal_trade in internal_sell_trades:
                     net_prod = internal_trade.quantity
                     share_of_debt = net_prod / total_internal_prod
-                    dict_for_this_period[internal_trade.source] = share_of_debt * total_debt
-        costs_per_period_and_agent[period] = dict_for_this_period
+                    extra_costs.append(ExtraCost(period, internal_trade.source, ExtraCostType.HEAT_EXT_COST_CORR,
+                                                 share_of_debt * total_debt))
 
-    return costs_per_period_and_agent
+    return extra_costs
