@@ -23,7 +23,7 @@ from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTw
 from tradingplatformpoc.mock_data_generation_functions import get_all_residential_building_agents, get_elec_cons_key, \
     get_heat_cons_key, get_pv_prod_key
 from tradingplatformpoc.trade import Trade
-from tradingplatformpoc.trading_platform_utils import flatten_collection, get_intersection, write_rows
+from tradingplatformpoc.trading_platform_utils import flatten_collection, get_intersection
 
 logger = logging.getLogger(__name__)
 
@@ -146,8 +146,9 @@ def run_trading_simulations(mock_datas_pickle_path: str, results_path: str):
                                                                   estimated_wholesale_heating_prices_by_year_and_month)
     all_extra_costs.extend(heat_cost_discr_corrections)
 
-    trades_csv_file.write(write_rows(all_trades_list))
-    extra_costs_file.write(write_rows(all_extra_costs))
+    trades_csv_file.writelines([str(trade) for trade in all_trades_list])
+    extra_costs_file.writelines([str(ec) for ec in all_extra_costs])
+
     # Exit gracefully
     clearing_prices_file.close()
     trades_csv_file.close()

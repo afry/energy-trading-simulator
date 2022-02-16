@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Any, Collection, Dict, Iterable, List
+from typing import Any, Collection, Dict, List
 
 import pandas as pd
 
@@ -68,14 +68,3 @@ def add_numeric_dicts(dict1: Dict[Any, float], dict2: Dict[Any, float]) -> Dict[
 
 def flatten_collection(collection_of_lists: Collection[Collection[Any]]) -> List[Any]:
     return [bid for sublist in collection_of_lists for bid in sublist]
-
-
-def write_rows(items: Iterable) -> str:
-    """
-    Uses the str() method on the items in the Iterable, and writes them separated by a new line. Will end with a blank
-    line. If an item's str() method creates a CSV string, this method can be of use to create a CSV file.
-    """
-    full_string = ""
-    for item in items:
-        full_string = full_string + str(item) + "\n"
-    return full_string
