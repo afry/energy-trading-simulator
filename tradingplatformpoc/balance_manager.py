@@ -135,15 +135,17 @@ def calculate_total_extra_cost_for_period(external_trade: Union[Trade, None], cl
             return external_actual_import * price_difference
 
 
-def distribute_cost(error_by_agent, extra_cost) -> Dict[str, float]:
+def distribute_cost(error_by_agent: Dict[str, float], extra_cost: float) -> Dict[str, float]:
     """
     Proportional to the absolute error of an agent's prediction, i.e. the difference between bid quantity and actual
     consumption/production.
     """
     if extra_cost == 0.0:
-        return {k: 0 for (k, v) in error_by_agent.items()}
+        return {}
     sum_of_abs_errors = sum([abs(v) for (k, v) in error_by_agent.items()])
-    perc_of_cost_to_be_paid_by_agent = {k: abs(v) / sum_of_abs_errors for (k, v) in error_by_agent.items()}
+    perc_of_cost_to_be_paid_by_agent = {k: abs(v) / sum_of_abs_errors
+                                        for (k, v) in error_by_agent.items()
+                                        if v != 0}
     return {k: extra_cost * v for (k, v) in perc_of_cost_to_be_paid_by_agent.items()}
 
 
