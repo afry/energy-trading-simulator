@@ -217,9 +217,9 @@ def correct_for_exact_heating_price(trading_periods: Collection[datetime.datetim
     We should attribute this cost (or, if p > x, this income) based on district heating usage.
     For more on how we attribute this cost/income, see https://doc.afdrift.se/pages/viewpage.action?pageId=34766880
 
-    @return A dict where the keys are trading periods, and the values are dicts. These dicts, in turn, have agent IDs as
-        keys, and "costs" (as floats) as values. Here, a negative value means the agent is owed money for the period,
-        rather than owing the money to someone else.
+    @return A list of ExtraCost entities, containing information about what period and agent the cost is for, the
+        "ExtraCostType" always being equal to "HEAT_EXT_COST_CORR", and a "cost" value, where a negative value means the
+        agent is owed money for the period, rather than owing the money to someone else.
     """
 
     extra_costs: List[ExtraCost] = []
