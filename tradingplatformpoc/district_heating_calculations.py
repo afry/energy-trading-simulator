@@ -1,4 +1,5 @@
 import datetime
+import logging
 from calendar import isleap, monthrange
 
 import pandas as pd
@@ -18,6 +19,8 @@ GRID_FEE_MARGINAL_400_PLUS = 938
 
 MARGINAL_PRICE_WINTER = 0.55
 MARGINAL_PRICE_SUMMER = 0.33
+
+logger = logging.getLogger(__name__)
 
 """
 For a more thorough explanation of the district heating pricing mechanism, see
@@ -61,7 +64,6 @@ def expected_effect_fee(period: datetime.datetime) -> float:
 
 def get_base_marginal_price(month_of_year: int) -> float:
     """'Summer price' during May-September, 'Winter price' other months."""
-    # TODO: Unit test
     if 5 <= month_of_year <= 9:
         return MARGINAL_PRICE_SUMMER  # Cheaper in summer
     else:
@@ -108,7 +110,6 @@ def exact_effect_fee(monthly_peak_day_avg_consumption_kw: float) -> float:
     @param monthly_peak_day_avg_consumption_kw Calculated by taking the day during the month which has the highest
         heating energy use, and taking the average hourly heating use that day.
     """
-    # TODO: Unit test
     return EFFECT_PRICE * monthly_peak_day_avg_consumption_kw
 
 
@@ -131,7 +132,6 @@ def get_grid_fee_for_month(jan_feb_hourly_avg_consumption_kw: float, year: int, 
     The grid fee is based on the average consumption in kW during January and February.
     This fee is then spread out evenly during the year.
     """
-    # TODO: Unit test
     days_in_month = monthrange(year, month_of_year)[1]
     days_in_year = 366 if isleap(year) else 365
     fraction_of_year = days_in_month / days_in_year
@@ -143,11 +143,12 @@ def calculate_jan_feb_avg_heating_sold(all_external_heating_sells: pd.Series, pe
     """
     Calculates the average effect (in kW) of heating sold in the previous January-February.
     """
-    # TODO: When we haven't got the necessary data in self.all_external_heating_sells, this will return np.nan.
-    #  Need to figure out a way around this, where we can use an estimate or something
     year_we_are_interested_in = period.year - 1 if period.month <= 2 else period.year
     subset = (all_external_heating_sells.index.year == year_we_are_interested_in) & \
-             (all_external_heating_sells.index.month.isin([1, 2]))
+             (all_external_heating_sells.index.month <= 2)
+    if not any(subset):
+        logger.warning("No data to base grid fee on, will 'cheat' and use future data")
+        subset = (all_external_heating_sells.index.month <= 2)
     return all_external_heating_sells[subset].mean()
 
 
