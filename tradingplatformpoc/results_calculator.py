@@ -32,31 +32,31 @@ def print_basic_results_for_agent(agent: IAgent, all_trades: Iterable[Trade], al
                                   exact_wholesale_heating_prices_by_year_and_month: Dict[Tuple[int, int], float]):
     trades_for_agent = [x for x in all_trades if x.source == agent.guid]
 
-    quantity_bought_elec = sum([x.quantity for x in trades_for_agent if (x.action == Action.BUY) &
-                                (x.resource == Resource.ELECTRICITY)])
-    quantity_bought_heat = sum([x.quantity for x in trades_for_agent if (x.action == Action.BUY) &
-                                (x.resource == Resource.HEATING)])
-    quantity_sold_elec = sum([x.quantity for x in trades_for_agent if (x.action == Action.SELL) &
-                              (x.resource == Resource.ELECTRICITY)])
-    quantity_sold_heat = sum([x.quantity for x in trades_for_agent if (x.action == Action.SELL) &
-                              (x.resource == Resource.HEATING)])
-    sek_bought_for_elec = sum([x.quantity * x.price for x in trades_for_agent if (x.action == Action.BUY) &
-                              (x.resource == Resource.ELECTRICITY)])
-    sek_bought_for_heat = sum([x.quantity * x.price for x in trades_for_agent if (x.action == Action.BUY) &
-                              (x.resource == Resource.HEATING)])
-    sek_sold_for_elec = sum([x.quantity * x.price for x in trades_for_agent if (x.action == Action.SELL) &
-                        (x.resource == Resource.ELECTRICITY)])
-    sek_sold_for_heat = sum([x.quantity * x.price for x in trades_for_agent if (x.action == Action.SELL) &
-                        (x.resource == Resource.HEATING)])
+    quantity_bought_elec = sum([x.quantity for x in trades_for_agent
+                                if (x.action == Action.BUY) & (x.resource == Resource.ELECTRICITY)])
+    quantity_bought_heat = sum([x.quantity for x in trades_for_agent
+                                if (x.action == Action.BUY) & (x.resource == Resource.HEATING)])
+    quantity_sold_elec = sum([x.quantity for x in trades_for_agent
+                              if (x.action == Action.SELL) & (x.resource == Resource.ELECTRICITY)])
+    quantity_sold_heat = sum([x.quantity for x in trades_for_agent
+                              if (x.action == Action.SELL) & (x.resource == Resource.HEATING)])
+    sek_bought_for_elec = sum([x.quantity * x.price for x in trades_for_agent
+                               if (x.action == Action.BUY) & (x.resource == Resource.ELECTRICITY)])
+    sek_bought_for_heat = sum([x.quantity * x.price for x in trades_for_agent
+                               if (x.action == Action.BUY) & (x.resource == Resource.HEATING)])
+    sek_sold_for_elec = sum([x.quantity * x.price for x in trades_for_agent
+                             if (x.action == Action.SELL) & (x.resource == Resource.ELECTRICITY)])
+    sek_sold_for_heat = sum([x.quantity * x.price for x in trades_for_agent
+                             if (x.action == Action.SELL) & (x.resource == Resource.HEATING)])
     sek_bought_for = sek_bought_for_heat + sek_bought_for_elec
     sek_sold_for = sek_sold_for_heat + sek_sold_for_elec
     sek_traded_for = sek_bought_for + sek_sold_for
 
     if not isinstance(agent, GridAgent):
-        extra_costs_for_bad_bids = sum([ec.cost for ec in all_extra_costs if (ec.agent == agent.guid) &
-                                        (ec.cost_type.is_for_bid_inaccuracy())])
-        extra_costs_for_heat_cost_discr = sum([ec.cost for ec in all_extra_costs if (ec.agent == agent.guid) &
-                                               (ec.cost_type == ExtraCostType.HEAT_EXT_COST_CORR)])
+        extra_costs_for_bad_bids = sum([ec.cost for ec in all_extra_costs if (ec.agent == agent.guid)
+                                        & (ec.cost_type.is_for_bid_inaccuracy())])
+        extra_costs_for_heat_cost_discr = sum([ec.cost for ec in all_extra_costs if (ec.agent == agent.guid)
+                                               & (ec.cost_type == ExtraCostType.HEAT_EXT_COST_CORR)])
         saved_on_buy, saved_on_sell = get_savings_vs_only_external(trades_for_agent,
                                                                    exact_retail_electricity_prices_by_period,
                                                                    exact_wholesale_electricity_prices_by_period,

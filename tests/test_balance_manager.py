@@ -49,8 +49,7 @@ class Test(TestCase):
                   Trade(Action.BUY, Resource.ELECTRICITY, 200, 1, "Buyer1", False, Market.LOCAL, SOME_DATETIME),
                   Trade(Action.SELL, Resource.ELECTRICITY, 120, 1, "Grid", True, Market.LOCAL, SOME_DATETIME)]
         costs = calculate_penalty_costs_for_period_and_resource(bids, trades, 1.0, 0.5)
-        self.assertAlmostEqual(0, costs["Seller1"], places=3)
-        self.assertAlmostEqual(0, costs["Buyer1"], places=3)
+        self.assertEqual(0, len(costs))
 
     def test_calculate_costs_local_deficit_becomes_surplus(self):
         """
@@ -78,9 +77,8 @@ class Test(TestCase):
         # Seller receives 2000*1 = 2000
         # Discrepancy of 50: 1800+100+50 = 1950 paid in, 2000 paid out. Need 50 more paid in.
         costs = calculate_penalty_costs_for_period_and_resource(bids, trades, ret_price, ws_price)
-        self.assertAlmostEqual(0, costs["Seller1"], places=3)
+        self.assertEqual(1, len(costs))
         self.assertAlmostEqual(50, costs["Buyer1"], places=3)
-        self.assertAlmostEqual(0, costs["Buyer2"], places=3)
 
     def test_no_bid_from_seller(self):
         """
@@ -99,9 +97,9 @@ class Test(TestCase):
                   Trade(Action.BUY, Resource.ELECTRICITY, 100, rp, "Buyer2", False, Market.LOCAL, SOME_DATETIME),
                   Trade(Action.BUY, Resource.ELECTRICITY, 100, rp, "Grid", True, Market.LOCAL, SOME_DATETIME)]
         costs = calculate_penalty_costs_for_period_and_resource(bids, trades, rp, wp)
+        self.assertEqual(2, len(costs))
         self.assertAlmostEqual(45.4545, costs["Seller1"], places=3)
         self.assertAlmostEqual(4.54545, costs["Buyer1"], places=3)
-        self.assertAlmostEqual(0, costs["Buyer2"], places=3)
 
     def test_2_external_bids(self):
         """
@@ -378,7 +376,7 @@ class Test(TestCase):
                                                                                    trades,
                                                                                    est_ws_price,
                                                                                    est_ws_price)
-        self.assertAlmostEqual(0, cost_to_be_paid_by_agent["Buyer1"], places=3)
+        self.assertEqual(2, len(cost_to_be_paid_by_agent))
         self.assertAlmostEqual(0.133, cost_to_be_paid_by_agent["Buyer2"], places=3)
         self.assertAlmostEqual(0.067, cost_to_be_paid_by_agent["Seller"], places=3)
 
@@ -435,6 +433,5 @@ class Test(TestCase):
                                                                                    trades,
                                                                                    est_retail_price,
                                                                                    est_wholesale_price)
-        self.assertAlmostEqual(0, cost_to_be_paid_by_agent["Buyer1"], places=3)
+        self.assertEqual(1, len(cost_to_be_paid_by_agent))
         self.assertAlmostEqual(0.1, cost_to_be_paid_by_agent["Buyer2"], places=3)
-        self.assertAlmostEqual(0, cost_to_be_paid_by_agent["Seller"], places=3)
