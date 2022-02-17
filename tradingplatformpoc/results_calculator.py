@@ -16,6 +16,9 @@ def print_basic_results(agents: Iterable[IAgent], all_trades: Iterable[Trade], a
                         exact_wholesale_electricity_prices_by_period: Dict[datetime.datetime, float],
                         exact_retail_heating_prices_by_year_and_month: Dict[Tuple[int, int], float],
                         exact_wholesale_heating_prices_by_year_and_month: Dict[Tuple[int, int], float]):
+    # FUTURE: We should probably move away from just typing this out as strings. Perhaps construct a DF here where each
+    # row represents an agent, and there are columns for "quantity heating bought", "sek bought elec for", ...
+    # That way we can show it better in the UI.
     st.write(""" ## Results: """)
     for agent in agents:
         print_basic_results_for_agent(agent, all_trades, all_extra_costs,
