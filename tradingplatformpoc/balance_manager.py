@@ -228,7 +228,8 @@ def correct_for_exact_heating_price(trading_periods: Collection[datetime.datetim
     heating_trades = [trade for trade in all_trades_list if trade.resource == Resource.HEATING]
 
     for period in trading_periods:
-
+        # Note: The below row takes up a lot of runtime. Perhaps we should store trades in a dict, keyed by period,
+        # would make this run faster
         trades_for_period = [trade for trade in heating_trades if trade.period == period]
         external_trade = get_external_trade_on_local_market(trades_for_period)
         if external_trade is not None:

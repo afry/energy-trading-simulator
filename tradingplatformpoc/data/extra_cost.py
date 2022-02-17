@@ -9,6 +9,9 @@ class ExtraCostType(Enum):
     HEAT_BID_INACCURACY = 1
     HEAT_EXT_COST_CORR = 2
 
+    def is_for_bid_inaccuracy(self) -> bool:
+        return self in [ExtraCostType.ELEC_BID_INACCURACY, ExtraCostType.HEAT_BID_INACCURACY]
+
 
 def get_extra_cost_type_for_bid_inaccuracy(resource: Resource) -> ExtraCostType:
     if resource == Resource.ELECTRICITY:
