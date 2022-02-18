@@ -1,5 +1,5 @@
 import datetime
-from typing import Dict, Iterable, List, Tuple
+from typing import Collection, Dict, Iterable, List, Tuple
 
 import streamlit as st
 
@@ -11,7 +11,8 @@ from tradingplatformpoc.extra_cost import ExtraCost, ExtraCostType
 from tradingplatformpoc.trade import Trade
 
 
-def print_basic_results(agents: Iterable[IAgent], all_trades: Iterable[Trade], all_extra_costs: List[ExtraCost],
+def print_basic_results(agents: Iterable[IAgent], all_trades_dict: Dict[datetime.datetime, Collection[Trade]],
+                        all_extra_costs: List[ExtraCost],
                         exact_retail_electricity_prices_by_period: Dict[datetime.datetime, float],
                         exact_wholesale_electricity_prices_by_period: Dict[datetime.datetime, float],
                         exact_retail_heating_prices_by_year_and_month: Dict[Tuple[int, int], float],
@@ -21,19 +22,20 @@ def print_basic_results(agents: Iterable[IAgent], all_trades: Iterable[Trade], a
     # That way we can show it better in the UI.
     st.write(""" ## Results: """)
     for agent in agents:
-        print_basic_results_for_agent(agent, all_trades, all_extra_costs,
+        print_basic_results_for_agent(agent, all_trades_dict, all_extra_costs,
                                       exact_retail_electricity_prices_by_period,
                                       exact_wholesale_electricity_prices_by_period,
                                       exact_retail_heating_prices_by_year_and_month,
                                       exact_wholesale_heating_prices_by_year_and_month)
 
 
-def print_basic_results_for_agent(agent: IAgent, all_trades: Iterable[Trade], all_extra_costs: List[ExtraCost],
+def print_basic_results_for_agent(agent: IAgent, all_trades_dict: Dict[datetime.datetime, Collection[Trade]],
+                                  all_extra_costs: List[ExtraCost],
                                   exact_retail_electricity_prices_by_period: Dict[datetime.datetime, float],
                                   exact_wholesale_electricity_prices_by_period: Dict[datetime.datetime, float],
                                   exact_retail_heating_prices_by_year_and_month: Dict[Tuple[int, int], float],
                                   exact_wholesale_heating_prices_by_year_and_month: Dict[Tuple[int, int], float]):
-    trades_for_agent = [x for x in all_trades if x.source == agent.guid]
+    trades_for_agent = [x for v in all_trades_dict.values() for x in v if x.source == agent.guid]
 
     quantity_bought_elec = sum([x.quantity for x in trades_for_agent
                                 if (x.action == Action.BUY) & (x.resource == Resource.ELECTRICITY)])

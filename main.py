@@ -41,4 +41,4 @@ results_path = "./results/"
 
 if __name__ == '__main__':
     logger.info("Running main")
-    clearing_prices_dict, all_trades_list, all_extra_costs = run_trading_simulations(mock_datas_path, results_path)
+    clearing_prices_dict, all_trades_dict, all_extra_costs = run_trading_simulations(mock_datas_path, results_path)

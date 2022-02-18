@@ -203,7 +203,8 @@ def get_actual_usage(trades_for_agent: List[Trade], agent_id: str) -> float:
         return trade.quantity if trade.action == Action.BUY else -trade.quantity
 
 
-def correct_for_exact_heating_price(trading_periods: Collection[datetime.datetime], all_trades_list: List[Trade],
+def correct_for_exact_heating_price(trading_periods: Collection[datetime.datetime],
+                                    all_trades_dict: Dict[datetime.datetime, Collection[Trade]],
                                     exact_retail_heating_prices_by_year_and_month: Dict[Tuple[int, int], float],
                                     exact_wholesale_heating_prices_by_year_and_month: Dict[Tuple[int, int], float],
                                     estimated_retail_heating_prices_by_year_and_month: Dict[Tuple[int, int], float],
@@ -225,13 +226,13 @@ def correct_for_exact_heating_price(trading_periods: Collection[datetime.datetim
     """
 
     extra_costs: List[ExtraCost] = []
-    heating_trades = [trade for trade in all_trades_list if trade.resource == Resource.HEATING]
 
     for period in trading_periods:
         # Note: The below row takes up a lot of runtime. Perhaps we should store trades in a dict, keyed by period,
         # would make this run faster
-        trades_for_period = [trade for trade in heating_trades if trade.period == period]
-        external_trade = get_external_trade_on_local_market(trades_for_period)
+        trades_for_period = all_trades_dict[period]
+        heating_trades = [trade for trade in trades_for_period if trade.resource == Resource.HEATING]
+        external_trade = get_external_trade_on_local_market(heating_trades)
         if external_trade is not None:
             exact_ext_retail_price = exact_retail_heating_prices_by_year_and_month[(period.year, period.month)]
             exact_ext_wholesale_price = exact_wholesale_heating_prices_by_year_and_month[(period.year, period.month)]
@@ -239,7 +240,7 @@ def correct_for_exact_heating_price(trading_periods: Collection[datetime.datetim
             est_ext_wholesale_price = estimated_wholesale_heating_prices_by_year_and_month[(period.year, period.month)]
             external_trade_quantity = external_trade.quantity
             if external_trade.action == Action.SELL:
-                internal_buy_trades = [x for x in trades_for_period if (not x.by_external) & (x.action == Action.BUY)]
+                internal_buy_trades = [x for x in heating_trades if (not x.by_external) & (x.action == Action.BUY)]
                 total_internal_usage = sum([x.quantity for x in internal_buy_trades])
                 total_debt = (exact_ext_retail_price - est_ext_retail_price) * external_trade_quantity
 
@@ -252,7 +253,7 @@ def correct_for_exact_heating_price(trading_periods: Collection[datetime.datetim
                     extra_costs.append(ExtraCost(period, internal_trade.source, ExtraCostType.HEAT_EXT_COST_CORR,
                                                  share_of_debt * total_debt))
             else:
-                internal_sell_trades = [x for x in trades_for_period if (not x.by_external) & (x.action == Action.SELL)]
+                internal_sell_trades = [x for x in heating_trades if (not x.by_external) & (x.action == Action.SELL)]
                 total_internal_prod = sum([x.quantity for x in internal_sell_trades])
                 total_debt = (est_ext_wholesale_price - exact_ext_wholesale_price) * external_trade_quantity
 

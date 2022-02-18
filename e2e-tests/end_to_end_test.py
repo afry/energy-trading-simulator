@@ -24,7 +24,7 @@ class Test(TestCase):
                                                                                                  "../results/")
 
         for period in clearing_prices.keys():
-            trades_for_period = [x for x in all_trades if x.period == period]
+            trades_for_period = all_trades[period]
             extra_costs_for_period = [ec for ec in all_extra_costs if (ec.period == period)]
             for resource in ALL_IMPLEMENTED_RESOURCES:
                 trades_for_period_and_resource = [x for x in trades_for_period if x.resource == resource]

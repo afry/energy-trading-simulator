@@ -236,7 +236,7 @@ class Test(TestCase):
         estimated_retail_heating_prices_by_year_and_month = {
             (SOME_DATETIME.year, SOME_DATETIME.month): est_retail_price}
         estimated_wholesale_heating_prices_by_year_and_month = {(SOME_DATETIME.year, SOME_DATETIME.month): np.nan}
-        extra_costs = correct_for_exact_heating_price([SOME_DATETIME], trades,
+        extra_costs = correct_for_exact_heating_price([SOME_DATETIME], {SOME_DATETIME: trades},
                                                       exact_retail_heating_prices_by_year_and_month,
                                                       exact_wholesale_heating_prices_by_year_and_month,
                                                       estimated_retail_heating_prices_by_year_and_month,
@@ -263,7 +263,7 @@ class Test(TestCase):
         estimated_retail_heating_prices_by_year_and_month = {(SOME_DATETIME.year, SOME_DATETIME.month): np.nan}
         estimated_wholesale_heating_prices_by_year_and_month = {
             (SOME_DATETIME.year, SOME_DATETIME.month): est_wholesale_price}
-        extra_costs = correct_for_exact_heating_price([SOME_DATETIME], trades,
+        extra_costs = correct_for_exact_heating_price([SOME_DATETIME], {SOME_DATETIME: trades},
                                                       exact_retail_heating_prices_by_year_and_month,
                                                       exact_wholesale_heating_prices_by_year_and_month,
                                                       estimated_retail_heating_prices_by_year_and_month,
@@ -289,7 +289,7 @@ class Test(TestCase):
         estimated_retail_heating_prices_by_year_and_month = {
             (SOME_DATETIME.year, SOME_DATETIME.month): est_retail_price}
         estimated_wholesale_heating_prices_by_year_and_month = {(SOME_DATETIME.year, SOME_DATETIME.month): np.nan}
-        extra_costs = correct_for_exact_heating_price([SOME_DATETIME], trades,
+        extra_costs = correct_for_exact_heating_price([SOME_DATETIME], {SOME_DATETIME: trades},
                                                       exact_retail_heating_prices_by_year_and_month,
                                                       exact_wholesale_heating_prices_by_year_and_month,
                                                       estimated_retail_heating_prices_by_year_and_month,
@@ -318,7 +318,7 @@ class Test(TestCase):
         estimated_retail_heating_prices_by_year_and_month = {
             (SOME_DATETIME.year, SOME_DATETIME.month): est_retail_price}
         estimated_wholesale_heating_prices_by_year_and_month = {(SOME_DATETIME.year, SOME_DATETIME.month): np.nan}
-        extra_costs = correct_for_exact_heating_price([SOME_DATETIME], trades,
+        extra_costs = correct_for_exact_heating_price([SOME_DATETIME], {SOME_DATETIME: trades},
                                                       exact_retail_heating_prices_by_year_and_month,
                                                       exact_wholesale_heating_prices_by_year_and_month,
                                                       estimated_retail_heating_prices_by_year_and_month,
@@ -362,7 +362,7 @@ class Test(TestCase):
             (SOME_DATETIME.year, SOME_DATETIME.month): est_retail_price}
         estimated_wholesale_heating_prices_by_year_and_month = {
             (SOME_DATETIME.year, SOME_DATETIME.month): est_ws_price}
-        cost_discr_corrs = correct_for_exact_heating_price([SOME_DATETIME], trades,
+        cost_discr_corrs = correct_for_exact_heating_price([SOME_DATETIME], {SOME_DATETIME: trades},
                                                            exact_retail_heating_prices_by_year_and_month,
                                                            exact_wholesale_heating_prices_by_year_and_month,
                                                            estimated_retail_heating_prices_by_year_and_month,
@@ -420,7 +420,7 @@ class Test(TestCase):
             (SOME_DATETIME.year, SOME_DATETIME.month): est_retail_price}
         estimated_wholesale_heating_prices_by_year_and_month = {
             (SOME_DATETIME.year, SOME_DATETIME.month): est_wholesale_price}
-        cost_discr_corrs = correct_for_exact_heating_price([SOME_DATETIME], trades,
+        cost_discr_corrs = correct_for_exact_heating_price([SOME_DATETIME], {SOME_DATETIME: trades},
                                                            exact_retail_heating_prices_by_year_and_month,
                                                            exact_wholesale_heating_prices_by_year_and_month,
                                                            estimated_retail_heating_prices_by_year_and_month,
