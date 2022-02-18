@@ -5,7 +5,7 @@ from pkg_resources import resource_filename
 
 from tradingplatformpoc import simulation_runner
 from tradingplatformpoc.bid import Action
-from tradingplatformpoc.data.extra_cost import ExtraCost
+from tradingplatformpoc.extra_cost import ExtraCost
 from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES
 
 

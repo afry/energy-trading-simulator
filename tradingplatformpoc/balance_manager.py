@@ -2,7 +2,7 @@ import datetime
 from typing import Collection, Dict, List, Tuple, Union
 
 from tradingplatformpoc.bid import Action, BidWithAcceptanceStatus, Resource
-from tradingplatformpoc.data.extra_cost import ExtraCost, ExtraCostType, get_extra_cost_type_for_bid_inaccuracy
+from tradingplatformpoc.extra_cost import ExtraCost, ExtraCostType, get_extra_cost_type_for_bid_inaccuracy
 from tradingplatformpoc.trade import Market, Trade
 from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES
 

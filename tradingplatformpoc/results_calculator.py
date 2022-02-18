@@ -7,7 +7,7 @@ from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.storage_agent import StorageAgent
 from tradingplatformpoc.bid import Action, Resource
-from tradingplatformpoc.data.extra_cost import ExtraCost, ExtraCostType
+from tradingplatformpoc.extra_cost import ExtraCost, ExtraCostType
 from tradingplatformpoc.trade import Trade
 
 

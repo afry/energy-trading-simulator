@@ -16,7 +16,7 @@ from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.agent.storage_agent import StorageAgent
 from tradingplatformpoc.balance_manager import correct_for_exact_heating_price
 from tradingplatformpoc.bid import Action, Bid, BidWithAcceptanceStatus, Resource, write_bid_rows
-from tradingplatformpoc.data.extra_cost import ExtraCost
+from tradingplatformpoc.extra_cost import ExtraCost
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
