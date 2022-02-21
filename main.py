@@ -1,6 +1,8 @@
 from pkg_resources import resource_filename
 from tradingplatformpoc.simulation_runner import run_trading_simulations
+import json
 import logging
+import shutil
 import sys
 
 # --- Read sys.argv to get logging level, if it is specified ---
@@ -38,7 +40,15 @@ if string_to_log_later is not None:
 # --- Define path to mock data
 mock_datas_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
 results_path = "./results/"
+config_filename = resource_filename("tradingplatformpoc.data", "jonstaka.json")
+with open(config_filename, "r") as jsonfile:
+    config_data = json.load(jsonfile)
+    # When looking at the other outputs in the results folder, can be handy to also have this saved, so one knows from
+    # what config those results originated from.
+    shutil.copyfile(config_filename, results_path + 'config_used.json')
 
 if __name__ == '__main__':
     logger.info("Running main")
-    clearing_prices_dict, all_trades_dict, all_extra_costs = run_trading_simulations(mock_datas_path, results_path)
+    clearing_prices_dict, all_trades_dict, all_extra_costs = run_trading_simulations(config_data,
+                                                                                     mock_datas_path,
+                                                                                     results_path)

@@ -1,9 +1,7 @@
 import datetime
-import json
 import logging
 import pickle
-import shutil
-from typing import Collection, Dict, List, Tuple
+from typing import Any, Collection, Dict, List, Tuple
 
 import pandas as pd
 
@@ -29,18 +27,13 @@ from tradingplatformpoc.trading_platform_utils import flatten_collection, get_in
 logger = logging.getLogger(__name__)
 
 
-def run_trading_simulations(mock_datas_pickle_path: str, results_path: str) -> \
+def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path: str, results_path: str) -> \
         Tuple[Dict[datetime.datetime, Dict[Resource, float]],
               Dict[datetime.datetime, Collection[Trade]],
               List[ExtraCost]]:
     """The core loop of the simulation, running through the desired time period and performing trades."""
 
     logger.info("Starting trading simulations")
-
-    config_filename = resource_filename("tradingplatformpoc.data", "jonstaka.json")
-    with open(config_filename, "r") as jsonfile:
-        config_data = json.load(jsonfile)
-        shutil.copyfile(config_filename, results_path + 'config_used.json')
 
     # Initialize data store
     data_store_entity = DataStore.from_csv_files(config_area_info=config_data["AreaInfo"])

@@ -48,8 +48,10 @@ logger = logging.getLogger(__name__)
 
 # --- Define path to mock data and results
 mock_datas_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
-config_path = resource_filename("tradingplatformpoc.data", "jonstaka.json")
+config_filename = resource_filename("tradingplatformpoc.data", "jonstaka.json")
 results_path = "./results/"
+with open(config_filename, "r") as jsonfile:
+    config_data = json.load(jsonfile)
 
 if string_to_log_later is not None:
     logger.info(string_to_log_later)
@@ -71,8 +73,6 @@ if __name__ == '__main__':
             """
         )
     elif page_selected == SETUP_PAGE:
-        with open(config_path, "r") as jsonfile:
-            config_data = json.load(jsonfile)
 
         run_sim = st.button("Click here to run simulation")
 
@@ -83,7 +83,8 @@ if __name__ == '__main__':
             run_sim = False
             logger.info("Running simulation")
             st.spinner("Running simulation")
-            clearing_prices_dict, all_trades_dict, all_extra_costs_dict = run_trading_simulations(mock_datas_path,
+            clearing_prices_dict, all_trades_dict, all_extra_costs_dict = run_trading_simulations(config_data,
+                                                                                                  mock_datas_path,
                                                                                                   results_path)
             st.success('Simulation finished!')
 
