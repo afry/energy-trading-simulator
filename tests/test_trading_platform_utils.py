@@ -2,7 +2,8 @@ from collections import Counter
 from datetime import datetime
 from unittest import TestCase
 
-from tradingplatformpoc.trading_platform_utils import add_numeric_dicts, flatten_collection, minus_n_hours
+from tradingplatformpoc.trading_platform_utils import add_numeric_dicts, flatten_collection, get_intersection, \
+    minus_n_hours
 
 
 class Test(TestCase):
@@ -10,6 +11,18 @@ class Test(TestCase):
         """Test that removing an hour from a datetime, returns a datetime which is one hour earlier."""
         t2 = minus_n_hours(datetime(2021, 12, 10, 11, 0, 0), 1)
         self.assertEqual(datetime(2021, 12, 10, 10, 0, 0), t2)
+
+    def test_get_intersection_of_lists(self):
+        """Test that get_intersection works for two lists."""
+        list1 = [1, 2, 3]
+        list2 = [4, 3, 2]
+        self.assertEqual([2, 3], get_intersection(list1, list2))
+
+    def test_get_intersection_of_set_and_list(self):
+        """Test that get_intersection works for one set and one list."""
+        set1 = {1, 2, 3}
+        list2 = [4, 3, 2]
+        self.assertEqual([2, 3], get_intersection(set1, list2))
 
     def test_add_numeric_dicts(self):
         """Test that add_numeric_dicts works as intended: Add values for keys that exist in both, keep all keys."""

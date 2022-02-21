@@ -15,7 +15,7 @@ from tradingplatformpoc.bid import Action, BidWithAcceptanceStatus, Resource
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
 from tradingplatformpoc.trade import Market, Trade
-from tradingplatformpoc.trading_platform_utils import datetime_array_between
+from tradingplatformpoc.trading_platform_utils import hourly_datetime_array_between
 
 SOME_DATETIME = datetime(2019, 2, 1, 1)
 
@@ -28,7 +28,7 @@ AREA_INFO = {
     "StorePVArea": 320,
     "PVEfficiency": 0.165
 }
-DATETIME_ARRAY = datetime_array_between(datetime(2018, 12, 31, 23), datetime(2020, 1, 31, 22))
+DATETIME_ARRAY = hourly_datetime_array_between(datetime(2018, 12, 31, 23), datetime(2020, 1, 31, 22))
 
 # To make tests consistent, set a random seed
 np.random.seed(1)

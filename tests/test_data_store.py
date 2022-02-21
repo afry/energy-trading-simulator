@@ -12,11 +12,11 @@ from tests import utility_test_objects
 
 from tradingplatformpoc import data_store
 from tradingplatformpoc.bid import Resource
-from tradingplatformpoc.trading_platform_utils import datetime_array_between
+from tradingplatformpoc.trading_platform_utils import hourly_datetime_array_between
 
 FEB_1_1_AM = datetime(2019, 2, 1, 1, 0, 0)
 
-DATETIME_ARRAY = datetime_array_between(datetime(2018, 12, 31, 23), datetime(2020, 1, 31, 22))
+DATETIME_ARRAY = hourly_datetime_array_between(datetime(2018, 12, 31, 23), datetime(2020, 1, 31, 22))
 CONSTANT_NORDPOOL_PRICE = 0.6  # Doesn't matter what this is
 ONES_SERIES = pd.Series(np.ones(shape=len(DATETIME_ARRAY)), index=DATETIME_ARRAY)
 

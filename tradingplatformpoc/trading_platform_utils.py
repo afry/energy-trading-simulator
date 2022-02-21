@@ -14,7 +14,7 @@ def minus_n_hours(t1: datetime, n_hours: int):
     return new_time
 
 
-def datetime_array_between(from_dt: datetime, to_dt: datetime):
+def hourly_datetime_array_between(from_dt: datetime, to_dt: datetime):
     delta = to_dt - from_dt
     delta_hours = int(delta.days * 24 + delta.seconds / 3600)
     to_return = [from_dt]
@@ -23,9 +23,10 @@ def datetime_array_between(from_dt: datetime, to_dt: datetime):
     return to_return
 
 
-def get_intersection(list1, list2):
-    """Returns a list of items that are present in both list1 and list2. Ordered the same as list1."""
-    return [item for item in list1 if item in list2]
+def get_intersection(collection1: Collection, collection2: Collection) -> List:
+    """Returns a list of items that are present in both collection1 and collection2. Ordered the same as collection1."""
+    temp = set(collection2)
+    return [value for value in collection1 if value in temp]
 
 
 def calculate_solar_prod(irradiation_data: pd.Series, pv_sqm: float, pv_efficiency: float):

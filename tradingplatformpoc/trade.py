@@ -1,6 +1,5 @@
 import datetime
 from enum import Enum
-from typing import Iterable
 
 from tradingplatformpoc.bid import Action, Resource, action_string, resource_string
 
@@ -47,6 +46,10 @@ class Trade:
         self.market = market
         self.period = period
 
+    def with_modified_price(self, new_price: float):
+        return Trade(self.action, self.resource, self.quantity, new_price, self.source, self.by_external, self.market,
+                     self.period)
+
     def __str__(self):
         return "{},{},{},{},{},{},{},{}".format(self.period,
                                                 self.source,
@@ -67,10 +70,3 @@ class Trade:
 
 def market_string(market: Market) -> str:
     return "LOCAL" if market == Market.LOCAL else "EXTERNAL"
-
-
-def write_rows(trades: Iterable[Trade]) -> str:
-    full_string = ""
-    for trade in trades:
-        full_string = full_string + str(trade) + "\n"
-    return full_string

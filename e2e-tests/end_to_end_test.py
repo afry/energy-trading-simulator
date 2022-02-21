@@ -1,9 +1,11 @@
+from typing import List
 from unittest import TestCase
 
 from pkg_resources import resource_filename
 
 from tradingplatformpoc import simulation_runner
 from tradingplatformpoc.bid import Action
+from tradingplatformpoc.extra_cost import ExtraCost
 from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES
 
 
@@ -22,8 +24,8 @@ class Test(TestCase):
                                                                                                  "../results/")
 
         for period in clearing_prices.keys():
-            trades_for_period = [x for x in all_trades if x.period == period]
-            extra_costs_for_period = all_extra_costs[period]
+            trades_for_period = all_trades[period]
+            extra_costs_for_period = [ec for ec in all_extra_costs if (ec.period == period)]
             for resource in ALL_IMPLEMENTED_RESOURCES:
                 trades_for_period_and_resource = [x for x in trades_for_period if x.resource == resource]
                 energy_bought_kwh = sum([x.quantity for x in trades_for_period_and_resource if x.action == Action.BUY])
@@ -31,18 +33,15 @@ class Test(TestCase):
                 self.assertAlmostEqual(energy_bought_kwh, energy_sold_kwh, places=7)
 
             total_cost = 0  # Should sum to 0 at the end of this loop
-            agents_who_traded_or_were_penalized = set([x.source for x in trades_for_period] +
-                                                      list(extra_costs_for_period.keys()))
-            for agent in agents_who_traded_or_were_penalized:
-                trades_for_agent = [x for x in trades_for_period if x.source == agent]
-                extra_costs_for_agent = get_extra_cost_for_agent(extra_costs_for_period, agent)
+            agents_who_traded_or_were_penalized = set([x.source for x in trades_for_period]
+                                                      + [x.agent for x in extra_costs_for_period])
+            for agent_id in agents_who_traded_or_were_penalized:
+                trades_for_agent = [x for x in trades_for_period if x.source == agent_id]
+                extra_costs_for_agent = get_extra_cost_for_agent(extra_costs_for_period, agent_id)
                 cost_for_agent = sum([x.get_cost_of_trade() for x in trades_for_agent]) + extra_costs_for_agent
                 total_cost = total_cost + cost_for_agent
             self.assertAlmostEqual(0, total_cost)
 
 
-def get_extra_cost_for_agent(extra_costs_for_period, agent):
-    if agent in extra_costs_for_period:
-        return extra_costs_for_period[agent]
-    else:
-        return 0
+def get_extra_cost_for_agent(extra_costs_for_period: List[ExtraCost], agent_id: str) -> float:
+    return sum([ec.cost for ec in extra_costs_for_period if (ec.agent == agent_id)])

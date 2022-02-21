@@ -85,7 +85,7 @@ class BidWithAcceptanceStatus(Bid):
                                                 self.was_accepted)
 
 
-def write_rows(bids_with_acceptance_status: Iterable[BidWithAcceptanceStatus], period: datetime.datetime) -> str:
+def write_bid_rows(bids_with_acceptance_status: Iterable[BidWithAcceptanceStatus], period: datetime.datetime) -> str:
     full_string = ""
     for bid in bids_with_acceptance_status:
         full_string = full_string + bid.to_string_with_period(period) + "\n"
