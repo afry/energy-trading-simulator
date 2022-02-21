@@ -1,5 +1,5 @@
 import datetime
-from typing import Dict, Iterable, Tuple
+from typing import Collection, Dict, Iterable, List, Tuple
 
 import streamlit as st
 
@@ -7,71 +7,102 @@ from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.storage_agent import StorageAgent
 from tradingplatformpoc.bid import Action, Resource
+from tradingplatformpoc.extra_cost import ExtraCost, ExtraCostType
 from tradingplatformpoc.trade import Trade
 
 
-def print_basic_results(agents: Iterable[IAgent], all_trades: Iterable[Trade], all_extra_costs_dict: dict,
+def print_basic_results(agents: Iterable[IAgent], all_trades_dict: Dict[datetime.datetime, Collection[Trade]],
+                        all_extra_costs: List[ExtraCost],
                         exact_retail_electricity_prices_by_period: Dict[datetime.datetime, float],
                         exact_wholesale_electricity_prices_by_period: Dict[datetime.datetime, float],
                         exact_retail_heating_prices_by_year_and_month: Dict[Tuple[int, int], float],
                         exact_wholesale_heating_prices_by_year_and_month: Dict[Tuple[int, int], float]):
+    # FUTURE: We should probably move away from just typing this out as strings. Perhaps construct a DF here where each
+    # row represents an agent, and there are columns for "quantity heating bought", "sek bought elec for", ...
+    # That way we can show it better in the UI.
     st.write(""" ## Results: """)
     for agent in agents:
-        print_basic_results_for_agent(agent, all_trades, all_extra_costs_dict,
+        print_basic_results_for_agent(agent, all_trades_dict, all_extra_costs,
                                       exact_retail_electricity_prices_by_period,
                                       exact_wholesale_electricity_prices_by_period,
                                       exact_retail_heating_prices_by_year_and_month,
                                       exact_wholesale_heating_prices_by_year_and_month)
 
 
-def print_basic_results_for_agent(agent: IAgent, all_trades: Iterable[Trade], all_extra_costs_dict: dict,
+def print_basic_results_for_agent(agent: IAgent, all_trades_dict: Dict[datetime.datetime, Collection[Trade]],
+                                  all_extra_costs: List[ExtraCost],
                                   exact_retail_electricity_prices_by_period: Dict[datetime.datetime, float],
                                   exact_wholesale_electricity_prices_by_period: Dict[datetime.datetime, float],
                                   exact_retail_heating_prices_by_year_and_month: Dict[Tuple[int, int], float],
                                   exact_wholesale_heating_prices_by_year_and_month: Dict[Tuple[int, int], float]):
-    trades_for_agent = [x for x in all_trades if x.source == agent.guid]
-    all_extra_costs = list(all_extra_costs_dict.values())
+    trades_for_agent = [x for v in all_trades_dict.values() for x in v if x.source == agent.guid]
 
-    quantity_bought = sum([x.quantity for x in trades_for_agent if x.action == Action.BUY])
-    quantity_sold = sum([x.quantity for x in trades_for_agent if x.action == Action.SELL])
-    sek_bought_for = sum([x.quantity * x.price for x in trades_for_agent if x.action == Action.BUY])
-    sek_sold_for = sum([x.quantity * x.price for x in trades_for_agent if x.action == Action.SELL])
+    quantity_bought_elec = sum([x.quantity for x in trades_for_agent
+                                if (x.action == Action.BUY) & (x.resource == Resource.ELECTRICITY)])
+    quantity_bought_heat = sum([x.quantity for x in trades_for_agent
+                                if (x.action == Action.BUY) & (x.resource == Resource.HEATING)])
+    quantity_sold_elec = sum([x.quantity for x in trades_for_agent
+                              if (x.action == Action.SELL) & (x.resource == Resource.ELECTRICITY)])
+    quantity_sold_heat = sum([x.quantity for x in trades_for_agent
+                              if (x.action == Action.SELL) & (x.resource == Resource.HEATING)])
+    sek_bought_for_elec = sum([x.quantity * x.price for x in trades_for_agent
+                               if (x.action == Action.BUY) & (x.resource == Resource.ELECTRICITY)])
+    sek_bought_for_heat = sum([x.quantity * x.price for x in trades_for_agent
+                               if (x.action == Action.BUY) & (x.resource == Resource.HEATING)])
+    sek_sold_for_elec = sum([x.quantity * x.price for x in trades_for_agent
+                             if (x.action == Action.SELL) & (x.resource == Resource.ELECTRICITY)])
+    sek_sold_for_heat = sum([x.quantity * x.price for x in trades_for_agent
+                             if (x.action == Action.SELL) & (x.resource == Resource.HEATING)])
+    sek_bought_for = sek_bought_for_heat + sek_bought_for_elec
+    sek_sold_for = sek_sold_for_heat + sek_sold_for_elec
+    sek_traded_for = sek_bought_for + sek_sold_for
 
     if not isinstance(agent, GridAgent):
-        extra_costs_for_agent = sum([d[agent.guid] for d in all_extra_costs if (agent.guid in d.keys())])
+        extra_costs_for_bad_bids = sum([ec.cost for ec in all_extra_costs if (ec.agent == agent.guid)
+                                        & (ec.cost_type.is_for_bid_inaccuracy())])
+        extra_costs_for_heat_cost_discr = sum([ec.cost for ec in all_extra_costs if (ec.agent == agent.guid)
+                                               & (ec.cost_type == ExtraCostType.HEAT_EXT_COST_CORR)])
         saved_on_buy, saved_on_sell = get_savings_vs_only_external(trades_for_agent,
                                                                    exact_retail_electricity_prices_by_period,
                                                                    exact_wholesale_electricity_prices_by_period,
                                                                    exact_retail_heating_prices_by_year_and_month,
                                                                    exact_wholesale_heating_prices_by_year_and_month)
-        if sek_bought_for > 0:
-            print_message("For agent {} saved {:.2f} SEK when buying energy by using local market, versus buying "
-                          "everything from external grid, saving of {:.2f}%".
-                          format(agent.guid, saved_on_buy, 100.0 * saved_on_buy / sek_bought_for))
-        if sek_sold_for > 0:
-            print_message(
-                "For agent {} saved {:.2f} SEK when selling energy by using local market, versus selling "
-                "everything to external grid, saving of {:.2f}%".
-                format(agent.guid, saved_on_sell, 100.0 * saved_on_sell / sek_sold_for))
+        total_saved = saved_on_buy + saved_on_sell - extra_costs_for_heat_cost_discr
+        if sek_traded_for > 0:
+            print_message("For agent {} saved {:.2f} SEK by using local market, versus only using external grid, "
+                          "saving of {:.2f}%".format(agent.guid, total_saved, 100.0 * total_saved / sek_traded_for))
 
         print_message(
             "For agent {} was penalized with a total of {:.2f} SEK due to inaccurate projections. This brought "
             "total savings to {:.2f} SEK".
-            format(agent.guid, extra_costs_for_agent, saved_on_buy + saved_on_sell - extra_costs_for_agent))
+            format(agent.guid, extra_costs_for_bad_bids, total_saved - extra_costs_for_bad_bids))
 
         if isinstance(agent, StorageAgent):
             total_profit = sek_sold_for - sek_bought_for
             print_message("For agent {} total profit was {:.2f} SEK".format(agent.guid, total_profit))
 
-    print_message("For agent {} quantity bought was {:.2f} kWh".format(agent.guid, quantity_bought))
-    print_message("For agent {} quantity sold was {:.2f} kWh".format(agent.guid, quantity_sold))
+    # Maybe we want to split this up by energy carrier?
+    print_message("For agent {} bought a total of {:.2f} kWh electricity.".format(agent.guid, quantity_bought_elec))
+    print_message("For agent {} bought a total of {:.2f} kWh heating.".format(agent.guid, quantity_bought_heat))
+    print_message("For agent {} sold a total of {:.2f} kWh electricity.".format(agent.guid, quantity_sold_elec))
+    print_message("For agent {} sold a total of {:.2f} kWh heating.".format(agent.guid, quantity_sold_heat))
 
-    if quantity_bought > 0:
-        avg_buy_price = sek_bought_for / quantity_bought
-        print_message("For agent {} average buy price was {:.3f} SEK/kWh".format(agent.guid, avg_buy_price))
-    if quantity_sold > 0:
-        avg_sell_price = sek_sold_for / quantity_sold
-        print_message("For agent {} average sell price was {:.3f} SEK/kWh".format(agent.guid, avg_sell_price))
+    if quantity_bought_elec > 0:
+        avg_buy_price_elec = sek_bought_for_elec / quantity_bought_elec
+        print_message("For agent {} average buy price for electricity was {:.3f} SEK/kWh".
+                      format(agent.guid, avg_buy_price_elec))
+    if quantity_bought_heat > 0:
+        avg_buy_price_heat = sek_bought_for_heat / quantity_bought_heat
+        print_message("For agent {} average buy price for heating was {:.3f} SEK/kWh".
+                      format(agent.guid, avg_buy_price_heat))
+    if quantity_sold_elec > 0:
+        avg_sell_price_elec = sek_sold_for_elec / quantity_sold_elec
+        print_message("For agent {} average sell price for electricity was {:.3f} SEK/kWh".
+                      format(agent.guid, avg_sell_price_elec))
+    if quantity_sold_heat > 0:
+        avg_sell_price_heat = sek_sold_for_heat / quantity_sold_heat
+        print_message("For agent {} average sell price for heating was {:.3f} SEK/kWh".
+                      format(agent.guid, avg_sell_price_heat))
 
 
 def get_savings_vs_only_external(trades_for_agent: Iterable[Trade],

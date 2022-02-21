@@ -37,6 +37,7 @@ class DataStore:
         self.coop_pv_prod = calculate_solar_prod(irradiation_data, self.store_pv_area, self.pv_efficiency)
         self.tornet_park_pv_prod = calculate_solar_prod(irradiation_data, self.park_pv_area, self.pv_efficiency)
         self.all_external_heating_sells = pd.Series(dtype=float)
+        self.all_external_heating_sells.index = pd.to_datetime(self.all_external_heating_sells.index)
         self.grid_carbon_intensity = grid_carbon_intensity
 
     @staticmethod
@@ -89,6 +90,8 @@ class DataStore:
             return self.get_electricity_retail_price(period)
         elif resource == Resource.HEATING:
             consumption_this_month_kwh = self.calculate_consumption_this_month(period.year, period.month)
+            if consumption_this_month_kwh == 0:
+                return handle_no_consumption_when_calculating_heating_price(period)
             jan_feb_avg_consumption_kw = calculate_jan_feb_avg_heating_sold(self.all_external_heating_sells, period)
             prev_month_peak_day_avg_consumption_kw = calculate_peak_day_avg_cons_kw(self.all_external_heating_sells,
                                                                                     period.year, period.month)
@@ -106,6 +109,8 @@ class DataStore:
             return self.get_electricity_wholesale_price(period)
         elif resource == Resource.HEATING:
             consumption_this_month_kwh = self.calculate_consumption_this_month(period.year, period.month)
+            if consumption_this_month_kwh == 0:
+                return handle_no_consumption_when_calculating_heating_price(period)
             jan_feb_avg_consumption_kw = calculate_jan_feb_avg_heating_sold(self.all_external_heating_sells, period)
             prev_month_peak_day_avg_consumption_kw = calculate_peak_day_avg_cons_kw(self.all_external_heating_sells,
                                                                                     period.year, period.month)
@@ -230,3 +235,9 @@ def read_electricitymap_csv(electricitymap_csv_path: str) -> pd.Series:
     em_data.index = pd.to_datetime(em_data['timestamp'], unit='s')
     # NOTE: The nordpool prices given in this file are offset by 1 hour compared to the ones in the nordpool CSV!
     return em_data['marginal_carbon_intensity_avg']
+
+
+def handle_no_consumption_when_calculating_heating_price(period):
+    logger.warning("Tried to calculate exact external heating price, in SEK/kWh, for {:%B %Y}, but had no "
+                   "consumption for this month, so returned np.nan.".format(period))
+    return np.nan
