@@ -1,3 +1,4 @@
+import json
 from typing import List
 from unittest import TestCase
 
@@ -7,6 +8,12 @@ from tradingplatformpoc import simulation_runner
 from tradingplatformpoc.bid import Action
 from tradingplatformpoc.extra_cost import ExtraCost
 from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES
+
+mock_datas_file_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
+config_filename = resource_filename("tradingplatformpoc.data", "jonstaka.json")
+results_path = "../results/"
+with open(config_filename, "r") as jsonfile:
+    config_data = json.load(jsonfile)
 
 
 class Test(TestCase):
@@ -18,10 +25,10 @@ class Test(TestCase):
         amount of energy sold. Furthermore, it will look at monetary compensation, and make sure that the amounts paid
         and received by different actors all match up.
         """
-        mock_datas_file_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
 
-        clearing_prices, all_trades, all_extra_costs = simulation_runner.run_trading_simulations(mock_datas_file_path,
-                                                                                                 "../results/")
+        clearing_prices, all_trades, all_extra_costs = simulation_runner.run_trading_simulations(config_data,
+                                                                                                 mock_datas_file_path,
+                                                                                                 results_path)
 
         for period in clearing_prices.keys():
             trades_for_period = all_trades[period]
