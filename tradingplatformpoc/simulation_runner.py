@@ -7,7 +7,7 @@ import pandas as pd
 
 from pkg_resources import resource_filename
 
-from tradingplatformpoc import balance_manager, data_store, market_solver, results_calculator, generate_mock_data
+from tradingplatformpoc import balance_manager, data_store, generate_mock_data, market_solver, results_calculator
 from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
@@ -203,7 +203,7 @@ def get_generated_mock_data(config_data: dict, mock_datas_pickle_path: str):
     residential_building_agents_frozen_set = frozenset(residential_building_agents)
     if residential_building_agents_frozen_set not in all_data_sets:
         logger.info("No mock data found for this configuration. Running mock data generation.")
-        all_data_sets = generate_mock_data.run()
+        all_data_sets = generate_mock_data.run(config_data)
         logger.info("Finished mock data generation.")
     return all_data_sets[residential_building_agents_frozen_set]
 

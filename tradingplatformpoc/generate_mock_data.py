@@ -3,7 +3,7 @@ import logging
 import math
 import pickle
 import time
-from typing import Tuple, Dict
+from typing import Any, Dict, Tuple
 
 import numpy as np
 
@@ -86,13 +86,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def run() -> Dict[frozenset, pd.DataFrame]:
+def run(config_data: Dict[str, Any]) -> Dict[frozenset, pd.DataFrame]:
     # Load pre-existing mock data sets
     all_data_sets = load_existing_data_sets(MOCK_DATAS_PICKLE)
-
-    # Open config file
-    with open(resource_filename(DATA_PATH, CONFIG_FILE), "r") as json_file:
-        config_data = json.load(json_file)
 
     residential_building_agents, total_gross_floor_area_residential = get_all_residential_building_agents(config_data)
 
@@ -573,4 +569,8 @@ def nan_helper(y):
 
 
 if __name__ == '__main__':
-    run()
+    # Open config file
+    with open(resource_filename(DATA_PATH, CONFIG_FILE), "r") as json_file:
+        config_from_file = json.load(json_file)
+
+    run(config_from_file)

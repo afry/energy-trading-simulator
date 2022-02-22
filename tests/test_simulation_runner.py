@@ -22,7 +22,7 @@ class Test(TestCase):
     def test_get_generated_mock_data_when_doesnt_exist(self):
         """Test that when trying to fetch mock data for a set of residential building agents that doesn't exist, no
         error is raised."""
-        data = simulation_runner.get_generated_mock_data(self.fake_config, self.mock_datas_file_path)
+        simulation_runner.get_generated_mock_data(self.fake_config, self.mock_datas_file_path)
 
     def test_initialize_agents(self):
         energy_data_csv_path = resource_filename("tradingplatformpoc.data", "full_mock_energy_data.csv")
