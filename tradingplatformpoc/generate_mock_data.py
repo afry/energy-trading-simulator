@@ -3,7 +3,7 @@ import logging
 import math
 import pickle
 import time
-from typing import Tuple
+from typing import Tuple, Dict
 
 import numpy as np
 
@@ -86,7 +86,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def main():
+def run() -> Dict[frozenset, pd.DataFrame]:
     # Load pre-existing mock data sets
     all_data_sets = load_existing_data_sets(MOCK_DATAS_PICKLE)
 
@@ -136,6 +136,7 @@ def main():
 
         all_data_sets[residential_building_agents_frozen_set] = output_per_building
         pickle.dump(all_data_sets, open(MOCK_DATAS_PICKLE, 'wb'))
+    return all_data_sets
 
 
 def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd: pd.DataFrame,
@@ -572,4 +573,4 @@ def nan_helper(y):
 
 
 if __name__ == '__main__':
-    main()
+    run()
