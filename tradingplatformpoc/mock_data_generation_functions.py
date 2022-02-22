@@ -98,7 +98,7 @@ def get_school_heating_consumption_hourly_factor(timestamp: datetime.datetime) -
 
 
 def is_break(timestamp: datetime.datetime):
-    
+    # TODO: RES-214 - Loads of FutureWarnings are logged here
     current_year = timestamp.year
 
     # Define breaks, return true if timestamp falls on break, false if not
