@@ -75,9 +75,15 @@ if __name__ == '__main__':
     elif page_selected == SETUP_PAGE:
 
         run_sim = st.button("Click here to run simulation")
-
+        uploaded_file = st.file_uploader(label="Upload configuration", type="json", help="Helptext can go here...")
+        st.write("For guidelines on configuration file, see "
+                 "https://doc.afdrift.se/display/RPJ/Experiment+configuration")
         st.write("Current experiment configuration:")
         st.json(config_data)
+
+        if uploaded_file is not None:
+            logger.info("Reading uploaded config file")
+            config_data = json.load(uploaded_file)
 
         if run_sim:
             run_sim = False
