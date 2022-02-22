@@ -180,7 +180,7 @@ def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd:
                                                                    SCHOOL_ELECTRICITY_RELATIVE_ERROR_STD_DEV)
     school_heating_cons = simulate_school_area_total_heating(school_gross_floor_area_m2, seed_school_heating,
                                                              df_inputs)
-    print("Adding output for agent {}", agent['Name'])
+    logger.debug("Adding output for agent {}".format(agent['Name']))
     output_per_actor[get_elec_cons_key(agent['Name'])] = household_electricity_cons + commercial_electricity_cons + \
         school_electricity_cons
     output_per_actor[get_heat_cons_key(agent['Name'])] = residential_heating_cons + commercial_heating_cons + \
