@@ -3,7 +3,7 @@ import logging
 import math
 import pickle
 import time
-from typing import Tuple
+from typing import Any, Dict, Tuple
 
 import numpy as np
 
@@ -86,13 +86,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def main():
+def run(config_data: Dict[str, Any]) -> Dict[frozenset, pd.DataFrame]:
     # Load pre-existing mock data sets
     all_data_sets = load_existing_data_sets(MOCK_DATAS_PICKLE)
-
-    # Open config file
-    with open(resource_filename(DATA_PATH, CONFIG_FILE), "r") as json_file:
-        config_data = json.load(json_file)
 
     residential_building_agents, total_gross_floor_area_residential = get_all_residential_building_agents(config_data)
 
@@ -136,6 +132,7 @@ def main():
 
         all_data_sets[residential_building_agents_frozen_set] = output_per_building
         pickle.dump(all_data_sets, open(MOCK_DATAS_PICKLE, 'wb'))
+    return all_data_sets
 
 
 def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd: pd.DataFrame,
@@ -180,7 +177,7 @@ def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd:
                                                                    SCHOOL_ELECTRICITY_RELATIVE_ERROR_STD_DEV)
     school_heating_cons = simulate_school_area_total_heating(school_gross_floor_area_m2, seed_school_heating,
                                                              df_inputs)
-    print("Adding output for agent {}", agent['Name'])
+    logger.debug("Adding output for agent {}".format(agent['Name']))
     output_per_actor[get_elec_cons_key(agent['Name'])] = household_electricity_cons + commercial_electricity_cons + \
         school_electricity_cons
     output_per_actor[get_heat_cons_key(agent['Name'])] = residential_heating_cons + commercial_heating_cons + \
@@ -572,4 +569,8 @@ def nan_helper(y):
 
 
 if __name__ == '__main__':
-    main()
+    # Open config file
+    with open(resource_filename(DATA_PATH, CONFIG_FILE), "r") as json_file:
+        config_from_file = json.load(json_file)
+
+    run(config_from_file)
