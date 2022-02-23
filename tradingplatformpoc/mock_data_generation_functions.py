@@ -103,26 +103,26 @@ def is_break(timestamp: datetime.datetime):
 
     # Define breaks, return true if timestamp falls on break, false if not
     # Summer break 15/6 - 15/8
-    summer_start = datetime.date(current_year, 6, 1)
+    summer_start = datetime.datetime(current_year, 6, 1)
     summer_length = datetime.timedelta(days=60)
 
     if summer_start <= timestamp <= summer_start + summer_length:
         return True
 
     # Fall break 1/11 - 7/11
-    fall_start = datetime.date(current_year, 11, 1)
+    fall_start = datetime.datetime(current_year, 11, 1)
     fall_length = datetime.timedelta(days=7)
     if fall_start <= timestamp <= fall_start + fall_length:
         return True
 
     # Christmas break 22/12 - 2/1
-    christmas_start = datetime.date(current_year, 12, 22)
+    christmas_start = datetime.datetime(current_year, 12, 22)
     christmas_length = datetime.timedelta(days=14)
     if christmas_start <= timestamp <= christmas_start + christmas_length:
         return True
 
     # Sportlov 15/2 - 21/2
-    spring_start = datetime.date(current_year, 2, 1)
+    spring_start = datetime.datetime(current_year, 2, 1)
     spring_length = datetime.timedelta(days=7)
     if spring_start <= timestamp <= spring_start + spring_length:
         return True
@@ -130,7 +130,7 @@ def is_break(timestamp: datetime.datetime):
     # Easter 07/04 - 14/04
     # Easter moves yearly, but the since we are only interested in capturing the feature
     # of a week off school sometime in mid-spring, we simply chose an average date.
-    easter_start = datetime.date(current_year, 4, 7)
+    easter_start = datetime.datetime(current_year, 4, 7)
     easter_length = datetime.timedelta(days=7)
     if easter_start <= timestamp <= easter_start + easter_length:
         return True
