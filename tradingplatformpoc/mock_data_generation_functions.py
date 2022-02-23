@@ -74,13 +74,13 @@ def get_pv_prod_key(agent_name: str):
     return agent_name + '_pv_prod'
 
 
-def get_commercial_electricity_consumption_hourly_factor(hour: int) -> float:
-    return COMMERCIAL_ELECTRICITY_CONSUMPTION_HOURLY_FACTOR[hour]
+def get_commercial_electricity_consumption_hourly_factor(timestamp: datetime.datetime) -> float:
+    return COMMERCIAL_ELECTRICITY_CONSUMPTION_HOURLY_FACTOR[timestamp.hour]
 
 
-def get_commercial_heating_consumption_hourly_factor(hour: int) -> float:
+def get_commercial_heating_consumption_hourly_factor(timestamp: datetime.datetime) -> float:
     """Assuming opening hours 9-20, roughly similar to COMMERCIAL_ELECTRICITY_CONSUMPTION_HOURLY_FACTOR"""
-    if 9 <= hour < 20:
+    if 9 <= timestamp.hour < 20:
         return 1.0
     else:
         return 0.5

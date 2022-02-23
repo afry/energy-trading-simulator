@@ -1,9 +1,10 @@
+import datetime
 import json
 import logging
 import math
 import pickle
 import time
-from typing import Any, Dict, Tuple
+from typing import Any, Callable, Dict, Tuple
 
 import numpy as np
 
@@ -159,10 +160,13 @@ def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd:
     residential_gross_floor_area = agent['GrossFloorArea'] * fraction_residential
     school_gross_floor_area_m2 = agent['GrossFloorArea'] * fraction_school
 
-    commercial_electricity_cons = simulate_commercial_area_electricity(commercial_gross_floor_area,
-                                                                       seed_commercial_electricity, df_inputs.index,
-                                                                       KWH_ELECTRICITY_PER_YEAR_M2_COMMERCIAL,
-                                                                       COMMERCIAL_ELECTRICITY_RELATIVE_ERROR_STD_DEV)
+    commercial_electricity_cons = simulate_area_electricity(
+        commercial_gross_floor_area,
+        seed_commercial_electricity,
+        df_inputs.index,
+        KWH_ELECTRICITY_PER_YEAR_M2_COMMERCIAL,
+        COMMERCIAL_ELECTRICITY_RELATIVE_ERROR_STD_DEV,
+        get_commercial_electricity_consumption_hourly_factor)
     commercial_heating_cons = simulate_commercial_area_total_heating(commercial_gross_floor_area,
                                                                      seed_commercial_heating, df_inputs)
 
@@ -172,9 +176,10 @@ def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd:
     household_electricity_cons = simulate_household_electricity_aggregated(
         df_inputs, model, residential_gross_floor_area, seed_residential_electricity)
 
-    school_electricity_cons = simulate_commercial_area_electricity(school_gross_floor_area_m2, seed_school_electricity,
-                                                                   df_inputs.index, KWH_ELECTRICITY_PER_YEAR_M2_SCHOOL,
-                                                                   SCHOOL_ELECTRICITY_RELATIVE_ERROR_STD_DEV)
+    school_electricity_cons = simulate_area_electricity(school_gross_floor_area_m2, seed_school_electricity,
+                                                        df_inputs.index, KWH_ELECTRICITY_PER_YEAR_M2_SCHOOL,
+                                                        SCHOOL_ELECTRICITY_RELATIVE_ERROR_STD_DEV,
+                                                        get_school_heating_consumption_hourly_factor)
     school_heating_cons = simulate_school_area_total_heating(school_gross_floor_area_m2, seed_school_heating,
                                                              df_inputs)
     logger.debug("Adding output for agent {}".format(agent['Name']))
@@ -369,19 +374,23 @@ def scale_energy_consumption(unscaled_simulated_values_kwh: pd.Series, m2: float
     return unscaled_simulated_values_kwh * (wanted_yearly_sum / current_yearly_sum)
 
 
-def simulate_commercial_area_electricity(commercial_gross_floor_area_m2: float, random_seed: int,
-                                         datetimes: pd.DatetimeIndex, kwh_elec_per_yr_per_m2: float, elec_rel_err_stdev:
-                                         float) -> pd.Series:
+def simulate_area_electricity(gross_floor_area_m2: float, random_seed: int,
+                              datetimes: pd.DatetimeIndex, kwh_elec_per_yr_per_m2: float,
+                              rel_error_std_dev: float,
+                              hourly_level_function: Callable[[datetime.datetime], float]) -> pd.Series:
     """
+    Simulates electricity demand for the given datetimes. Uses random_seed when generating random numbers.
+    The total yearly amount is calculated using gross_floor_area_m2 and kwh_elec_per_yr_per_m2. Variability over time is
+    calculated using hourly_level_function and noise is added, its quantity determined by rel_error_std_dev.
     For more information, see https://doc.afdrift.se/display/RPJ/Commercial+areas
     @return A pd.Series with hourly electricity consumption, in kWh.
     """
-    factors = [get_commercial_electricity_consumption_hourly_factor(x) for x in datetimes.hour]
+    factors = [hourly_level_function(x) for x in datetimes]
     np.random.seed(random_seed)
-    relative_errors = np.random.normal(0, elec_rel_err_stdev, len(factors))
+    relative_errors = np.random.normal(0, rel_error_std_dev, len(factors))
     unscaled_values = factors * (1 + relative_errors)
     unscaled_series = pd.Series(unscaled_values, index=datetimes)
-    scaled_series = scale_energy_consumption(unscaled_series, commercial_gross_floor_area_m2,
+    scaled_series = scale_energy_consumption(unscaled_series, gross_floor_area_m2,
                                              kwh_elec_per_yr_per_m2)
     return scaled_series
 
@@ -405,7 +414,7 @@ def simulate_commercial_area_hot_tap_water(commercial_gross_floor_area_m2: float
     Gets a factor based on the hour of day, multiplies it by a noise-factor, and scales it.
     @return A pd.Series with hot tap water load for the area, scaled to KWH_SPACE_HEATING_PER_YEAR_M2_COMMERCIAL.
     """
-    time_factors = [get_commercial_heating_consumption_hourly_factor(x) for x in datetimes.hour]
+    time_factors = [get_commercial_heating_consumption_hourly_factor(x) for x in datetimes]
     np.random.seed(random_seed)
     relative_errors = np.random.normal(0, COMMERCIAL_HOT_TAP_WATER_RELATIVE_ERROR_STD_DEV, len(time_factors))
     unscaled_values = time_factors * (1 + relative_errors)
@@ -440,7 +449,7 @@ def simulate_commercial_area_space_heating(commercial_gross_floor_area_m2: float
 
     # Adjust for opening times
     datetimes = input_df.index
-    time_factors = [get_commercial_heating_consumption_hourly_factor(x) for x in datetimes.hour]
+    time_factors = [get_commercial_heating_consumption_hourly_factor(x) for x in datetimes]
     sim_energy_unscaled = sim_energy_unscaled * time_factors
 
     # Scale
