@@ -1,7 +1,6 @@
 from pkg_resources import resource_filename
 
-from tradingplatformpoc.app.app_constants import ALL_PAGES, BIDS_PAGE, LOAD_PAGE, SELECT_PAGE_RADIO_LABEL, SETUP_PAGE, \
-    START_PAGE
+from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.app.app_functions import construct_price_chart, construct_storage_level_chart, \
     get_price_df_when_local_price_inbetween, load_data
 from tradingplatformpoc.bid import Resource
@@ -62,9 +61,9 @@ if __name__ == '__main__':
     # Navigation
     """)
 
-    page_selected = st.sidebar.radio(SELECT_PAGE_RADIO_LABEL, ALL_PAGES)
+    page_selected = st.sidebar.radio(app_constants.SELECT_PAGE_RADIO_LABEL, app_constants.ALL_PAGES)
 
-    if page_selected == START_PAGE:
+    if page_selected == app_constants.START_PAGE:
         st.write(
             """
             # Prototype data presentation app for energy microgrid trading platform
@@ -72,13 +71,27 @@ if __name__ == '__main__':
             We want to be able to upload, select and run simulations, and evaluate the results with plots.
             """
         )
-    elif page_selected == SETUP_PAGE:
+    elif page_selected == app_constants.SETUP_PAGE:
 
         run_sim = st.button("Click here to run simulation")
         uploaded_file = st.file_uploader(label="Upload configuration", type="json",
-                                                          help="Helptext can go here...")
-        st.write("For guidelines on configuration file, see "
-                 "https://doc.afdrift.se/display/RPJ/Experiment+configuration")
+                                         help="Expand the sections below for information on how the configuration file "
+                                              "should look")
+        with st.expander("Guidelines on configuration file"):
+            st.markdown(app_constants.CONFIG_GUIDELINES_MARKDOWN)
+        with st.expander("BuildingAgent specification"):
+            st.markdown(app_constants.BUILDING_AGENT_SPEC_MARKDOWN)
+            st.json(app_constants.BUILDING_AGENT_EXAMPLE)
+        with st.expander("StorageAgent specification"):
+            st.markdown(app_constants.STORAGE_AGENT_SPEC_MARKDOWN)
+            st.json(app_constants.STORAGE_AGENT_EXAMPLE)
+        with st.expander("GridAgent specification"):
+            st.markdown(app_constants.GRID_AGENT_SPEC_MARKDOWN)
+            st.json(app_constants.GRID_AGENT_EXAMPLE)
+        with st.expander("PVAgent specification"):
+            st.write("Will change in RES-207")
+        with st.expander("GroceryStoreAgent specification"):
+            st.write("Will change in RES-208")
         st.write("Current experiment configuration:")
 
         # Want to ensure that if a user uploads a file, moves to another tab in the UI, and then back here, the file
@@ -104,7 +117,7 @@ if __name__ == '__main__':
                                                                                                   results_path)
             st.success('Simulation finished!')
 
-    elif page_selected == LOAD_PAGE:
+    elif page_selected == app_constants.LOAD_PAGE:
         data_button = st.button("Click here to load data")
         if data_button:
             data_button = False
@@ -128,7 +141,7 @@ if __name__ == '__main__':
             st.dataframe(get_price_df_when_local_price_inbetween(st.session_state.combined_price_df,
                                                                  Resource.ELECTRICITY))
 
-    elif page_selected == BIDS_PAGE:
+    elif page_selected == app_constants.BIDS_PAGE:
         if 'combined_price_df' in st.session_state:
             agent_chosen = st.selectbox(label='Choose agent', options=st.session_state.agents_sorted)
             st.write('Bids for ' + agent_chosen + ':')
