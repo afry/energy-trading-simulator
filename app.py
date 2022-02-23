@@ -51,7 +51,7 @@ mock_datas_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickl
 config_filename = resource_filename("tradingplatformpoc.data", "jonstaka.json")
 results_path = "./results/"
 with open(config_filename, "r") as jsonfile:
-    config_data = json.load(jsonfile)
+    default_config = json.load(jsonfile)
 
 if string_to_log_later is not None:
     logger.info(string_to_log_later)
@@ -75,21 +75,31 @@ if __name__ == '__main__':
     elif page_selected == SETUP_PAGE:
 
         run_sim = st.button("Click here to run simulation")
-        uploaded_file = st.file_uploader(label="Upload configuration", type="json", help="Helptext can go here...")
+        uploaded_file = st.file_uploader(label="Upload configuration", type="json",
+                                                          help="Helptext can go here...")
         st.write("For guidelines on configuration file, see "
                  "https://doc.afdrift.se/display/RPJ/Experiment+configuration")
         st.write("Current experiment configuration:")
-        st.json(config_data)
 
+        # Want to ensure that if a user uploads a file, moves to another tab in the UI, and then back here, the file
+        # hasn't disappeared
         if uploaded_file is not None:
+            st.session_state.uploaded_file = uploaded_file
             logger.info("Reading uploaded config file")
-            config_data = json.load(uploaded_file)
+            st.session_state.config_data = json.load(st.session_state.uploaded_file)
+
+        if ("config_data" not in st.session_state.keys()) or (st.session_state.config_data is None):
+            logger.debug("Using default configuration")
+            st.session_state.config_data = default_config
+
+        st.json(st.session_state.config_data)
 
         if run_sim:
             run_sim = False
             logger.info("Running simulation")
             st.spinner("Running simulation")
-            clearing_prices_dict, all_trades_dict, all_extra_costs_dict = run_trading_simulations(config_data,
+            clearing_prices_dict, all_trades_dict, all_extra_costs_dict = run_trading_simulations(st.session_state.
+                                                                                                  config_data,
                                                                                                   mock_datas_path,
                                                                                                   results_path)
             st.success('Simulation finished!')
