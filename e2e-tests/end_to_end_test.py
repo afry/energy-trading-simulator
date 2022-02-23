@@ -10,7 +10,7 @@ from tradingplatformpoc.extra_cost import ExtraCost
 from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES
 
 mock_datas_file_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
-config_filename = resource_filename("tradingplatformpoc.data", "jonstaka.json")
+config_filename = resource_filename("tradingplatformpoc.data", "default_config.json")
 results_path = "../results/"
 with open(config_filename, "r") as jsonfile:
     config_data = json.load(jsonfile)

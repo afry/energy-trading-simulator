@@ -40,7 +40,7 @@ if string_to_log_later is not None:
 # --- Define path to mock data
 mock_datas_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
 results_path = "./results/"
-config_filename = resource_filename("tradingplatformpoc.data", "jonstaka.json")
+config_filename = resource_filename("tradingplatformpoc.data", "default_config.json")
 with open(config_filename, "r") as jsonfile:
     config_data = json.load(jsonfile)
     # When looking at the other outputs in the results folder, can be handy to also have this saved, so one knows from

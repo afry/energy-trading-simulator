@@ -48,7 +48,7 @@ logger = logging.getLogger(__name__)
 
 # --- Define path to mock data and results
 mock_datas_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
-config_filename = resource_filename("tradingplatformpoc.data", "jonstaka.json")
+config_filename = resource_filename("tradingplatformpoc.data", "default_config.json")
 results_path = "./results/"
 with open(config_filename, "r") as jsonfile:
     default_config = json.load(jsonfile)
