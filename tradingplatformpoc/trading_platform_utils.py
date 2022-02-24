@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from typing import Any, Collection, Dict, List
 
 import numpy as np
+
 import pandas as pd
 
 from tradingplatformpoc.bid import Resource
