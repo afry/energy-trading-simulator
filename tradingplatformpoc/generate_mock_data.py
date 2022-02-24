@@ -23,7 +23,7 @@ from tradingplatformpoc.mock_data_generation_functions import get_all_residentia
     load_existing_data_sets
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod
 
-CONFIG_FILE = 'jonstaka.json'
+CONFIG_FILE = 'default_config.json'
 
 DATA_PATH = 'tradingplatformpoc.data'
 
