@@ -21,7 +21,7 @@ from tradingplatformpoc.mock_data_generation_functions import get_all_residentia
     get_elec_cons_key, get_heat_cons_key, get_pv_prod_key, \
     get_school_heating_consumption_hourly_factor, \
     load_existing_data_sets
-from tradingplatformpoc.trading_platform_utils import calculate_solar_prod
+from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, nan_helper
 
 CONFIG_FILE = 'default_config.json'
 
@@ -547,25 +547,6 @@ def simulate_residential_total_heating(df_inputs: pd.DataFrame, gross_floor_area
     heating_scaled = scale_energy_consumption(heating_unscaled, gross_floor_area_m2,
                                               KWH_PER_YEAR_M2_RESIDENTIAL_HEATING)
     return heating_scaled
-
-
-def nan_helper(y):
-    """Helper to handle indices and logical indices of NaNs.
-
-    Input:
-        - y, 1d numpy array with possible NaNs
-    Output:
-        - nans, logical indices of NaNs
-        - index, a function, with signature indices= index(logical_indices),
-          to convert logical indices of NaNs to 'equivalent' indices
-    Example:
-        >>> # linear interpolation of NaNs
-        >>> y = np.array([1.0, np.nan, 2.0])
-        >>> nans, x= nan_helper(y)
-        >>> y[nans]= np.interp(x(nans), x(~nans), y[~nans])
-    """
-
-    return np.isnan(y), lambda z: z.nonzero()[0]
 
 
 if __name__ == '__main__':

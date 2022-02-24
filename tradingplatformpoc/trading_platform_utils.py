@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Any, Collection, Dict, List
 
+import numpy as np
 import pandas as pd
 
 from tradingplatformpoc.bid import Resource
@@ -68,3 +69,22 @@ def add_numeric_dicts(dict1: Dict[Any, float], dict2: Dict[Any, float]) -> Dict[
 
 def flatten_collection(collection_of_lists: Collection[Collection[Any]]) -> List[Any]:
     return [bid for sublist in collection_of_lists for bid in sublist]
+
+
+def nan_helper(y):
+    """Helper to handle indices and logical indices of NaNs.
+
+    Input:
+        - y, 1d numpy array with possible NaNs
+    Output:
+        - nans, logical indices of NaNs
+        - index, a function, with signature indices= index(logical_indices),
+          to convert logical indices of NaNs to 'equivalent' indices
+    Example:
+        >>> # linear interpolation of NaNs
+        >>> y = np.array([1.0, np.nan, 2.0])
+        >>> nans, x= nan_helper(y)
+        >>> y[nans]= np.interp(x(nans), x(~nans), y[~nans])
+    """
+
+    return np.isnan(y), lambda z: z.nonzero()[0]
