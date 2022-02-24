@@ -194,7 +194,7 @@ def read_nordpool_data(external_price_csv_path: str):
     if price_data.mean() > 100:
         # convert price from SEK per MWh to SEK per kWh
         price_data = price_data / 1000
-    price_data.index = pd.to_datetime(price_data.index)
+    price_data.index = pd.to_datetime(price_data.index).tz_localize('UTC')
     return price_data
 
 
@@ -202,7 +202,7 @@ def read_solar_irradiation(irradiation_csv_path: str):
     """Return solar irradiation, according to SMHI, in Watt per square meter"""
     irradiation_data = pd.read_csv(irradiation_csv_path, index_col=0)
     irradiation_series = irradiation_data['irradiation']
-    irradiation_series.index = pd.to_datetime(irradiation_series.index)
+    irradiation_series.index = pd.to_datetime(irradiation_series.index).tz_localize('UTC')
     return irradiation_series
 
 
