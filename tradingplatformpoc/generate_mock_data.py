@@ -234,6 +234,9 @@ def simulate_household_electricity_aggregated(df_inputs: pd.DataFrame, model: Re
     single apartment, increased randomness could actually be said to make a lot of sense.
     Returns a pd.Series with the data.
     """
+    if gross_floor_area_m2 == 0:
+        return pd.Series(np.zeros(len(df_inputs.index)), index=df_inputs.index)
+
     df_output = pd.DataFrame({'datetime': df_inputs.index})
     df_output.set_index('datetime', inplace=True)
 
@@ -537,6 +540,9 @@ def simulate_residential_total_heating(df_inputs: pd.DataFrame, gross_floor_area
     """
 
     nrow_input_df = len(df_inputs.index)
+    if gross_floor_area_m2 == 0:
+        return pd.Series(np.zeros(nrow_input_df), index=df_inputs.index)
+
     every_xth = np.arange(0, nrow_input_df, EVERY_X_HOURS)
     points_to_generate = len(every_xth)
 
