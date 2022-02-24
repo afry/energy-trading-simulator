@@ -40,7 +40,6 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
 
     # Specify path for CSV files from which to take some mock data (currently only for grocery store)
     energy_data_csv_path = resource_filename("tradingplatformpoc.data", "full_mock_energy_data.csv")
-    school_data_csv_path = resource_filename("tradingplatformpoc.data", "school_electricity_consumption.csv")
 
     # Load generated mock data
     buildings_mock_data = get_generated_mock_data(config_data, mock_datas_pickle_path)
@@ -66,8 +65,7 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
 
     # Register all agents
     # Keep a list of all agents to iterate over later
-    agents, grid_agents = initialize_agents(data_store_entity, config_data, buildings_mock_data,
-                                            energy_data_csv_path, school_data_csv_path)
+    agents, grid_agents = initialize_agents(data_store_entity, config_data, buildings_mock_data, energy_data_csv_path)
 
     # Main loop
     trading_periods = get_intersection(buildings_mock_data.index.tolist(),
@@ -209,7 +207,7 @@ def get_generated_mock_data(config_data: dict, mock_datas_pickle_path: str):
 
 
 def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings_mock_data: pd.DataFrame,
-                      energy_data_csv_path: str, school_data_csv_path: str):
+                      energy_data_csv_path: str):
     # Register all agents
     # Keep a list of all agents to iterate over later
     agents: List[IAgent] = []

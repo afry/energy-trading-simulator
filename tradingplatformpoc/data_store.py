@@ -188,27 +188,6 @@ def read_energy_data(energy_csv_path: str):
         np.maximum(energy_data['coop_net_heat_consumed'], 0)  # Indications are Coop has no excess heat so setting to 0
 
 
-def read_school_energy_consumption_csv(csv_path: str):
-    """
-    Reads a CSV file with electricity consumption data for a school.
-    Taken from https://www.kaggle.com/nwheeler443/ai-day-level-1
-    This probably includes electricity used for heating, but will overlook this potential flaw for now.
-    @param csv_path: String specifying the path of the CSV file
-    @return pd.Series
-    """
-    energy_data = pd.read_csv(csv_path)
-    energy_data = pd.melt(energy_data, id_vars=['Reading Date', 'One Day Total kWh', 'Status', 'Substitute Date'],
-                          var_name='Time', value_name="Energy")
-    energy_data['Timestamp'] = pd.to_datetime(energy_data['Reading Date'] + " " + energy_data['Time'],
-                                              format='%Y-%m-%d %H:%M')
-    energy_data = energy_data.sort_values(by=['Timestamp'])
-    energy_data = energy_data.set_index('Timestamp')
-    energy_data = energy_data.rename({'Energy': 'Energy [kWh]'}, axis=1)
-    energy_data = energy_data['Energy [kWh]']
-    energy_data = energy_data.resample('1H').sum() / 2  # Half-hourly -> hourly. Data seems to be kWh/h, hence the /2
-    return energy_data
-
-
 def read_nordpool_data(external_price_csv_path: str):
     price_data = pd.read_csv(external_price_csv_path, index_col=0)
     price_data = price_data.squeeze()
