@@ -1,5 +1,4 @@
 from io import StringIO
-from turtle import forward
 
 import numpy as np
 import pandas as pd
@@ -69,6 +68,7 @@ model_cop = linear_model.LinearRegression()
 model_heat.fit(calibration_features_heat, calibration_heat_kw)
 model_cop.fit(calibration_features_cop, calibration_cop)
 
+
 class HeatPump():
     """
     A component to allow building agents to convert electricity to heat.
@@ -91,7 +91,7 @@ class HeatPump():
 
     # Should this be a static method or specific to instance?
     # Is there any dependency on the state of an instance?
-    def get_heatpump_throughputs(forward_temp_c: np.array, workload: np.array,
+    def get_heatpump_throughputs(self, forward_temp_c: np.array, workload: np.array,
                                  brine_temp_c: np.array,
                                  polynomial_features_heat=polynomial_features_heat,
                                  polynomial_features_cop=polynomial_features_cop,
@@ -102,10 +102,10 @@ class HeatPump():
 
         We use tabluated data to fit a linear model with polynomial features as parameters
         """
-            # logger.info("Calculating heatpump throughputs (heat and COP).")
+        # logger.info("Calculating heatpump throughputs (heat and COP).")
 
         # --- Convert workload to rpm
-        rpm = map_workload_to_rpm(workload=workload)
+        rpm = self.map_workload_to_rpm(workload=workload)
 
         # --- Transform new readings to correct shape for model
         sensor_readings = np.transpose(np.array([forward_temp_c, rpm, brine_temp_c]))
@@ -118,14 +118,14 @@ class HeatPump():
 
         return predicted_heat_kw, predicted_cop
 
-    def map_workload_to_rpm(workload: np.array, workload_min: float = 10, workload_max: float = 100, rpm_min: float = 1500,
-                        rpm_max: float = 6000) -> np.array:
+    def map_workload_to_rpm(workload: np.array, workload_min: float = 10, workload_max: float = 100,
+                            rpm_min: float = 1500, rpm_max: float = 6000) -> np.array:
         """
         Function to perform a linear mapping of an input workload into an output rpm.
         The workload refers to the "intensity-step"/gear - setting on which the heat-pump shall work. As such, it is
         expected to be in the range 0 - 100%.
 
-        TODO: change workload from current 0-100% to actual heat-pump step-setting (i.e. workload_min=0, workload_max=9).
+        TODO: change workload from current 0-100% to actual heat-pump step-setting (i.e. workload_min=0, workload_max=9)
         TODO: Before committing the above TODO, write a unit test to ensure correct behaviour after limit-change!
         """
 
@@ -143,6 +143,7 @@ class HeatPump():
         rpm = rpm_min + (normalized_workload * rpm_range)
 
         return rpm
+
 
 class ValueOutOfRangeError(Exception):
     """
