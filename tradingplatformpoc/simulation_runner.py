@@ -1,4 +1,5 @@
 import datetime
+import json
 import logging
 import pickle
 from typing import Any, Collection, Dict, List, Tuple
@@ -143,6 +144,10 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
     all_extra_costs.extend(heat_cost_discr_corrections)
 
     extra_costs_file.writelines([str(ec) + "\n" for ec in all_extra_costs])
+
+    # Save the config used in the results folder as well
+    with open(results_path + 'config_used.json', 'w') as file_path:
+        json.dump(config_data, file_path, indent="\t")
 
     # Exit gracefully
     clearing_prices_file.close()

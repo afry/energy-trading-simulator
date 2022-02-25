@@ -2,7 +2,6 @@ from pkg_resources import resource_filename
 from tradingplatformpoc.simulation_runner import run_trading_simulations
 import json
 import logging
-import shutil
 import sys
 
 # --- Read sys.argv to get logging level, if it is specified ---
@@ -43,9 +42,6 @@ results_path = "./results/"
 config_filename = resource_filename("tradingplatformpoc.data", "default_config.json")
 with open(config_filename, "r") as jsonfile:
     config_data = json.load(jsonfile)
-    # When looking at the other outputs in the results folder, can be handy to also have this saved, so one knows from
-    # what config those results originated from.
-    shutil.copyfile(config_filename, results_path + 'config_used.json')
 
 if __name__ == '__main__':
     logger.info("Running main")
