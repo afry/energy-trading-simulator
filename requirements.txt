@@ -4,4 +4,4 @@ statsmodels==0.13.2
 setuptools~=58.0.4
 streamlit==1.5.0
 altair==4.2.0
-sklearn==1.0.2
+scikit-learn==1.0.2
