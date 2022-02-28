@@ -7,8 +7,6 @@ import pandas as pd
 from sklearn import linear_model
 from sklearn.preprocessing import PolynomialFeatures
 
-from tradingplatformpoc.bid import Resource
-
 
 class HeatPump():
     """
@@ -69,7 +67,6 @@ class HeatPump():
     55., 6000., 0., 41.69, 2.79
     55., 6000., 5., 47.23, 3.16""")
 
-
     calibration_data = pd.read_csv(calibration_data_stringio)
 
     # --- Split calibration data into dependent and independent variables
@@ -92,7 +89,6 @@ class HeatPump():
     # --- Calibrate models to tabulated data
     model_heat.fit(calibration_features_heat, calibration_heat_kw)
     model_cop.fit(calibration_features_cop, calibration_cop)
-
 
     # Should this be a static method or specific to instance?
     # Is there any dependency on the state of an instance?
