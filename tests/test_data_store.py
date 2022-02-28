@@ -44,13 +44,6 @@ class TestDataStore(TestCase):
         with self.assertRaises(RuntimeError):
             self.data_store_entity.get_estimated_retail_price(FEB_1_1_AM, Resource.COOLING)
 
-    def test_read_school_csv(self):
-        """Test that the CSV file with school energy data reads correctly."""
-        file_path = resource_filename("tradingplatformpoc.data", "school_electricity_consumption.csv")
-        school_energy_data = data_store.read_school_energy_consumption_csv(file_path)
-        self.assertTrue(school_energy_data.shape[0] > 0)
-        self.assertIsInstance(school_energy_data.index, DatetimeIndex)
-
     def test_read_electricitymap_csv(self):
         """Test that the CSV file with ElectricityMap carbon intensity data reads correctly."""
         file_path = resource_filename("tradingplatformpoc.data", "electricity_co2equivalents_year2019.csv")

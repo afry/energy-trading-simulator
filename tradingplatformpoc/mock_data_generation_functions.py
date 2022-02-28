@@ -98,8 +98,10 @@ def get_school_heating_consumption_hourly_factor(timestamp: datetime.datetime) -
 
 
 def is_break(timestamp: datetime.datetime):
-    # TODO: RES-214 - Loads of FutureWarnings are logged here
     current_year = timestamp.year
+    # Removing timezone so we can compare to timezone-naive datetimes. This method is just approximating break times
+    # anyway, so an hour back or forth doesn't matter too much
+    timestamp = timestamp.replace(tzinfo=None)
 
     # Define breaks, return true if timestamp falls on break, false if not
     # Summer break 15/6 - 15/8

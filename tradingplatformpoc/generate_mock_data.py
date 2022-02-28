@@ -22,7 +22,7 @@ from tradingplatformpoc.mock_data_generation_functions import get_all_residentia
     get_elec_cons_key, get_heat_cons_key, get_pv_prod_key, \
     get_school_heating_consumption_hourly_factor, \
     load_existing_data_sets
-from tradingplatformpoc.trading_platform_utils import calculate_solar_prod
+from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, nan_helper
 
 CONFIG_FILE = 'default_config.json'
 
@@ -319,8 +319,16 @@ def create_inputs_df(temperature_csv_path: str, irradiation_csv_path: str, heati
     df_temp = pd.read_csv(temperature_csv_path, names=['datetime', 'temperature'],
                           delimiter=';', header=0)
     df_temp['datetime'] = pd.to_datetime(df_temp['datetime'])
+    # The input is in local time, with NA for the times that "don't exist" due to daylight savings time
+    df_temp['datetime'] = df_temp['datetime'].dt.tz_localize('Europe/Stockholm', nonexistent='NaT', ambiguous='NaT')
+    # Now, remove the rows where datetime is NaT (the values there are NA anyway)
+    df_temp = df_temp.loc[~df_temp['datetime'].isnull()]
+    # Finally, convert to UTC
+    df_temp['datetime'] = df_temp['datetime'].dt.tz_convert('UTC')
+
     df_irrd = pd.read_csv(irradiation_csv_path)
-    df_irrd['datetime'] = pd.to_datetime(df_irrd['datetime'])
+    df_irrd['datetime'] = pd.to_datetime(df_irrd['datetime'], utc=True)
+    # This irradiation data is in UTC, so we don't need to convert it.
 
     df_inputs = df_temp.merge(df_irrd)
     # In case there are any missing values
@@ -329,15 +337,21 @@ def create_inputs_df(temperature_csv_path: str, irradiation_csv_path: str, heati
     df_inputs['day_of_week'] = df_inputs['datetime'].dt.dayofweek + 1
     df_inputs['day_of_month'] = df_inputs['datetime'].dt.day
     df_inputs['month_of_year'] = df_inputs['datetime'].dt.month
+    df_inputs['major_holiday'] = df_inputs['datetime'].apply(lambda dt: is_major_holiday_sweden(dt))
+    df_inputs['pre_major_holiday'] = df_inputs['datetime'].apply(lambda dt: is_day_before_major_holiday_sweden(dt))
     df_inputs.set_index('datetime', inplace=True)
-    df_inputs['major_holiday'] = is_major_holiday_sweden(df_inputs['month_of_year'], df_inputs['day_of_month'])
-    df_inputs['pre_major_holiday'] = is_day_before_major_holiday_sweden(df_inputs['month_of_year'],
-                                                                        df_inputs['day_of_month'])
 
     df_heat = pd.read_csv(heating_csv_path, names=['datetime', 'rad_energy', 'hw_energy'], header=0)
+    df_heat['datetime'] = pd.to_datetime(df_heat['datetime'])
+    # The input is in local time, a bit unclear about times that "don't exist" when DST starts, or "exist twice" when
+    # DST ends - will remove such rows, they have some NAs and stuff anyway
+    df_heat['datetime'] = df_heat['datetime'].dt.tz_localize('Europe/Stockholm', nonexistent='NaT', ambiguous='NaT')
+    df_heat = df_heat.loc[~df_heat['datetime'].isnull()]
+    # Finally, convert to UTC
+    df_heat['datetime'] = df_heat['datetime'].dt.tz_convert('UTC')
+
     df_heat['heating_energy_kwh'] = df_heat['rad_energy'] + df_heat['hw_energy']
     df_heat.drop(['rad_energy', 'hw_energy'], axis=1, inplace=True)
-    df_heat['datetime'] = pd.to_datetime(df_heat['datetime'])
     df_heat.set_index('datetime', inplace=True)
 
     df_inputs = df_inputs.merge(df_heat, left_index=True, right_index=True)
@@ -346,7 +360,10 @@ def create_inputs_df(temperature_csv_path: str, irradiation_csv_path: str, heati
     return df_inputs, df_irrd
 
 
-def is_major_holiday_sweden(month_of_year: int, day_of_month: int):
+def is_major_holiday_sweden(timestamp: pd.Timestamp):
+    swedish_time = timestamp.tz_convert("Europe/Stockholm")
+    month_of_year = swedish_time.month
+    day_of_month = swedish_time.day
     # Major holidays will naturally have a big impact on household electricity usage patterns, with people not working
     # etc. Included here are: Christmas eve, Christmas day, Boxing day, New years day, epiphany, 1 may, national day.
     # Some moveable ones not included (Easter etc)
@@ -359,7 +376,10 @@ def is_major_holiday_sweden(month_of_year: int, day_of_month: int):
            ((month_of_year == 6) & (day_of_month == 6))
 
 
-def is_day_before_major_holiday_sweden(month_of_year: int, day_of_month: int):
+def is_day_before_major_holiday_sweden(timestamp: pd.Timestamp):
+    swedish_time = timestamp.tz_convert("Europe/Stockholm")
+    month_of_year = swedish_time.month
+    day_of_month = swedish_time.day
     # Major holidays will naturally have a big impact on household electricity usage patterns, with people not working
     # etc. Included here are:
     # Day before christmas eve, New years eve, day before epiphany, Valborg, day before national day.
@@ -562,25 +582,6 @@ def simulate_residential_total_heating(df_inputs: pd.DataFrame, gross_floor_area
     heating_scaled = scale_energy_consumption(heating_unscaled, gross_floor_area_m2,
                                               KWH_PER_YEAR_M2_RESIDENTIAL_HEATING)
     return heating_scaled
-
-
-def nan_helper(y):
-    """Helper to handle indices and logical indices of NaNs.
-
-    Input:
-        - y, 1d numpy array with possible NaNs
-    Output:
-        - nans, logical indices of NaNs
-        - index, a function, with signature indices= index(logical_indices),
-          to convert logical indices of NaNs to 'equivalent' indices
-    Example:
-        >>> # linear interpolation of NaNs
-        >>> y = np.array([1.0, np.nan, 2.0])
-        >>> nans, x= nan_helper(y)
-        >>> y[nans]= np.interp(x(nans), x(~nans), y[~nans])
-    """
-
-    return np.isnan(y), lambda z: z.nonzero()[0]
 
 
 if __name__ == '__main__':
