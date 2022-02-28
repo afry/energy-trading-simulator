@@ -37,7 +37,7 @@ class DataStore:
         self.coop_pv_prod = calculate_solar_prod(irradiation_data, self.store_pv_area, self.pv_efficiency)
         self.tornet_park_pv_prod = calculate_solar_prod(irradiation_data, self.park_pv_area, self.pv_efficiency)
         self.all_external_heating_sells = pd.Series(dtype=float)
-        self.all_external_heating_sells.index = pd.to_datetime(self.all_external_heating_sells.index)
+        self.all_external_heating_sells.index = pd.to_datetime(self.all_external_heating_sells.index, utc=True)
         self.grid_carbon_intensity = grid_carbon_intensity
 
     @staticmethod
@@ -180,33 +180,12 @@ class DataStore:
 
 def read_energy_data(energy_csv_path: str):
     energy_data = pd.read_csv(energy_csv_path, index_col=0)
-    energy_data.index = pd.to_datetime(energy_data.index)
+    energy_data.index = pd.to_datetime(energy_data.index, utc=True)
     return energy_data['tornet_electricity_consumed_household_kwh'], \
         energy_data['coop_electricity_consumed_cooling_kwh'] + \
         energy_data['coop_electricity_consumed_other_kwh'], \
         energy_data['tornet_energy_consumed_heat_kwh'], \
         np.maximum(energy_data['coop_net_heat_consumed'], 0)  # Indications are Coop has no excess heat so setting to 0
-
-
-def read_school_energy_consumption_csv(csv_path: str):
-    """
-    Reads a CSV file with electricity consumption data for a school.
-    Taken from https://www.kaggle.com/nwheeler443/ai-day-level-1
-    This probably includes electricity used for heating, but will overlook this potential flaw for now.
-    @param csv_path: String specifying the path of the CSV file
-    @return pd.Series
-    """
-    energy_data = pd.read_csv(csv_path)
-    energy_data = pd.melt(energy_data, id_vars=['Reading Date', 'One Day Total kWh', 'Status', 'Substitute Date'],
-                          var_name='Time', value_name="Energy")
-    energy_data['Timestamp'] = pd.to_datetime(energy_data['Reading Date'] + " " + energy_data['Time'],
-                                              format='%Y-%m-%d %H:%M')
-    energy_data = energy_data.sort_values(by=['Timestamp'])
-    energy_data = energy_data.set_index('Timestamp')
-    energy_data = energy_data.rename({'Energy': 'Energy [kWh]'}, axis=1)
-    energy_data = energy_data['Energy [kWh]']
-    energy_data = energy_data.resample('1H').sum() / 2  # Half-hourly -> hourly. Data seems to be kWh/h, hence the /2
-    return energy_data
 
 
 def read_nordpool_data(external_price_csv_path: str):
@@ -215,7 +194,7 @@ def read_nordpool_data(external_price_csv_path: str):
     if price_data.mean() > 100:
         # convert price from SEK per MWh to SEK per kWh
         price_data = price_data / 1000
-    price_data.index = pd.to_datetime(price_data.index)
+    price_data.index = pd.to_datetime(price_data.index, utc=True)
     return price_data
 
 
@@ -223,7 +202,7 @@ def read_solar_irradiation(irradiation_csv_path: str):
     """Return solar irradiation, according to SMHI, in Watt per square meter"""
     irradiation_data = pd.read_csv(irradiation_csv_path, index_col=0)
     irradiation_series = irradiation_data['irradiation']
-    irradiation_series.index = pd.to_datetime(irradiation_series.index)
+    irradiation_series.index = pd.to_datetime(irradiation_series.index, utc=True)
     return irradiation_series
 
 
@@ -233,7 +212,12 @@ def read_electricitymap_csv(electricitymap_csv_path: str) -> pd.Series:
     """
     em_data = pd.read_csv(electricitymap_csv_path, delimiter=';')
     em_data.index = pd.to_datetime(em_data['timestamp'], unit='s')
-    # NOTE: The nordpool prices given in this file are offset by 1 hour compared to the ones in the nordpool CSV!
+    # The input is in local time, with NA for the times that "don't exist" due to daylight savings time
+    em_data = em_data.tz_localize('Europe/Stockholm', nonexistent='NaT', ambiguous='NaT')
+    # Now, remove the rows where datetime is NaT (the values there are NA anyway)
+    em_data = em_data.loc[~em_data.index.isnull()]
+    # Finally, convert to UTC
+    em_data = em_data.tz_convert('UTC')
     return em_data['marginal_carbon_intensity_avg']
 
 

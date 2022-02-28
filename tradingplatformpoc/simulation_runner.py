@@ -1,4 +1,5 @@
 import datetime
+import json
 import logging
 import pickle
 from typing import Any, Collection, Dict, List, Tuple
@@ -40,7 +41,6 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
 
     # Specify path for CSV files from which to take some mock data (currently only for grocery store)
     energy_data_csv_path = resource_filename("tradingplatformpoc.data", "full_mock_energy_data.csv")
-    school_data_csv_path = resource_filename("tradingplatformpoc.data", "school_electricity_consumption.csv")
 
     # Load generated mock data
     buildings_mock_data = get_generated_mock_data(config_data, mock_datas_pickle_path)
@@ -66,8 +66,7 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
 
     # Register all agents
     # Keep a list of all agents to iterate over later
-    agents, grid_agents = initialize_agents(data_store_entity, config_data, buildings_mock_data,
-                                            energy_data_csv_path, school_data_csv_path)
+    agents, grid_agents = initialize_agents(data_store_entity, config_data, buildings_mock_data, energy_data_csv_path)
 
     # Main loop
     trading_periods = get_intersection(buildings_mock_data.index.tolist(),
@@ -146,6 +145,10 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
 
     extra_costs_file.writelines([str(ec) + "\n" for ec in all_extra_costs])
 
+    # Save the config used in the results folder as well
+    with open(results_path + 'config_used.json', 'w') as file_path:
+        json.dump(config_data, file_path, indent="\t")
+
     # Exit gracefully
     clearing_prices_file.close()
     trades_csv_file.close()
@@ -209,7 +212,7 @@ def get_generated_mock_data(config_data: dict, mock_datas_pickle_path: str):
 
 
 def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings_mock_data: pd.DataFrame,
-                      energy_data_csv_path: str, school_data_csv_path: str):
+                      energy_data_csv_path: str):
     # Register all agents
     # Keep a list of all agents to iterate over later
     agents: List[IAgent] = []
@@ -233,9 +236,10 @@ def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings
             agents.append(BuildingAgent(data_store_entity, building_digital_twin, guid=agent_name))
 
         elif agent_type == "StorageAgent":
+            discharge_rate = agent["DischargeRate"] if "DischargeRate" in agent else agent["ChargeRate"]
             storage_digital_twin = StorageDigitalTwin(max_capacity_kwh=agent["Capacity"],
                                                       max_charge_rate_fraction=agent["ChargeRate"],
-                                                      max_discharge_rate_fraction=agent["ChargeRate"],
+                                                      max_discharge_rate_fraction=discharge_rate,
                                                       discharging_efficiency=agent["RoundTripEfficiency"])
             agents.append(StorageAgent(data_store_entity, storage_digital_twin,
                                        resource=Resource[agent["Resource"]],

@@ -9,7 +9,7 @@ from tradingplatformpoc.mock_data_generation_functions import get_all_residentia
     get_heat_cons_key
 
 DATA_PATH = 'tradingplatformpoc.data'
-CONFIG_FILE = 'jonstaka.json'
+CONFIG_FILE = 'default_config.json'
 IN_PICKLE = resource_filename(DATA_PATH, 'mock_datas.pickle')
 AGENT_TO_LOOK_AT = 'ResidentialBuildingAgentBC1'
 

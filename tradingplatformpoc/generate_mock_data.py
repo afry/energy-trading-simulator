@@ -1,9 +1,10 @@
+import datetime
 import json
 import logging
 import math
 import pickle
 import time
-from typing import Any, Dict, Tuple
+from typing import Any, Callable, Dict, Tuple
 
 import numpy as np
 
@@ -21,9 +22,9 @@ from tradingplatformpoc.mock_data_generation_functions import get_all_residentia
     get_elec_cons_key, get_heat_cons_key, get_pv_prod_key, \
     get_school_heating_consumption_hourly_factor, \
     load_existing_data_sets
-from tradingplatformpoc.trading_platform_utils import calculate_solar_prod
+from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, nan_helper
 
-CONFIG_FILE = 'jonstaka.json'
+CONFIG_FILE = 'default_config.json'
 
 DATA_PATH = 'tradingplatformpoc.data'
 
@@ -159,10 +160,13 @@ def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd:
     residential_gross_floor_area = agent['GrossFloorArea'] * fraction_residential
     school_gross_floor_area_m2 = agent['GrossFloorArea'] * fraction_school
 
-    commercial_electricity_cons = simulate_commercial_area_electricity(commercial_gross_floor_area,
-                                                                       seed_commercial_electricity, df_inputs.index,
-                                                                       KWH_ELECTRICITY_PER_YEAR_M2_COMMERCIAL,
-                                                                       COMMERCIAL_ELECTRICITY_RELATIVE_ERROR_STD_DEV)
+    commercial_electricity_cons = simulate_area_electricity(
+        commercial_gross_floor_area,
+        seed_commercial_electricity,
+        df_inputs.index,
+        KWH_ELECTRICITY_PER_YEAR_M2_COMMERCIAL,
+        COMMERCIAL_ELECTRICITY_RELATIVE_ERROR_STD_DEV,
+        get_commercial_electricity_consumption_hourly_factor)
     commercial_heating_cons = simulate_commercial_area_total_heating(commercial_gross_floor_area,
                                                                      seed_commercial_heating, df_inputs)
 
@@ -172,9 +176,10 @@ def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd:
     household_electricity_cons = simulate_household_electricity_aggregated(
         df_inputs, model, residential_gross_floor_area, seed_residential_electricity)
 
-    school_electricity_cons = simulate_commercial_area_electricity(school_gross_floor_area_m2, seed_school_electricity,
-                                                                   df_inputs.index, KWH_ELECTRICITY_PER_YEAR_M2_SCHOOL,
-                                                                   SCHOOL_ELECTRICITY_RELATIVE_ERROR_STD_DEV)
+    school_electricity_cons = simulate_area_electricity(school_gross_floor_area_m2, seed_school_electricity,
+                                                        df_inputs.index, KWH_ELECTRICITY_PER_YEAR_M2_SCHOOL,
+                                                        SCHOOL_ELECTRICITY_RELATIVE_ERROR_STD_DEV,
+                                                        get_school_heating_consumption_hourly_factor)
     school_heating_cons = simulate_school_area_total_heating(school_gross_floor_area_m2, seed_school_heating,
                                                              df_inputs)
     logger.debug("Adding output for agent {}".format(agent['Name']))
@@ -229,6 +234,9 @@ def simulate_household_electricity_aggregated(df_inputs: pd.DataFrame, model: Re
     single apartment, increased randomness could actually be said to make a lot of sense.
     Returns a pd.Series with the data.
     """
+    if gross_floor_area_m2 == 0:
+        return pd.Series(np.zeros(len(df_inputs.index)), index=df_inputs.index)
+
     df_output = pd.DataFrame({'datetime': df_inputs.index})
     df_output.set_index('datetime', inplace=True)
 
@@ -311,8 +319,16 @@ def create_inputs_df(temperature_csv_path: str, irradiation_csv_path: str, heati
     df_temp = pd.read_csv(temperature_csv_path, names=['datetime', 'temperature'],
                           delimiter=';', header=0)
     df_temp['datetime'] = pd.to_datetime(df_temp['datetime'])
+    # The input is in local time, with NA for the times that "don't exist" due to daylight savings time
+    df_temp['datetime'] = df_temp['datetime'].dt.tz_localize('Europe/Stockholm', nonexistent='NaT', ambiguous='NaT')
+    # Now, remove the rows where datetime is NaT (the values there are NA anyway)
+    df_temp = df_temp.loc[~df_temp['datetime'].isnull()]
+    # Finally, convert to UTC
+    df_temp['datetime'] = df_temp['datetime'].dt.tz_convert('UTC')
+
     df_irrd = pd.read_csv(irradiation_csv_path)
-    df_irrd['datetime'] = pd.to_datetime(df_irrd['datetime'])
+    df_irrd['datetime'] = pd.to_datetime(df_irrd['datetime'], utc=True)
+    # This irradiation data is in UTC, so we don't need to convert it.
 
     df_inputs = df_temp.merge(df_irrd)
     # In case there are any missing values
@@ -321,15 +337,21 @@ def create_inputs_df(temperature_csv_path: str, irradiation_csv_path: str, heati
     df_inputs['day_of_week'] = df_inputs['datetime'].dt.dayofweek + 1
     df_inputs['day_of_month'] = df_inputs['datetime'].dt.day
     df_inputs['month_of_year'] = df_inputs['datetime'].dt.month
+    df_inputs['major_holiday'] = df_inputs['datetime'].apply(lambda dt: is_major_holiday_sweden(dt))
+    df_inputs['pre_major_holiday'] = df_inputs['datetime'].apply(lambda dt: is_day_before_major_holiday_sweden(dt))
     df_inputs.set_index('datetime', inplace=True)
-    df_inputs['major_holiday'] = is_major_holiday_sweden(df_inputs['month_of_year'], df_inputs['day_of_month'])
-    df_inputs['pre_major_holiday'] = is_day_before_major_holiday_sweden(df_inputs['month_of_year'],
-                                                                        df_inputs['day_of_month'])
 
     df_heat = pd.read_csv(heating_csv_path, names=['datetime', 'rad_energy', 'hw_energy'], header=0)
+    df_heat['datetime'] = pd.to_datetime(df_heat['datetime'])
+    # The input is in local time, a bit unclear about times that "don't exist" when DST starts, or "exist twice" when
+    # DST ends - will remove such rows, they have some NAs and stuff anyway
+    df_heat['datetime'] = df_heat['datetime'].dt.tz_localize('Europe/Stockholm', nonexistent='NaT', ambiguous='NaT')
+    df_heat = df_heat.loc[~df_heat['datetime'].isnull()]
+    # Finally, convert to UTC
+    df_heat['datetime'] = df_heat['datetime'].dt.tz_convert('UTC')
+
     df_heat['heating_energy_kwh'] = df_heat['rad_energy'] + df_heat['hw_energy']
     df_heat.drop(['rad_energy', 'hw_energy'], axis=1, inplace=True)
-    df_heat['datetime'] = pd.to_datetime(df_heat['datetime'])
     df_heat.set_index('datetime', inplace=True)
 
     df_inputs = df_inputs.merge(df_heat, left_index=True, right_index=True)
@@ -338,7 +360,10 @@ def create_inputs_df(temperature_csv_path: str, irradiation_csv_path: str, heati
     return df_inputs, df_irrd
 
 
-def is_major_holiday_sweden(month_of_year: int, day_of_month: int):
+def is_major_holiday_sweden(timestamp: pd.Timestamp):
+    swedish_time = timestamp.tz_convert("Europe/Stockholm")
+    month_of_year = swedish_time.month
+    day_of_month = swedish_time.day
     # Major holidays will naturally have a big impact on household electricity usage patterns, with people not working
     # etc. Included here are: Christmas eve, Christmas day, Boxing day, New years day, epiphany, 1 may, national day.
     # Some moveable ones not included (Easter etc)
@@ -351,7 +376,10 @@ def is_major_holiday_sweden(month_of_year: int, day_of_month: int):
            ((month_of_year == 6) & (day_of_month == 6))
 
 
-def is_day_before_major_holiday_sweden(month_of_year: int, day_of_month: int):
+def is_day_before_major_holiday_sweden(timestamp: pd.Timestamp):
+    swedish_time = timestamp.tz_convert("Europe/Stockholm")
+    month_of_year = swedish_time.month
+    day_of_month = swedish_time.day
     # Major holidays will naturally have a big impact on household electricity usage patterns, with people not working
     # etc. Included here are:
     # Day before christmas eve, New years eve, day before epiphany, Valborg, day before national day.
@@ -369,19 +397,23 @@ def scale_energy_consumption(unscaled_simulated_values_kwh: pd.Series, m2: float
     return unscaled_simulated_values_kwh * (wanted_yearly_sum / current_yearly_sum)
 
 
-def simulate_commercial_area_electricity(commercial_gross_floor_area_m2: float, random_seed: int,
-                                         datetimes: pd.DatetimeIndex, kwh_elec_per_yr_per_m2: float, elec_rel_err_stdev:
-                                         float) -> pd.Series:
+def simulate_area_electricity(gross_floor_area_m2: float, random_seed: int,
+                              datetimes: pd.DatetimeIndex, kwh_elec_per_yr_per_m2: float,
+                              rel_error_std_dev: float,
+                              hourly_level_function: Callable[[datetime.datetime], float]) -> pd.Series:
     """
+    Simulates electricity demand for the given datetimes. Uses random_seed when generating random numbers.
+    The total yearly amount is calculated using gross_floor_area_m2 and kwh_elec_per_yr_per_m2. Variability over time is
+    calculated using hourly_level_function and noise is added, its quantity determined by rel_error_std_dev.
     For more information, see https://doc.afdrift.se/display/RPJ/Commercial+areas
     @return A pd.Series with hourly electricity consumption, in kWh.
     """
-    factors = [get_commercial_electricity_consumption_hourly_factor(x) for x in datetimes.hour]
+    factors = [hourly_level_function(x) for x in datetimes]
     np.random.seed(random_seed)
-    relative_errors = np.random.normal(0, elec_rel_err_stdev, len(factors))
+    relative_errors = np.random.normal(0, rel_error_std_dev, len(factors))
     unscaled_values = factors * (1 + relative_errors)
     unscaled_series = pd.Series(unscaled_values, index=datetimes)
-    scaled_series = scale_energy_consumption(unscaled_series, commercial_gross_floor_area_m2,
+    scaled_series = scale_energy_consumption(unscaled_series, gross_floor_area_m2,
                                              kwh_elec_per_yr_per_m2)
     return scaled_series
 
@@ -405,7 +437,7 @@ def simulate_commercial_area_hot_tap_water(commercial_gross_floor_area_m2: float
     Gets a factor based on the hour of day, multiplies it by a noise-factor, and scales it.
     @return A pd.Series with hot tap water load for the area, scaled to KWH_SPACE_HEATING_PER_YEAR_M2_COMMERCIAL.
     """
-    time_factors = [get_commercial_heating_consumption_hourly_factor(x) for x in datetimes.hour]
+    time_factors = [get_commercial_heating_consumption_hourly_factor(x) for x in datetimes]
     np.random.seed(random_seed)
     relative_errors = np.random.normal(0, COMMERCIAL_HOT_TAP_WATER_RELATIVE_ERROR_STD_DEV, len(time_factors))
     unscaled_values = time_factors * (1 + relative_errors)
@@ -440,7 +472,7 @@ def simulate_commercial_area_space_heating(commercial_gross_floor_area_m2: float
 
     # Adjust for opening times
     datetimes = input_df.index
-    time_factors = [get_commercial_heating_consumption_hourly_factor(x) for x in datetimes.hour]
+    time_factors = [get_commercial_heating_consumption_hourly_factor(x) for x in datetimes]
     sim_energy_unscaled = sim_energy_unscaled * time_factors
 
     # Scale
@@ -528,6 +560,9 @@ def simulate_residential_total_heating(df_inputs: pd.DataFrame, gross_floor_area
     """
 
     nrow_input_df = len(df_inputs.index)
+    if gross_floor_area_m2 == 0:
+        return pd.Series(np.zeros(nrow_input_df), index=df_inputs.index)
+
     every_xth = np.arange(0, nrow_input_df, EVERY_X_HOURS)
     points_to_generate = len(every_xth)
 
@@ -547,25 +582,6 @@ def simulate_residential_total_heating(df_inputs: pd.DataFrame, gross_floor_area
     heating_scaled = scale_energy_consumption(heating_unscaled, gross_floor_area_m2,
                                               KWH_PER_YEAR_M2_RESIDENTIAL_HEATING)
     return heating_scaled
-
-
-def nan_helper(y):
-    """Helper to handle indices and logical indices of NaNs.
-
-    Input:
-        - y, 1d numpy array with possible NaNs
-    Output:
-        - nans, logical indices of NaNs
-        - index, a function, with signature indices= index(logical_indices),
-          to convert logical indices of NaNs to 'equivalent' indices
-    Example:
-        >>> # linear interpolation of NaNs
-        >>> y = np.array([1.0, np.nan, 2.0])
-        >>> nans, x= nan_helper(y)
-        >>> y[nans]= np.interp(x(nans), x(~nans), y[~nans])
-    """
-
-    return np.isnan(y), lambda z: z.nonzero()[0]
 
 
 if __name__ == '__main__':
