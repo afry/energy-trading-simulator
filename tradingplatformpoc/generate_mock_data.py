@@ -81,7 +81,7 @@ stream_handler = logging.StreamHandler()
 
 logging.basicConfig(
     level=logging.DEBUG, format=FORMAT, datefmt="%Y-%m-%d %H:%M:%S",
-    handlers=[file_handler, stream_handler]
+    handlers=[file_handler, stream_handler], force=True
 )
 
 logger = logging.getLogger(__name__)
