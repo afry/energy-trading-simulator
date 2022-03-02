@@ -31,7 +31,7 @@ BUILDING_AGENT_SPEC_MARKDOWN = "-  Required properties, in addition to 'Type' an
     "matter, but it shouldn't be identical to the RandomSeed of any other BuildingAgent\n" \
     "   -   'GrossFloorArea': Specified in square meters, used for calculating the energy demand\n" \
     "-  Optional properties:\n" \
-    "   -   'RooftopPVArea': Specified in square meters, used for calculating the energy produced " \
+    "   -   'PVArea': Specified in square meters, used for calculating the energy produced " \
     "by rooftop solar panels. Default 0\n" \
     "   -   'FractionCommercial': A number from 0 to 1, specifying how large a " \
     "share of the area which should be treated as commercial buildings, as opposed to residential. " \
@@ -46,7 +46,7 @@ BUILDING_AGENT_EXAMPLE = """
     "Name": "ResidentialBuildingAgentBC1",
     "RandomSeed": 1,
     "GrossFloorArea": 11305.3333333333,
-    "RooftopPVArea": 1748.6666666667,
+    "PVArea": 1748.6666666667,
     "FractionCommercial": 0.2,
     "FractionSchool": 0.0
 }

@@ -131,7 +131,7 @@ def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd:
     start = time.time()
     agent = dict(agent)  # "Unfreezing" the frozenset
     logger.debug('Starting work on \'{}\''.format(agent['Name']))
-    pv_area = agent['RooftopPVArea'] if "RooftopPVArea" in agent else 0
+    pv_area = agent['PVArea'] if "PVArea" in agent else 0
 
     seed_residential_electricity = agent['RandomSeed']
     seed_residential_heating = agent['RandomSeed'] + RESIDENTIAL_HEATING_SEED_OFFSET

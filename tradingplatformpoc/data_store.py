@@ -10,7 +10,7 @@ from pkg_resources import resource_filename
 from tradingplatformpoc.bid import Resource
 from tradingplatformpoc.district_heating_calculations import calculate_jan_feb_avg_heating_sold, \
     calculate_peak_day_avg_cons_kw, estimate_district_heating_price, exact_district_heating_price_for_month
-from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, minus_n_hours
+from tradingplatformpoc.trading_platform_utils import minus_n_hours
 
 HEATING_WHOLESALE_PRICE_FRACTION = 0.5  # External grid buys heating at 50% of the price they buy for - quite arbitrary
 
@@ -22,20 +22,17 @@ logger = logging.getLogger(__name__)
 
 class DataStore:
     nordpool_data: pd.Series
-    tornet_park_pv_prod: pd.Series
+    irradiation_data: pd.Series
     coop_pv_prod: pd.Series  # Rooftop PV production
     all_external_heating_sells: pd.Series
     grid_carbon_intensity: pd.Series
 
     def __init__(self, config_area_info: dict, nordpool_data: pd.Series, irradiation_data: pd.Series,
                  grid_carbon_intensity: pd.Series):
-        self.pv_efficiency = config_area_info["PVEfficiency"]
-        self.store_pv_area = config_area_info["StorePVArea"]
-        self.park_pv_area = config_area_info["ParkPVArea"]
+        self.default_pv_efficiency = config_area_info["DefaultPVEfficiency"]
 
         self.nordpool_data = nordpool_data
-        self.coop_pv_prod = calculate_solar_prod(irradiation_data, self.store_pv_area, self.pv_efficiency)
-        self.tornet_park_pv_prod = calculate_solar_prod(irradiation_data, self.park_pv_area, self.pv_efficiency)
+        self.irradiation_data = irradiation_data
         self.all_external_heating_sells = pd.Series(dtype=float)
         self.all_external_heating_sells.index = pd.to_datetime(self.all_external_heating_sells.index, utc=True)
         self.grid_carbon_intensity = grid_carbon_intensity

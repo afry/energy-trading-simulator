@@ -6,6 +6,8 @@ import numpy as np
 
 import pandas as pd
 
+from tests import utility_test_objects
+
 import tradingplatformpoc.agent.building_agent
 import tradingplatformpoc.agent.grid_agent
 import tradingplatformpoc.agent.pv_agent
@@ -15,19 +17,13 @@ from tradingplatformpoc.bid import Action, BidWithAcceptanceStatus, Resource
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
 from tradingplatformpoc.trade import Market, Trade
-from tradingplatformpoc.trading_platform_utils import hourly_datetime_array_between
+from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, hourly_datetime_array_between
 
 SOME_DATETIME = datetime(2019, 2, 1, 1)
 
 MAX_NORDPOOL_PRICE = 4.0
 
 MIN_NORDPOOL_PRICE = 0.1
-
-AREA_INFO = {
-    "ParkPVArea": 24324.3,
-    "StorePVArea": 320,
-    "PVEfficiency": 0.165
-}
 DATETIME_ARRAY = hourly_datetime_array_between(datetime(2018, 12, 31, 23), datetime(2020, 1, 31, 22))
 
 # To make tests consistent, set a random seed
@@ -37,7 +33,7 @@ nordpool_values = np.random.uniform(MIN_NORDPOOL_PRICE, MAX_NORDPOOL_PRICE, len(
 irradiation_values = np.random.uniform(0, 100.0, len(DATETIME_ARRAY))
 carbon_values = np.ones(shape=len(DATETIME_ARRAY))
 #
-data_store_entity = data_store.DataStore(config_area_info=AREA_INFO,
+data_store_entity = data_store.DataStore(config_area_info=utility_test_objects.AREA_INFO,
                                          nordpool_data=pd.Series(nordpool_values, index=DATETIME_ARRAY),
                                          irradiation_data=pd.Series(irradiation_values, index=DATETIME_ARRAY),
                                          grid_carbon_intensity=pd.Series(carbon_values, index=DATETIME_ARRAY))
@@ -367,7 +363,8 @@ class TestBuildingAgent(TestCase):
 
 
 class TestPVAgent(TestCase):
-    pv_digital_twin = StaticDigitalTwin(electricity_production=data_store_entity.tornet_park_pv_prod)
+    pv_prod_series = calculate_solar_prod(data_store_entity.irradiation_data, 24324.3, 0.165)
+    pv_digital_twin = StaticDigitalTwin(electricity_production=pv_prod_series)
     tornet_pv_agent = tradingplatformpoc.agent.pv_agent.PVAgent(data_store_entity, pv_digital_twin)
 
     def test_make_bids(self):
