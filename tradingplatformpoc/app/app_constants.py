@@ -25,7 +25,9 @@ CONFIG_GUIDELINES_MARKDOWN = "-  The configuration file should be in JSON format
     "           -   'Name'\n" \
     "       -   See below for more information on different agent types\n" \
     "   -   'AreaInfo'\n" \
-    "       -   Will change in RES-207 and RES-208 so won't spend energy on explaining this now"
+    "       -   Requires the following properties:\n" \
+    "           -   'DefaultPVEfficiency': A number specifying the efficiency of solar panels in the microgrid. Can " \
+    "be overridden by individual agents. Number should be between 0 and 1, and is typically in the 0.15-0.25 range"
 BUILDING_AGENT_SPEC_MARKDOWN = "-  Required properties, in addition to 'Type' and 'Name':\n" \
     "   -   'RandomSeed': An integer, used for simulating data. The value in itself does not really" \
     "matter, but it shouldn't be identical to the RandomSeed of any other BuildingAgent\n" \
@@ -39,6 +41,8 @@ BUILDING_AGENT_SPEC_MARKDOWN = "-  Required properties, in addition to 'Type' an
     "   -   'FractionSchool': A number from 0 to 1, specifying how large a " \
     "share of the area which should be treated as school buildings, as opposed to residential. " \
     "Used for calculating the pattern and quantity of energy demand\n" \
+    "   -   'PVEfficiency': A number from 0 to 1, specifying the efficiency of solar panels that the agent may have" \
+    "at its disposal. If missing, will default to the DefaultPVEfficiency specified in AreaInfo\n" \
     "-  BuildingAgent example:"
 BUILDING_AGENT_EXAMPLE = """
 {
@@ -48,7 +52,8 @@ BUILDING_AGENT_EXAMPLE = """
     "GrossFloorArea": 11305.3333333333,
     "PVArea": 1748.6666666667,
     "FractionCommercial": 0.2,
-    "FractionSchool": 0.0
+    "FractionSchool": 0.0,
+    "PVEfficiency": 0.18
 }
 """
 STORAGE_AGENT_SPEC_MARKDOWN = "-  Required properties, in addition to 'Type' and 'Name':\n" \
@@ -99,5 +104,38 @@ GRID_AGENT_EXAMPLE = """
     "Name": "ElectricityGridAgent",
     "Resource": "ELECTRICITY",
     "TransferRate": 10000
+}
+"""
+PV_AGENT_SPEC_MARKDOWN = "-  Required properties, in addition to 'Type' and 'Name':\n" \
+    "   -   'PVArea': Specified in square meters, indicating the total areal of solar panels that this agent " \
+    "has at its disposal\n" \
+    "-  Optional properties:\n" \
+    "   -   'PVEfficiency': A number from 0 to 1, specifying the efficiency of the solar panels. If missing, will " \
+    "default to the DefaultPVEfficiency specified in AreaInfo\n" \
+    "-  PVAgent example:"
+PV_AGENT_EXAMPLE = """
+{
+    "Type": "PVAgent",
+    "Name": "PVAgent1",
+    "PVArea": 10000,
+    "PVEfficiency": 0.18
+}
+"""
+GROCERY_STORE_AGENT_SPEC_MARKDOWN = "-  A specific agent type, designed to mimic the Coop store which neighbours " \
+    "the Jonstaka area. Energy consumption patterns are hard-coded and can not be modified\n" \
+    "-  Has no required properties except 'Type' and 'Name'\n" \
+    "-  Optional properties:\n" \
+    "   -   'PVArea': Specified in square meters, used for calculating the energy produced " \
+    "by rooftop solar panels. In 2021, this Coop store had 320 sqm panels on its roof, but it can be modified here. " \
+    "If not specified, will default to 0\n" \
+    "   -   'PVEfficiency': A number from 0 to 1, specifying the efficiency of the solar panels. If missing, will " \
+    "default to the DefaultPVEfficiency specified in AreaInfo\n" \
+    "-  CommercialBuildingAgent example:"
+GROCERY_STORE_AGENT_EXAMPLE = """
+{
+    "Type": "CommercialBuildingAgent",
+    "Name": "GroceryStoreAgent",
+    "PVArea": 320,
+    "PVEfficiency": 0.18
 }
 """

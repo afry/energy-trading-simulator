@@ -89,9 +89,11 @@ if __name__ == '__main__':
             st.markdown(app_constants.GRID_AGENT_SPEC_MARKDOWN)
             st.json(app_constants.GRID_AGENT_EXAMPLE)
         with st.expander("PVAgent specification"):
-            st.write("Will change in RES-207")
-        with st.expander("GroceryStoreAgent specification"):
-            st.write("Will change in RES-208")
+            st.markdown(app_constants.PV_AGENT_SPEC_MARKDOWN)
+            st.json(app_constants.PV_AGENT_EXAMPLE)
+        with st.expander("CommercialBuildingAgent specification"):
+            st.markdown(app_constants.GROCERY_STORE_AGENT_SPEC_MARKDOWN)
+            st.json(app_constants.GROCERY_STORE_AGENT_EXAMPLE)
         st.write("Current experiment configuration:")
 
         # Want to ensure that if a user uploads a file, moves to another tab in the UI, and then back here, the file

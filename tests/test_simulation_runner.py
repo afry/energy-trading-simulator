@@ -11,7 +11,7 @@ from tests import utility_test_objects
 
 from tradingplatformpoc import simulation_runner
 from tradingplatformpoc.data_store import DataStore
-from tradingplatformpoc.simulation_runner import get_pv_efficiency_to_use, get_quantity_heating_sold_by_external_grid
+from tradingplatformpoc.simulation_runner import get_quantity_heating_sold_by_external_grid
 from tradingplatformpoc.trading_platform_utils import hourly_datetime_array_between
 
 
@@ -51,13 +51,3 @@ class Test(TestCase):
         self.assertTrue(np.isnan(exact_wholesale_heating_prices_by_year_and_month[(2019, 2)]))
         self.assertFalse(np.isnan(estimated_retail_heating_prices_by_year_and_month[(2019, 2)]))
         self.assertFalse(np.isnan(estimated_wholesale_heating_prices_by_year_and_month[(2019, 2)]))
-
-    def test_get_pv_efficiency_to_use(self):
-        """
-        Test that get_pv_efficiency_to_use behaves as expected - gets default value from data store when no
-        PVEfficiency is declared in the agent.
-        """
-        fake_agent = {'PVEfficiency': 0.18}
-        self.assertEqual(0.18, get_pv_efficiency_to_use(fake_agent, self.empty_data_store))
-        empty_agent = {}
-        self.assertEqual(0.165, get_pv_efficiency_to_use(empty_agent, self.empty_data_store))

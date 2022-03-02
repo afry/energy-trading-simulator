@@ -3,7 +3,7 @@ from datetime import datetime
 from unittest import TestCase
 
 from tradingplatformpoc.trading_platform_utils import add_numeric_dicts, flatten_collection, get_intersection, \
-    minus_n_hours
+    get_pv_efficiency_to_use, minus_n_hours
 
 
 class Test(TestCase):
@@ -47,3 +47,14 @@ class Test(TestCase):
         c2 = Counter(cats=4, dogs=8)
         list_of_counters = [c1, c2]
         self.assertEqual(4, len(flatten_collection(list_of_counters)))
+
+    def test_get_pv_efficiency_to_use(self):
+        """
+        Test that get_pv_efficiency_to_use behaves as expected - returns default value when no PVEfficiency is declared
+        in the agent.
+        """
+        fake_agent = {'PVEfficiency': 0.18}
+        default_value = 0.165
+        self.assertEqual(0.18, get_pv_efficiency_to_use(fake_agent, default_value))
+        empty_agent = {}
+        self.assertEqual(default_value, get_pv_efficiency_to_use(empty_agent, default_value))
