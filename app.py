@@ -40,7 +40,7 @@ stream_handler.setLevel(console_log_level)
 
 logging.basicConfig(
     level=logging.DEBUG, format=FORMAT, datefmt="%Y-%m-%d %H:%M:%S",
-    handlers=[file_handler, stream_handler]
+    handlers=[file_handler, stream_handler], force=True  # Note that we remove all previously existing handlers here
 )
 
 logger = logging.getLogger(__name__)
