@@ -73,16 +73,6 @@ data set for the given config.
 For some more information: https://doc.afdrift.se/display/RPJ/Household+electricity+mock-up
 """
 
-# --- Format logger for print statements
-FORMAT = "%(asctime)-15s | %(levelname)-7s | %(name)-20.20s | %(message)s"
-
-file_handler = logging.FileHandler("../generate-mock-data.log")
-stream_handler = logging.StreamHandler()
-
-logging.basicConfig(
-    level=logging.DEBUG, format=FORMAT, datefmt="%Y-%m-%d %H:%M:%S",
-    handlers=[file_handler, stream_handler], force=True
-)
 
 logger = logging.getLogger(__name__)
 
@@ -585,6 +575,17 @@ def simulate_residential_total_heating(df_inputs: pd.DataFrame, gross_floor_area
 
 
 if __name__ == '__main__':
+    # --- Format logger for print statements
+    FORMAT = "%(asctime)-15s | %(levelname)-7s | %(name)-20.20s | %(message)s"
+
+    file_handler = logging.FileHandler("../generate-mock-data.log")
+    stream_handler = logging.StreamHandler()
+
+    logging.basicConfig(
+        level=logging.DEBUG, format=FORMAT, datefmt="%Y-%m-%d %H:%M:%S",
+        handlers=[file_handler, stream_handler], force=True  # Note that we remove all previously existing handlers here
+    )
+
     # Open config file
     with open(resource_filename(DATA_PATH, CONFIG_FILE), "r") as json_file:
         config_from_file = json.load(json_file)
