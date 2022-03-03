@@ -158,6 +158,19 @@ class TestGridAgent(unittest.TestCase):
         self.assertEqual(Market.LOCAL, external_trades[0].market)
         self.assertEqual(SOME_DATETIME, external_trades[0].period)
 
+    def test_calculate_trades_multiple_periods(self):
+        """When trades for more than 1 period are sent into calculate_external_trades, an error should be raised"""
+        retail_price = 1.0
+        clearing_prices = {Resource.ELECTRICITY: retail_price, Resource.HEATING: np.nan}
+        trades_excl_external = [
+            Trade(Action.BUY, Resource.ELECTRICITY, 100, retail_price, "BuildingAgent", False, Market.LOCAL,
+                  DATETIME_ARRAY[0]),
+            Trade(Action.BUY, Resource.ELECTRICITY, 100, retail_price, "BuildingAgent", False, Market.LOCAL,
+                  DATETIME_ARRAY[1])
+        ]
+        with self.assertRaises(RuntimeError):
+            self.electricity_grid_agent.calculate_external_trades(trades_excl_external, clearing_prices)
+
 
 class TestStorageAgent(unittest.TestCase):
     twin = StorageDigitalTwin(max_capacity_kwh=1000, max_charge_rate_fraction=0.1, max_discharge_rate_fraction=0.1,
