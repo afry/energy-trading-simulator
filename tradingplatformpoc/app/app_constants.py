@@ -1,4 +1,4 @@
-from tradingplatformpoc import trading_platform_utils, data_store
+from tradingplatformpoc import data_store, trading_platform_utils
 
 WHOLESALE_PRICE_STR = 'External wholesale price'
 RETAIL_PRICE_STR = 'External retail price'
