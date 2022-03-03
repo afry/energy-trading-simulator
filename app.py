@@ -79,6 +79,7 @@ if __name__ == '__main__':
                                               "should look")
         with st.expander("Guidelines on configuration file"):
             st.markdown(app_constants.CONFIG_GUIDELINES_MARKDOWN)
+            st.json(app_constants.AREA_INFO_EXAMPLE)
         with st.expander("BuildingAgent specification"):
             st.markdown(app_constants.BUILDING_AGENT_SPEC_MARKDOWN)
             st.json(app_constants.BUILDING_AGENT_EXAMPLE)
