@@ -22,7 +22,7 @@ from tradingplatformpoc.mock_data_generation_functions import get_all_residentia
     get_elec_cons_key, get_heat_cons_key, get_pv_prod_key, \
     get_school_heating_consumption_hourly_factor, \
     load_existing_data_sets
-from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, nan_helper
+from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, get_pv_efficiency_to_use, nan_helper
 
 CONFIG_FILE = 'default_config.json'
 
@@ -33,7 +33,6 @@ MOCK_DATAS_PICKLE = resource_filename(DATA_PATH, 'mock_datas.pickle')
 pd.options.mode.chained_assignment = None  # default='warn'
 
 KWH_PER_YEAR_M2_ATEMP = 20  # According to Skanska: 20 kWh/year/m2 Atemp
-PV_EFFICIENCY = 0.165
 M2_PER_APARTMENT = 70
 # Will use this to set random seed. Agent with start_seed = 1 will have seed 1 for household electricity, and
 # RESIDENTIAL_HEATING_SEED_OFFSET+1 for residential heating, and COMMERCIAL_SEED_OFFSET+1 for commercial electricity...
@@ -82,6 +81,7 @@ def run(config_data: Dict[str, Any]) -> Dict[frozenset, pd.DataFrame]:
     all_data_sets = load_existing_data_sets(MOCK_DATAS_PICKLE)
 
     residential_building_agents, total_gross_floor_area_residential = get_all_residential_building_agents(config_data)
+    default_pv_efficiency = config_data["AreaInfo"]["DefaultPVEfficiency"]
 
     # Need to freeze, else can't use it as key in dict
     residential_building_agents_frozen_set = frozenset(residential_building_agents)
@@ -112,7 +112,8 @@ def run(config_data: Dict[str, Any]) -> Dict[frozenset, pd.DataFrame]:
         logger.debug('{} areas to iterate over'.format(n_areas))
         for agent in residential_building_agents:
             logger.debug('Entered agent loop')
-            time_elapsed = simulate_and_add_to_output_df(dict(agent), df_inputs, df_irrd, model, output_per_building)
+            time_elapsed = simulate_and_add_to_output_df(dict(agent), df_inputs, df_irrd, default_pv_efficiency, model,
+                                                         output_per_building)
             n_areas_done = n_areas_done + 1
             n_areas_remaining = n_areas - n_areas_done
             total_time_elapsed = total_time_elapsed + time_elapsed
@@ -127,11 +128,12 @@ def run(config_data: Dict[str, Any]) -> Dict[frozenset, pd.DataFrame]:
 
 
 def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd: pd.DataFrame,
-                                  model: RegressionResultsWrapper, output_per_actor: pd.DataFrame):
+                                  default_pv_efficiency: float, model: RegressionResultsWrapper,
+                                  output_per_actor: pd.DataFrame):
     start = time.time()
     agent = dict(agent)  # "Unfreezing" the frozenset
     logger.debug('Starting work on \'{}\''.format(agent['Name']))
-    pv_area = agent['RooftopPVArea'] if "RooftopPVArea" in agent else 0
+    pv_area = agent['PVArea'] if "PVArea" in agent else 0
 
     seed_residential_electricity = agent['RandomSeed']
     seed_residential_heating = agent['RandomSeed'] + RESIDENTIAL_HEATING_SEED_OFFSET
@@ -178,8 +180,9 @@ def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd:
     output_per_actor[get_heat_cons_key(agent['Name'])] = residential_heating_cons + commercial_heating_cons + \
         school_heating_cons
 
+    pv_efficiency = get_pv_efficiency_to_use(agent, default_pv_efficiency)
     output_per_actor[get_pv_prod_key(agent['Name'])] = calculate_solar_prod(df_irrd['irradiation'], pv_area,
-                                                                            PV_EFFICIENCY)
+                                                                            pv_efficiency)
     end = time.time()
     time_elapsed = end - start
     logger.debug('Finished work on \'{}\', took {:.2f} seconds'.format(agent['Name'], time_elapsed))
