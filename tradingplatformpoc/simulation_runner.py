@@ -20,6 +20,7 @@ from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
 from tradingplatformpoc.extra_cost import ExtraCost
+from tradingplatformpoc.heat_pump import HeatPump
 from tradingplatformpoc.mock_data_generation_functions import get_all_residential_building_agents, get_elec_cons_key, \
     get_heat_cons_key, get_pv_prod_key
 from tradingplatformpoc.trade import Trade
@@ -234,7 +235,13 @@ def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings
             building_digital_twin = StaticDigitalTwin(electricity_usage=elec_cons_series,
                                                       electricity_production=pv_prod_series,
                                                       heating_usage=heat_cons_series)
-            agents.append(BuildingAgent(data_store_entity, building_digital_twin, guid=agent_name))
+
+            if agent["HeatPump"] is None:
+                agents.append(BuildingAgent(data_store_entity, building_digital_twin, guid=agent_name))
+            else:
+                heat_pump = HeatPump()
+                agents.append(BuildingAgent(data_store_entity, building_digital_twin, guid=agent_name,
+                                            heat_pump=heat_pump))
 
         elif agent_type == "StorageAgent":
             discharge_rate = agent["DischargeRate"] if "DischargeRate" in agent else agent["ChargeRate"]
