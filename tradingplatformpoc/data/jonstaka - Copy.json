@@ -1,0 +1,49 @@
+{
+	"Agents": [
+		{
+			"Type": "StorageAgent",
+			"Name": "UPLOADED AGENT",
+			"Resource": "ELECTRICITY",
+			"Capacity": 1000,
+			"ChargeRate": 0.4,
+			"RoundTripEfficiency": 0.93,
+			"NHoursBack": 168,
+			"BuyPricePercentile": 20,
+			"SellPricePercentile": 80
+		},
+		{
+			"Type": "PVAgent",
+			"Name": "PVAgent1"
+		},
+		{
+			"Type": "CommercialBuildingAgent",
+			"Name": "GroceryStoreAgent"
+		},
+		{
+			"Type": "BuildingAgent",
+			"Name": "SchoolBuildingAgent",
+			"RandomSeed": 21,
+			"GrossFloorArea": 5000,
+			"PVArea": 0,
+			"FractionCommercial": 0.0,
+			"FractionSchool": 1.0
+		},
+		{
+			"Type": "GridAgent",
+			"Name": "ElectricityGridAgent",
+			"Resource": "ELECTRICITY",
+			"TransferRate": 10000
+		},
+		{
+			"Type": "GridAgent",
+			"Name": "HeatingGridAgent",
+			"Resource": "HEATING",
+			"TransferRate": 10000
+		}
+	],
+	"AreaInfo": {
+		"ParkPVArea": 1,
+		"StorePVArea": 320,
+		"DefaultPVEfficiency": 0.165
+	}
+}

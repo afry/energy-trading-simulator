@@ -50,7 +50,7 @@ class TestDataStore(TestCase):
                                             grid_carbon_intensity=ONES_SERIES)
 
         price_for_normal_ds = self.data_store_entity.get_estimated_retail_price(FEB_1_1_AM, Resource.ELECTRICITY)
-        self.assertAlmostEqual(1.08, price_for_normal_ds)
+        self.assertAlmostEqual(1.09, price_for_normal_ds)
         self.assertAlmostEqual(2.6, data_store_2.get_estimated_retail_price(FEB_1_1_AM, Resource.ELECTRICITY))
 
     def test_get_estimated_price_for_non_implemented_resource(self):

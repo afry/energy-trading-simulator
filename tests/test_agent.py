@@ -63,7 +63,7 @@ class TestGridAgent(unittest.TestCase):
 
     def test_calculate_trades_1(self):
         """Test basic functionality of GridAgent's calculate_external_trades method when there is a local deficit."""
-        retail_price = 3.938725389630498
+        retail_price = 3.948725389630498
         clearing_prices = {Resource.ELECTRICITY: retail_price, Resource.HEATING: np.nan}
         trades_excl_external = [
             Trade(Action.BUY, Resource.ELECTRICITY, 100, retail_price, "BuildingAgent", False, Market.LOCAL,
@@ -140,7 +140,7 @@ class TestGridAgent(unittest.TestCase):
 
     def test_calculate_trades_with_some_bids_with_other_resource(self):
         """When sent into an electricity grid agent, heating trades should be ignored."""
-        retail_price = 3.938725389630498
+        retail_price = 3.948725389630498
         clearing_prices = {Resource.ELECTRICITY: retail_price, Resource.HEATING: np.nan}
         trades_excl_external = [
             Trade(Action.BUY, Resource.ELECTRICITY, 100, retail_price, "BuildingAgent", False, Market.LOCAL,
