@@ -28,7 +28,7 @@ class TestMarketSolver(TestCase):
             self.assertTrue(bid.was_accepted)
 
     def test_resolve_bids_2(self):
-        """Test the clearing price calculation when there are no accepted bids on one side (buy-side)."""
+        """Test the clearing price calculation when there are no accepted bids."""
         bids = [Bid(Action.SELL, Resource.ELECTRICITY, 100, 1, "Seller1", False),
                 Bid(Action.BUY, Resource.ELECTRICITY, 100, 0.5, "Buyer1", False)]
         # Someone willing to sell 100 kWh at 1 SEK/kWh,
@@ -96,6 +96,25 @@ class TestMarketSolver(TestCase):
         for bid in bids_with_acceptance_status:
             self.assertFalse(bid.was_accepted)
 
+    def test_resolve_bids_with_no_inf_buy(self):
+        """Test the clearing price calculation when there are no accepted bids on one side (buy-side)."""
+        bids = [Bid(Action.SELL, Resource.ELECTRICITY, 100, 1, "Seller1", False),
+                Bid(Action.SELL, Resource.ELECTRICITY, 100, 1.25, "Seller2", False),
+                Bid(Action.BUY, Resource.ELECTRICITY, 200, 1.5, "Buyer1", False)]
+        # Someone willing to sell 100 kWh at 1 SEK/kWh,
+        # someone willing to buy 100 kWh at 0.5 SEK/kWh.
+        # Clearing price should be 1 SEK/kWh
+        clearing_prices, bids_with_acceptance_status = resolve_bids(SOME_DATETIME, bids)
+        self.assertEqual(len(ALL_IMPLEMENTED_RESOURCES), len(clearing_prices))
+        self.assertEqual(1, clearing_prices[Resource.ELECTRICITY])
+        for bid in bids_with_acceptance_status:
+            self.assertIsNotNone(bid.was_accepted)
+            if bid.source == 'Seller2':
+                self.assertFalse(bid.was_accepted)
+            else:
+                # If/when we allow for "partial" acceptance, Buyer1's bid should be partially accepted
+                self.assertTrue(bid.was_accepted)
+
     def test_resolve_bids_with_local_surplus(self):
         """Test that the clearing price is calculated correctly when there is a local surplus."""
         bids = [Bid(Action.BUY, Resource.ELECTRICITY, 192.76354849517332, math.inf, 'BuildingAgent', False),
@@ -152,3 +171,29 @@ class TestMarketSolver(TestCase):
         """Test that the no_bids_accepted method doesn't throw a fit when an empty list is passed in."""
         with_acceptance_status = no_bids_accepted([])
         self.assertEqual(0, len(with_acceptance_status))
+
+    def test_res_204(self):
+        """The introduction of BUY-bids with price less than Inf, should never increase the local clearing price."""
+        retail_price = 1.0
+        wholesale_price = 0.5
+        bids = [Bid(Action.SELL, Resource.ELECTRICITY, 100, retail_price, "Grid", True),
+                Bid(Action.BUY, Resource.ELECTRICITY, 4, math.inf, "Buyer", False),
+                Bid(Action.SELL, Resource.ELECTRICITY, 5, wholesale_price, "Seller", False)]
+        # Clearing price should be wholesale_price, since local supply > local demand
+        clearing_prices, bids_with_acceptance_status = resolve_bids(SOME_DATETIME, bids)
+        self.assertAlmostEqual(wholesale_price, clearing_prices[Resource.ELECTRICITY])
+
+        # Now add in a storage agent
+        storage_buy_price = 0.8
+        storage_sell_price = 0.9
+        bids = [Bid(Action.SELL, Resource.ELECTRICITY, 10000, retail_price, "Grid", True),
+                Bid(Action.BUY, Resource.ELECTRICITY, 4, math.inf, "Buyer", False),
+                Bid(Action.SELL, Resource.ELECTRICITY, 5, wholesale_price, "Seller", False),
+                Bid(Action.BUY, Resource.ELECTRICITY, 2, storage_buy_price, "Storage", False),
+                Bid(Action.SELL, Resource.ELECTRICITY, 2, storage_sell_price, "Storage", False)]
+        # The storage agent wanting to buy at 0.8 should be ignored, since we have a lower price which satisfies all
+        # demand which has asking price = Inf
+        clearing_prices, bids_with_acceptance_status = resolve_bids(SOME_DATETIME, bids)
+        self.assertAlmostEqual(wholesale_price, clearing_prices[Resource.ELECTRICITY])
+        accepted_bids = [bid for bid in bids_with_acceptance_status if bid.was_accepted]
+        self.assertEqual(3, len(accepted_bids))
