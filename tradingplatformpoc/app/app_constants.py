@@ -27,7 +27,10 @@ CONFIG_GUIDELINES_MARKDOWN = "-  The configuration file should be in JSON format
     "   -   'AreaInfo'\n" \
     "       -   Requires the following properties:\n" \
     "           -   'DefaultPVEfficiency': A number specifying the efficiency of solar panels in the microgrid. Can " \
-    "be overridden by individual agents. Number should be between 0 and 1, and is typically in the 0.15-0.25 range"
+    "be overridden by individual agents. Number should be between 0 and 1, and is typically in the 0.15-0.25 range\n" \
+    "           -   'ExternalHeatingWholesalePriceFraction': TODO\n" \
+    "           -   'ExternalElectricityWholesalePriceOffset': TODO\n" \
+    "           -   'ExternalElectricityRetailPriceOffset': TODO"
 BUILDING_AGENT_SPEC_MARKDOWN = "-  Required properties, in addition to 'Type' and 'Name':\n" \
     "   -   'RandomSeed': An integer, used for simulating data. The value in itself does not really" \
     "matter, but it shouldn't be identical to the RandomSeed of any other BuildingAgent\n" \

@@ -40,6 +40,19 @@ class TestDataStore(TestCase):
             wholesale_price = self.data_store_entity.get_estimated_wholesale_price(dt, Resource.ELECTRICITY)
             self.assertTrue(retail_price > wholesale_price)
 
+    def test_retail_price_offset(self):
+        """Test that when we specify a retail price offset when constructing the data store, that is reflected when
+        getting the retail price."""
+        data_store_2 = data_store.DataStore(config_area_info={"DefaultPVEfficiency": 0.165,
+                                                              "ExternalElectricityRetailPriceOffset": 2.0},
+                                            nordpool_data=ONES_SERIES * CONSTANT_NORDPOOL_PRICE,
+                                            irradiation_data=ONES_SERIES,
+                                            grid_carbon_intensity=ONES_SERIES)
+
+        price_for_normal_ds = self.data_store_entity.get_estimated_retail_price(FEB_1_1_AM, Resource.ELECTRICITY)
+        self.assertAlmostEqual(1.08, price_for_normal_ds)
+        self.assertAlmostEqual(2.6, data_store_2.get_estimated_retail_price(FEB_1_1_AM, Resource.ELECTRICITY))
+
     def test_get_estimated_price_for_non_implemented_resource(self):
         with self.assertRaises(RuntimeError):
             self.data_store_entity.get_estimated_retail_price(FEB_1_1_AM, Resource.COOLING)
