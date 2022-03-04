@@ -106,7 +106,7 @@ def run(config_data: Dict[str, Any]) -> Dict[frozenset, pd.DataFrame]:
         output_per_building.set_index('datetime', inplace=True)
         logger.debug('Output dataframes created')
 
-        total_time_elapsed = 0
+        total_time_elapsed = 0.0
         n_areas_done = 0
         n_areas = len(residential_building_agents)
         logger.debug('{} areas to iterate over'.format(n_areas))
@@ -183,8 +183,8 @@ def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd:
         school_heating_cons = simulate_school_area_total_heating(school_gross_floor_area_m2, seed_school_heating,
                                                                  df_inputs)
         logger.debug("Adding output for agent {}".format(agent['Name']))
-        output_per_actor[get_elec_cons_key(agent['Name'])] = household_electricity_cons + commercial_electricity_cons + \
-            school_electricity_cons
+        output_per_actor[get_elec_cons_key(agent['Name'])] = household_electricity_cons + \
+            commercial_electricity_cons + school_electricity_cons
         output_per_actor[get_heat_cons_key(agent['Name'])] = residential_heating_cons + commercial_heating_cons + \
             school_heating_cons
 
@@ -598,8 +598,8 @@ def find_agent_in_other_data_sets(agent_dict: dict, all_data_sets: dict) -> pd.D
         for other_agent in set_of_building_agents:
             other_agent_dict = dict(other_agent)
             if (not found_prod_data) and (agent_dict['PVArea'] == other_agent_dict['PVArea']) and \
-                    (get_if_exists_else(agent_dict, 'PVEfficiency', 0) ==
-                     get_if_exists_else(other_agent_dict, 'PVEfficiency', 0)):
+                    (get_if_exists_else(agent_dict, 'PVEfficiency', 0)
+                     == get_if_exists_else(other_agent_dict, 'PVEfficiency', 0)):
                 # All parameters relating to generating solar power production are the same
                 logger.debug('For agent \'{}\' found PV production data to re-use'.format(agent_dict['Name']))
                 found_prod_data = True
@@ -609,10 +609,10 @@ def find_agent_in_other_data_sets(agent_dict: dict, all_data_sets: dict) -> pd.D
 
             if (not found_cons_data) and (agent_dict['RandomSeed'] == other_agent_dict['RandomSeed']) and \
                 (agent_dict['GrossFloorArea'] == other_agent_dict['GrossFloorArea']) and \
-                (get_if_exists_else(agent_dict, 'FractionCommercial', 0) ==
-                 get_if_exists_else(other_agent_dict, 'FractionCommercial', 0)) and \
-                (get_if_exists_else(agent_dict, 'FractionSchool', 0) ==
-                 get_if_exists_else(other_agent_dict, 'FractionSchool', 0)):
+                (get_if_exists_else(agent_dict, 'FractionCommercial', 0)
+                 == get_if_exists_else(other_agent_dict, 'FractionCommercial', 0)) and \
+                (get_if_exists_else(agent_dict, 'FractionSchool', 0)
+                 == get_if_exists_else(other_agent_dict, 'FractionSchool', 0)):
                 # All parameters relating to generating energy usage data are the same
                 logger.debug('For agent \'{}\' found energy consumption data to re-use'.format(agent_dict['Name']))
                 found_cons_data = True
