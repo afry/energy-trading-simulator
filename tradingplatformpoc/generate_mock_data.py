@@ -114,8 +114,9 @@ def run(config_data: Dict[str, Any]) -> Dict[frozenset, pd.DataFrame]:
 
             agent_dict = dict(agent)
             logger.debug('Generating new data for ' + agent_dict['Name'])
-            time_elapsed = simulate_and_add_to_output_df(agent_dict, df_inputs, df_irrd, default_pv_efficiency,
-                                                         model, output_per_building, all_data_sets)
+            output_per_building, time_elapsed = simulate_and_add_to_output_df(agent_dict, df_inputs, df_irrd,
+                                                                              default_pv_efficiency, model,
+                                                                              output_per_building, all_data_sets)
             n_areas_done = n_areas_done + 1
             n_areas_remaining = n_areas - n_areas_done
             total_time_elapsed = total_time_elapsed + time_elapsed
@@ -131,68 +132,71 @@ def run(config_data: Dict[str, Any]) -> Dict[frozenset, pd.DataFrame]:
 
 def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd: pd.DataFrame,
                                   default_pv_efficiency: float, model: RegressionResultsWrapper,
-                                  output_per_actor: pd.DataFrame, all_data_sets: dict):
+                                  output_per_actor: pd.DataFrame, all_data_sets: dict) -> Tuple[pd.DataFrame, float]:
     start = time.time()
     agent = dict(agent)  # "Unfreezing" the frozenset
     logger.debug('Starting work on \'{}\''.format(agent['Name']))
-    pv_area = agent['PVArea'] if "PVArea" in agent else 0
+    pv_area = get_if_exists_else(agent, 'PVArea', 0)
 
     pre_existing_data = find_agent_in_other_data_sets(agent, all_data_sets)
-    # logger.debug('Found data for ' + agent['Name'] + ' in another data set, will use that')
-    # output_per_actor = pd.concat(objs=(output_per_actor, pre_existing_data), axis=1)
+    output_per_actor = pd.concat(objs=(output_per_actor, pre_existing_data), axis=1)
 
-    seed_residential_electricity = agent['RandomSeed']
-    seed_residential_heating = agent['RandomSeed'] + RESIDENTIAL_HEATING_SEED_OFFSET
-    seed_commercial_electricity = agent['RandomSeed'] + COMMERCIAL_ELECTRICITY_SEED_OFFSET
-    seed_commercial_heating = agent['RandomSeed'] + COMMERCIAL_HEATING_SEED_OFFSET
-    seed_school_electricity = agent["RandomSeed"] + SCHOOL_ELECTRICITY_SEED_OFFSET
-    seed_school_heating = agent["RandomSeed"] + SCHOOL_HEATING_SEED_OFFSET
-    fraction_commercial = agent['FractionCommercial'] if 'FractionCommercial' in agent else 0.0
-    fraction_school = agent['FractionSchool'] if 'FractionSchool' in agent else 0.0
-    logger.debug("Total non-residential fraction {}".format(fraction_commercial + fraction_school))
-    if fraction_school + fraction_commercial > 1:
-        logger.error("Total non-residential fractions for agent {} larger than 100%".format(agent["Name"]))
-        exit(1)
-    fraction_residential = 1.0 - fraction_commercial - fraction_school
-    commercial_gross_floor_area = agent['GrossFloorArea'] * fraction_commercial
-    residential_gross_floor_area = agent['GrossFloorArea'] * fraction_residential
-    school_gross_floor_area_m2 = agent['GrossFloorArea'] * fraction_school
+    if (not get_elec_cons_key(agent['Name']) in output_per_actor.columns) or \
+            (not get_heat_cons_key(agent['Name']) in output_per_actor.columns):
+        seed_residential_electricity = agent['RandomSeed']
+        seed_residential_heating = agent['RandomSeed'] + RESIDENTIAL_HEATING_SEED_OFFSET
+        seed_commercial_electricity = agent['RandomSeed'] + COMMERCIAL_ELECTRICITY_SEED_OFFSET
+        seed_commercial_heating = agent['RandomSeed'] + COMMERCIAL_HEATING_SEED_OFFSET
+        seed_school_electricity = agent["RandomSeed"] + SCHOOL_ELECTRICITY_SEED_OFFSET
+        seed_school_heating = agent["RandomSeed"] + SCHOOL_HEATING_SEED_OFFSET
+        fraction_commercial = get_if_exists_else(agent, 'FractionCommercial', 0)
+        fraction_school = get_if_exists_else(agent, 'FractionSchool', 0)
+        logger.debug("Total non-residential fraction {}".format(fraction_commercial + fraction_school))
+        if fraction_school + fraction_commercial > 1:
+            logger.error("Total non-residential fractions for agent {} larger than 100%".format(agent["Name"]))
+            exit(1)
+        fraction_residential = 1.0 - fraction_commercial - fraction_school
+        commercial_gross_floor_area = agent['GrossFloorArea'] * fraction_commercial
+        residential_gross_floor_area = agent['GrossFloorArea'] * fraction_residential
+        school_gross_floor_area_m2 = agent['GrossFloorArea'] * fraction_school
 
-    commercial_electricity_cons = simulate_area_electricity(
-        commercial_gross_floor_area,
-        seed_commercial_electricity,
-        df_inputs.index,
-        KWH_ELECTRICITY_PER_YEAR_M2_COMMERCIAL,
-        COMMERCIAL_ELECTRICITY_RELATIVE_ERROR_STD_DEV,
-        get_commercial_electricity_consumption_hourly_factor)
-    commercial_heating_cons = simulate_commercial_area_total_heating(commercial_gross_floor_area,
-                                                                     seed_commercial_heating, df_inputs)
+        commercial_electricity_cons = simulate_area_electricity(
+            commercial_gross_floor_area,
+            seed_commercial_electricity,
+            df_inputs.index,
+            KWH_ELECTRICITY_PER_YEAR_M2_COMMERCIAL,
+            COMMERCIAL_ELECTRICITY_RELATIVE_ERROR_STD_DEV,
+            get_commercial_electricity_consumption_hourly_factor)
+        commercial_heating_cons = simulate_commercial_area_total_heating(commercial_gross_floor_area,
+                                                                         seed_commercial_heating, df_inputs)
 
-    residential_heating_cons = simulate_residential_total_heating(df_inputs, residential_gross_floor_area,
-                                                                  seed_residential_heating)
+        residential_heating_cons = simulate_residential_total_heating(df_inputs, residential_gross_floor_area,
+                                                                      seed_residential_heating)
 
-    household_electricity_cons = simulate_household_electricity_aggregated(
-        df_inputs, model, residential_gross_floor_area, seed_residential_electricity)
+        household_electricity_cons = simulate_household_electricity_aggregated(
+            df_inputs, model, residential_gross_floor_area, seed_residential_electricity)
 
-    school_electricity_cons = simulate_area_electricity(school_gross_floor_area_m2, seed_school_electricity,
-                                                        df_inputs.index, KWH_ELECTRICITY_PER_YEAR_M2_SCHOOL,
-                                                        SCHOOL_ELECTRICITY_RELATIVE_ERROR_STD_DEV,
-                                                        get_school_heating_consumption_hourly_factor)
-    school_heating_cons = simulate_school_area_total_heating(school_gross_floor_area_m2, seed_school_heating,
-                                                             df_inputs)
-    logger.debug("Adding output for agent {}".format(agent['Name']))
-    output_per_actor[get_elec_cons_key(agent['Name'])] = household_electricity_cons + commercial_electricity_cons + \
-        school_electricity_cons
-    output_per_actor[get_heat_cons_key(agent['Name'])] = residential_heating_cons + commercial_heating_cons + \
-        school_heating_cons
+        school_electricity_cons = simulate_area_electricity(school_gross_floor_area_m2, seed_school_electricity,
+                                                            df_inputs.index, KWH_ELECTRICITY_PER_YEAR_M2_SCHOOL,
+                                                            SCHOOL_ELECTRICITY_RELATIVE_ERROR_STD_DEV,
+                                                            get_school_heating_consumption_hourly_factor)
+        school_heating_cons = simulate_school_area_total_heating(school_gross_floor_area_m2, seed_school_heating,
+                                                                 df_inputs)
+        logger.debug("Adding output for agent {}".format(agent['Name']))
+        output_per_actor[get_elec_cons_key(agent['Name'])] = household_electricity_cons + commercial_electricity_cons + \
+            school_electricity_cons
+        output_per_actor[get_heat_cons_key(agent['Name'])] = residential_heating_cons + commercial_heating_cons + \
+            school_heating_cons
 
-    pv_efficiency = get_if_exists_else(agent, 'PVEfficiency', default_pv_efficiency)
-    output_per_actor[get_pv_prod_key(agent['Name'])] = calculate_solar_prod(df_irrd['irradiation'], pv_area,
-                                                                            pv_efficiency)
+    if not get_pv_prod_key(agent['Name']) in output_per_actor.columns:
+        pv_efficiency = get_if_exists_else(agent, 'PVEfficiency', default_pv_efficiency)
+        output_per_actor[get_pv_prod_key(agent['Name'])] = calculate_solar_prod(df_irrd['irradiation'], pv_area,
+                                                                                pv_efficiency)
+
     end = time.time()
     time_elapsed = end - start
     logger.debug('Finished work on \'{}\', took {:.2f} seconds'.format(agent['Name'], time_elapsed))
-    return time_elapsed
+    return output_per_actor, time_elapsed
 
 
 def simulate_household_electricity_by_apartment(df_inputs: pd.DataFrame, model: RegressionResultsWrapper,
@@ -583,19 +587,40 @@ def simulate_residential_total_heating(df_inputs: pd.DataFrame, gross_floor_area
     return heating_scaled
 
 
-def find_agent_in_other_data_sets(agent_dict: dict, all_data_sets: dict):
+def find_agent_in_other_data_sets(agent_dict: dict, all_data_sets: dict) -> pd.DataFrame:
     """Introduced in RES-216 - looking through other data sets, if this agent was present there, we can re-use that,
-    instead of running the generation step again. This saves time."""
+    instead of running the generation step again. This saves time. If no usable data is found, the returned DataFrame
+    will be empty."""
     data_to_reuse = pd.DataFrame()
+    found_prod_data = False
+    found_cons_data = False
     for set_of_building_agents, mock_data in all_data_sets.items():
         for other_agent in set_of_building_agents:
             other_agent_dict = dict(other_agent)
-            if agent_dict['PVArea'] == other_agent_dict['PVArea']:
-                data_to_reuse = pd.concat((data_to_reuse, mock_data[get_pv_prod_key(other_agent_dict['Name'])]), axis=1)
-                # data_to_reuse = [get_elec_cons_key(agent_dict['Name']),
-                #          get_heat_cons_key(agent_dict['Name']),
-                #          get_pv_prod_key(agent_dict['Name'])]
-                # TODO
+            if (not found_prod_data) and (agent_dict['PVArea'] == other_agent_dict['PVArea']) and \
+                    (get_if_exists_else(agent_dict, 'PVEfficiency', 0) ==
+                     get_if_exists_else(other_agent_dict, 'PVEfficiency', 0)):
+                # All parameters relating to generating solar power production are the same
+                logger.debug('For agent \'{}\' found PV production data to re-use'.format(agent_dict['Name']))
+                found_prod_data = True
+                prod_data = mock_data[get_pv_prod_key(other_agent_dict['Name'])]
+                prod_data.rename(get_pv_prod_key(agent_dict['Name']), inplace=True)
+                data_to_reuse = pd.concat((data_to_reuse, prod_data), axis=1)
+
+            if (not found_cons_data) and (agent_dict['RandomSeed'] == other_agent_dict['RandomSeed']) and \
+                (agent_dict['GrossFloorArea'] == other_agent_dict['GrossFloorArea']) and \
+                (get_if_exists_else(agent_dict, 'FractionCommercial', 0) ==
+                 get_if_exists_else(other_agent_dict, 'FractionCommercial', 0)) and \
+                (get_if_exists_else(agent_dict, 'FractionSchool', 0) ==
+                 get_if_exists_else(other_agent_dict, 'FractionSchool', 0)):
+                # All parameters relating to generating energy usage data are the same
+                logger.debug('For agent \'{}\' found energy consumption data to re-use'.format(agent_dict['Name']))
+                found_cons_data = True
+                cons_data = mock_data[[get_elec_cons_key(other_agent_dict['Name']),
+                                       get_heat_cons_key(other_agent_dict['Name'])]]
+                cons_data.set_axis([get_elec_cons_key(agent_dict['Name']),
+                                    get_heat_cons_key(agent_dict['Name'])], axis=1, inplace=True)
+                data_to_reuse = pd.concat((data_to_reuse, cons_data), axis=1)
     return data_to_reuse
 
 
