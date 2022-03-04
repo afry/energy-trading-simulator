@@ -97,7 +97,7 @@ class TestMarketSolver(TestCase):
             self.assertFalse(bid.was_accepted)
 
     def test_resolve_bids_with_no_inf_buy(self):
-        """Test the clearing price calculation when there are no accepted bids on one side (buy-side)."""
+        """Test the clearing price calculation when there are no buy-bids with Inf asking price."""
         bids = [Bid(Action.SELL, Resource.ELECTRICITY, 100, 1, "Seller1", False),
                 Bid(Action.SELL, Resource.ELECTRICITY, 100, 1.25, "Seller2", False),
                 Bid(Action.BUY, Resource.ELECTRICITY, 200, 1.5, "Buyer1", False)]
