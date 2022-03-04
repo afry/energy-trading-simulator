@@ -28,19 +28,21 @@ def resolve_bids(period: datetime.datetime, bids: Iterable[Bid]) -> \
             bwas_for_resource = no_bids_accepted(bids_for_resource)
         else:
             price_points = get_price_points(bids_for_resource)
+
+            demand_which_needs_to_be_filled = 0.0
+            for bid in bids_for_resource:
+                if bid.action == Action.BUY and bid.price == float("inf"):
+                    demand_which_needs_to_be_filled = demand_which_needs_to_be_filled + bid.quantity
+
             for price_point in sorted(price_points):
                 # Going through price points in ascending order
                 supply_for_price_point = 0.0
-                demand_for_price_point = 0.0
                 for bid in bids_for_resource:
                     if bid.action == Action.SELL:
                         if bid.price <= price_point:
                             supply_for_price_point = supply_for_price_point + bid.quantity
-                    else:  # BUY
-                        if bid.price >= price_point:
-                            demand_for_price_point = demand_for_price_point + bid.quantity
 
-                if supply_for_price_point >= demand_for_price_point:
+                if supply_for_price_point >= demand_which_needs_to_be_filled and supply_for_price_point > 0:
                     # Found an acceptable price!
                     # Now specify what bids were accepted.
                     for bid in bids_for_resource:

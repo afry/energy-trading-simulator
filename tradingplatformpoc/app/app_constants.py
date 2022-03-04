@@ -1,4 +1,4 @@
-from tradingplatformpoc import trading_platform_utils
+from tradingplatformpoc import data_store, trading_platform_utils
 
 WHOLESALE_PRICE_STR = 'External wholesale price'
 RETAIL_PRICE_STR = 'External retail price'
@@ -27,7 +27,30 @@ CONFIG_GUIDELINES_MARKDOWN = "-  The configuration file should be in JSON format
     "   -   'AreaInfo'\n" \
     "       -   Requires the following properties:\n" \
     "           -   'DefaultPVEfficiency': A number specifying the efficiency of solar panels in the microgrid. Can " \
-    "be overridden by individual agents. Number should be between 0 and 1, and is typically in the 0.15-0.25 range"
+    "be overridden by individual agents. Number should be between 0 and 1, and is typically in the 0.15-0.25 range\n" \
+    "       -   Optional properties:\n" \
+    "           -   'ExternalElectricityWholesalePriceOffset': The price at which the microgrid can export " \
+    "electricity to the external grid, will be set to the Nordpool spot price, plus this offset. The unit is SEK/kWh." \
+    " For Varberg Energi, indications are that this will be in the 0-0.15 range. If not specified, will default " \
+    "to " + str(data_store.DEFAULT_ELECTRICITY_WHOLESALE_PRICE_OFFSET) + "\n" \
+    "           -   'ExternalElectricityRetailPriceOffset': The price at which the microgrid can import " \
+    "electricity from the external grid, will be set to the Nordpool spot price, plus this offset. The unit is " \
+    "SEK/kWh. For 2022, for Varberg Energi, this is roughly equal to 0.49. If not specified, will default " \
+    "to " + str(data_store.DEFAULT_ELECTRICITY_RETAIL_PRICE_OFFSET) + "\n" \
+    "           -   'ExternalHeatingWholesalePriceFraction': The price at which the microgrid can export heat to the " \
+    "external grid, will be set to the import (retail) price, multiplied by this factor. Should be less than 1. " \
+    "In reality, the external grid may not want to buy any heat from the microgrid at all - this can be achieved by " \
+    "setting this number to 0. If not specified, will default to " + \
+    str(data_store.DEFAULT_HEATING_WHOLESALE_PRICE_FRACTION) + "\n" \
+    "       -  AreaInfo example:"
+AREA_INFO_EXAMPLE = """
+{
+    "DefaultPVEfficiency": 0.165,
+    "ExternalHeatingWholesalePriceFraction": 0.5,
+    "ExternalElectricityWholesalePriceOffset": 0.05,
+    "ExternalElectricityRetailPriceOffset": 0.49
+}
+"""
 BUILDING_AGENT_SPEC_MARKDOWN = "-  Required properties, in addition to 'Type' and 'Name':\n" \
     "   -   'RandomSeed': An integer, used for simulating data. The value in itself does not really" \
     "matter, but it shouldn't be identical to the RandomSeed of any other BuildingAgent\n" \

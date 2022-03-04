@@ -22,7 +22,7 @@ from tradingplatformpoc.mock_data_generation_functions import get_all_residentia
     get_elec_cons_key, get_heat_cons_key, get_pv_prod_key, \
     get_school_heating_consumption_hourly_factor, \
     load_existing_data_sets
-from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, get_pv_efficiency_to_use, nan_helper
+from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, get_if_exists_else, nan_helper
 
 CONFIG_FILE = 'default_config.json'
 
@@ -186,7 +186,7 @@ def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd:
     output_per_actor[get_heat_cons_key(agent['Name'])] = residential_heating_cons + commercial_heating_cons + \
         school_heating_cons
 
-    pv_efficiency = get_pv_efficiency_to_use(agent, default_pv_efficiency)
+    pv_efficiency = get_if_exists_else(agent, 'PVEfficiency', default_pv_efficiency)
     output_per_actor[get_pv_prod_key(agent['Name'])] = calculate_solar_prod(df_irrd['irradiation'], pv_area,
                                                                             pv_efficiency)
     end = time.time()
