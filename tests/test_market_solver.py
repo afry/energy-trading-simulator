@@ -102,8 +102,9 @@ class TestMarketSolver(TestCase):
                 Bid(Action.SELL, Resource.ELECTRICITY, 100, 1.25, "Seller2", False),
                 Bid(Action.BUY, Resource.ELECTRICITY, 200, 1.5, "Buyer1", False)]
         # Someone willing to sell 100 kWh at 1 SEK/kWh,
-        # someone willing to buy 100 kWh at 0.5 SEK/kWh.
-        # Clearing price should be 1 SEK/kWh
+        # someone willing to buy 100 kWh at 1.25 SEK/kWh,
+        # someone willing to buy 200 kWh at 1.5 SEK/kWh.
+        # Clearing price should be 1.0 SEK/kWh
         clearing_prices, bids_with_acceptance_status = resolve_bids(SOME_DATETIME, bids)
         self.assertEqual(len(ALL_IMPLEMENTED_RESOURCES), len(clearing_prices))
         self.assertEqual(1, clearing_prices[Resource.ELECTRICITY])
