@@ -111,9 +111,11 @@ def run(config_data: Dict[str, Any]) -> Dict[frozenset, pd.DataFrame]:
         n_areas = len(residential_building_agents)
         logger.debug('{} areas to iterate over'.format(n_areas))
         for agent in residential_building_agents:
-            logger.debug('Entered agent loop')
-            time_elapsed = simulate_and_add_to_output_df(dict(agent), df_inputs, df_irrd, default_pv_efficiency, model,
-                                                         output_per_building)
+
+            agent_dict = dict(agent)
+            logger.debug('Generating new data for ' + agent_dict['Name'])
+            time_elapsed = simulate_and_add_to_output_df(agent_dict, df_inputs, df_irrd, default_pv_efficiency,
+                                                         model, output_per_building, all_data_sets)
             n_areas_done = n_areas_done + 1
             n_areas_remaining = n_areas - n_areas_done
             total_time_elapsed = total_time_elapsed + time_elapsed
@@ -129,11 +131,15 @@ def run(config_data: Dict[str, Any]) -> Dict[frozenset, pd.DataFrame]:
 
 def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd: pd.DataFrame,
                                   default_pv_efficiency: float, model: RegressionResultsWrapper,
-                                  output_per_actor: pd.DataFrame):
+                                  output_per_actor: pd.DataFrame, all_data_sets: dict):
     start = time.time()
     agent = dict(agent)  # "Unfreezing" the frozenset
     logger.debug('Starting work on \'{}\''.format(agent['Name']))
     pv_area = agent['PVArea'] if "PVArea" in agent else 0
+
+    pre_existing_data = find_agent_in_other_data_sets(agent, all_data_sets)
+    # logger.debug('Found data for ' + agent['Name'] + ' in another data set, will use that')
+    # output_per_actor = pd.concat(objs=(output_per_actor, pre_existing_data), axis=1)
 
     seed_residential_electricity = agent['RandomSeed']
     seed_residential_heating = agent['RandomSeed'] + RESIDENTIAL_HEATING_SEED_OFFSET
@@ -575,6 +581,22 @@ def simulate_residential_total_heating(df_inputs: pd.DataFrame, gross_floor_area
     heating_scaled = scale_energy_consumption(heating_unscaled, gross_floor_area_m2,
                                               KWH_PER_YEAR_M2_RESIDENTIAL_HEATING)
     return heating_scaled
+
+
+def find_agent_in_other_data_sets(agent_dict: dict, all_data_sets: dict):
+    """Introduced in RES-216 - looking through other data sets, if this agent was present there, we can re-use that,
+    instead of running the generation step again. This saves time."""
+    data_to_reuse = pd.DataFrame()
+    for set_of_building_agents, mock_data in all_data_sets.items():
+        for other_agent in set_of_building_agents:
+            other_agent_dict = dict(other_agent)
+            if agent_dict['PVArea'] == other_agent_dict['PVArea']:
+                data_to_reuse = pd.concat((data_to_reuse, mock_data[get_pv_prod_key(other_agent_dict['Name'])]), axis=1)
+                # data_to_reuse = [get_elec_cons_key(agent_dict['Name']),
+                #          get_heat_cons_key(agent_dict['Name']),
+                #          get_pv_prod_key(agent_dict['Name'])]
+                # TODO
+    return data_to_reuse
 
 
 if __name__ == '__main__':
