@@ -90,6 +90,6 @@ def nan_helper(y):
     return np.isnan(y), lambda z: z.nonzero()[0]
 
 
-def get_pv_efficiency_to_use(agent_dict: Dict[str, Any], default_pv_efficiency: float) -> float:
-    """If agent has a 'PVEfficiency' attribute, use that, else use the default value from data_store_entity."""
-    return agent_dict['PVEfficiency'] if 'PVEfficiency' in agent_dict else default_pv_efficiency
+def get_if_exists_else(some_dict: Dict[str, Any], key: str, default_value: Any) -> Any:
+    """If some_dict has a 'key' attribute, use that, else use the default value."""
+    return some_dict[key] if key in some_dict else default_value

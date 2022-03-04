@@ -23,8 +23,8 @@ from tradingplatformpoc.extra_cost import ExtraCost
 from tradingplatformpoc.mock_data_generation_functions import get_all_residential_building_agents, get_elec_cons_key, \
     get_heat_cons_key, get_pv_prod_key
 from tradingplatformpoc.trade import Trade
-from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, flatten_collection, get_intersection, \
-    get_pv_efficiency_to_use
+from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, flatten_collection, get_if_exists_else, \
+    get_intersection
 
 logger = logging.getLogger(__name__)
 
@@ -249,12 +249,12 @@ def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings
                                        sell_price_percentile=agent["SellPricePercentile"],
                                        guid=agent_name))
         elif agent_type == "PVAgent":
-            pv_efficiency = get_pv_efficiency_to_use(agent, data_store_entity.default_pv_efficiency)
+            pv_efficiency = get_if_exists_else(agent, 'PVEfficiency', data_store_entity.default_pv_efficiency)
             pv_prod_series = calculate_solar_prod(data_store_entity.irradiation_data, agent['PVArea'], pv_efficiency)
             pv_digital_twin = StaticDigitalTwin(electricity_production=pv_prod_series)
             agents.append(PVAgent(data_store_entity, pv_digital_twin, guid=agent_name))
         elif agent_type == "CommercialBuildingAgent":
-            pv_efficiency = get_pv_efficiency_to_use(agent, data_store_entity.default_pv_efficiency)
+            pv_efficiency = get_if_exists_else(agent, 'PVEfficiency', data_store_entity.default_pv_efficiency)
             pv_area = agent['PVArea'] if 'PVArea' in agent else 0
             pv_prod_series = calculate_solar_prod(data_store_entity.irradiation_data, pv_area, pv_efficiency)
             grocery_store_digital_twin = StaticDigitalTwin(electricity_usage=coop_elec_cons,

@@ -224,6 +224,9 @@
 		}
 	],
 	"AreaInfo": {
-		"DefaultPVEfficiency": 0.165
+		"DefaultPVEfficiency": 0.165,
+		"ExternalHeatingWholesalePriceFraction": 0.5,
+		"ExternalElectricityWholesalePriceOffset": 0.05,
+		"ExternalElectricityRetailPriceOffset": 0.49
 	}
 }

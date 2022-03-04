@@ -1,16 +1,16 @@
+import json
+
 import altair as alt
 
 import numpy as np
 
 import pandas as pd
 
-from pkg_resources import resource_filename
-
 import streamlit as st
 
-from tradingplatformpoc import data_store
-from tradingplatformpoc.app.app_constants import DATA_PATH, LOCAL_PRICE_STR, RETAIL_PRICE_STR, WHOLESALE_PRICE_STR
+from tradingplatformpoc.app.app_constants import LOCAL_PRICE_STR, RETAIL_PRICE_STR, WHOLESALE_PRICE_STR
 from tradingplatformpoc.bid import Resource
+from tradingplatformpoc.data_store import DataStore
 
 
 def get_price_df_when_local_price_inbetween(prices_df: pd.DataFrame, resource: Resource) -> pd.DataFrame:
@@ -63,18 +63,23 @@ def load_data(results_path: str):
                                               Resource.HEATING)
     clearing_prices_df.variable = LOCAL_PRICE_STR
 
-    external_price_csv_path = resource_filename(DATA_PATH, "nordpool_area_grid_el_price.csv")
-    nordpool_data = data_store.read_nordpool_data(external_price_csv_path)
+    # Initialize a DataStore
+    config_filename = results_path + "config_used.json"
+    with open(config_filename, "r") as json_file:
+        config_data = json.load(json_file)
+
+    data_store_entity = DataStore.from_csv_files(config_area_info=config_data['AreaInfo'])
+    nordpool_data = data_store_entity.nordpool_data
     nordpool_data.name = 'value'
     nordpool_data = nordpool_data.to_frame().reset_index()
     nordpool_data['Resource'] = Resource.ELECTRICITY
     nordpool_data.rename({'datetime': 'period'}, axis=1, inplace=True)
     nordpool_data['period'] = pd.to_datetime(nordpool_data['period'])
     retail_df = nordpool_data.copy()
-    retail_df['value'] = retail_df['value'] + data_store.ELECTRICITY_RETAIL_PRICE_OFFSET
+    retail_df['value'] = retail_df['value'] + data_store_entity.elec_retail_offset
     retail_df['variable'] = RETAIL_PRICE_STR
     wholesale_df = nordpool_data.copy()
-    wholesale_df['value'] = wholesale_df['value'] + data_store.ELECTRICITY_WHOLESALE_PRICE_OFFSET
+    wholesale_df['value'] = wholesale_df['value'] + data_store_entity.elec_wholesale_offset
     wholesale_df['variable'] = WHOLESALE_PRICE_STR
 
     prices_df = pd.concat([clearing_prices_df, retail_df, wholesale_df])

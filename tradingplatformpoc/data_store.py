@@ -10,12 +10,13 @@ from pkg_resources import resource_filename
 from tradingplatformpoc.bid import Resource
 from tradingplatformpoc.district_heating_calculations import calculate_jan_feb_avg_heating_sold, \
     calculate_peak_day_avg_cons_kw, estimate_district_heating_price, exact_district_heating_price_for_month
-from tradingplatformpoc.trading_platform_utils import minus_n_hours
+from tradingplatformpoc.trading_platform_utils import get_if_exists_else, minus_n_hours
 
-HEATING_WHOLESALE_PRICE_FRACTION = 0.5  # External grid buys heating at 50% of the price they buy for - quite arbitrary
+DEFAULT_HEATING_WHOLESALE_PRICE_FRACTION = 0.5  # External grid buys heat at 50% of the price they buy for - arbitrary
 
-ELECTRICITY_WHOLESALE_PRICE_OFFSET = 0.05
-ELECTRICITY_RETAIL_PRICE_OFFSET = 0.48
+DEFAULT_ELECTRICITY_WHOLESALE_PRICE_OFFSET = 0.05
+# Tax + variable consumption fee + effektavgift/(hours in a year) = 0.36+0.0588+620/8768 = 0.49
+DEFAULT_ELECTRICITY_RETAIL_PRICE_OFFSET = 0.49
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +31,13 @@ class DataStore:
     def __init__(self, config_area_info: dict, nordpool_data: pd.Series, irradiation_data: pd.Series,
                  grid_carbon_intensity: pd.Series):
         self.default_pv_efficiency = config_area_info["DefaultPVEfficiency"]
+        self.heating_wholesale_price_fraction = get_if_exists_else(config_area_info,
+                                                                   'ExternalHeatingWholesalePriceFraction',
+                                                                   DEFAULT_HEATING_WHOLESALE_PRICE_FRACTION)
+        self.elec_wholesale_offset = get_if_exists_else(config_area_info, 'ExternalElectricityWholesalePriceOffset',
+                                                        DEFAULT_ELECTRICITY_WHOLESALE_PRICE_OFFSET)
+        self.elec_retail_offset = get_if_exists_else(config_area_info, 'ExternalElectricityRetailPriceOffset',
+                                                     DEFAULT_ELECTRICITY_RETAIL_PRICE_OFFSET)
 
         self.nordpool_data = nordpool_data
         self.irradiation_data = irradiation_data
@@ -77,7 +85,7 @@ class DataStore:
         if resource == Resource.ELECTRICITY:
             return self.get_electricity_wholesale_price(period)
         elif resource == Resource.HEATING:
-            return estimate_district_heating_price(period) * HEATING_WHOLESALE_PRICE_FRACTION
+            return estimate_district_heating_price(period) * self.heating_wholesale_price_fraction
         else:
             raise RuntimeError('Method not implemented for {}'.format(resource))
 
@@ -115,7 +123,7 @@ class DataStore:
                                                                           consumption_this_month_kwh,
                                                                           jan_feb_avg_consumption_kw,
                                                                           prev_month_peak_day_avg_consumption_kw)
-            return (total_cost_for_month / consumption_this_month_kwh) * HEATING_WHOLESALE_PRICE_FRACTION
+            return (total_cost_for_month / consumption_this_month_kwh) * self.heating_wholesale_price_fraction
 
         else:
             raise RuntimeError('Method not implemented for {}'.format(resource))
@@ -134,14 +142,14 @@ class DataStore:
         For electricity, the price is known, so 'estimated' and 'exact' are the same.
         See also https://doc.afdrift.se/pages/viewpage.action?pageId=17072325
         """
-        return self.get_nordpool_price_for_period(period) + ELECTRICITY_RETAIL_PRICE_OFFSET
+        return self.get_nordpool_price_for_period(period) + self.elec_retail_offset
 
     def get_electricity_wholesale_price(self, period: datetime.datetime) -> float:
         """
         For electricity, the price is known, so 'estimated' and 'exact' are the same.
         See also https://doc.afdrift.se/pages/viewpage.action?pageId=17072325
         """
-        return self.get_nordpool_price_for_period(period) + ELECTRICITY_WHOLESALE_PRICE_OFFSET
+        return self.get_nordpool_price_for_period(period) + self.elec_wholesale_offset
 
     def get_nordpool_data_datetimes(self):
         return self.nordpool_data.index.tolist()
