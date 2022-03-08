@@ -116,12 +116,12 @@ if __name__ == '__main__':
                                              key='TypeSelectBox' + agent['Name'],
                                              index=ALL_AGENT_TYPES.index(agent['Type']))
                 if agent['Type'] == 'BuildingAgent':
-                    agent['RandomSeed'] = st.number_input(
+                    agent['RandomSeed'] = int(st.number_input(
                         'Random seed',
                         value=int(agent['RandomSeed']),
                         help=app_constants.RANDOM_SEED_HELP_TEXT,
                         key='RandomSeed' + agent['Name']
-                    )
+                    ))
                     agent['GrossFloorArea'] = st.number_input(
                         'Gross floor area (sqm)', min_value=0.0,
                         value=float(agent['GrossFloorArea']),
