@@ -168,12 +168,12 @@ if __name__ == '__main__':
                         help=app_constants.ROUND_TRIP_EFFICIENCY_HELP_TEXT,
                         key='RoundTripEfficiency' + agent['Name']
                     )
-                    agent['NHoursBack'] = st.number_input(
+                    agent['NHoursBack'] = int(st.number_input(
                         '\'N hours back\'', min_value=1, max_value=8760,
                         value=int(agent['NHoursBack']),
                         help=app_constants.N_HOURS_BACK_HELP_TEXT,
                         key='NHoursBack' + agent['Name']
-                    )
+                    ))
                     agent['BuyPricePercentile'] = st.number_input(
                         '\'Buy-price percentile\'', min_value=0.0, max_value=100.0, step=1.0,
                         value=float(agent['BuyPricePercentile']),
