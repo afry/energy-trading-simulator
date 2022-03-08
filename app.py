@@ -132,6 +132,13 @@ if __name__ == '__main__':
         with col3:
             add_pv_agent_button = st.button("Add PVAgent", on_click=add_pv_agent)
 
+        st.write("Click below to download the current experiment configuration to a JSON-file, which you can later "
+                 "upload to re-use this configuration without having to do over any changes you have made so far.")
+        # Button to export config to a JSON file
+        st.download_button(label="Export to JSON", data=json.dumps(st.session_state.config_data),
+                           file_name="trading-platform-poc-config.json",
+                           mime="text/json")
+
         # --------------------- End config specification for dummies ------------------------
 
         st.subheader("Current configuration in JSON format:")
