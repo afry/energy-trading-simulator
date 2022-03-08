@@ -2,7 +2,7 @@ from pkg_resources import resource_filename
 
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.app.app_functions import add_building_agent, add_grid_agent, add_grocery_store_agent, \
-    add_pv_agent, add_storage_agent, construct_price_chart, construct_storage_level_chart, \
+    add_pv_agent, add_storage_agent, agent_inputs, construct_price_chart, construct_storage_level_chart, \
     get_price_df_when_local_price_inbetween, load_data, remove_agent, remove_all_building_agents
 from tradingplatformpoc.bid import Resource
 from tradingplatformpoc.simulation_runner import run_trading_simulations
@@ -18,8 +18,6 @@ import streamlit as st
 # https://altair-viz.github.io/altair-tutorial/notebooks/06-Selections.html#binding-scales-to-other-domains
 
 # --- Read sys.argv to get logging level, if it is specified ---
-from tradingplatformpoc.trading_platform_utils import ALL_AGENT_TYPES, get_if_exists_else, ALL_IMPLEMENTED_RESOURCES_STR
-
 string_to_log_later = None
 if len(sys.argv) > 1 and type(sys.argv[1]) == str:
     arg_to_upper = str.upper(sys.argv[1])
@@ -115,104 +113,9 @@ if __name__ == '__main__':
             st.button("Remove all BuildingAgents", on_click=remove_all_building_agents)
 
         for agent in st.session_state.config_data['Agents'][:]:
+            # Annoyingly, this expander's name doesn't update right away when the agent's name is changed
             with st.expander(agent['Name']):
-                agent['Name'] = st.text_input('Name', value=agent['Name'])
-                agent['Type'] = st.selectbox('Type', options=ALL_AGENT_TYPES,
-                                             key='TypeSelectBox' + agent['Name'],
-                                             index=ALL_AGENT_TYPES.index(agent['Type']))
-                if agent['Type'] == 'BuildingAgent':
-                    agent['RandomSeed'] = int(st.number_input(
-                        'Random seed',
-                        value=int(agent['RandomSeed']),
-                        help=app_constants.RANDOM_SEED_HELP_TEXT,
-                        key='RandomSeed' + agent['Name']
-                    ))
-                    agent['GrossFloorArea'] = st.number_input(
-                        'Gross floor area (sqm)', min_value=0.0,
-                        value=float(agent['GrossFloorArea']),
-                        help=app_constants.GROSS_FLOOR_AREA_HELP_TEXT,
-                        key='GrossFloorArea' + agent['Name']
-                    )
-                    agent['FractionCommercial'] = st.number_input(
-                        'Fraction commercial', min_value=0.0, max_value=1.0,
-                        value=get_if_exists_else(agent, 'FractionCommercial', 0.0),
-                        help=app_constants.FRACTION_COMMERCIAL_HELP_TEXT,
-                        key='FractionCommercial' + agent['Name']
-                    )
-                    agent['FractionSchool'] = st.number_input(
-                        'Fraction school', min_value=0.0, max_value=1.0,
-                        value=get_if_exists_else(agent, 'FractionSchool', 0.0),
-                        help=app_constants.FRACTION_SCHOOL_HELP_TEXT,
-                        key='FractionSchool' + agent['Name']
-                    )
-                if agent['Type'] in ['StorageAgent', 'GridAgent']:
-                    agent['Resource'] = st.selectbox('Resource', options=ALL_IMPLEMENTED_RESOURCES_STR,
-                                                     key='ResourceSelectBox' + agent['Name'],
-                                                     index=ALL_IMPLEMENTED_RESOURCES_STR.index(agent['Resource']))
-                if agent['Type'] == 'StorageAgent':
-                    agent['Capacity'] = st.number_input(
-                        'Capacity', min_value=0.0, step=1.0,
-                        value=float(agent['Capacity']),
-                        help=app_constants.CAPACITY_HELP_TEXT,
-                        key='Capacity' + agent['Name']
-                    )
-                    agent['ChargeRate'] = st.number_input(
-                        'Charge rate', min_value=0.01, max_value=10.0,
-                        value=float(agent['ChargeRate']),
-                        help=app_constants.CHARGE_RATE_HELP_TEXT,
-                        key='ChargeRate' + agent['Name']
-                    )
-                    agent['RoundTripEfficiency'] = st.number_input(
-                        'Round-trip efficiency', min_value=0.01, max_value=1.0,
-                        value=float(agent['RoundTripEfficiency']),
-                        help=app_constants.ROUND_TRIP_EFFICIENCY_HELP_TEXT,
-                        key='RoundTripEfficiency' + agent['Name']
-                    )
-                    agent['NHoursBack'] = int(st.number_input(
-                        '\'N hours back\'', min_value=1, max_value=8760,
-                        value=int(agent['NHoursBack']),
-                        help=app_constants.N_HOURS_BACK_HELP_TEXT,
-                        key='NHoursBack' + agent['Name']
-                    ))
-                    agent['BuyPricePercentile'] = st.number_input(
-                        '\'Buy-price percentile\'', min_value=0.0, max_value=100.0, step=1.0,
-                        value=float(agent['BuyPricePercentile']),
-                        help=app_constants.BUY_PERC_HELP_TEXT,
-                        key='BuyPricePercentile' + agent['Name']
-                    )
-                    agent['SellPricePercentile'] = st.number_input(
-                        '\'Sell-price percentile\'', min_value=0.0, max_value=100.0, step=1.0,
-                        value=float(agent['SellPricePercentile']),
-                        help=app_constants.SELL_PERC_HELP_TEXT,
-                        key='SellPricePercentile' + agent['Name']
-                    )
-                    agent['DischargeRate'] = st.number_input(
-                        'Discharge rate', min_value=0.01, max_value=10.0,
-                        value=float(get_if_exists_else(agent, 'DischargeRate', agent['ChargeRate'])),
-                        help=app_constants.DISCHARGE_RATE_HELP_TEXT,
-                        key='DischargeRate' + agent['Name']
-                    )
-                if agent['Type'] in ['BuildingAgent', 'PVAgent', 'GroceryStoreAgent']:
-                    agent['PVArea'] = st.number_input(
-                        'PV area (sqm)', min_value=0.0, format='%.1f', step=1.0,
-                        value=float(get_if_exists_else(agent, 'PVArea', 0.0)),
-                        help=app_constants.PV_AREA_HELP_TEXT,
-                        key='PVArea' + agent['Name']
-                    )
-                    agent['PVEfficiency'] = st.number_input(
-                        'PV efficiency', min_value=0.01, max_value=0.99, format='%.3f',
-                        value=get_if_exists_else(agent, 'PVEfficiency',
-                                                 st.session_state.config_data['AreaInfo']['DefaultPVEfficiency']),
-                        help=app_constants.PV_EFFICIENCY_HELP_TEXT,
-                        key='PVEfficiency' + agent['Name']
-                    )
-                if agent['Type'] == 'GridAgent':
-                    agent['TransferRate'] = st.number_input(
-                        'Transfer rate', min_value=0.0, step=10.0,
-                        value=float(agent['TransferRate']),
-                        help=app_constants.TRANSFER_RATE_HELP_TEXT,
-                        key='TransferRate' + agent['Name']
-                    )
+                agent = agent_inputs(agent)
                 remove_agent_button = st.button('Remove agent', key='RemoveButton' + agent['Name'],
                                                 on_click=remove_agent, args=(agent,))
         # Buttons to add agents
