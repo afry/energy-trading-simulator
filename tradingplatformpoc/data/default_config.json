@@ -16,7 +16,8 @@
 			"GrossFloorArea": 7801.375,
 			"PVArea": 1206.6875,
 			"FractionCommercial": 0.0,
-			"FractionSchool": 0.0
+			"FractionSchool": 0.0,
+			"NumberHeatPumps": 3
 		},
 		{
 			"Type": "BuildingAgent",

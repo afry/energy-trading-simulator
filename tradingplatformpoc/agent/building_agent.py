@@ -14,11 +14,11 @@ from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES,
 
 class BuildingAgent(IAgent):
 
-    def __init__(self, data_store: DataStore, heat_pump: HeatPump, digital_twin: StaticDigitalTwin,
+    def __init__(self, data_store: DataStore, heat_pumps: List[HeatPump], digital_twin: StaticDigitalTwin,
                  guid="BuildingAgent"):
         super().__init__(guid, data_store)
         self.digital_twin = digital_twin
-        self.heat_pump = heat_pump
+        self.heat_pumps = heat_pumps
 
     def make_bids(self, period: datetime.datetime, clearing_prices_historical: Union[Dict[datetime.datetime, Dict[
             Resource, float]], None] = None):
@@ -40,7 +40,7 @@ class BuildingAgent(IAgent):
             return bids
         else:
             # TODO: Here we need to figure out the new bidding logic
-            # It might get hairy
+            # We can either buy heat for heating
             for resource in ALL_IMPLEMENTED_RESOURCES:
                 resource_needed = self.make_prognosis(period, resource)
 

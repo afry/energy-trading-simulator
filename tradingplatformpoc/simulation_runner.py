@@ -236,9 +236,12 @@ def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings
                                                       electricity_production=pv_prod_series,
                                                       heating_usage=heat_cons_series)
 
-            if agent["HeatPump"] is None:
+            if agent["NumberHeatPumps"] is None:
                 agents.append(BuildingAgent(data_store_entity, building_digital_twin, guid=agent_name))
             else:
+                heat_pumps: List[HeatPump] = []
+                for i in range(agent["NumberHeatPumps"]):
+                    heat_pumps.append(HeatPump())
                 heat_pump = HeatPump()
                 agents.append(BuildingAgent(data_store_entity, building_digital_twin, guid=agent_name,
                                             heat_pump=heat_pump))
