@@ -103,6 +103,11 @@ def remove_agent(some_agent):
     st.session_state.config_data['Agents'].remove(some_agent)
 
 
+def remove_all_building_agents():
+    st.session_state.config_data['Agents'] = [agent for agent in st.session_state.config_data['Agents']
+                                              if agent['Type'] != 'BuildingAgent']
+
+
 def add_agent(new_agent: Dict[str, Any]):
     if 'agents_added' not in st.session_state:
         st.session_state.agents_added = 1

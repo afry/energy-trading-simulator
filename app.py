@@ -3,7 +3,7 @@ from pkg_resources import resource_filename
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.app.app_functions import add_building_agent, add_grid_agent, add_grocery_store_agent, \
     add_pv_agent, add_storage_agent, construct_price_chart, construct_storage_level_chart, \
-    get_price_df_when_local_price_inbetween, load_data, remove_agent
+    get_price_df_when_local_price_inbetween, load_data, remove_agent, remove_all_building_agents
 from tradingplatformpoc.bid import Resource
 from tradingplatformpoc.simulation_runner import run_trading_simulations
 import json
@@ -108,7 +108,12 @@ if __name__ == '__main__':
             help=app_constants.HEATING_WHOLESALE_PRICE_FRACTION_HELP_TEXT)
 
         # Start agents
-        st.subheader("Agents:")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.subheader("Agents:")
+        with col2:
+            st.button("Remove all BuildingAgents", on_click=remove_all_building_agents)
+
         for agent in st.session_state.config_data['Agents'][:]:
             with st.expander(agent['Name']):
                 agent['Name'] = st.text_input('Name', value=agent['Name'])
