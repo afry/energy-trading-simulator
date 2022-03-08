@@ -253,7 +253,7 @@ def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings
             pv_prod_series = calculate_solar_prod(data_store_entity.irradiation_data, agent['PVArea'], pv_efficiency)
             pv_digital_twin = StaticDigitalTwin(electricity_production=pv_prod_series)
             agents.append(PVAgent(data_store_entity, pv_digital_twin, guid=agent_name))
-        elif agent_type == "CommercialBuildingAgent":
+        elif agent_type == "GroceryStoreAgent":
             pv_efficiency = get_if_exists_else(agent, 'PVEfficiency', data_store_entity.default_pv_efficiency)
             pv_area = agent['PVArea'] if 'PVArea' in agent else 0
             pv_prod_series = calculate_solar_prod(data_store_entity.irradiation_data, pv_area, pv_efficiency)

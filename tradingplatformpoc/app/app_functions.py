@@ -1,4 +1,5 @@
 import json
+from typing import Any, Dict
 
 import altair as alt
 
@@ -96,3 +97,61 @@ def load_data(results_path: str):
     storage_levels['period'] = pd.to_datetime(storage_levels['period'])
 
     return prices_df, all_bids, all_trades, storage_levels
+
+
+def remove_agent(some_agent):
+    st.session_state.config_data['Agents'].remove(some_agent)
+
+
+def add_agent(new_agent: Dict[str, Any]):
+    if 'agents_added' not in st.session_state:
+        st.session_state.agents_added = 1
+    else:
+        st.session_state.agents_added += 1
+    new_agent["Name"] = "NewAgent" + str(st.session_state.agents_added)
+    st.session_state.config_data['Agents'].append(new_agent)
+
+
+def add_building_agent():
+    max_random_seed = max([x['RandomSeed'] for x in st.session_state.config_data['Agents']
+                           if x['Type'] == "BuildingAgent"])
+    add_agent({
+        "Type": "BuildingAgent",
+        "RandomSeed": max_random_seed + 1,
+        "GrossFloorArea": 1000.0
+    })
+
+
+def add_storage_agent():
+    add_agent({
+        "Type": "StorageAgent",
+        "Resource": "ELECTRICITY",
+        "Capacity": 1000,
+        "ChargeRate": 0.4,
+        "RoundTripEfficiency": 0.93,
+        "NHoursBack": 168,
+        "BuyPricePercentile": 20,
+        "SellPricePercentile": 80
+    })
+
+
+def add_pv_agent():
+    add_agent({
+        "Type": "PVAgent",
+        "PVArea": 100
+    })
+
+
+def add_grocery_store_agent():
+    add_agent({
+        "Type": "GroceryStoreAgent",
+        "PVArea": 320
+    })
+
+
+def add_grid_agent():
+    add_agent({
+        "Type": "GridAgent",
+        "Resource": "ELECTRICITY",
+        "TransferRate": 10000
+    })
