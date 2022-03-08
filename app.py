@@ -115,11 +115,9 @@ if __name__ == '__main__':
         for agent in st.session_state.config_data['Agents'][:]:
             # Annoyingly, this expander's name doesn't update right away when the agent's name is changed
             with st.expander(agent['Name']):
-                agent = agent_inputs(agent)
-                remove_agent_button = st.button('Remove agent', key='RemoveButton' + agent['Name'],
-                                                on_click=remove_agent, args=(agent,))
+                agent_inputs(agent)
         # Buttons to add agents
-        col1, col2, col3 = st.columns(3)
+        col1, col2 = st.columns(2)
 
         # Annoyingly, these buttons have different sizes depending on the amount of text in them.
         # Can use CSS to customize buttons but that then applies to all buttons on the page, so will leave as is
@@ -128,8 +126,6 @@ if __name__ == '__main__':
             add_grocery_store_agent_button = st.button("Add GroceryStoreAgent", on_click=add_grocery_store_agent)
         with col2:
             add_storage_agent_button = st.button("Add StorageAgent", on_click=add_storage_agent)
-            add_grid_agent_button = st.button("Add GridAgent", on_click=add_grid_agent)
-        with col3:
             add_pv_agent_button = st.button("Add PVAgent", on_click=add_pv_agent)
 
         st.write("Click below to download the current experiment configuration to a JSON-file, which you can later "

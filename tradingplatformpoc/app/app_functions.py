@@ -262,4 +262,5 @@ def agent_inputs(agent):
             help=app_constants.TRANSFER_RATE_HELP_TEXT,
             key='TransferRate' + agent['Name']
         )
-    return agent
+    else:
+        st.button('Remove agent', key='RemoveButton' + agent['Name'], on_click=remove_agent, args=(agent,))
