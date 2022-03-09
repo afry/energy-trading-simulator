@@ -197,7 +197,7 @@
 			"PVArea": 24324.3
 		},
 		{
-			"Type": "CommercialBuildingAgent",
+			"Type": "GroceryStoreAgent",
 			"Name": "GroceryStoreAgent",
 			"PVArea": 320
 		},

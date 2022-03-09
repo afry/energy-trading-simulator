@@ -8,6 +8,8 @@ import pandas as pd
 from tradingplatformpoc.bid import Resource
 
 ALL_IMPLEMENTED_RESOURCES = [Resource.ELECTRICITY, Resource.HEATING]
+ALL_IMPLEMENTED_RESOURCES_STR = [res.name for res in ALL_IMPLEMENTED_RESOURCES]
+ALL_AGENT_TYPES = ["BuildingAgent", "PVAgent", "StorageAgent", "GridAgent", "GroceryStoreAgent"]
 
 
 def minus_n_hours(t1: datetime, n_hours: int):

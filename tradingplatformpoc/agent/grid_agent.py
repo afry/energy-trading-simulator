@@ -52,6 +52,10 @@ class GridAgent(IAgent):
         trades_to_add: List[Trade] = []
 
         trades_for_this_resource = [trade for trade in trades_excl_external if trade.resource == self.resource]
+
+        if len(trades_for_this_resource) == 0:
+            return []
+
         all_periods = set([trade.period for trade in trades_for_this_resource])
         if len(all_periods) > 1:
             raise RuntimeError("When calculating external trades, received trades for more than 1 trading period!")

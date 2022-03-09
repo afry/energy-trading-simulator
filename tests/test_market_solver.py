@@ -121,7 +121,7 @@ class TestMarketSolver(TestCase):
         bids = [Bid(Action.BUY, Resource.ELECTRICITY, 192.76354849517332, math.inf, 'BuildingAgent', False),
                 Bid(Action.SELL, Resource.ELECTRICITY, 100, 0.46069, 'BatteryStorageAgent', False),
                 Bid(Action.SELL, Resource.ELECTRICITY, 275.3113968, 0.46069, 'PVAgent', False),
-                Bid(Action.BUY, Resource.ELECTRICITY, 100.8875027389364, math.inf, 'CommercialBuildingAgent', False),
+                Bid(Action.BUY, Resource.ELECTRICITY, 100.8875027389364, math.inf, 'GroceryStoreAgent', False),
                 Bid(Action.SELL, Resource.ELECTRICITY, 10000, 0.89069, 'ElectricityGridAgent', True)]
         # Local surplus
         # Clearing price should be 0.46069 SEK/kWh
