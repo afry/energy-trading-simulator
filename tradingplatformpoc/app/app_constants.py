@@ -28,8 +28,6 @@ HEATING_WHOLESALE_PRICE_FRACTION_HELP_TEXT = "The price at which the microgrid c
     "In reality, the external grid may not want to buy any heat from the microgrid at all - this can be achieved by " \
     "setting this number to 0. If not specified, will default to " + \
     str(data_store.DEFAULT_HEATING_WHOLESALE_PRICE_FRACTION)
-RANDOM_SEED_HELP_TEXT = "An integer, used for simulating data. The value in itself does not really " \
-    "matter, but it shouldn't be identical to the RandomSeed of any other BuildingAgent"
 GROSS_FLOOR_AREA_HELP_TEXT = "Specified in square meters, used for calculating the energy demand"
 FRACTION_COMMERCIAL_HELP_TEXT = "A number from 0 to 1, specifying how large a " \
     "share of the area which should be treated as commercial buildings, as opposed to residential. " \
@@ -90,7 +88,6 @@ AREA_INFO_EXAMPLE = """
 }
 """
 BUILDING_AGENT_SPEC_MARKDOWN = "-  Required properties, in addition to 'Type' and 'Name':\n" \
-    "   -   'RandomSeed': " + RANDOM_SEED_HELP_TEXT + "\n" \
     "   -   'GrossFloorArea': " + GROSS_FLOOR_AREA_HELP_TEXT + "\n" \
     "-  Optional properties:\n" \
     "   -   'PVArea': " + PV_AREA_HELP_TEXT + ". Default 0\n" \
@@ -102,7 +99,6 @@ BUILDING_AGENT_EXAMPLE = """
 {
     "Type": "BuildingAgent",
     "Name": "ResidentialBuildingAgentBC1",
-    "RandomSeed": 1,
     "GrossFloorArea": 11305.3333333333,
     "PVArea": 1748.6666666667,
     "FractionCommercial": 0.2,

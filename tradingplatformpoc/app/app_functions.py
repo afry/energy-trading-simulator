@@ -119,11 +119,8 @@ def add_agent(new_agent: Dict[str, Any]):
 
 
 def add_building_agent():
-    max_random_seed = max([x['RandomSeed'] for x in st.session_state.config_data['Agents']
-                           if x['Type'] == "BuildingAgent"])
     add_agent({
         "Type": "BuildingAgent",
-        "RandomSeed": max_random_seed + 1,
         "GrossFloorArea": 1000.0
     })
 
@@ -171,12 +168,6 @@ def agent_inputs(agent):
                                    key='TypeSelectBox' + agent['Name'],
                                    index=ALL_AGENT_TYPES.index(agent['Type']))
     if agent['Type'] == 'BuildingAgent':
-        agent['RandomSeed'] = int(form.number_input(
-            'Random seed',
-            value=int(agent['RandomSeed']),
-            help=app_constants.RANDOM_SEED_HELP_TEXT,
-            key='RandomSeed' + agent['Name']
-        ))
         agent['GrossFloorArea'] = form.number_input(
             'Gross floor area (sqm)', min_value=0.0, step=10.0,
             value=float(agent['GrossFloorArea']),
