@@ -85,25 +85,28 @@ if __name__ == '__main__':
         # --------------------- Start config specification for dummies ------------------------
         # Could perhaps save the config to a temporary file on-change of these? That way changes won't get lost
         st.subheader("General area parameters:")
-        st.session_state.config_data['AreaInfo']['DefaultPVEfficiency'] = st.number_input(
+        area_form = st.form(key="AreaInfoForm")
+        st.session_state.config_data['AreaInfo']['DefaultPVEfficiency'] = area_form.number_input(
             'Default PV efficiency:', min_value=0.01, max_value=0.99, format='%.3f',
             value=st.session_state.config_data['AreaInfo']['DefaultPVEfficiency'],
             help=app_constants.DEFAULT_PV_EFFICIENCY_HELP_TEXT)
 
-        st.session_state.config_data['AreaInfo']['ExternalElectricityWholesalePriceOffset'] = st.number_input(
+        st.session_state.config_data['AreaInfo']['ExternalElectricityWholesalePriceOffset'] = area_form.number_input(
             'External electricity wholesale price offset:', min_value=-1.0, max_value=1.0,
             value=st.session_state.config_data['AreaInfo']['ExternalElectricityWholesalePriceOffset'],
             help=app_constants.ELECTRICITY_WHOLESALE_PRICE_OFFSET_HELP_TEXT)
 
-        st.session_state.config_data['AreaInfo']['ExternalElectricityRetailPriceOffset'] = st.number_input(
+        st.session_state.config_data['AreaInfo']['ExternalElectricityRetailPriceOffset'] = area_form.number_input(
             'External electricity retail price offset:', min_value=-1.0, max_value=1.0,
             value=st.session_state.config_data['AreaInfo']['ExternalElectricityRetailPriceOffset'],
             help=app_constants.ELECTRICITY_RETAIL_PRICE_OFFSET_HELP_TEXT)
 
-        st.session_state.config_data['AreaInfo']['ExternalHeatingWholesalePriceFraction'] = st.number_input(
+        st.session_state.config_data['AreaInfo']['ExternalHeatingWholesalePriceFraction'] = area_form.number_input(
             'External heating wholesale price fraction:', min_value=0.0, max_value=1.0,
             value=st.session_state.config_data['AreaInfo']['ExternalHeatingWholesalePriceFraction'],
             help=app_constants.HEATING_WHOLESALE_PRICE_FRACTION_HELP_TEXT)
+
+        area_form.form_submit_button("Save area info")
 
         # Start agents
         col1, col2 = st.columns(2)
