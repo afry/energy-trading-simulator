@@ -18,9 +18,9 @@ from tradingplatformpoc.trading_platform_utils import ALL_AGENT_TYPES, ALL_IMPLE
 def get_price_df_when_local_price_inbetween(prices_df: pd.DataFrame, resource: Resource) -> pd.DataFrame:
     """Local price is almost always either equal to the external wholesale or retail price. This method returns the
     subsection of the prices dataframe where the local price is _not_ equal to either of these two."""
-    elec_prices = prices_df.\
-        loc[prices_df['Resource'] == resource].\
-        drop('Resource', axis=1).\
+    elec_prices = prices_df. \
+        loc[prices_df['Resource'] == resource]. \
+        drop('Resource', axis=1). \
         pivot(index="period", columns="variable")['value']
     local_price_between_external = (elec_prices[app_constants.LOCAL_PRICE_STR]
                                     > elec_prices[app_constants.WHOLESALE_PRICE_STR]
@@ -165,90 +165,91 @@ def add_grid_agent():
 
 def agent_inputs(agent):
     """Contains input fields needed to define an agent."""
-    agent['Name'] = st.text_input('Name', value=agent['Name'])
-    agent['Type'] = st.selectbox('Type', options=ALL_AGENT_TYPES,
-                                 key='TypeSelectBox' + agent['Name'],
-                                 index=ALL_AGENT_TYPES.index(agent['Type']))
+    form = st.form(key="Form" + agent['Name'])
+    agent['Name'] = form.text_input('Name', key='NameField' + agent['Name'], value=agent['Name'])
+    agent['Type'] = form.selectbox('Type', options=ALL_AGENT_TYPES,
+                                   key='TypeSelectBox' + agent['Name'],
+                                   index=ALL_AGENT_TYPES.index(agent['Type']))
     if agent['Type'] == 'BuildingAgent':
-        agent['RandomSeed'] = int(st.number_input(
+        agent['RandomSeed'] = int(form.number_input(
             'Random seed',
             value=int(agent['RandomSeed']),
             help=app_constants.RANDOM_SEED_HELP_TEXT,
             key='RandomSeed' + agent['Name']
         ))
-        agent['GrossFloorArea'] = st.number_input(
-            'Gross floor area (sqm)', min_value=0.0,
+        agent['GrossFloorArea'] = form.number_input(
+            'Gross floor area (sqm)', min_value=0.0, step=10.0,
             value=float(agent['GrossFloorArea']),
             help=app_constants.GROSS_FLOOR_AREA_HELP_TEXT,
             key='GrossFloorArea' + agent['Name']
         )
-        agent['FractionCommercial'] = st.number_input(
+        agent['FractionCommercial'] = form.number_input(
             'Fraction commercial', min_value=0.0, max_value=1.0,
             value=get_if_exists_else(agent, 'FractionCommercial', 0.0),
             help=app_constants.FRACTION_COMMERCIAL_HELP_TEXT,
             key='FractionCommercial' + agent['Name']
         )
-        agent['FractionSchool'] = st.number_input(
+        agent['FractionSchool'] = form.number_input(
             'Fraction school', min_value=0.0, max_value=1.0,
             value=get_if_exists_else(agent, 'FractionSchool', 0.0),
             help=app_constants.FRACTION_SCHOOL_HELP_TEXT,
             key='FractionSchool' + agent['Name']
         )
     if agent['Type'] in ['StorageAgent', 'GridAgent']:
-        agent['Resource'] = st.selectbox('Resource', options=ALL_IMPLEMENTED_RESOURCES_STR,
-                                         key='ResourceSelectBox' + agent['Name'],
-                                         index=ALL_IMPLEMENTED_RESOURCES_STR.index(agent['Resource']))
+        agent['Resource'] = form.selectbox('Resource', options=ALL_IMPLEMENTED_RESOURCES_STR,
+                                           key='ResourceSelectBox' + agent['Name'],
+                                           index=ALL_IMPLEMENTED_RESOURCES_STR.index(agent['Resource']))
     if agent['Type'] == 'StorageAgent':
-        agent['Capacity'] = st.number_input(
+        agent['Capacity'] = form.number_input(
             'Capacity', min_value=0.0, step=1.0,
             value=float(agent['Capacity']),
             help=app_constants.CAPACITY_HELP_TEXT,
             key='Capacity' + agent['Name']
         )
-        agent['ChargeRate'] = st.number_input(
+        agent['ChargeRate'] = form.number_input(
             'Charge rate', min_value=0.01, max_value=10.0,
             value=float(agent['ChargeRate']),
             help=app_constants.CHARGE_RATE_HELP_TEXT,
             key='ChargeRate' + agent['Name']
         )
-        agent['RoundTripEfficiency'] = st.number_input(
+        agent['RoundTripEfficiency'] = form.number_input(
             'Round-trip efficiency', min_value=0.01, max_value=1.0,
             value=float(agent['RoundTripEfficiency']),
             help=app_constants.ROUND_TRIP_EFFICIENCY_HELP_TEXT,
             key='RoundTripEfficiency' + agent['Name']
         )
-        agent['NHoursBack'] = int(st.number_input(
+        agent['NHoursBack'] = int(form.number_input(
             '\'N hours back\'', min_value=1, max_value=8760,
             value=int(agent['NHoursBack']),
             help=app_constants.N_HOURS_BACK_HELP_TEXT,
             key='NHoursBack' + agent['Name']
         ))
-        agent['BuyPricePercentile'] = st.number_input(
+        agent['BuyPricePercentile'] = form.number_input(
             '\'Buy-price percentile\'', min_value=0.0, max_value=100.0, step=1.0,
             value=float(agent['BuyPricePercentile']),
             help=app_constants.BUY_PERC_HELP_TEXT,
             key='BuyPricePercentile' + agent['Name']
         )
-        agent['SellPricePercentile'] = st.number_input(
+        agent['SellPricePercentile'] = form.number_input(
             '\'Sell-price percentile\'', min_value=0.0, max_value=100.0, step=1.0,
             value=float(agent['SellPricePercentile']),
             help=app_constants.SELL_PERC_HELP_TEXT,
             key='SellPricePercentile' + agent['Name']
         )
-        agent['DischargeRate'] = st.number_input(
+        agent['DischargeRate'] = form.number_input(
             'Discharge rate', min_value=0.01, max_value=10.0,
             value=float(get_if_exists_else(agent, 'DischargeRate', agent['ChargeRate'])),
             help=app_constants.DISCHARGE_RATE_HELP_TEXT,
             key='DischargeRate' + agent['Name']
         )
     if agent['Type'] in ['BuildingAgent', 'PVAgent', 'GroceryStoreAgent']:
-        agent['PVArea'] = st.number_input(
-            'PV area (sqm)', min_value=0.0, format='%.1f', step=1.0,
+        agent['PVArea'] = form.number_input(
+            'PV area (sqm)', min_value=0.0, format='%.1f', step=10.0,
             value=float(get_if_exists_else(agent, 'PVArea', 0.0)),
             help=app_constants.PV_AREA_HELP_TEXT,
             key='PVArea' + agent['Name']
         )
-        agent['PVEfficiency'] = st.number_input(
+        agent['PVEfficiency'] = form.number_input(
             'PV efficiency', min_value=0.01, max_value=0.99, format='%.3f',
             value=get_if_exists_else(agent, 'PVEfficiency',
                                      st.session_state.config_data['AreaInfo']['DefaultPVEfficiency']),
@@ -256,7 +257,7 @@ def agent_inputs(agent):
             key='PVEfficiency' + agent['Name']
         )
     if agent['Type'] == 'GridAgent':
-        agent['TransferRate'] = st.number_input(
+        agent['TransferRate'] = form.number_input(
             'Transfer rate', min_value=0.0, step=10.0,
             value=float(agent['TransferRate']),
             help=app_constants.TRANSFER_RATE_HELP_TEXT,
@@ -264,3 +265,4 @@ def agent_inputs(agent):
         )
     else:
         st.button('Remove agent', key='RemoveButton' + agent['Name'], on_click=remove_agent, args=(agent,))
+    form.form_submit_button('Save agent')
