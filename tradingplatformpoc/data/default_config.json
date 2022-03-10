@@ -3,7 +3,6 @@
 		{
 			"Type": "BuildingAgent",
 			"Name": "ResidentialBuildingAgentBC1",
-			"RandomSeed": 1,
 			"GrossFloorArea": 11305.3333333333,
 			"PVArea": 1748.6666666667,
 			"FractionCommercial": 0.2,
@@ -12,7 +11,6 @@
 		{
 			"Type": "BuildingAgent",
 			"Name": "ResidentialBuildingAgentB2",
-			"RandomSeed": 2,
 			"GrossFloorArea": 7801.375,
 			"PVArea": 1206.6875,
 			"FractionCommercial": 0.0,
@@ -21,7 +19,6 @@
 		{
 			"Type": "BuildingAgent",
 			"Name": "ResidentialBuildingAgentB3",
-			"RandomSeed": 3,
 			"GrossFloorArea": 9000.25,
 			"PVArea": 1392.125,
 			"FractionCommercial": 0.0,
@@ -30,7 +27,6 @@
 		{
 			"Type": "BuildingAgent",
 			"Name": "ResidentialBuildingAgentB4",
-			"RandomSeed": 4,
 			"GrossFloorArea": 6938.4166666667,
 			"PVArea": 1073.2083333333,
 			"FractionCommercial": 0.0,
@@ -39,7 +35,6 @@
 		{
 			"Type": "BuildingAgent",
 			"Name": "ResidentialBuildingAgentB5",
-			"RandomSeed": 5,
 			"GrossFloorArea": 8322.625,
 			"PVArea": 1287.3125,
 			"FractionCommercial": 0.0,
@@ -48,7 +43,6 @@
 		{
 			"Type": "BuildingAgent",
 			"Name": "ResidentialBuildingAgentBC6",
-			"RandomSeed": 6,
 			"GrossFloorArea": 7430.7083333333,
 			"PVArea": 1149.3541666667,
 			"FractionCommercial": 0.2,
@@ -57,7 +51,6 @@
 		{
 			"Type": "BuildingAgent",
 			"Name": "ResidentialBuildingAgentBC7",
-			"RandomSeed": 7,
 			"GrossFloorArea": 7789.7916666667,
 			"PVArea": 1204.8958333333,
 			"FractionCommercial": 0.2,
@@ -66,7 +59,6 @@
 		{
 			"Type": "BuildingAgent",
 			"Name": "ResidentialBuildingAgentB8",
-			"RandomSeed": 8,
 			"GrossFloorArea": 12753.25,
 			"PVArea": 1972.625,
 			"FractionCommercial": 0.0,
@@ -75,7 +67,6 @@
 		{
 			"Type": "BuildingAgent",
 			"Name": "ResidentialBuildingAgentB9",
-			"RandomSeed": 9,
 			"GrossFloorArea": 8328.4166666667,
 			"PVArea": 1288.2083333333,
 			"FractionCommercial": 0.0,
@@ -84,7 +75,6 @@
 		{
 			"Type": "BuildingAgent",
 			"Name": "ResidentialBuildingAgentB10",
-			"RandomSeed": 10,
 			"GrossFloorArea": 7459.6666666667,
 			"PVArea": 1153.8333333333,
 			"FractionCommercial": 0.0,
@@ -93,7 +83,6 @@
 		{
 			"Type": "BuildingAgent",
 			"Name": "ResidentialBuildingAgentB11",
-			"RandomSeed": 11,
 			"GrossFloorArea": 4830.25,
 			"PVArea": 747.125,
 			"FractionCommercial": 0.0,
@@ -102,7 +91,6 @@
 		{
 			"Type": "BuildingAgent",
 			"Name": "ResidentialBuildingAgentBC12",
-			"RandomSeed": 12,
 			"GrossFloorArea": 9591.0,
 			"PVArea": 1483.5,
 			"FractionCommercial": 0.2,
@@ -111,7 +99,6 @@
 		{
 			"Type": "BuildingAgent",
 			"Name": "ResidentialBuildingAgentB13",
-			"RandomSeed": 13,
 			"GrossFloorArea": 8340.0,
 			"PVArea": 1290.0,
 			"FractionCommercial": 0.0,
@@ -120,7 +107,6 @@
 		{
 			"Type": "BuildingAgent",
 			"Name": "ResidentialBuildingAgentB14",
-			"RandomSeed": 14,
 			"GrossFloorArea": 5820.625,
 			"PVArea": 900.3125,
 			"FractionCommercial": 0.0,
@@ -129,7 +115,6 @@
 		{
 			"Type": "BuildingAgent",
 			"Name": "ResidentialBuildingAgentB15",
-			"RandomSeed": 15,
 			"GrossFloorArea": 4604.375,
 			"PVArea": 712.1875,
 			"FractionCommercial": 0.0,
@@ -138,7 +123,6 @@
 		{
 			"Type": "BuildingAgent",
 			"Name": "ResidentialBuildingAgentB16",
-			"RandomSeed": 16,
 			"GrossFloorArea": 3874.625,
 			"PVArea": 599.3125,
 			"FractionCommercial": 0.0,
@@ -147,7 +131,6 @@
 		{
 			"Type": "BuildingAgent",
 			"Name": "ResidentialBuildingAgentBC17",
-			"RandomSeed": 17,
 			"GrossFloorArea": 5635.2916666667,
 			"PVArea": 871.6458333333,
 			"FractionCommercial": 0.2,
@@ -156,7 +139,6 @@
 		{
 			"Type": "BuildingAgent",
 			"Name": "ResidentialBuildingAgentB18",
-			"RandomSeed": 18,
 			"GrossFloorArea": 12011.9166666667,
 			"PVArea": 1857.9583333333,
 			"FractionCommercial": 0.0,
@@ -165,7 +147,6 @@
 		{
 			"Type": "BuildingAgent",
 			"Name": "ResidentialBuildingAgentB19",
-			"RandomSeed": 19,
 			"GrossFloorArea": 8728.0416666667,
 			"PVArea": 1350.0208333333,
 			"FractionCommercial": 0.0,
@@ -174,7 +155,6 @@
 		{
 			"Type": "BuildingAgent",
 			"Name": "ResidentialBuildingAgentB20",
-			"RandomSeed": 20,
 			"GrossFloorArea": 7314.875,
 			"PVArea": 1131.4375,
 			"FractionCommercial": 0.0,
@@ -204,7 +184,6 @@
 		{
 			"Type": "BuildingAgent",
 			"Name": "SchoolBuildingAgent",
-			"RandomSeed": 21,
 			"GrossFloorArea": 5000,
 			"PVArea": 0,
 			"FractionCommercial": 0.0,

@@ -34,25 +34,24 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 KWH_PER_YEAR_M2_ATEMP = 20  # According to Skanska: 20 kWh/year/m2 Atemp
 M2_PER_APARTMENT = 70
-# Will use this to set random seed. Agent with start_seed = 1 will have seed 1 for household electricity, and
-# RESIDENTIAL_HEATING_SEED_OFFSET+1 for residential heating, and COMMERCIAL_SEED_OFFSET+1 for commercial electricity...
-RESIDENTIAL_HEATING_SEED_OFFSET = 1000
+# Will use this to set random seed.
+RESIDENTIAL_HEATING_SEED_SUFFIX = "RH"
 EVERY_X_HOURS = 3  # Random noise will be piecewise linear, with knots every X hours
 HEATING_RELATIVE_ERROR_STD_DEV = 0.2
 KWH_PER_YEAR_M2_RESIDENTIAL_HEATING = 43.75  # See https://doc.afdrift.se/display/RPJ/BDAB+data
 # Constants for the 'commercial' electricity bit:
-COMMERCIAL_ELECTRICITY_SEED_OFFSET = 100000
+COMMERCIAL_ELECTRICITY_SEED_SUFFIX = "CE"
 KWH_ELECTRICITY_PER_YEAR_M2_COMMERCIAL = 118
 COMMERCIAL_ELECTRICITY_RELATIVE_ERROR_STD_DEV = 0.2
 # Constants for the 'commercial' heating bit:
-COMMERCIAL_HEATING_SEED_OFFSET = 10000000
+COMMERCIAL_HEATING_SEED_SUFFIX = "CH"
 # As per https://doc.afdrift.se/display/RPJ/Commercial+areas
 KWH_SPACE_HEATING_PER_YEAR_M2_COMMERCIAL = 32
 KWH_HOT_TAP_WATER_PER_YEAR_M2_COMMERCIAL = 3.5
 COMMERCIAL_HOT_TAP_WATER_RELATIVE_ERROR_STD_DEV = 0.2
 # Constants for school
-SCHOOL_HEATING_SEED_OFFSET = 100000000
-SCHOOL_ELECTRICITY_SEED_OFFSET = 1000000000
+SCHOOL_HEATING_SEED_SUFFIX = "SH"
+SCHOOL_ELECTRICITY_SEED_SUFFIX = "SE"
 KWH_ELECTRICITY_PER_YEAR_M2_SCHOOL = 60
 SCHOOL_ELECTRICITY_RELATIVE_ERROR_STD_DEV = 0.2
 SCHOOL_HOT_TAP_WATER_RELATIVE_ERROR_STD_DEV = 0.2
@@ -143,12 +142,12 @@ def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd:
 
     if (not get_elec_cons_key(agent['Name']) in output_per_actor.columns) or \
             (not get_heat_cons_key(agent['Name']) in output_per_actor.columns):
-        seed_residential_electricity = agent['RandomSeed']
-        seed_residential_heating = agent['RandomSeed'] + RESIDENTIAL_HEATING_SEED_OFFSET
-        seed_commercial_electricity = agent['RandomSeed'] + COMMERCIAL_ELECTRICITY_SEED_OFFSET
-        seed_commercial_heating = agent['RandomSeed'] + COMMERCIAL_HEATING_SEED_OFFSET
-        seed_school_electricity = agent["RandomSeed"] + SCHOOL_ELECTRICITY_SEED_OFFSET
-        seed_school_heating = agent["RandomSeed"] + SCHOOL_HEATING_SEED_OFFSET
+        seed_residential_electricity = calculate_seed_from_string(agent['Name'])
+        seed_residential_heating = calculate_seed_from_string(agent['Name'] + RESIDENTIAL_HEATING_SEED_SUFFIX)
+        seed_commercial_electricity = calculate_seed_from_string(agent['Name'] + COMMERCIAL_ELECTRICITY_SEED_SUFFIX)
+        seed_commercial_heating = calculate_seed_from_string(agent['Name'] + COMMERCIAL_HEATING_SEED_SUFFIX)
+        seed_school_electricity = calculate_seed_from_string(agent['Name'] + SCHOOL_ELECTRICITY_SEED_SUFFIX)
+        seed_school_heating = calculate_seed_from_string(agent['Name'] + SCHOOL_HEATING_SEED_SUFFIX)
         fraction_commercial = get_if_exists_else(agent, 'FractionCommercial', 0)
         fraction_school = get_if_exists_else(agent, 'FractionSchool', 0)
         logger.debug("Total non-residential fraction {}".format(fraction_commercial + fraction_school))
@@ -265,7 +264,6 @@ def simulate_series(input_df: pd.DataFrame, rand_seed: int, model: RegressionRes
     :param model: statsmodels.regression.linear_model.RegressionResultsWrapper
     :return: pd.Series
     """
-    np.random.seed(rand_seed)  # set random seed
     input_df['energy_prev'] = 0
     input_df['energy_prev'].iloc[0] = np.nan
 
@@ -273,7 +271,8 @@ def simulate_series(input_df: pd.DataFrame, rand_seed: int, model: RegressionRes
     std_dev = np.sqrt(model.scale)  # store standard error
     input_df['simulated_log_energy_unscaled'] = np.nan  # y_t
 
-    eps_vec = np.random.normal(0, std_dev, size=input_df.shape[0])
+    rng = np.random.default_rng(rand_seed)  # set random seed
+    eps_vec = rng.normal(0, std_dev, size=input_df.shape[0])
 
     # For t=0, z=y
     input_df['simulated_log_energy_unscaled'].iloc[0] = input_df['z_hat'].iloc[0] + eps_vec[0]
@@ -412,8 +411,8 @@ def simulate_area_electricity(gross_floor_area_m2: float, random_seed: int,
     @return A pd.Series with hourly electricity consumption, in kWh.
     """
     factors = [hourly_level_function(x) for x in datetimes]
-    np.random.seed(random_seed)
-    relative_errors = np.random.normal(0, rel_error_std_dev, len(factors))
+    rng = np.random.default_rng(random_seed)
+    relative_errors = rng.normal(0, rel_error_std_dev, len(factors))
     unscaled_values = factors * (1 + relative_errors)
     unscaled_series = pd.Series(unscaled_values, index=datetimes)
     scaled_series = scale_energy_consumption(unscaled_series, gross_floor_area_m2,
@@ -441,8 +440,8 @@ def simulate_commercial_area_hot_tap_water(commercial_gross_floor_area_m2: float
     @return A pd.Series with hot tap water load for the area, scaled to KWH_SPACE_HEATING_PER_YEAR_M2_COMMERCIAL.
     """
     time_factors = [get_commercial_heating_consumption_hourly_factor(x) for x in datetimes]
-    np.random.seed(random_seed)
-    relative_errors = np.random.normal(0, COMMERCIAL_HOT_TAP_WATER_RELATIVE_ERROR_STD_DEV, len(time_factors))
+    rng = np.random.default_rng(random_seed)
+    relative_errors = rng.normal(0, COMMERCIAL_HOT_TAP_WATER_RELATIVE_ERROR_STD_DEV, len(time_factors))
     unscaled_values = time_factors * (1 + relative_errors)
     unscaled_series = pd.Series(unscaled_values, index=datetimes)
     scaled_series = scale_energy_consumption(unscaled_series, commercial_gross_floor_area_m2,
@@ -457,7 +456,7 @@ def simulate_commercial_area_space_heating(commercial_gross_floor_area_m2: float
     https://doc.afdrift.se/display/RPJ/Coop+heating+energy+use+mock-up
     @return A pd.Series with space heating load for the area, scaled to KWH_SPACE_HEATING_PER_YEAR_M2_COMMERCIAL.
     """
-    np.random.seed(random_seed)
+    rng = np.random.default_rng(random_seed)
     # Probability that there is 0 heating demand:
     predicted_prob_of_0 = input_df['temperature'].\
         apply(lambda x: commercial_heating_model.probability_of_0_space_heating(x))
@@ -468,7 +467,7 @@ def simulate_commercial_area_space_heating(commercial_gross_floor_area_m2: float
     pred_given_non_0 = input_df['temperature'].\
         apply(lambda x: commercial_heating_model.space_heating_given_more_than_0(x))
     # Simulate
-    heat_given_non_0 = np.maximum(0, np.random.normal(loc=pred_given_non_0, scale=commercial_heating_model.LM_STD_DEV))
+    heat_given_non_0 = np.maximum(0, rng.normal(loc=pred_given_non_0, scale=commercial_heating_model.LM_STD_DEV))
 
     # Combine the above
     sim_energy_unscaled = np.where(has_heat_demand == 0, 0, heat_given_non_0)
@@ -504,8 +503,8 @@ def simulate_school_area_hot_tap_water(school_gross_floor_area_m2: float, random
     @return A pd.Series with hot tap water load for the area, scaled to KWH_SPACE_HEATING_PER_YEAR_M2_SCHOOL.
     """
     time_factors = [get_school_heating_consumption_hourly_factor(x) for x in datetimes]
-    np.random.seed(random_seed)
-    relative_errors = np.random.normal(0, SCHOOL_HOT_TAP_WATER_RELATIVE_ERROR_STD_DEV, len(time_factors))
+    rng = np.random.default_rng(random_seed)
+    relative_errors = rng.normal(0, SCHOOL_HOT_TAP_WATER_RELATIVE_ERROR_STD_DEV, len(time_factors))
     unscaled_values = time_factors * (1 + relative_errors)
     unscaled_series = pd.Series(unscaled_values, index=datetimes)
     scaled_series = scale_energy_consumption(unscaled_series, school_gross_floor_area_m2,
@@ -523,7 +522,7 @@ def simulate_school_area_space_heating(school_gross_floor_area_m2: float, random
     # TODO: simulate_school_area_space_heating and simulate_commercial_area_space_heating could be generified, if we
     #  extract the get_school_heating_consumption_hourly_factor function and the KWH_SPACE_HEATING_PER_YEAR_M2_SCHOOL
     #  constant to parameters.
-    np.random.seed(random_seed)
+    rng = np.random.default_rng(random_seed)
 
     # Probability that there is 0 heating demand:
     predicted_prob_of_0 = input_df['temperature'].\
@@ -535,7 +534,7 @@ def simulate_school_area_space_heating(school_gross_floor_area_m2: float, random
     pred_given_non_0 = input_df['temperature'].\
         apply(lambda x: commercial_heating_model.space_heating_given_more_than_0(x))
     # Simulate
-    heat_given_non_0 = np.maximum(0, np.random.normal(loc=pred_given_non_0, scale=commercial_heating_model.LM_STD_DEV))
+    heat_given_non_0 = np.maximum(0, rng.normal(loc=pred_given_non_0, scale=commercial_heating_model.LM_STD_DEV))
 
     # Combine the above
     sim_energy_unscaled = np.where(has_heat_demand == 0, 0, heat_given_non_0)
@@ -569,8 +568,8 @@ def simulate_residential_total_heating(df_inputs: pd.DataFrame, gross_floor_area
     every_xth = np.arange(0, nrow_input_df, EVERY_X_HOURS)
     points_to_generate = len(every_xth)
 
-    np.random.seed(random_seed)
-    generated_points = np.random.normal(1, HEATING_RELATIVE_ERROR_STD_DEV, points_to_generate)
+    rng = np.random.default_rng(random_seed)
+    generated_points = rng.normal(1, HEATING_RELATIVE_ERROR_STD_DEV, points_to_generate)
 
     noise = np.empty((nrow_input_df,))
     noise[:] = np.nan
@@ -607,7 +606,7 @@ def find_agent_in_other_data_sets(agent_dict: dict, all_data_sets: dict) -> pd.D
                 prod_data.rename(get_pv_prod_key(agent_dict['Name']), inplace=True)
                 data_to_reuse = pd.concat((data_to_reuse, prod_data), axis=1)
 
-            if (not found_cons_data) and (agent_dict['RandomSeed'] == other_agent_dict['RandomSeed']) and \
+            if (not found_cons_data) and (agent_dict['Name'] == other_agent_dict['Name']) and \
                 (agent_dict['GrossFloorArea'] == other_agent_dict['GrossFloorArea']) and \
                 (get_if_exists_else(agent_dict, 'FractionCommercial', 0)
                  == get_if_exists_else(other_agent_dict, 'FractionCommercial', 0)) and \
@@ -622,6 +621,11 @@ def find_agent_in_other_data_sets(agent_dict: dict, all_data_sets: dict) -> pd.D
                                     get_heat_cons_key(agent_dict['Name'])], axis=1, inplace=True)
                 data_to_reuse = pd.concat((data_to_reuse, cons_data), axis=1)
     return data_to_reuse
+
+
+def calculate_seed_from_string(some_string: str) -> int:
+    """Hashes the string, and truncates the value to a 32-bit integer, since that is what seeds are allowed to be."""
+    return some_string.__hash__() & 0xFFFFFFFF
 
 
 if __name__ == '__main__':
