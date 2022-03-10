@@ -5,7 +5,7 @@ from typing import Dict, List, Union
 import numpy as np
 
 from tradingplatformpoc.agent.iagent import IAgent
-from tradingplatformpoc.bid import Action, BidWithAcceptanceStatus, Resource
+from tradingplatformpoc.bid import Action, Bid, BidWithAcceptanceStatus, Resource
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
 from tradingplatformpoc.trade import Market, Trade
@@ -50,7 +50,7 @@ class StorageAgent(IAgent):
         self.need_at_least_n_hours = int(self.go_back_n_hours / 2)
 
     def make_bids(self, period: datetime.datetime, clearing_prices_historical: Union[Dict[datetime.datetime, Dict[
-            Resource, float]], None]):
+            Resource, float]], None]) -> List[Bid]:
         bids = []
 
         if clearing_prices_historical is not None:
@@ -91,10 +91,10 @@ class StorageAgent(IAgent):
             clearing_prices_for_resource[k] = v[self.resource]
         return clearing_prices_for_resource
 
-    def make_prognosis(self, period: datetime.datetime, resource: Resource):
+    def make_prognosis(self, period: datetime.datetime, resource: Resource) -> float:
         pass
 
-    def get_actual_usage(self, period: datetime.datetime, resource: Resource):
+    def get_actual_usage(self, period: datetime.datetime, resource: Resource) -> float:
         pass
 
     def make_trades_given_clearing_price(self, period: datetime.datetime, clearing_prices: Dict[Resource, float],

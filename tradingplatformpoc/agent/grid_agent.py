@@ -20,7 +20,7 @@ class GridAgent(IAgent):
         self.max_transfer_per_hour = max_transfer_per_hour
 
     def make_bids(self, period: datetime.datetime, clearing_prices_historical: Union[Dict[datetime.datetime, Dict[
-            Resource, float]], None] = None):
+            Resource, float]], None] = None) -> List[Bid]:
         # Submit a bid to sell energy
         # Sell up to MAX_TRANSFER_PER_HOUR kWh at calculate_retail_price(period)
         retail_price = self.data_store.get_estimated_retail_price(period, self.resource)
@@ -32,14 +32,14 @@ class GridAgent(IAgent):
         # local price was to be lower than that, those agents would just sell directly to the external grid instead).
         return [bid_to_sell]
 
-    def construct_bid(self, action, resource, quantity, price):
+    def construct_bid(self, action, resource, quantity, price) -> Bid:
         return Bid(action, resource, quantity, price, self.guid, True)
 
-    def make_prognosis(self, period: datetime.datetime, resource: Resource):
+    def make_prognosis(self, period: datetime.datetime, resource: Resource) -> float:
         # FUTURE: Make prognoses of the price, instead of using actual? Although we are already using the day-ahead?
         pass
 
-    def get_actual_usage(self, period: datetime.datetime, resource: Resource):
+    def get_actual_usage(self, period: datetime.datetime, resource: Resource) -> float:
         pass
 
     def make_trades_given_clearing_price(self, period: datetime.datetime, clearing_prices: Dict[Resource, float],
