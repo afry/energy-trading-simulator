@@ -25,24 +25,16 @@ class BuildingAgent(IAgent):
         # The building should make a bid for purchasing energy, or selling if it has a surplus
         bids = []
 
-        if self.heat_pump is None:
-            # In this case, we can treat is as we always have previously, just make independent bids for the
-            # electricity and heating energy the agent needs.
-            for resource in ALL_IMPLEMENTED_RESOURCES:
-                resource_needed = self.make_prognosis(period, resource)
-                if resource_needed > 0:
-                    bids.append(self.construct_bid(Action.BUY, resource, resource_needed, math.inf))
-                    # This demand must be fulfilled - therefore price is inf
-                elif resource_needed < 0:
-                    bids.append(self.construct_bid(Action.SELL, resource, -resource_needed,
-                                                self.get_external_grid_buy_price(period, resource)))
-                    # If the building doesn't have it's own battery, then surplus energy _must_ be sold, so price is 0
-            return bids
-        else:
-            # TODO: Here we need to figure out the new bidding logic
-            # We can either buy heat for heating
-            for resource in ALL_IMPLEMENTED_RESOURCES:
-                resource_needed = self.make_prognosis(period, resource)
+        for resource in ALL_IMPLEMENTED_RESOURCES:
+            resource_needed = self.make_prognosis(period, resource)
+            if resource_needed > 0:
+                bids.append(self.construct_bid(Action.BUY, resource, resource_needed, math.inf))
+                # This demand must be fulfilled - therefore price is inf
+            elif resource_needed < 0:
+                bids.append(self.construct_bid(Action.SELL, resource, -resource_needed,
+                                               self.get_external_grid_buy_price(period, resource)))
+                # If the building doesn't have it's own battery, then surplus energy _must_ be sold, so price is 0
+        return bids
 
     def make_prognosis(self, period: datetime.datetime, resource: Resource):
         # The building should make a prognosis for how much energy will be required

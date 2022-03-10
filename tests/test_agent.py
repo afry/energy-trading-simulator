@@ -8,11 +8,11 @@ import pandas as pd
 
 from tests import utility_test_objects
 
-import tradingplatformpoc.agent.building_agent
-import tradingplatformpoc.agent.grid_agent
-import tradingplatformpoc.agent.pv_agent
-import tradingplatformpoc.agent.storage_agent
-from tradingplatformpoc import agent, data_store
+from tradingplatformpoc import data_store
+from tradingplatformpoc.agent.building_agent import BuildingAgent
+from tradingplatformpoc.agent.grid_agent import GridAgent
+from tradingplatformpoc.agent.pv_agent import PVAgent
+from tradingplatformpoc.agent.storage_agent import StorageAgent
 from tradingplatformpoc.bid import Action, BidWithAcceptanceStatus, Resource
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
@@ -40,10 +40,10 @@ data_store_entity = data_store.DataStore(config_area_info=utility_test_objects.A
 
 
 class TestGridAgent(unittest.TestCase):
-    electricity_grid_agent = tradingplatformpoc.agent.grid_agent.GridAgent(data_store_entity, Resource.ELECTRICITY,
-                                                                           guid='ElectricityGridAgent')
-    heating_grid_agent = tradingplatformpoc.agent.grid_agent.GridAgent(data_store_entity, Resource.HEATING,
-                                                                       guid='HeatingGridAgent')
+    electricity_grid_agent = GridAgent(data_store_entity, Resource.ELECTRICITY,
+                                       guid='ElectricityGridAgent')
+    heating_grid_agent = GridAgent(data_store_entity, Resource.HEATING,
+                                   guid='HeatingGridAgent')
 
     def test_make_bids_electricity(self):
         """Test basic functionality of GridAgent's make_bids method, for the ELECTRICITY resource."""
@@ -162,8 +162,7 @@ class TestGridAgent(unittest.TestCase):
 class TestStorageAgent(unittest.TestCase):
     twin = StorageDigitalTwin(max_capacity_kwh=1000, max_charge_rate_fraction=0.1, max_discharge_rate_fraction=0.1,
                               discharging_efficiency=0.93)
-    battery_agent = tradingplatformpoc.agent.storage_agent.StorageAgent(data_store_entity, twin, Resource.ELECTRICITY,
-                                                                        168, 20, 80)
+    battery_agent = StorageAgent(data_store_entity, twin, Resource.ELECTRICITY, 168, 20, 80)
 
     def test_make_bids(self):
         """Test basic functionality of StorageAgent's make_bids method."""
@@ -181,8 +180,7 @@ class TestStorageAgent(unittest.TestCase):
         non_empty_twin = StorageDigitalTwin(max_capacity_kwh=1000, max_charge_rate_fraction=0.1,
                                             max_discharge_rate_fraction=0.1, discharging_efficiency=0.93,
                                             start_capacity_kwh=500)
-        ba = tradingplatformpoc.agent.storage_agent.StorageAgent(data_store_entity, non_empty_twin,
-                                                                 Resource.ELECTRICITY, 168, 20, 80)
+        ba = StorageAgent(data_store_entity, non_empty_twin, Resource.ELECTRICITY, 168, 20, 80)
         bids = ba.make_bids(SOME_DATETIME, {})
         self.assertEqual(2, len(bids))
 
@@ -191,8 +189,7 @@ class TestStorageAgent(unittest.TestCase):
         full_twin = StorageDigitalTwin(max_capacity_kwh=1000, max_charge_rate_fraction=0.1,
                                        max_discharge_rate_fraction=0.1, discharging_efficiency=0.93,
                                        start_capacity_kwh=1000)
-        ba = tradingplatformpoc.agent.storage_agent.StorageAgent(data_store_entity, full_twin,
-                                                                 Resource.ELECTRICITY, 168, 20, 80)
+        ba = StorageAgent(data_store_entity, full_twin, Resource.ELECTRICITY, 168, 20, 80)
         bids = ba.make_bids(SOME_DATETIME, {})
         self.assertEqual(1, len(bids))
         self.assertEqual(Action.SELL, bids[0].action)
@@ -245,13 +242,16 @@ class TestBuildingAgent(TestCase):
     heat_values = np.random.uniform(0, 100.0, len(DATETIME_ARRAY))
     building_digital_twin_cons = StaticDigitalTwin(electricity_usage=pd.Series(elec_values, index=DATETIME_ARRAY),
                                                    heating_usage=pd.Series(heat_values, index=DATETIME_ARRAY))
-    building_agent_cons = agent.building_agent.BuildingAgent(data_store_entity, building_digital_twin_cons)
+    building_agent_cons = BuildingAgent(data_store=data_store_entity, digital_twin=building_digital_twin_cons,
+                                        heat_pumps=[])
     building_digital_twin_prod = StaticDigitalTwin(electricity_usage=-pd.Series(elec_values, index=DATETIME_ARRAY),
                                                    heating_usage=-pd.Series(heat_values, index=DATETIME_ARRAY))
-    building_agent_prod = agent.building_agent.BuildingAgent(data_store_entity, building_digital_twin_prod)
+    building_agent_prod = BuildingAgent(data_store=data_store_entity, digital_twin=building_digital_twin_prod,
+                                        heat_pumps=[])
     building_digital_twin_zeros = StaticDigitalTwin(electricity_usage=pd.Series(elec_values * 0, index=DATETIME_ARRAY),
                                                     heating_usage=pd.Series(heat_values * 0, index=DATETIME_ARRAY))
-    building_agent_zeros = agent.building_agent.BuildingAgent(data_store_entity, building_digital_twin_zeros)
+    building_agent_zeros = BuildingAgent(data_store=data_store_entity, digital_twin=building_digital_twin_zeros,
+                                         heat_pumps=[])
 
     def test_make_bids_consumer(self):
         """Test basic functionality of BuildingAgent's make_bids method."""
@@ -365,7 +365,7 @@ class TestBuildingAgent(TestCase):
 class TestPVAgent(TestCase):
     pv_prod_series = calculate_solar_prod(data_store_entity.irradiation_data, 24324.3, 0.165)
     pv_digital_twin = StaticDigitalTwin(electricity_production=pv_prod_series)
-    tornet_pv_agent = tradingplatformpoc.agent.pv_agent.PVAgent(data_store_entity, pv_digital_twin)
+    tornet_pv_agent = PVAgent(data_store_entity, pv_digital_twin)
 
     def test_make_bids(self):
         """Test basic functionality of PVAgent's make_bids method."""

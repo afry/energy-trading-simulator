@@ -235,16 +235,20 @@ def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings
             building_digital_twin = StaticDigitalTwin(electricity_usage=elec_cons_series,
                                                       electricity_production=pv_prod_series,
                                                       heating_usage=heat_cons_series)
+            heat_pumps: List[HeatPump] = []
 
-            if agent["NumberHeatPumps"] is None:
-                agents.append(BuildingAgent(data_store_entity, building_digital_twin, guid=agent_name))
+            if "NumberHeatPumps" in agent.keys():
+                # Do we have specific COP or should we use the default?
+                cop = agent["COP"] if "COP" in agent.keys() else None
+
+                for _i in range(agent["NumberHeatPumps"]):
+                    heat_pumps.append(HeatPump(coeff_of_perf=cop))
+                agents.append(BuildingAgent(data_store=data_store_entity, digital_twin=building_digital_twin,
+                                            guid=agent_name, heat_pumps=heat_pumps))
+
             else:
-                heat_pumps: List[HeatPump] = []
-                for i in range(agent["NumberHeatPumps"]):
-                    heat_pumps.append(HeatPump())
-                heat_pump = HeatPump()
-                agents.append(BuildingAgent(data_store_entity, building_digital_twin, guid=agent_name,
-                                            heat_pump=heat_pump))
+                agents.append(BuildingAgent(data_store=data_store_entity, digital_twin=building_digital_twin,
+                                            guid=agent_name, heat_pumps=heat_pumps))
 
         elif agent_type == "StorageAgent":
             discharge_rate = agent["DischargeRate"] if "DischargeRate" in agent else agent["ChargeRate"]
@@ -270,7 +274,8 @@ def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings
             grocery_store_digital_twin = StaticDigitalTwin(electricity_usage=coop_elec_cons,
                                                            heating_usage=coop_heat_cons,
                                                            electricity_production=pv_prod_series)
-            agents.append(BuildingAgent(data_store_entity, grocery_store_digital_twin, guid=agent_name))
+            agents.append(BuildingAgent(data_store=data_store_entity, digital_twin=grocery_store_digital_twin,
+                                        guid=agent_name, heat_pumps=[]))
         elif agent_type == "GridAgent":
             grid_agent = GridAgent(data_store_entity, Resource[agent["Resource"]],
                                    max_transfer_per_hour=agent["TransferRate"], guid=agent_name)
