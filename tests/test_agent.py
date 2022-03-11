@@ -243,15 +243,15 @@ class TestBuildingAgent(TestCase):
     building_digital_twin_cons = StaticDigitalTwin(electricity_usage=pd.Series(elec_values, index=DATETIME_ARRAY),
                                                    heating_usage=pd.Series(heat_values, index=DATETIME_ARRAY))
     building_agent_cons = BuildingAgent(data_store=data_store_entity, digital_twin=building_digital_twin_cons,
-                                        heat_pumps=[])
+                                        nbr_heat_pumps=0, coeff_of_perf=0)
     building_digital_twin_prod = StaticDigitalTwin(electricity_usage=-pd.Series(elec_values, index=DATETIME_ARRAY),
                                                    heating_usage=-pd.Series(heat_values, index=DATETIME_ARRAY))
     building_agent_prod = BuildingAgent(data_store=data_store_entity, digital_twin=building_digital_twin_prod,
-                                        heat_pumps=[])
+                                        nbr_heat_pumps=0, coeff_of_perf=0)
     building_digital_twin_zeros = StaticDigitalTwin(electricity_usage=pd.Series(elec_values * 0, index=DATETIME_ARRAY),
                                                     heating_usage=pd.Series(heat_values * 0, index=DATETIME_ARRAY))
     building_agent_zeros = BuildingAgent(data_store=data_store_entity, digital_twin=building_digital_twin_zeros,
-                                         heat_pumps=[])
+                                         nbr_heat_pumps=0, coeff_of_perf=0)
 
     def test_make_bids_consumer(self):
         """Test basic functionality of BuildingAgent's make_bids method."""
