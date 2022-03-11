@@ -237,18 +237,11 @@ def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings
                                                       heating_usage=heat_cons_series)
             heat_pumps: List[HeatPump] = []
 
-            if "NumberHeatPumps" in agent.keys():
-                # Do we have specific COP or should we use the default?
-                cop = agent["COP"] if "COP" in agent.keys() else None
+            nbr_heat_pumps = agent["NumberHeatPumps"] if "NumberHeatPumps" in agent.keys() else 0
+            cop = agent["COP"] if "COP" in agent.keys() else 0
 
-                for _i in range(agent["NumberHeatPumps"]):
-                    heat_pumps.append(HeatPump(coeff_of_perf=cop))
-                agents.append(BuildingAgent(data_store=data_store_entity, digital_twin=building_digital_twin,
-                                            guid=agent_name, heat_pumps=heat_pumps))
-
-            else:
-                agents.append(BuildingAgent(data_store=data_store_entity, digital_twin=building_digital_twin,
-                                            guid=agent_name, heat_pumps=heat_pumps))
+            agents.append(BuildingAgent(data_store=data_store_entity, digital_twin=building_digital_twin,
+                                            guid=agent_name, nbr_heat_pumps=nbr_heat_pumps, coeff_of_perf=cop))
 
         elif agent_type == "StorageAgent":
             discharge_rate = agent["DischargeRate"] if "DischargeRate" in agent else agent["ChargeRate"]

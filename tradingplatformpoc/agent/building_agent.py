@@ -14,11 +14,12 @@ from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES,
 
 class BuildingAgent(IAgent):
 
-    def __init__(self, data_store: DataStore, heat_pumps: List[HeatPump], digital_twin: StaticDigitalTwin,
+    def __init__(self, data_store: DataStore, nbr_heat_pumps: int, coeff_of_perf: float, digital_twin: StaticDigitalTwin,
                  guid="BuildingAgent"):
         super().__init__(guid, data_store)
         self.digital_twin = digital_twin
-        self.heat_pumps = heat_pumps
+        self.nbr_heat_pumps = nbr_heat_pumps
+        self.coeff_of_perf = coeff_of_perf # Interpret 0 as default value
 
     def make_bids(self, period: datetime.datetime, clearing_prices_historical: Union[Dict[datetime.datetime, Dict[
             Resource, float]], None] = None):
