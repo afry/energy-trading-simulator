@@ -13,7 +13,8 @@ class Test(TestCase):
         self.assertAlmostEqual(2.7613787873898135, cop_output)
 
         # If we want a "better" heat pump, assert that output COP increases by the correct amount
-        elec_input, heat_output = HeatPump.calculate_energy(workload=6, forward_temp_c=60, brine_temp_c=0, coeff_of_perf=5)
+        elec_input, heat_output = HeatPump.calculate_energy(workload=6, forward_temp_c=60, brine_temp_c=0,
+                                                            coeff_of_perf=5)
         better_cop_output = heat_output / elec_input
         cop_output_percent_increase = better_cop_output / cop_output
         cop_input_percent_increase = 5 / heat_pump.DEFAULT_COP

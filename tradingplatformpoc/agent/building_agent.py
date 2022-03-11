@@ -7,19 +7,18 @@ from tradingplatformpoc.agent.iagent import IAgent, get_price_and_market_to_use_
 from tradingplatformpoc.bid import Action, BidWithAcceptanceStatus, Resource
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
-from tradingplatformpoc.heat_pump import HeatPump
 from tradingplatformpoc.trade import Trade
 from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES, minus_n_hours
 
 
 class BuildingAgent(IAgent):
 
-    def __init__(self, data_store: DataStore, nbr_heat_pumps: int, coeff_of_perf: float, digital_twin: StaticDigitalTwin,
-                 guid="BuildingAgent"):
+    def __init__(self, data_store: DataStore, digital_twin: StaticDigitalTwin, nbr_heat_pumps: int = 0,
+                 coeff_of_perf: float = 0, guid="BuildingAgent"):
         super().__init__(guid, data_store)
         self.digital_twin = digital_twin
         self.nbr_heat_pumps = nbr_heat_pumps
-        self.coeff_of_perf = coeff_of_perf # Interpret 0 as default value
+        self.coeff_of_perf = coeff_of_perf  # 0 should be interpreted as default value
 
     def make_bids(self, period: datetime.datetime, clearing_prices_historical: Union[Dict[datetime.datetime, Dict[
             Resource, float]], None] = None):

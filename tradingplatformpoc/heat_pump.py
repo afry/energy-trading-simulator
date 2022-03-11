@@ -72,7 +72,7 @@ class HeatPump:
     @staticmethod
     def calculate_for_all_workloads(forward_temp_c: float = DEFAULT_FORWARD_TEMP,
                                     brine_temp_c: float = DEFAULT_BRINE_TEMP,
-                                    coeff_of_perf = DEFAULT_COP) -> pd.DataFrame:
+                                    coeff_of_perf: float = DEFAULT_COP) -> pd.DataFrame:
         """
         Returns a pd.DataFrame with workload, electricity needed, heating produced
         """
