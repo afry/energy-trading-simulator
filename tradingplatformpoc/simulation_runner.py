@@ -234,7 +234,12 @@ def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings
             building_digital_twin = StaticDigitalTwin(electricity_usage=elec_cons_series,
                                                       electricity_production=pv_prod_series,
                                                       heating_usage=heat_cons_series)
-            agents.append(BuildingAgent(data_store_entity, building_digital_twin, guid=agent_name))
+
+            nbr_heat_pumps = agent["NumberHeatPumps"] if "NumberHeatPumps" in agent.keys() else 0
+            cop = agent["COP"] if "COP" in agent.keys() else 0
+
+            agents.append(BuildingAgent(data_store=data_store_entity, digital_twin=building_digital_twin,
+                                        guid=agent_name, nbr_heat_pumps=nbr_heat_pumps, coeff_of_perf=cop))
 
         elif agent_type == "StorageAgent":
             discharge_rate = agent["DischargeRate"] if "DischargeRate" in agent else agent["ChargeRate"]
@@ -260,7 +265,8 @@ def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings
             grocery_store_digital_twin = StaticDigitalTwin(electricity_usage=coop_elec_cons,
                                                            heating_usage=coop_heat_cons,
                                                            electricity_production=pv_prod_series)
-            agents.append(BuildingAgent(data_store_entity, grocery_store_digital_twin, guid=agent_name))
+            agents.append(BuildingAgent(data_store=data_store_entity, digital_twin=grocery_store_digital_twin,
+                                        guid=agent_name))
         elif agent_type == "GridAgent":
             grid_agent = GridAgent(data_store_entity, Resource[agent["Resource"]],
                                    max_transfer_per_hour=agent["TransferRate"], guid=agent_name)
