@@ -2,8 +2,8 @@ from collections import Counter
 from datetime import datetime
 from unittest import TestCase
 
-from tradingplatformpoc.trading_platform_utils import add_numeric_dicts, flatten_collection, get_intersection, \
-    get_pv_efficiency_to_use, minus_n_hours
+from tradingplatformpoc.trading_platform_utils import add_numeric_dicts, flatten_collection, get_if_exists_else, \
+    get_intersection, minus_n_hours
 
 
 class Test(TestCase):
@@ -55,6 +55,6 @@ class Test(TestCase):
         """
         fake_agent = {'PVEfficiency': 0.18}
         default_value = 0.165
-        self.assertEqual(0.18, get_pv_efficiency_to_use(fake_agent, default_value))
+        self.assertEqual(0.18, get_if_exists_else(fake_agent, 'PVEfficiency', default_value))
         empty_agent = {}
-        self.assertEqual(default_value, get_pv_efficiency_to_use(empty_agent, default_value))
+        self.assertEqual(default_value, get_if_exists_else(empty_agent, 'PVEfficiency', default_value))

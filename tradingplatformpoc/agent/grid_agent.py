@@ -52,22 +52,29 @@ class GridAgent(IAgent):
         trades_to_add: List[Trade] = []
 
         trades_for_this_resource = [trade for trade in trades_excl_external if trade.resource == self.resource]
-        periods = set([trade.period for trade in trades_for_this_resource])
-        for period in periods:
-            trades_for_period_resource = [trade for trade in trades_for_this_resource if trade.period == period]
-            # Using "estimated" price here rather than "exact", so we're gonna have to calculate the difference between
-            # them, and who pays that, at a later stage
-            retail_price = self.data_store.get_estimated_retail_price(period, self.resource)
-            wholesale_price = self.data_store.get_estimated_wholesale_price(period, self.resource)
 
-            self.calculate_external_trades_for_resource_and_market(Market.LOCAL, period, self.resource,
-                                                                   trades_for_period_resource, trades_to_add,
-                                                                   retail_price, wholesale_price,
-                                                                   clearing_prices[self.resource])
-            self.calculate_external_trades_for_resource_and_market(Market.EXTERNAL, period, self.resource,
-                                                                   trades_for_period_resource, trades_to_add,
-                                                                   retail_price, wholesale_price,
-                                                                   clearing_prices[self.resource])
+        if len(trades_for_this_resource) == 0:
+            return []
+
+        all_periods = set([trade.period for trade in trades_for_this_resource])
+        if len(all_periods) > 1:
+            raise RuntimeError("When calculating external trades, received trades for more than 1 trading period!")
+        period = all_periods.pop()
+
+        trades_for_period_resource = [trade for trade in trades_for_this_resource if trade.period == period]
+        # Using "estimated" price here rather than "exact", so we're gonna have to calculate the difference between
+        # them, and who pays that, at a later stage
+        retail_price = self.data_store.get_estimated_retail_price(period, self.resource)
+        wholesale_price = self.data_store.get_estimated_wholesale_price(period, self.resource)
+
+        self.calculate_external_trades_for_resource_and_market(Market.LOCAL, period, self.resource,
+                                                               trades_for_period_resource, trades_to_add,
+                                                               retail_price, wholesale_price,
+                                                               clearing_prices[self.resource])
+        self.calculate_external_trades_for_resource_and_market(Market.EXTERNAL, period, self.resource,
+                                                               trades_for_period_resource, trades_to_add,
+                                                               retail_price, wholesale_price,
+                                                               clearing_prices[self.resource])
         return trades_to_add
 
     def calculate_external_trades_for_resource_and_market(self, market: Market, period: datetime.datetime,
