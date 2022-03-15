@@ -373,7 +373,7 @@ class TestBuildingAgentHeatPump(TestCase):
     building_agent_3_pumps_custom_cop = BuildingAgent(data_store=data_store_entity, digital_twin=building_digital_twin,
                                                       nbr_heat_pumps=3, coeff_of_perf=4.3)
     
-    # Assert that defaul cop is set properly
+    # Assert that default cop is set properly
     def test_default_cop(self):
         self.assertEqual(self.building_agent_2_pumps_default_cop.coeff_of_perf, None)
 
@@ -381,7 +381,7 @@ class TestBuildingAgentHeatPump(TestCase):
     def test_custom_cop(self):
         self.assertEqual(self.building_agent_3_pumps_custom_cop.coeff_of_perf, 4.3)
 
-    # Verify bidding works as intended
+    # TODO: RES-198 - Verify bidding works as intended
 
 
 class TestPVAgent(TestCase):
