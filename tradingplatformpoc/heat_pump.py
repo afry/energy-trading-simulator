@@ -33,17 +33,12 @@ logger = logging.getLogger(__name__)
 
 class HeatPump:
     """
-    A component to allow building agents to convert electricity to heat.
+    A class to allow building agents to convert electricity to heat.
     """
-    coeff_of_perf: float
 
-    def __init__(self, coeff_of_perf=DEFAULT_COP):
-        # Default value taken from technical description of "Thermia Mega", size Medium.
-        # COP=4.6 is achieved with brine temp 0, forward temp 35, RPM 3600.
-        self.coeff_of_perf = coeff_of_perf
-
-    def calculate_energy(self, workload: int, forward_temp_c: float = DEFAULT_FORWARD_TEMP,
-                         brine_temp_c: float = DEFAULT_BRINE_TEMP) -> Tuple[float, float]:
+    @staticmethod
+    def calculate_energy(workload: int, forward_temp_c: float = DEFAULT_FORWARD_TEMP,
+                         brine_temp_c: float = DEFAULT_BRINE_TEMP, coeff_of_perf=DEFAULT_COP) -> Tuple[float, float]:
         """
         Use simple linear models to calculate the electricity needed, and amount of heat produced, for a medium sized
         "Thermia" heat pump. See "simple_heat_pump_model.ipynb" in data-exploration project.
@@ -70,12 +65,14 @@ class HeatPump:
         predicted_elec = model_elec_needed(forward_temp_c, rpm)
         predicted_heat_normal_thermia = model_heat_output(forward_temp_c, rpm, brine_temp_c)
 
-        predicted_heat = predicted_heat_normal_thermia * self.coeff_of_perf / DEFAULT_COP
+        predicted_heat = predicted_heat_normal_thermia * coeff_of_perf / DEFAULT_COP
 
         return predicted_elec, predicted_heat
 
-    def calculate_for_all_workloads(self, forward_temp_c: float = DEFAULT_FORWARD_TEMP,
-                                    brine_temp_c: float = DEFAULT_BRINE_TEMP) -> pd.DataFrame:
+    @staticmethod
+    def calculate_for_all_workloads(forward_temp_c: float = DEFAULT_FORWARD_TEMP,
+                                    brine_temp_c: float = DEFAULT_BRINE_TEMP,
+                                    coeff_of_perf: float = DEFAULT_COP) -> pd.DataFrame:
         """
         Returns a pd.DataFrame with workload, electricity needed, heating produced
         """
@@ -84,7 +81,8 @@ class HeatPump:
         elec_input = []
         heat_output = []
         for workload in workloads:
-            predicted_elec, predicted_heat = self.calculate_energy(workload, forward_temp_c, brine_temp_c)
+            predicted_elec, predicted_heat = HeatPump.calculate_energy(workload, forward_temp_c, brine_temp_c,
+                                                                       coeff_of_perf=coeff_of_perf)
             elec_input.append(predicted_elec)
             heat_output.append(predicted_heat)
 
