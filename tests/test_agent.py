@@ -360,18 +360,18 @@ class TestBuildingAgent(TestCase):
 
 
 class TestBuildingAgentHeatPump(TestCase):
-    ## Verify instantiation ##
+    # Verify instantiation
     # Digital twin
     elec_values = np.random.uniform(0, 100.0, len(DATETIME_ARRAY))
     heat_values = np.random.uniform(0, 100.0, len(DATETIME_ARRAY))
     building_digital_twin = StaticDigitalTwin(electricity_usage=pd.Series(elec_values, index=DATETIME_ARRAY),
-                                                   heating_usage=pd.Series(heat_values, index=DATETIME_ARRAY))
+                                              heating_usage=pd.Series(heat_values, index=DATETIME_ARRAY))
     # Create agent with 2 heat pumps, default COP
     building_agent_2_pumps_default_cop = BuildingAgent(data_store=data_store_entity, digital_twin=building_digital_twin,
-                                        nbr_heat_pumps=2)
+                                                       nbr_heat_pumps=2)
     # Create agent with 3 pumps, COP = 4.3
     building_agent_3_pumps_custom_cop = BuildingAgent(data_store=data_store_entity, digital_twin=building_digital_twin,
-                                        nbr_heat_pumps=3, coeff_of_perf=4.3)
+                                                      nbr_heat_pumps=3, coeff_of_perf=4.3)
     
     # Assert that defaul cop is set properly
     def test_default_cop(self):
@@ -381,7 +381,8 @@ class TestBuildingAgentHeatPump(TestCase):
     def test_custom_cop(self):
         self.assertEqual(self.building_agent_3_pumps_custom_cop.coeff_of_perf, 4.3)
 
-    ## Verify bidding works as intended ##
+    # Verify bidding works as intended
+
 
 class TestPVAgent(TestCase):
     pv_prod_series = calculate_solar_prod(data_store_entity.irradiation_data, 24324.3, 0.165)

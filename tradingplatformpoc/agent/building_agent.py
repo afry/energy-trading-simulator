@@ -1,6 +1,6 @@
 import datetime
 import math
-from typing import Dict, List, Union
+from typing import Dict, List, Optional, Union
 
 from tradingplatformpoc.agent.iagent import IAgent, get_price_and_market_to_use_when_buying, \
     get_price_and_market_to_use_when_selling
@@ -14,7 +14,7 @@ from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES,
 class BuildingAgent(IAgent):
 
     def __init__(self, data_store: DataStore, digital_twin: StaticDigitalTwin, nbr_heat_pumps: int = 0,
-                 coeff_of_perf: float = None, guid="BuildingAgent"):
+                 coeff_of_perf: Optional[float] = None, guid="BuildingAgent"):
         super().__init__(guid, data_store)
         self.digital_twin = digital_twin
         self.nbr_heat_pumps = nbr_heat_pumps
