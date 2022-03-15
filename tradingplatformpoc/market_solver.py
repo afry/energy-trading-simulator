@@ -24,6 +24,8 @@ def resolve_bids(period: datetime.datetime, bids: Iterable[Bid]) -> \
         bids_for_resource = [x for x in bids if x.resource == resource]
         bwas_for_resource: List[BidWithAcceptanceStatus] = []
         if not has_at_least_one_bid_each_side(bids_for_resource):
+            logger.warning('For period {}, resource {} had only bids on one side! Setting clearing price to NaN'.
+                           format(period, resource))
             clearing_prices_dict[resource] = np.nan
             bwas_for_resource = no_bids_accepted(bids_for_resource)
         else:
