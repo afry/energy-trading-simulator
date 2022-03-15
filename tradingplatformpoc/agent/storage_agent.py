@@ -60,6 +60,7 @@ class StorageAgent(IAgent):
                            'prices instead.')
             clearing_prices_for_resource = {}
 
+        # TODO: Only works for electricity!
         nordpool_prices_last_n_hours_dict = self.data_store.get_nordpool_prices_last_n_hours_dict(period,
                                                                                                   self.go_back_n_hours)
         prices_last_n_hours = get_prices_last_n_hours(period, self.go_back_n_hours, clearing_prices_for_resource,

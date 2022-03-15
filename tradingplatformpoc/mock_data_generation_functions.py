@@ -1,6 +1,7 @@
 import datetime
 import logging
 import pickle
+from typing import Set, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +36,7 @@ COMMERCIAL_ELECTRICITY_CONSUMPTION_HOURLY_FACTOR = {
 }
 
 
-def load_existing_data_sets(file_path: str):
+def load_existing_data_sets(file_path: str) -> dict:
     try:
         all_data_sets = pickle.load(open(file_path, 'rb'))
     except FileNotFoundError:
@@ -44,7 +45,7 @@ def load_existing_data_sets(file_path: str):
     return all_data_sets
 
 
-def get_all_residential_building_agents(config_data: dict):
+def get_all_residential_building_agents(config_data: dict) -> Tuple[Set, float]:
     """
     Gets all residential building agents specified in config_data, and also returns the total gross floor area, summed
     over all residential building agents.
