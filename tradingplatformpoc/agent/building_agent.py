@@ -4,6 +4,7 @@ import math
 from typing import Dict, List, Optional, Union
 
 import numpy as np
+
 import pandas as pd
 
 from tradingplatformpoc import trading_platform_utils
@@ -14,7 +15,7 @@ from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.heat_pump import HeatPump
 from tradingplatformpoc.trade import Trade
-from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES, minus_n_hours
+from tradingplatformpoc.trading_platform_utils import minus_n_hours
 
 logger = logging.getLogger(__name__)
 
@@ -140,7 +141,7 @@ class BuildingAgent(IAgent):
 
         min_cost = 1e10  # Big placeholder number
         workload_to_use = 0
-        for index, row in self.workloads_df.iterrows():
+        for _index, row in self.workloads_df.iterrows():
             elec_net_consumption_incl_pump = elec_net_consumption + row['input'] * self.n_heat_pumps
             heat_net_consumption_incl_pump = heat_net_consumption - row['output'] * self.n_heat_pumps
             heat_supply = abs(np.minimum(0, heat_net_consumption_incl_pump))
