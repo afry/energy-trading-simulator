@@ -1,5 +1,7 @@
+import copy
 import datetime
 import logging
+from typing import Dict, Union
 
 import numpy as np
 
@@ -7,6 +9,7 @@ import pandas as pd
 
 from pkg_resources import resource_filename
 
+from tradingplatformpoc import trading_platform_utils
 from tradingplatformpoc.bid import Resource
 from tradingplatformpoc.district_heating_calculations import calculate_jan_feb_avg_heating_sold, \
     calculate_peak_day_avg_cons_kw, estimate_district_heating_price, exact_district_heating_price_for_month
@@ -166,6 +169,22 @@ class DataStore:
                             format(t, len(nordpool_prices_last_n_hours), go_back_n_hours))
                 break
         return nordpool_prices_last_n_hours
+
+    def get_local_price_if_exists_else_external_estimate(self, period: datetime.datetime, clearing_prices_historical:
+                                                         Union[Dict[datetime.datetime, Dict[Resource, float]],
+                                                               None]) -> Dict[Resource, float]:
+        to_return = {}
+
+        if clearing_prices_historical is not None:
+            clearing_prices = dict(copy.deepcopy(clearing_prices_historical))  # Deep copy to avoid modifying
+            if period in clearing_prices:
+                to_return = clearing_prices[period]
+        for resource in trading_platform_utils.ALL_IMPLEMENTED_RESOURCES:
+            if (resource not in to_return) or (to_return[resource] is None) or (np.isnan(to_return[resource])):
+                logger.debug('For period {}, resource {}, no historical clearing prices available, will use external '
+                             'prices instead.'.format(period, resource))
+                to_return[resource] = self.get_estimated_retail_price(period, resource)
+        return to_return
 
     def add_external_heating_sell(self, period: datetime.datetime, external_heating_sell_quantity: float):
         """

@@ -9,7 +9,7 @@ import pandas as pd
 from tests import utility_test_objects
 
 from tradingplatformpoc import data_store
-from tradingplatformpoc.agent.building_agent import BuildingAgent
+from tradingplatformpoc.agent.building_agent import BuildingAgent, construct_workloads_df
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.agent.storage_agent import StorageAgent
@@ -385,14 +385,22 @@ class TestBuildingAgentHeatPump(TestCase):
     # Create agent with 3 pumps, COP = 4.3
     building_agent_3_pumps_custom_cop = BuildingAgent(data_store=data_store_entity, digital_twin=building_digital_twin,
                                                       nbr_heat_pumps=3, coeff_of_perf=4.3)
-    
-    # Assert that default cop is set properly
-    def test_default_cop(self):
-        self.assertEqual(self.building_agent_2_pumps_default_cop.coeff_of_perf, None)
 
-    # Assert that custom cop is set properly
-    def test_custom_cop(self):
-        self.assertEqual(self.building_agent_3_pumps_custom_cop.coeff_of_perf, 4.3)
+    def test_construct_workloads_df(self):
+        """Test that when a BuildingAgent doesn't have any heat pumps, the workloads data frame is still created as
+        expected, with just one row, corresponding to not running any heat pump."""
+        with_0_pumps = construct_workloads_df(None, 0)
+        self.assertEqual(1, len(with_0_pumps.index))
+        self.assertEqual(0, with_0_pumps.workload[0])
+
+    def test_workloads_df(self):
+        """Assert that when a different COP is specified, this is reflected in the workloads_df"""
+        workloads_df_low_cop = self.building_agent_3_pumps_custom_cop.workloads_df
+        workloads_df_high_cop = self.building_agent_2_pumps_default_cop.workloads_df
+        for i in np.arange(1, 10):
+            lower_output = workloads_df_low_cop.loc[workloads_df_low_cop['workload'] == i, 'output'].iloc[0]
+            higher_output = workloads_df_high_cop.loc[workloads_df_high_cop['workload'] == i, 'output'].iloc[0]
+            self.assertTrue(lower_output < higher_output)
 
     # TODO: RES-198 - Verify bidding works as intended
 
