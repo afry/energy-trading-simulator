@@ -1,4 +1,3 @@
-import copy
 import datetime
 import logging
 from typing import Dict, List, Union
@@ -55,8 +54,7 @@ class StorageAgent(IAgent):
         bids = []
 
         if clearing_prices_historical is not None:
-            clearing_prices_for_resource = self.get_clearing_prices_for_resource(
-                dict(copy.deepcopy(clearing_prices_historical)))  # Deep copy to avoid modifying
+            clearing_prices_for_resource = self.get_clearing_prices_for_resource(dict(clearing_prices_historical))
         else:
             logger.warning('No historical clearing prices were provided to StorageAgent! Will use Nordpool spot '
                            'prices instead.')

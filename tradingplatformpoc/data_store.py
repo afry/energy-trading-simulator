@@ -1,4 +1,3 @@
-import copy
 import datetime
 import logging
 from typing import Dict, Union
@@ -176,9 +175,9 @@ class DataStore:
         to_return = {}
 
         if clearing_prices_historical is not None:
-            clearing_prices = dict(copy.deepcopy(clearing_prices_historical))  # Deep copy to avoid modifying
+            clearing_prices = dict(clearing_prices_historical)
             if period in clearing_prices:
-                to_return = clearing_prices[period]
+                to_return = clearing_prices[period].copy()  # Copy to avoid modifying clearing_prices_historical
         for resource in trading_platform_utils.ALL_IMPLEMENTED_RESOURCES:
             if (resource not in to_return) or (to_return[resource] is None) or (np.isnan(to_return[resource])):
                 logger.debug('For period {}, resource {}, no historical clearing prices available, will use external '
