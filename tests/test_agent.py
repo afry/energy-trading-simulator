@@ -375,8 +375,9 @@ class TestBuildingAgent(TestCase):
 class TestBuildingAgentHeatPump(TestCase):
     # Verify instantiation
     # Digital twin
-    elec_values = np.random.uniform(0, 100.0, len(DATETIME_ARRAY))
-    heat_values = np.random.uniform(0, 100.0, len(DATETIME_ARRAY))
+    rng = np.random.default_rng(0)  # set random seed
+    elec_values = rng.uniform(0, 100.0, len(DATETIME_ARRAY))
+    heat_values = rng.uniform(0, 100.0, len(DATETIME_ARRAY))
     building_digital_twin = StaticDigitalTwin(electricity_usage=pd.Series(elec_values, index=DATETIME_ARRAY),
                                               heating_usage=pd.Series(heat_values, index=DATETIME_ARRAY))
     # Create agent with 2 heat pumps, default COP
@@ -406,6 +407,22 @@ class TestBuildingAgentHeatPump(TestCase):
         """Test calculation of optimal workload"""
         optimal_workload = self.building_agent_2_pumps_default_cop.calculate_optimal_workload(12, 60, 2, 0.5)
         self.assertEqual(6, optimal_workload)  # 7 if agent is allowed to sell heat
+
+    def test_bid_with_heat_pump(self):
+        """Test that bidding works as intended in a building agent which has some heat pumps."""
+        bids = self.building_agent_2_pumps_default_cop.make_bids(SOME_DATETIME, {})
+        self.assertEqual(2, len(bids))
+        heat_bid = [x for x in bids if x.resource == Resource.HEATING][0]
+        self.assertEqual(Action.BUY, heat_bid.action)
+
+    def test_trade_with_heat_pump(self):
+        """Test that constructing of trades works as intended in a building agent which has some heat pumps."""
+        clearing_prices = {Resource.ELECTRICITY: 1.0, Resource.HEATING: 1.5}
+        trades = self.building_agent_2_pumps_default_cop.make_trades_given_clearing_price(SOME_DATETIME,
+                                                                                          clearing_prices, [])
+        self.assertEqual(1, len(trades))
+        heat_trade = [x for x in trades if x.resource == Resource.HEATING]
+        self.assertEqual(0, len(heat_trade))
 
 
 class TestPVAgent(TestCase):
