@@ -37,7 +37,7 @@ class BuildingAgent(IAgent):
         prev_prices = self.data_store.get_local_price_if_exists_else_external_estimate(prev_period,
                                                                                        clearing_prices_historical)
         return self.make_bids_with_heat_pump(period, prev_prices[Resource.ELECTRICITY],
-                                             prev_prices[Resource.HEATING], self.allow_sell_heat)
+                                             prev_prices[Resource.HEATING])
 
     def make_prognosis(self, period: datetime.datetime, resource: Resource) -> float:
         # The building should make a prognosis for how much energy will be required
@@ -59,9 +59,6 @@ class BuildingAgent(IAgent):
     def make_trades_given_clearing_price(self, period: datetime.datetime, clearing_prices: Dict[Resource, float],
                                          accepted_bids_for_agent: List[BidWithAcceptanceStatus]) -> List[Trade]:
         trades = []
-        accepted_heat_sell_bid = [x for x in accepted_bids_for_agent if x.resource == Resource.HEATING
-                                  and x.action == Action.SELL]
-        had_sell_heat_bid_accepted = len(accepted_heat_sell_bid) > 0
 
         elec_usage = self.get_actual_usage(period, Resource.ELECTRICITY)
         heat_usage = self.get_actual_usage(period, Resource.HEATING)
@@ -73,7 +70,7 @@ class BuildingAgent(IAgent):
         heat_wholesale_price = self.data_store.get_estimated_wholesale_price(period, Resource.HEATING)
 
         workload_to_use = self.calculate_optimal_workload(elec_usage, heat_usage, elec_clearing_price,
-                                                          heat_clearing_price, had_sell_heat_bid_accepted)
+                                                          heat_clearing_price)
         row_to_use = self.workloads_df.loc[self.workloads_df['workload'] == workload_to_use].iloc[0]
         elec_net_consumption_incl_pump = elec_usage + row_to_use['input'] * self.n_heat_pumps
         heat_net_consumption_incl_pump = heat_usage - row_to_use['output'] * self.n_heat_pumps
@@ -93,15 +90,15 @@ class BuildingAgent(IAgent):
                                                                                   heat_retail_price)
             trades.append(self.construct_trade(Action.BUY, Resource.HEATING, heat_net_consumption_incl_pump,
                                                price_to_use, market_to_use, period))
-        elif heat_net_consumption_incl_pump < 0:
+        elif heat_net_consumption_incl_pump < 0 and self.allow_sell_heat:
             price_to_use, market_to_use = get_price_and_market_to_use_when_selling(heat_clearing_price,
                                                                                    heat_wholesale_price)
             trades.append(self.construct_trade(Action.SELL, Resource.HEATING, -heat_net_consumption_incl_pump,
                                                price_to_use, market_to_use, period))
         return trades
 
-    def make_bids_with_heat_pump(self, period: datetime.datetime, pred_elec_price: float, pred_heat_price: float,
-                                 allow_selling_heat: bool) -> List[Bid]:
+    def make_bids_with_heat_pump(self, period: datetime.datetime, pred_elec_price: float, pred_heat_price: float) -> \
+            List[Bid]:
         """
         Note that if the agent doesn't have any heat pumps, this method will still work.
         """
@@ -109,7 +106,7 @@ class BuildingAgent(IAgent):
         heat_net_consumption = self.make_prognosis(period, Resource.HEATING)
         elec_net_consumption = self.make_prognosis(period, Resource.ELECTRICITY)  # Negative means net production
         workload_to_use = self.calculate_optimal_workload(elec_net_consumption, heat_net_consumption, pred_elec_price,
-                                                          pred_heat_price, allow_selling_heat)
+                                                          pred_heat_price)
 
         # Now we have decided what workload to use. Next, construct bids
         bids = []
@@ -127,7 +124,7 @@ class BuildingAgent(IAgent):
         if heat_net_consumption_incl_pump > 0:
             bids.append(self.construct_bid(Action.BUY, Resource.HEATING, heat_net_consumption_incl_pump, math.inf))
             # This demand must be fulfilled - therefore price is inf
-        elif heat_net_consumption_incl_pump < 0 and allow_selling_heat:
+        elif heat_net_consumption_incl_pump < 0 and self.allow_sell_heat:
             # What price to use here? The predicted local clearing price, or the external grid wholesale price?
             # External grid may not want to buy heat at all, so going with the former, for now.
             bids.append(self.construct_bid(Action.SELL, Resource.HEATING, -heat_net_consumption_incl_pump,
@@ -135,13 +132,20 @@ class BuildingAgent(IAgent):
         return bids
 
     def calculate_optimal_workload(self, elec_net_consumption: float, heat_net_consumption: float,
-                                   pred_elec_price: float, pred_heat_price: float, allow_selling_heat: bool) -> int:
+                                   pred_elec_price: float, pred_heat_price: float) -> int:
+        """
+        Calculates the optimal workload to run the agent's heat pumps. "Optimal" is the workload which leads to the
+        lowest cost - the cost stemming from the import of electricity and/or heating, minus any income from electricity
+        sold.
+        """
         elec_sell_price = pred_elec_price
-        heat_sell_price = pred_heat_price if allow_selling_heat else 0
+        heat_sell_price = pred_heat_price if self.allow_sell_heat else 0
 
         min_cost = 1e10  # Big placeholder number
+        prev_cost = 1e10  # Big placeholder number
         workload_to_use = 0
         for _index, row in self.workloads_df.iterrows():
+
             elec_net_consumption_incl_pump = elec_net_consumption + row['input'] * self.n_heat_pumps
             heat_net_consumption_incl_pump = heat_net_consumption - row['output'] * self.n_heat_pumps
             heat_supply = abs(np.minimum(0, heat_net_consumption_incl_pump))
@@ -151,6 +155,13 @@ class BuildingAgent(IAgent):
             elec_demand = np.maximum(0, elec_net_consumption_incl_pump)
             expenditures = elec_demand * pred_elec_price + heat_demand + pred_heat_price
             expected_cost = expenditures - incomes
+
+            if expected_cost > prev_cost:
+                # Since the COP(workload) function is concave, the function of cost given a workload is convex.
+                # Therefore, we know that if the cost for this workload is higher than the cost for the previous (lower)
+                # workload, there is no point to look at any higher workloads, and we'll break out of this loop.
+                break
+
             if expected_cost < min_cost:
                 min_cost = expected_cost
                 workload_to_use = row['workload']
@@ -159,7 +170,8 @@ class BuildingAgent(IAgent):
                          format(int(row['workload']), elec_net_consumption_incl_pump, heat_net_consumption_incl_pump,
                                 incomes, expenditures, expected_cost,
                                 (row['output'] / row['input']) if row['input'] > 0 else 0))
-            if heat_supply > 0 and not allow_selling_heat:
+            prev_cost = expected_cost
+            if heat_supply > 0 and not self.allow_sell_heat:
                 break  # No point in evaluating higher workloads - can't sell excess heat anyway
         return workload_to_use
 

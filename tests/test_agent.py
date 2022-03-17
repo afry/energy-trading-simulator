@@ -330,11 +330,11 @@ class TestBuildingAgent(TestCase):
         """Test basic functionality of BuildingAgent's make_trades_given_clearing_price method."""
         clearing_prices = {Resource.ELECTRICITY: 0.01, Resource.HEATING: np.nan}
         trades = self.building_agent_prod.make_trades_given_clearing_price(SOME_DATETIME, clearing_prices, [])
-        self.assertEqual(2, len(trades))
+        self.assertEqual(1, len(trades))
         elec_trades = [x for x in trades if x.resource == Resource.ELECTRICITY]
         heat_trades = [x for x in trades if x.resource == Resource.HEATING]
         self.assertEqual(1, len(elec_trades))
-        self.assertEqual(1, len(heat_trades))
+        self.assertEqual(0, len(heat_trades))
         elec_trade = elec_trades[0]
         self.assertEqual(elec_trade.resource, Resource.ELECTRICITY)
         self.assertEqual(elec_trade.action, Action.SELL)
@@ -349,11 +349,11 @@ class TestBuildingAgent(TestCase):
         """Test basic functionality of BuildingAgent's make_trades_given_clearing_price method."""
         clearing_prices = {Resource.ELECTRICITY: 100.0, Resource.HEATING: np.nan}
         trades = self.building_agent_prod.make_trades_given_clearing_price(SOME_DATETIME, clearing_prices, [])
-        self.assertEqual(2, len(trades))
+        self.assertEqual(1, len(trades))
         elec_trades = [x for x in trades if x.resource == Resource.ELECTRICITY]
         heat_trades = [x for x in trades if x.resource == Resource.HEATING]
         self.assertEqual(1, len(elec_trades))
-        self.assertEqual(1, len(heat_trades))
+        self.assertEqual(0, len(heat_trades))
         elec_trade = elec_trades[0]
         self.assertEqual(elec_trade.resource, Resource.ELECTRICITY)
         self.assertEqual(elec_trade.action, Action.SELL)
@@ -402,7 +402,10 @@ class TestBuildingAgentHeatPump(TestCase):
             higher_output = workloads_df_high_cop.loc[workloads_df_high_cop['workload'] == i, 'output'].iloc[0]
             self.assertTrue(lower_output < higher_output)
 
-    # TODO: RES-198 - Verify bidding works as intended
+    def test_optimal_workload(self):
+        """Test calculation of optimal workload"""
+        optimal_workload = self.building_agent_2_pumps_default_cop.calculate_optimal_workload(12, 60, 2, 0.5)
+        self.assertEqual(6, optimal_workload)  # 7 if agent is allowed to sell heat
 
 
 class TestPVAgent(TestCase):
