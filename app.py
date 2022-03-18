@@ -84,6 +84,8 @@ if __name__ == '__main__':
 
         # --------------------- Start config specification for dummies ------------------------
         # Could perhaps save the config to a temporary file on-change of these? That way changes won't get lost
+        st.write("Note: Refreshing, or closing and reopening this page, will lead to configuration changes being lost. "
+                 "If you wish to save your changes for another session, use the 'Export to JSON'-button below.")
         st.subheader("General area parameters:")
         area_form = st.form(key="AreaInfoForm")
         st.session_state.config_data['AreaInfo']['DefaultPVEfficiency'] = area_form.number_input(
