@@ -175,10 +175,7 @@ if __name__ == '__main__':
             run_sim = False
             logger.info("Running simulation")
             st.spinner("Running simulation")
-            clearing_prices_dict, all_trades_dict, all_extra_costs_dict = run_trading_simulations(st.session_state.
-                                                                                                  config_data,
-                                                                                                  mock_datas_path,
-                                                                                                  results_path)
+            simulation_results = run_trading_simulations(st.session_state.config_data, mock_datas_path, results_path)
             st.success('Simulation finished!')
 
     elif page_selected == app_constants.LOAD_PAGE:

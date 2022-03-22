@@ -26,13 +26,11 @@ class Test(TestCase):
         and received by different actors all match up.
         """
 
-        clearing_prices, all_trades, all_extra_costs = simulation_runner.run_trading_simulations(config_data,
-                                                                                                 mock_datas_file_path,
-                                                                                                 results_path)
+        simulation_results = simulation_runner.run_trading_simulations(config_data, mock_datas_file_path, results_path)
 
-        for period in clearing_prices.keys():
-            trades_for_period = all_trades[period]
-            extra_costs_for_period = [ec for ec in all_extra_costs if (ec.period == period)]
+        for period in simulation_results.clearing_prices_historical.keys():
+            trades_for_period = simulation_results.all_trades_dict[period]
+            extra_costs_for_period = [ec for ec in simulation_results.all_extra_costs if (ec.period == period)]
             for resource in ALL_IMPLEMENTED_RESOURCES:
                 trades_for_period_and_resource = [x for x in trades_for_period if x.resource == resource]
                 energy_bought_kwh = sum([x.quantity for x in trades_for_period_and_resource if x.action == Action.BUY])
