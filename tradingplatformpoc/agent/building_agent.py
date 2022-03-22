@@ -76,21 +76,25 @@ class BuildingAgent(IAgent):
         heat_net_consumption_incl_pump = heat_usage - row_to_use['output'] * self.n_heat_pumps
 
         if elec_net_consumption_incl_pump > 0:
+            # Positive net consumption, so need to buy electricity
             price_to_use, market_to_use = get_price_and_market_to_use_when_buying(elec_clearing_price,
                                                                                   elec_retail_price)
             trades.append(self.construct_trade(Action.BUY, Resource.ELECTRICITY, elec_net_consumption_incl_pump,
                                                price_to_use, market_to_use, period))
         elif elec_net_consumption_incl_pump < 0:
+            # Negative net consumption, meaning there is a surplus, which the agent will sell
             price_to_use, market_to_use = get_price_and_market_to_use_when_selling(elec_clearing_price,
                                                                                    elec_wholesale_price)
             trades.append(self.construct_trade(Action.SELL, Resource.ELECTRICITY, -elec_net_consumption_incl_pump,
                                                price_to_use, market_to_use, period))
         if heat_net_consumption_incl_pump > 0:
+            # Positive net consumption, so need to buy heating
             price_to_use, market_to_use = get_price_and_market_to_use_when_buying(heat_clearing_price,
                                                                                   heat_retail_price)
             trades.append(self.construct_trade(Action.BUY, Resource.HEATING, heat_net_consumption_incl_pump,
                                                price_to_use, market_to_use, period))
         elif heat_net_consumption_incl_pump < 0 and self.allow_sell_heat:
+            # Negative net consumption, meaning there is a surplus, which the agent will sell
             price_to_use, market_to_use = get_price_and_market_to_use_when_selling(heat_clearing_price,
                                                                                    heat_wholesale_price)
             trades.append(self.construct_trade(Action.SELL, Resource.HEATING, -heat_net_consumption_incl_pump,
