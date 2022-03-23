@@ -12,6 +12,9 @@ from ..trade import Market, Trade
 class IAgent(ABC):
     """Interface for agents to implement"""
 
+    guid: str
+    data_store: DataStore
+
     def __init__(self, guid: str, data_store: DataStore):
         self.guid = guid
         self.data_store = data_store

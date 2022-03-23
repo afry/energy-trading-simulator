@@ -1,9 +1,8 @@
 import logging
+from collections import OrderedDict
 from typing import List, Tuple
 
 import numpy as np
-
-import pandas as pd
 
 
 # These numbers come from "simple_heat_pump_model.ipynb" in data-exploration project
@@ -38,7 +37,8 @@ class HeatPump:
 
     @staticmethod
     def calculate_energy(workload: int, forward_temp_c: float = DEFAULT_FORWARD_TEMP,
-                         brine_temp_c: float = DEFAULT_BRINE_TEMP, coeff_of_perf=DEFAULT_COP) -> Tuple[float, float]:
+                         brine_temp_c: float = DEFAULT_BRINE_TEMP, coeff_of_perf: float = DEFAULT_COP) -> \
+            Tuple[float, float]:
         """
         Use simple linear models to calculate the electricity needed, and amount of heat produced, for a medium sized
         "Thermia" heat pump. See "simple_heat_pump_model.ipynb" in data-exploration project.
@@ -50,6 +50,8 @@ class HeatPump:
             so this preferably shouldn't deviate too far from those.
         @param brine_temp_c: The temperature of the brine fluid in degrees Celsius. Models were fit using only 3 unique
             values; -5, 0 and 5, so this preferably shouldn't deviate too far from those.
+        @param coeff_of_perf: The coefficient of performance for the heat pump. Calculated as (heat output) divided by
+            (elec input).
 
         @return A Tuple: First value being the amount of electricity needed to run the heat pump with the given
             settings, and the second value being the expected amount of heat produced by those settings. Units for both
@@ -71,23 +73,20 @@ class HeatPump:
 
     @staticmethod
     def calculate_for_all_workloads(forward_temp_c: float = DEFAULT_FORWARD_TEMP,
-                                    brine_temp_c: float = DEFAULT_BRINE_TEMP,
-                                    coeff_of_perf: float = DEFAULT_COP) -> pd.DataFrame:
+                                    brine_temp_c: float = DEFAULT_BRINE_TEMP, coeff_of_perf: float = DEFAULT_COP) -> \
+            OrderedDict[int, Tuple[float, float]]:
         """
-        Returns a pd.DataFrame with workload, electricity needed, heating produced
+        Returns an ordered dictionary where workload are keys, in increasing order. The values are pairs of floats, the
+        first one being electricity needed, and the second one heating produced.
         """
         # Want to evaluate all possible gears, and also to not run the heat pump at all
         workloads: List[int] = [0] + POSSIBLE_WORKLOADS_WHEN_RUNNING
-        elec_input = []
-        heat_output = []
+        ordered_dict = OrderedDict()
         for workload in workloads:
-            predicted_elec, predicted_heat = HeatPump.calculate_energy(workload, forward_temp_c, brine_temp_c,
-                                                                       coeff_of_perf=coeff_of_perf)
-            elec_input.append(predicted_elec)
-            heat_output.append(predicted_heat)
+            ordered_dict[workload] = HeatPump.calculate_energy(workload, forward_temp_c, brine_temp_c,
+                                                               coeff_of_perf=coeff_of_perf)
 
-        frame = pd.DataFrame({'workload': workloads, 'input': elec_input, 'output': heat_output})
-        return frame
+        return ordered_dict
 
 
 class ValueOutOfRangeError(Exception):

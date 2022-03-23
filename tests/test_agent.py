@@ -9,7 +9,7 @@ import pandas as pd
 from tests import utility_test_objects
 
 from tradingplatformpoc import data_store
-from tradingplatformpoc.agent.building_agent import BuildingAgent, construct_workloads_df
+from tradingplatformpoc.agent.building_agent import BuildingAgent, construct_workloads_data
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.agent.storage_agent import StorageAgent
@@ -390,17 +390,17 @@ class TestBuildingAgentHeatPump(TestCase):
     def test_construct_workloads_df(self):
         """Test that when a BuildingAgent doesn't have any heat pumps, the workloads data frame is still created as
         expected, with just one row, corresponding to not running any heat pump."""
-        with_0_pumps = construct_workloads_df(None, 0)
-        self.assertEqual(1, len(with_0_pumps.index))
-        self.assertEqual(0, with_0_pumps.workload[0])
+        with_0_pumps = construct_workloads_data(None, 0)
+        self.assertEqual(1, len(with_0_pumps))
+        self.assertEqual(0, list(with_0_pumps.keys())[0])
 
-    def test_workloads_df(self):
-        """Assert that when a different COP is specified, this is reflected in the workloads_df"""
-        workloads_df_low_cop = self.building_agent_3_pumps_custom_cop.workloads_df
-        workloads_df_high_cop = self.building_agent_2_pumps_default_cop.workloads_df
+    def test_workloads_data(self):
+        """Assert that when a different COP is specified, this is reflected in the workloads_data"""
+        workloads_data_low_cop = self.building_agent_3_pumps_custom_cop.workloads_data
+        workloads_data_high_cop = self.building_agent_2_pumps_default_cop.workloads_data
         for i in np.arange(1, 10):
-            lower_output = workloads_df_low_cop.loc[workloads_df_low_cop['workload'] == i, 'output'].iloc[0]
-            higher_output = workloads_df_high_cop.loc[workloads_df_high_cop['workload'] == i, 'output'].iloc[0]
+            lower_output = workloads_data_low_cop[i][1]
+            higher_output = workloads_data_high_cop[i][1]
             self.assertTrue(lower_output < higher_output)
 
     def test_optimal_workload(self):

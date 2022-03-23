@@ -1,11 +1,10 @@
 import datetime
 import logging
 import math
-from typing import Dict, List, Optional, Union
+from collections import OrderedDict
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
-
-import pandas as pd
 
 from tradingplatformpoc import trading_platform_utils
 from tradingplatformpoc.agent.iagent import IAgent, get_price_and_market_to_use_when_buying, \
@@ -22,12 +21,17 @@ logger = logging.getLogger(__name__)
 
 class BuildingAgent(IAgent):
 
+    digital_twin: StaticDigitalTwin
+    n_heat_pumps: int
+    workloads_data: OrderedDict[int, Tuple[float, float]]  # Keys should be strictly increasing
+    allow_sell_heat: bool
+
     def __init__(self, data_store: DataStore, digital_twin: StaticDigitalTwin, nbr_heat_pumps: int = 0,
                  coeff_of_perf: Optional[float] = None, guid="BuildingAgent"):
         super().__init__(guid, data_store)
         self.digital_twin = digital_twin
         self.n_heat_pumps = nbr_heat_pumps
-        self.workloads_df = construct_workloads_df(coeff_of_perf, nbr_heat_pumps)
+        self.workloads_data = construct_workloads_data(coeff_of_perf, nbr_heat_pumps)
         self.allow_sell_heat = False
 
     def make_bids(self, period: datetime.datetime, clearing_prices_historical: Union[Dict[datetime.datetime, Dict[
@@ -71,9 +75,10 @@ class BuildingAgent(IAgent):
 
         workload_to_use = self.calculate_optimal_workload(elec_usage, heat_usage, elec_clearing_price,
                                                           heat_clearing_price)
-        row_to_use = self.workloads_df.loc[self.workloads_df['workload'] == workload_to_use].iloc[0]
-        elec_net_consumption_incl_pump = elec_usage + row_to_use['input'] * self.n_heat_pumps
-        heat_net_consumption_incl_pump = heat_usage - row_to_use['output'] * self.n_heat_pumps
+        elec_needed_for_1_heat_pump = self.workloads_data[workload_to_use][0]
+        heat_output_for_1_heat_pump = self.workloads_data[workload_to_use][1]
+        elec_net_consumption_incl_pump = elec_usage + elec_needed_for_1_heat_pump * self.n_heat_pumps
+        heat_net_consumption_incl_pump = heat_usage - heat_output_for_1_heat_pump * self.n_heat_pumps
 
         if elec_net_consumption_incl_pump > 0:
             # Positive net consumption, so need to buy electricity
@@ -111,12 +116,13 @@ class BuildingAgent(IAgent):
         elec_net_consumption = self.make_prognosis(period, Resource.ELECTRICITY)  # Negative means net production
         workload_to_use = self.calculate_optimal_workload(elec_net_consumption, heat_net_consumption, pred_elec_price,
                                                           pred_heat_price)
+        elec_needed_for_1_heat_pump = self.workloads_data[workload_to_use][0]
+        heat_output_for_1_heat_pump = self.workloads_data[workload_to_use][1]
 
         # Now we have decided what workload to use. Next, construct bids
         bids = []
-        row_to_use = self.workloads_df.loc[self.workloads_df['workload'] == workload_to_use].iloc[0]
-        elec_net_consumption_incl_pump = elec_net_consumption + row_to_use['input'] * self.n_heat_pumps
-        heat_net_consumption_incl_pump = heat_net_consumption - row_to_use['output'] * self.n_heat_pumps
+        elec_net_consumption_incl_pump = elec_net_consumption + elec_needed_for_1_heat_pump * self.n_heat_pumps
+        heat_net_consumption_incl_pump = heat_net_consumption - heat_output_for_1_heat_pump * self.n_heat_pumps
         if elec_net_consumption_incl_pump > 0:
             bids.append(self.construct_bid(Action.BUY, Resource.ELECTRICITY, elec_net_consumption_incl_pump, math.inf))
             # This demand must be fulfilled - therefore price is inf
@@ -148,10 +154,10 @@ class BuildingAgent(IAgent):
         min_cost = 1e10  # Big placeholder number
         prev_cost = 1e10  # Big placeholder number
         workload_to_use = 0
-        for _index, row in self.workloads_df.iterrows():
+        for workload, (elec, heat) in self.workloads_data.items():
 
-            elec_net_consumption_incl_pump = elec_net_consumption + row['input'] * self.n_heat_pumps
-            heat_net_consumption_incl_pump = heat_net_consumption - row['output'] * self.n_heat_pumps
+            elec_net_consumption_incl_pump = elec_net_consumption + elec * self.n_heat_pumps
+            heat_net_consumption_incl_pump = heat_net_consumption - heat * self.n_heat_pumps
             heat_supply = abs(np.minimum(0, heat_net_consumption_incl_pump))
             elec_supply = abs(np.minimum(0, elec_net_consumption_incl_pump))
             incomes = elec_supply * elec_sell_price + heat_supply * heat_sell_price
@@ -164,30 +170,33 @@ class BuildingAgent(IAgent):
                 # Since the COP(workload) function is concave, the function of cost given a workload is convex.
                 # Therefore, we know that if the cost for this workload is higher than the cost for the previous (lower)
                 # workload, there is no point to look at any higher workloads, and we'll break out of this loop.
+                # Note that this assumes that self.workloads_data is ordered and increasing!
                 break
 
             if expected_cost < min_cost:
                 min_cost = expected_cost
-                workload_to_use = row['workload']
+                workload_to_use = workload
             logger.debug('For workload {}, elec net consumption was {:.2f}, heat net consumption was {:.2f}, E[inc] was'
                          ' {:.2f}, E[exp] was {:.2f}, E[cost] was {:.2f}, COP was {:.2f}'.
-                         format(int(row['workload']), elec_net_consumption_incl_pump, heat_net_consumption_incl_pump,
-                                incomes, expenditures, expected_cost,
-                                (row['output'] / row['input']) if row['input'] > 0 else 0))
+                         format(int(workload), elec_net_consumption_incl_pump, heat_net_consumption_incl_pump,
+                                incomes, expenditures, expected_cost, (heat / elec) if elec > 0 else 0))
             prev_cost = expected_cost
             if heat_supply > 0 and not self.allow_sell_heat:
                 break  # No point in evaluating higher workloads - can't sell excess heat anyway
         return workload_to_use
 
 
-def construct_workloads_df(coeff_of_perf: Optional[float], n_heat_pumps: int) -> pd.DataFrame:
+def construct_workloads_data(coeff_of_perf: Optional[float], n_heat_pumps: int) -> \
+        OrderedDict[int, Tuple[float, float]]:
     """
     Will construct a pd.DataFrame with three columns: workload, input, and output.
     If there are no heat pumps (n_heat_pumps = 0), the returned data frame will have only one row, which corresponds
     to not running a heat pump at all.
     """
     if n_heat_pumps == 0:
-        return pd.DataFrame({'workload': [0], 'input': [0.0], 'output': [0.0]})
+        ordered_dict = OrderedDict()
+        ordered_dict[0] = (0.0, 0.0)
+        return ordered_dict
     if coeff_of_perf is None:
         return HeatPump.calculate_for_all_workloads()
     return HeatPump.calculate_for_all_workloads(coeff_of_perf=coeff_of_perf)
