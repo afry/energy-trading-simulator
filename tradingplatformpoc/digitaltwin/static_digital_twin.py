@@ -27,7 +27,7 @@ class StaticDigitalTwin(IDigitalTwin):
         self.electricity_production = electricity_production
         self.heating_production = heating_production
 
-    def get_production(self, period, resource: Resource):
+    def get_production(self, period, resource: Resource) -> float:
         if resource == Resource.ELECTRICITY:
             return get_value_or_zero(period, self.electricity_production)
         elif resource == Resource.HEATING:
@@ -36,7 +36,7 @@ class StaticDigitalTwin(IDigitalTwin):
             logger.warning("No production defined for resource {}".format(resource))
             return 0
 
-    def get_consumption(self, period, resource: Resource):
+    def get_consumption(self, period, resource: Resource) -> float:
         if resource == Resource.ELECTRICITY:
             return get_value_or_zero(period, self.electricity_usage)
         elif resource == Resource.HEATING:
