@@ -61,6 +61,7 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
     all_trades_dict: Dict[datetime.datetime, Collection[Trade]] = {}
     all_bids_dict: Dict[datetime.datetime, Collection[BidWithAcceptanceStatus]] = {}
     storage_levels_dict: Dict[Tuple[datetime.datetime, str], float] = {}
+    heat_pump_levels_dict: Dict[Tuple[datetime.datetime, str], float] = {}
     all_extra_costs: List[ExtraCost] = []
     # Store the exact external prices, need them for some calculations
     exact_retail_electricity_prices_by_period: Dict[datetime.datetime, float] = {}
@@ -92,13 +93,6 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
         bids_csv_file.write(write_bid_rows(bids_with_acceptance_status, period))
         all_bids_dict[period] = bids_with_acceptance_status
 
-        # To save information on storage levels, which may be useful:
-        for agent in agents:
-            if isinstance(agent, StorageAgent):
-                capacity_for_agent = agent.digital_twin.capacity_kwh
-                storage_levels_csv_file.write(str(period) + ',' + agent.guid + ',' + str(capacity_for_agent) + '\n')
-                storage_levels_dict[(period, agent.guid)] = capacity_for_agent
-
         # Send clearing price back to agents, allow them to "make trades", i.e. decide if they want to buy/sell
         # energy, from/to either the local market or directly from/to the external grid.
         # To be clear: These "trades" are for _actual_ amounts, not predicted. All agents except the external grid agent
@@ -109,6 +103,15 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
                                        if bid.source == agent.guid and bid.was_accepted]
             trades_excl_external.extend(
                 agent.make_trades_given_clearing_price(period, clearing_prices, accepted_bids_for_agent))
+
+        # To save information on storage and heat pump levels, which will be included in SimulationResults.
+        for agent in agents:
+            if isinstance(agent, StorageAgent):
+                capacity_for_agent = agent.digital_twin.capacity_kwh
+                storage_levels_csv_file.write(str(period) + ',' + agent.guid + ',' + str(capacity_for_agent) + '\n')
+                storage_levels_dict[(period, agent.guid)] = capacity_for_agent
+            if isinstance(agent, BuildingAgent) and agent.n_heat_pumps > 0:
+                heat_pump_levels_dict[(period, agent.guid)] = agent.current_heat_pump_level
 
         trades_excl_external = [i for i in trades_excl_external if i]  # filter out None
         external_trades = flatten_collection([ga.calculate_external_trades(trades_excl_external, clearing_prices)
@@ -171,6 +174,7 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
                              all_extra_costs=all_extra_costs,
                              all_bids_dict=all_bids_dict,
                              storage_levels_dict=storage_levels_dict,
+                             heat_pump_levels_dict=heat_pump_levels_dict,
                              config_data=config_data,
                              agents=agents)
 

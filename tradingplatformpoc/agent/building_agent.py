@@ -25,6 +25,7 @@ class BuildingAgent(IAgent):
     n_heat_pumps: int
     workloads_data: OrderedDict[int, Tuple[float, float]]  # Keys should be strictly increasing
     allow_sell_heat: bool
+    current_heat_pump_level: int
 
     def __init__(self, data_store: DataStore, digital_twin: StaticDigitalTwin, nbr_heat_pumps: int = 0,
                  coeff_of_perf: Optional[float] = None, guid="BuildingAgent"):
@@ -75,6 +76,7 @@ class BuildingAgent(IAgent):
         # Re-calculate optimal workload, now that prices are known
         workload_to_use = self.calculate_optimal_workload(elec_net_consumption_pred, heat_net_consumption_pred,
                                                           elec_clearing_price, heat_clearing_price)
+        self.current_heat_pump_level = workload_to_use
         elec_needed_for_1_heat_pump = self.workloads_data[workload_to_use][0]
         heat_output_for_1_heat_pump = self.workloads_data[workload_to_use][1]
 

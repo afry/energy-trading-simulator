@@ -15,5 +15,6 @@ class SimulationResults:
     all_bids_dict: Dict[datetime.datetime, Collection[BidWithAcceptanceStatus]]
     all_extra_costs: List[ExtraCost]
     storage_levels_dict: Dict[Tuple[datetime.datetime, str], float]
+    heat_pump_levels_dict: Dict[Tuple[datetime.datetime, str], float]
     config_data: Dict[str, Any]
     agents: List[IAgent]
