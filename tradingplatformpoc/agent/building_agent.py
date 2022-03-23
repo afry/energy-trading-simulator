@@ -112,6 +112,10 @@ class BuildingAgent(IAgent):
                 logger.debug('For period {}, had excess heat of {:.2f} kWh, but could not sell that surplus. This heat '
                              'will be seen as having effectively vanished'.
                              format(period, -heat_net_consumption_incl_pump))
+                # Notes here: Perhaps this surplus could be exported to an accumulator tank.
+                # If not, then in reality what would presumably happen is that the buildings would be heated up more
+                # than necessary, which would presumably lower the heat demand in subsequent periods. This is left as
+                # a possible future improvement.
         return trades
 
     def make_bids_with_heat_pump(self, period: datetime.datetime, pred_elec_price: float, pred_heat_price: float) -> \
