@@ -63,23 +63,26 @@ class BuildingAgent(IAgent):
     def make_trades_given_clearing_price(self, period: datetime.datetime, clearing_prices: Dict[Resource, float],
                                          accepted_bids_for_agent: List[BidWithAcceptanceStatus]) -> List[Trade]:
         trades = []
-
-        elec_usage = self.get_actual_usage(period, Resource.ELECTRICITY)
-        heat_usage = self.get_actual_usage(period, Resource.HEATING)
-        elec_clearing_price = clearing_prices[Resource.ELECTRICITY]
-        heat_clearing_price = clearing_prices[Resource.HEATING]
         elec_retail_price = self.data_store.get_estimated_retail_price(period, Resource.ELECTRICITY)
         elec_wholesale_price = self.data_store.get_estimated_wholesale_price(period, Resource.ELECTRICITY)
         heat_retail_price = self.data_store.get_estimated_retail_price(period, Resource.HEATING)
         heat_wholesale_price = self.data_store.get_estimated_wholesale_price(period, Resource.HEATING)
 
-        workload_to_use = self.calculate_optimal_workload(elec_usage, heat_usage, elec_clearing_price,
-                                                          heat_clearing_price)
+        elec_net_consumption_pred = self.make_prognosis(period, Resource.ELECTRICITY)
+        heat_net_consumption_pred = self.make_prognosis(period, Resource.HEATING)
+        elec_clearing_price = clearing_prices[Resource.ELECTRICITY]
+        heat_clearing_price = clearing_prices[Resource.HEATING]
+        # Re-calculate optimal workload, now that prices are known
+        workload_to_use = self.calculate_optimal_workload(elec_net_consumption_pred, heat_net_consumption_pred,
+                                                          elec_clearing_price, heat_clearing_price)
         elec_needed_for_1_heat_pump = self.workloads_data[workload_to_use][0]
         heat_output_for_1_heat_pump = self.workloads_data[workload_to_use][1]
+
+        # Now, the trading period "happens", some resources are consumed, some produced...
+        elec_usage = self.get_actual_usage(period, Resource.ELECTRICITY)
+        heat_usage = self.get_actual_usage(period, Resource.HEATING)
         elec_net_consumption_incl_pump = elec_usage + elec_needed_for_1_heat_pump * self.n_heat_pumps
         heat_net_consumption_incl_pump = heat_usage - heat_output_for_1_heat_pump * self.n_heat_pumps
-
         if elec_net_consumption_incl_pump > 0:
             # Positive net consumption, so need to buy electricity
             price_to_use, market_to_use = get_price_and_market_to_use_when_buying(elec_clearing_price,
@@ -98,12 +101,17 @@ class BuildingAgent(IAgent):
                                                                                   heat_retail_price)
             trades.append(self.construct_trade(Action.BUY, Resource.HEATING, heat_net_consumption_incl_pump,
                                                price_to_use, market_to_use, period))
-        elif heat_net_consumption_incl_pump < 0 and self.allow_sell_heat:
+        elif heat_net_consumption_incl_pump < 0:
             # Negative net consumption, meaning there is a surplus, which the agent will sell
-            price_to_use, market_to_use = get_price_and_market_to_use_when_selling(heat_clearing_price,
-                                                                                   heat_wholesale_price)
-            trades.append(self.construct_trade(Action.SELL, Resource.HEATING, -heat_net_consumption_incl_pump,
-                                               price_to_use, market_to_use, period))
+            if self.allow_sell_heat:
+                price_to_use, market_to_use = get_price_and_market_to_use_when_selling(heat_clearing_price,
+                                                                                       heat_wholesale_price)
+                trades.append(self.construct_trade(Action.SELL, Resource.HEATING, -heat_net_consumption_incl_pump,
+                                                   price_to_use, market_to_use, period))
+            else:
+                logger.debug('For period {}, had excess heat of {:.2f} kWh, but could not sell that surplus. This heat '
+                             'will be seen as having effectively vanished'.
+                             format(period, -heat_net_consumption_incl_pump))
         return trades
 
     def make_bids_with_heat_pump(self, period: datetime.datetime, pred_elec_price: float, pred_heat_price: float) -> \

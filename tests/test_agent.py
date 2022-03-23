@@ -420,9 +420,9 @@ class TestBuildingAgentHeatPump(TestCase):
         clearing_prices = {Resource.ELECTRICITY: 1.0, Resource.HEATING: 1.5}
         trades = self.building_agent_2_pumps_default_cop.make_trades_given_clearing_price(SOME_DATETIME,
                                                                                           clearing_prices, [])
-        self.assertEqual(1, len(trades))
+        self.assertEqual(2, len(trades))
         heat_trade = [x for x in trades if x.resource == Resource.HEATING]
-        self.assertEqual(0, len(heat_trade))
+        self.assertEqual(1, len(heat_trade))
 
 
 class TestPVAgent(TestCase):
