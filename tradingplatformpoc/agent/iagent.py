@@ -12,23 +12,26 @@ from ..trade import Market, Trade
 class IAgent(ABC):
     """Interface for agents to implement"""
 
+    guid: str
+    data_store: DataStore
+
     def __init__(self, guid: str, data_store: DataStore):
         self.guid = guid
         self.data_store = data_store
 
     @abstractmethod
     def make_bids(self, period: datetime.datetime, clearing_prices_historical: Union[Dict[datetime.datetime, Dict[
-            Resource, float]], None]):
+            Resource, float]], None]) -> List[Bid]:
         # Make a bid for produced or needed energy for next time step
         pass
 
     @abstractmethod
-    def make_prognosis(self, period: datetime.datetime, resource: Resource):
+    def make_prognosis(self, period: datetime.datetime, resource: Resource) -> float:
         # Make resource prognosis for the trading horizon, and the specified resource
         pass
 
     @abstractmethod
-    def get_actual_usage(self, period: datetime.datetime, resource: Resource):
+    def get_actual_usage(self, period: datetime.datetime, resource: Resource) -> float:
         # Return actual usage/supply for the trading horizon, and the specified resource
         # If negative, it means the agent was a net-producer for the trading period
         pass

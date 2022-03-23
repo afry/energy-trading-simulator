@@ -6,7 +6,8 @@
 			"GrossFloorArea": 11305.3333333333,
 			"PVArea": 1748.6666666667,
 			"FractionCommercial": 0.2,
-			"FractionSchool": 0.0
+			"FractionSchool": 0.0,
+			"NumberHeatPumps": 3
 		},
 		{
 			"Type": "BuildingAgent",
@@ -24,7 +25,8 @@
 			"GrossFloorArea": 9000.25,
 			"PVArea": 1392.125,
 			"FractionCommercial": 0.0,
-			"FractionSchool": 0.0
+			"FractionSchool": 0.0,
+			"NumberHeatPumps": 3
 		},
 		{
 			"Type": "BuildingAgent",
@@ -32,7 +34,8 @@
 			"GrossFloorArea": 6938.4166666667,
 			"PVArea": 1073.2083333333,
 			"FractionCommercial": 0.0,
-			"FractionSchool": 0.0
+			"FractionSchool": 0.0,
+			"NumberHeatPumps": 3
 		},
 		{
 			"Type": "BuildingAgent",
@@ -40,7 +43,8 @@
 			"GrossFloorArea": 8322.625,
 			"PVArea": 1287.3125,
 			"FractionCommercial": 0.0,
-			"FractionSchool": 0.0
+			"FractionSchool": 0.0,
+			"NumberHeatPumps": 3
 		},
 		{
 			"Type": "BuildingAgent",
@@ -48,7 +52,8 @@
 			"GrossFloorArea": 7430.7083333333,
 			"PVArea": 1149.3541666667,
 			"FractionCommercial": 0.2,
-			"FractionSchool": 0.0
+			"FractionSchool": 0.0,
+			"NumberHeatPumps": 3
 		},
 		{
 			"Type": "BuildingAgent",
@@ -56,7 +61,8 @@
 			"GrossFloorArea": 7789.7916666667,
 			"PVArea": 1204.8958333333,
 			"FractionCommercial": 0.2,
-			"FractionSchool": 0.0
+			"FractionSchool": 0.0,
+			"NumberHeatPumps": 3
 		},
 		{
 			"Type": "BuildingAgent",
@@ -64,7 +70,8 @@
 			"GrossFloorArea": 12753.25,
 			"PVArea": 1972.625,
 			"FractionCommercial": 0.0,
-			"FractionSchool": 0.0
+			"FractionSchool": 0.0,
+			"NumberHeatPumps": 3
 		},
 		{
 			"Type": "BuildingAgent",
@@ -72,7 +79,8 @@
 			"GrossFloorArea": 8328.4166666667,
 			"PVArea": 1288.2083333333,
 			"FractionCommercial": 0.0,
-			"FractionSchool": 0.0
+			"FractionSchool": 0.0,
+			"NumberHeatPumps": 3
 		},
 		{
 			"Type": "BuildingAgent",
@@ -80,7 +88,8 @@
 			"GrossFloorArea": 7459.6666666667,
 			"PVArea": 1153.8333333333,
 			"FractionCommercial": 0.0,
-			"FractionSchool": 0.0
+			"FractionSchool": 0.0,
+			"NumberHeatPumps": 3
 		},
 		{
 			"Type": "BuildingAgent",
@@ -88,7 +97,8 @@
 			"GrossFloorArea": 4830.25,
 			"PVArea": 747.125,
 			"FractionCommercial": 0.0,
-			"FractionSchool": 0.0
+			"FractionSchool": 0.0,
+			"NumberHeatPumps": 3
 		},
 		{
 			"Type": "BuildingAgent",
@@ -96,7 +106,8 @@
 			"GrossFloorArea": 9591.0,
 			"PVArea": 1483.5,
 			"FractionCommercial": 0.2,
-			"FractionSchool": 0.0
+			"FractionSchool": 0.0,
+			"NumberHeatPumps": 3
 		},
 		{
 			"Type": "BuildingAgent",
@@ -104,7 +115,8 @@
 			"GrossFloorArea": 8340.0,
 			"PVArea": 1290.0,
 			"FractionCommercial": 0.0,
-			"FractionSchool": 0.0
+			"FractionSchool": 0.0,
+			"NumberHeatPumps": 3
 		},
 		{
 			"Type": "BuildingAgent",
@@ -112,7 +124,8 @@
 			"GrossFloorArea": 5820.625,
 			"PVArea": 900.3125,
 			"FractionCommercial": 0.0,
-			"FractionSchool": 0.0
+			"FractionSchool": 0.0,
+			"NumberHeatPumps": 3
 		},
 		{
 			"Type": "BuildingAgent",
@@ -120,7 +133,8 @@
 			"GrossFloorArea": 4604.375,
 			"PVArea": 712.1875,
 			"FractionCommercial": 0.0,
-			"FractionSchool": 0.0
+			"FractionSchool": 0.0,
+			"NumberHeatPumps": 3
 		},
 		{
 			"Type": "BuildingAgent",
@@ -128,7 +142,8 @@
 			"GrossFloorArea": 3874.625,
 			"PVArea": 599.3125,
 			"FractionCommercial": 0.0,
-			"FractionSchool": 0.0
+			"FractionSchool": 0.0,
+			"NumberHeatPumps": 3
 		},
 		{
 			"Type": "BuildingAgent",
@@ -136,7 +151,8 @@
 			"GrossFloorArea": 5635.2916666667,
 			"PVArea": 871.6458333333,
 			"FractionCommercial": 0.2,
-			"FractionSchool": 0.0
+			"FractionSchool": 0.0,
+			"NumberHeatPumps": 3
 		},
 		{
 			"Type": "BuildingAgent",
@@ -144,7 +160,8 @@
 			"GrossFloorArea": 12011.9166666667,
 			"PVArea": 1857.9583333333,
 			"FractionCommercial": 0.0,
-			"FractionSchool": 0.0
+			"FractionSchool": 0.0,
+			"NumberHeatPumps": 3
 		},
 		{
 			"Type": "BuildingAgent",
@@ -152,7 +169,8 @@
 			"GrossFloorArea": 8728.0416666667,
 			"PVArea": 1350.0208333333,
 			"FractionCommercial": 0.0,
-			"FractionSchool": 0.0
+			"FractionSchool": 0.0,
+			"NumberHeatPumps": 3
 		},
 		{
 			"Type": "BuildingAgent",
@@ -160,7 +178,8 @@
 			"GrossFloorArea": 7314.875,
 			"PVArea": 1131.4375,
 			"FractionCommercial": 0.0,
-			"FractionSchool": 0.0
+			"FractionSchool": 0.0,
+			"NumberHeatPumps": 3
 		},
 		{
 			"Type": "StorageAgent",
@@ -189,7 +208,8 @@
 			"GrossFloorArea": 5000,
 			"PVArea": 0,
 			"FractionCommercial": 0.0,
-			"FractionSchool": 1.0
+			"FractionSchool": 1.0,
+			"NumberHeatPumps": 1
 		},
 		{
 			"Type": "GridAgent",
