@@ -21,17 +21,20 @@ class Test(TestCase):
         self.assertAlmostEqual(cop_input_percent_increase, cop_output_percent_increase)
 
     def test_calculate_for_all_workloads(self):
-        """Test that calculate_for_all_workloads produces some results"""
+        """Test that calculate_for_all_workloads produces some results, and that the results are strictly increasing."""
         test_pump = heat_pump.HeatPump()
 
         results = test_pump.calculate_for_all_workloads()
 
-        self.assertEqual(11, len(results.index))
+        self.assertEqual(11, len(results))
 
-        results = results.sort_values(by=['workload'], axis=0, ascending=True)
+        def strictly_increasing(some_list):
+            return all(x < y for x, y in zip(some_list, some_list[1:]))
+
+        self.assertTrue(strictly_increasing(list(results.keys())))
         # When sorted by workload, both input and output should be steadily increasing
-        self.assertTrue(results['input'].is_monotonic_increasing)
-        self.assertTrue(results['output'].is_monotonic_increasing)
+        self.assertTrue(strictly_increasing([x[0] for x in results.values()]))  # Tests input electricity
+        self.assertTrue(strictly_increasing([x[1] for x in results.values()]))  # Tests output heating
 
     def test_logging(self):
         """Test that heat pump methods log warnings when inputs are outside of expected range"""

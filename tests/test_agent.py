@@ -9,7 +9,7 @@ import pandas as pd
 from tests import utility_test_objects
 
 from tradingplatformpoc import data_store
-from tradingplatformpoc.agent.building_agent import BuildingAgent
+from tradingplatformpoc.agent.building_agent import BuildingAgent, construct_workloads_data
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.agent.storage_agent import StorageAgent
@@ -330,11 +330,11 @@ class TestBuildingAgent(TestCase):
         """Test basic functionality of BuildingAgent's make_trades_given_clearing_price method."""
         clearing_prices = {Resource.ELECTRICITY: 0.01, Resource.HEATING: np.nan}
         trades = self.building_agent_prod.make_trades_given_clearing_price(SOME_DATETIME, clearing_prices, [])
-        self.assertEqual(2, len(trades))
+        self.assertEqual(1, len(trades))
         elec_trades = [x for x in trades if x.resource == Resource.ELECTRICITY]
         heat_trades = [x for x in trades if x.resource == Resource.HEATING]
         self.assertEqual(1, len(elec_trades))
-        self.assertEqual(1, len(heat_trades))
+        self.assertEqual(0, len(heat_trades))
         elec_trade = elec_trades[0]
         self.assertEqual(elec_trade.resource, Resource.ELECTRICITY)
         self.assertEqual(elec_trade.action, Action.SELL)
@@ -349,11 +349,11 @@ class TestBuildingAgent(TestCase):
         """Test basic functionality of BuildingAgent's make_trades_given_clearing_price method."""
         clearing_prices = {Resource.ELECTRICITY: 100.0, Resource.HEATING: np.nan}
         trades = self.building_agent_prod.make_trades_given_clearing_price(SOME_DATETIME, clearing_prices, [])
-        self.assertEqual(2, len(trades))
+        self.assertEqual(1, len(trades))
         elec_trades = [x for x in trades if x.resource == Resource.ELECTRICITY]
         heat_trades = [x for x in trades if x.resource == Resource.HEATING]
         self.assertEqual(1, len(elec_trades))
-        self.assertEqual(1, len(heat_trades))
+        self.assertEqual(0, len(heat_trades))
         elec_trade = elec_trades[0]
         self.assertEqual(elec_trade.resource, Resource.ELECTRICITY)
         self.assertEqual(elec_trade.action, Action.SELL)
@@ -375,8 +375,9 @@ class TestBuildingAgent(TestCase):
 class TestBuildingAgentHeatPump(TestCase):
     # Verify instantiation
     # Digital twin
-    elec_values = np.random.uniform(0, 100.0, len(DATETIME_ARRAY))
-    heat_values = np.random.uniform(0, 100.0, len(DATETIME_ARRAY))
+    rng = np.random.default_rng(0)  # set random seed
+    elec_values = rng.uniform(0, 100.0, len(DATETIME_ARRAY))
+    heat_values = rng.uniform(0, 100.0, len(DATETIME_ARRAY))
     building_digital_twin = StaticDigitalTwin(electricity_usage=pd.Series(elec_values, index=DATETIME_ARRAY),
                                               heating_usage=pd.Series(heat_values, index=DATETIME_ARRAY))
     # Create agent with 2 heat pumps, default COP
@@ -385,16 +386,43 @@ class TestBuildingAgentHeatPump(TestCase):
     # Create agent with 3 pumps, COP = 4.3
     building_agent_3_pumps_custom_cop = BuildingAgent(data_store=data_store_entity, digital_twin=building_digital_twin,
                                                       nbr_heat_pumps=3, coeff_of_perf=4.3)
-    
-    # Assert that default cop is set properly
-    def test_default_cop(self):
-        self.assertEqual(self.building_agent_2_pumps_default_cop.coeff_of_perf, None)
 
-    # Assert that custom cop is set properly
-    def test_custom_cop(self):
-        self.assertEqual(self.building_agent_3_pumps_custom_cop.coeff_of_perf, 4.3)
+    def test_construct_workloads_df(self):
+        """Test that when a BuildingAgent doesn't have any heat pumps, the workloads data frame is still created as
+        expected, with just one row, corresponding to not running any heat pump."""
+        with_0_pumps = construct_workloads_data(None, 0)
+        self.assertEqual(1, len(with_0_pumps))
+        self.assertEqual(0, list(with_0_pumps.keys())[0])
 
-    # TODO: RES-198 - Verify bidding works as intended
+    def test_workloads_data(self):
+        """Assert that when a different COP is specified, this is reflected in the workloads_data"""
+        workloads_data_low_cop = self.building_agent_3_pumps_custom_cop.workloads_data
+        workloads_data_high_cop = self.building_agent_2_pumps_default_cop.workloads_data
+        for i in np.arange(1, 10):
+            lower_output = workloads_data_low_cop[i][1]
+            higher_output = workloads_data_high_cop[i][1]
+            self.assertTrue(lower_output < higher_output)
+
+    def test_optimal_workload(self):
+        """Test calculation of optimal workload"""
+        optimal_workload = self.building_agent_2_pumps_default_cop.calculate_optimal_workload(12, 60, 2, 0.5)
+        self.assertEqual(6, optimal_workload)  # 7 if agent is allowed to sell heat
+
+    def test_bid_with_heat_pump(self):
+        """Test that bidding works as intended in a building agent which has some heat pumps."""
+        bids = self.building_agent_2_pumps_default_cop.make_bids(SOME_DATETIME, {})
+        self.assertEqual(2, len(bids))
+        heat_bid = [x for x in bids if x.resource == Resource.HEATING][0]
+        self.assertEqual(Action.BUY, heat_bid.action)
+
+    def test_trade_with_heat_pump(self):
+        """Test that constructing of trades works as intended in a building agent which has some heat pumps."""
+        clearing_prices = {Resource.ELECTRICITY: 1.0, Resource.HEATING: 1.5}
+        trades = self.building_agent_2_pumps_default_cop.make_trades_given_clearing_price(SOME_DATETIME,
+                                                                                          clearing_prices, [])
+        self.assertEqual(2, len(trades))
+        heat_trade = [x for x in trades if x.resource == Resource.HEATING]
+        self.assertEqual(1, len(heat_trade))
 
 
 class TestPVAgent(TestCase):

@@ -235,7 +235,7 @@ def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings
                                                       heating_usage=heat_cons_series)
 
             nbr_heat_pumps = agent["NumberHeatPumps"] if "NumberHeatPumps" in agent.keys() else 0
-            cop = agent["COP"] if "COP" in agent.keys() else 0
+            cop = agent["COP"] if "COP" in agent.keys() else None
 
             agents.append(BuildingAgent(data_store=data_store_entity, digital_twin=building_digital_twin,
                                         guid=agent_name, nbr_heat_pumps=nbr_heat_pumps, coeff_of_perf=cop))
