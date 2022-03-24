@@ -15,13 +15,14 @@ from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.agent.storage_agent import StorageAgent
 from tradingplatformpoc.balance_manager import correct_for_exact_heating_price
-from tradingplatformpoc.bid import Action, Bid, Resource, write_bid_rows
+from tradingplatformpoc.bid import Action, Bid, BidWithAcceptanceStatus, Resource, write_bid_rows
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
 from tradingplatformpoc.extra_cost import ExtraCost
 from tradingplatformpoc.mock_data_generation_functions import MockDataKey, get_all_building_agents, get_elec_cons_key, \
     get_heat_cons_key, get_pv_prod_key
+from tradingplatformpoc.simulation_results import SimulationResults
 from tradingplatformpoc.trade import Trade
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, flatten_collection, get_if_exists_else, \
     get_intersection
@@ -30,9 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path: str, results_path: str) -> \
-        Tuple[Dict[datetime.datetime, Dict[Resource, float]],
-              Dict[datetime.datetime, Collection[Trade]],
-              List[ExtraCost]]:
+        SimulationResults:
     """The core loop of the simulation, running through the desired time period and performing trades."""
 
     logger.info("Starting trading simulations")
@@ -44,7 +43,7 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
     energy_data_csv_path = resource_filename("tradingplatformpoc.data", "full_mock_energy_data.csv")
 
     # Load generated mock data
-    buildings_mock_data = get_generated_mock_data(config_data, mock_datas_pickle_path)
+    buildings_mock_data: pd.DataFrame = get_generated_mock_data(config_data, mock_datas_pickle_path)
 
     # Output files
     clearing_prices_file = open(results_path + 'clearing_prices.csv', 'w')
@@ -60,6 +59,8 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
     # Output lists
     clearing_prices_historical: Dict[datetime.datetime, Dict[Resource, float]] = {}
     all_trades_dict: Dict[datetime.datetime, Collection[Trade]] = {}
+    all_bids_dict: Dict[datetime.datetime, Collection[BidWithAcceptanceStatus]] = {}
+    storage_levels_dict: Dict[Tuple[datetime.datetime, str], float] = {}
     all_extra_costs: List[ExtraCost] = []
     # Store the exact external prices, need them for some calculations
     exact_retail_electricity_prices_by_period: Dict[datetime.datetime, float] = {}
@@ -89,12 +90,14 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
         clearing_prices_file.write('{},{},{}\n'.format(period, clearing_prices[Resource.ELECTRICITY],
                                                        clearing_prices[Resource.HEATING]))
         bids_csv_file.write(write_bid_rows(bids_with_acceptance_status, period))
+        all_bids_dict[period] = bids_with_acceptance_status
 
         # To save information on storage levels, which may be useful:
         for agent in agents:
             if isinstance(agent, StorageAgent):
                 capacity_for_agent = agent.digital_twin.capacity_kwh
                 storage_levels_csv_file.write(str(period) + ',' + agent.guid + ',' + str(capacity_for_agent) + '\n')
+                storage_levels_dict[(period, agent.guid)] = capacity_for_agent
 
         # Send clearing price back to agents, allow them to "make trades", i.e. decide if they want to buy/sell
         # energy, from/to either the local market or directly from/to the external grid.
@@ -163,7 +166,13 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
                                            exact_retail_heating_prices_by_year_and_month,
                                            exact_wholesale_heating_prices_by_year_and_month)
 
-    return clearing_prices_historical, all_trades_dict, all_extra_costs
+    return SimulationResults(clearing_prices_historical=clearing_prices_historical,
+                             all_trades_dict=all_trades_dict,
+                             all_extra_costs=all_extra_costs,
+                             all_bids_dict=all_bids_dict,
+                             storage_levels_dict=storage_levels_dict,
+                             config_data=config_data,
+                             agents=agents)
 
 
 def get_external_heating_prices(data_store_entity: DataStore, trading_periods: Collection[datetime.datetime]) -> \
@@ -191,7 +200,7 @@ def get_external_heating_prices(data_store_entity: DataStore, trading_periods: C
         exact_wholesale_heating_prices_by_year_and_month
 
 
-def get_generated_mock_data(config_data: dict, mock_datas_pickle_path: str):
+def get_generated_mock_data(config_data: dict, mock_datas_pickle_path: str) -> pd.DataFrame:
     """
     Loads the dict stored in MOCK_DATAS_PICKLE, checks if it contains a key which is identical to the set of building
     agents specified in config_data. If it isn't, throws an error. If it is, it returns the value for that key in the
@@ -212,7 +221,7 @@ def get_generated_mock_data(config_data: dict, mock_datas_pickle_path: str):
 
 
 def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings_mock_data: pd.DataFrame,
-                      energy_data_csv_path: str):
+                      energy_data_csv_path: str) -> Tuple[List[IAgent], List[GridAgent]]:
     # Register all agents
     # Keep a list of all agents to iterate over later
     agents: List[IAgent] = []
