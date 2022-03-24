@@ -1,5 +1,5 @@
 import datetime
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Tuple
 
 from tradingplatformpoc.agent.iagent import IAgent, get_price_and_market_to_use_when_selling
 from tradingplatformpoc.bid import Action, Bid, BidWithAcceptanceStatus, Resource
@@ -45,13 +45,14 @@ class PVAgent(IAgent):
         return -self.digital_twin.get_production(period, Resource.ELECTRICITY)
 
     def make_trades_given_clearing_price(self, period: datetime.datetime, clearing_prices: Dict[Resource, float],
-                                         accepted_bids_for_agent: List[BidWithAcceptanceStatus]) -> List[Trade]:
+                                         accepted_bids_for_agent: List[BidWithAcceptanceStatus]) -> \
+            Tuple[List[Trade], dict]:
         usage = self.get_actual_usage(period, Resource.ELECTRICITY)
         if usage < 0:
             wholesale_price = self.get_external_grid_buy_price(period, Resource.ELECTRICITY)
             clearing_price = clearing_prices[Resource.ELECTRICITY]
             price_to_use, market_to_use = get_price_and_market_to_use_when_selling(clearing_price, wholesale_price)
             return [self.construct_trade(Action.SELL, Resource.ELECTRICITY, -usage, price_to_use,
-                                         market_to_use, period)]
+                                         market_to_use, period)], {}
         else:
-            return []
+            return [], {}

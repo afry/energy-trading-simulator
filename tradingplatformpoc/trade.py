@@ -9,6 +9,11 @@ class Market(Enum):
     EXTERNAL = 1
 
 
+class TradeMetadataKey(Enum):
+    STORAGE_LEVEL = 0
+    HEAT_PUMP_WORKLOAD = 1
+
+
 class Trade:
     """The Trade class is used to keep track of energy trades that have taken place
 

@@ -23,7 +23,7 @@ from tradingplatformpoc.extra_cost import ExtraCost
 from tradingplatformpoc.mock_data_generation_functions import get_all_residential_building_agents, get_elec_cons_key, \
     get_heat_cons_key, get_pv_prod_key
 from tradingplatformpoc.simulation_results import SimulationResults
-from tradingplatformpoc.trade import Trade
+from tradingplatformpoc.trade import Trade, TradeMetadataKey
 from tradingplatformpoc.trading_platform_utils import add_to_nested_dict, calculate_solar_prod, flatten_collection, \
     get_if_exists_else, get_intersection
 
@@ -101,17 +101,15 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
         for agent in agents:
             accepted_bids_for_agent = [bid for bid in bids_with_acceptance_status
                                        if bid.source == agent.guid and bid.was_accepted]
-            trades_excl_external.extend(
-                agent.make_trades_given_clearing_price(period, clearing_prices, accepted_bids_for_agent))
-
-        # To save information on storage and heat pump levels, which will be included in SimulationResults.
-        for agent in agents:
-            if isinstance(agent, StorageAgent):
-                capacity_for_agent = agent.digital_twin.capacity_kwh
+            trades, metadata = agent.make_trades_given_clearing_price(period, clearing_prices, accepted_bids_for_agent)
+            trades_excl_external.extend(trades)
+            if TradeMetadataKey.STORAGE_LEVEL in metadata:
+                capacity_for_agent = metadata[TradeMetadataKey.STORAGE_LEVEL]
                 storage_levels_csv_file.write(str(period) + ',' + agent.guid + ',' + str(capacity_for_agent) + '\n')
                 add_to_nested_dict(storage_levels_dict, agent.guid, period, capacity_for_agent)
-            if isinstance(agent, BuildingAgent) and agent.n_heat_pumps > 0:
-                add_to_nested_dict(heat_pump_levels_dict, agent.guid, period, agent.current_heat_pump_level)
+            if TradeMetadataKey.HEAT_PUMP_WORKLOAD in metadata:
+                current_heat_pump_level = metadata[TradeMetadataKey.HEAT_PUMP_WORKLOAD]
+                add_to_nested_dict(heat_pump_levels_dict, agent.guid, period, current_heat_pump_level)
 
         trades_excl_external = [i for i in trades_excl_external if i]  # filter out None
         external_trades = flatten_collection([ga.calculate_external_trades(trades_excl_external, clearing_prices)

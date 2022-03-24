@@ -1,6 +1,6 @@
 import datetime
 from abc import ABC, abstractmethod
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Tuple
 
 import numpy as np
 
@@ -38,11 +38,12 @@ class IAgent(ABC):
 
     @abstractmethod
     def make_trades_given_clearing_price(self, period: datetime.datetime, clearing_prices: Dict[Resource, float],
-                                         accepted_bids_for_agent: List[BidWithAcceptanceStatus]) -> List[Trade]:
+                                         accepted_bids_for_agent: List[BidWithAcceptanceStatus]) -> \
+            Tuple[List[Trade], dict]:
         """
         Once market solver has decided a clearing price for each resource, it will send them to the agents with this
         method.
-        @return: Some trades - but not more than 1 per resource
+        @return: A tuple: 1. Some trades - but not more than 1 per resource. 2. Metadata
         """
         pass
 

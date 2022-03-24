@@ -13,7 +13,7 @@ from tradingplatformpoc.bid import Action, Bid, BidWithAcceptanceStatus, Resourc
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.heat_pump import HeatPump
-from tradingplatformpoc.trade import Trade
+from tradingplatformpoc.trade import Trade, TradeMetadataKey
 from tradingplatformpoc.trading_platform_utils import minus_n_hours
 
 logger = logging.getLogger(__name__)
@@ -25,7 +25,6 @@ class BuildingAgent(IAgent):
     n_heat_pumps: int
     workloads_data: OrderedDict[int, Tuple[float, float]]  # Keys should be strictly increasing
     allow_sell_heat: bool
-    current_heat_pump_level: int
 
     def __init__(self, data_store: DataStore, digital_twin: StaticDigitalTwin, nbr_heat_pumps: int = 0,
                  coeff_of_perf: Optional[float] = None, guid="BuildingAgent"):
@@ -62,7 +61,8 @@ class BuildingAgent(IAgent):
         return actual_consumption - actual_production
 
     def make_trades_given_clearing_price(self, period: datetime.datetime, clearing_prices: Dict[Resource, float],
-                                         accepted_bids_for_agent: List[BidWithAcceptanceStatus]) -> List[Trade]:
+                                         accepted_bids_for_agent: List[BidWithAcceptanceStatus]) -> \
+            Tuple[List[Trade], dict]:
         trades = []
         elec_retail_price = self.data_store.get_estimated_retail_price(period, Resource.ELECTRICITY)
         elec_wholesale_price = self.data_store.get_estimated_wholesale_price(period, Resource.ELECTRICITY)
@@ -76,7 +76,6 @@ class BuildingAgent(IAgent):
         # Re-calculate optimal workload, now that prices are known
         workload_to_use = self.calculate_optimal_workload(elec_net_consumption_pred, heat_net_consumption_pred,
                                                           elec_clearing_price, heat_clearing_price)
-        self.current_heat_pump_level = workload_to_use
         elec_needed_for_1_heat_pump = self.workloads_data[workload_to_use][0]
         heat_output_for_1_heat_pump = self.workloads_data[workload_to_use][1]
 
@@ -118,7 +117,7 @@ class BuildingAgent(IAgent):
                 # If not, then in reality what would presumably happen is that the buildings would be heated up more
                 # than necessary, which would presumably lower the heat demand in subsequent periods. This is left as
                 # a possible future improvement.
-        return trades
+        return trades, {TradeMetadataKey.HEAT_PUMP_WORKLOAD: workload_to_use}
 
     def make_bids_with_heat_pump(self, period: datetime.datetime, pred_elec_price: float, pred_heat_price: float) -> \
             List[Bid]:
