@@ -1,6 +1,6 @@
 import datetime
 from dataclasses import dataclass
-from typing import Any, Collection, Dict, List, Tuple
+from typing import Any, Collection, Dict, List
 
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.bid import BidWithAcceptanceStatus, Resource
@@ -14,7 +14,7 @@ class SimulationResults:
     all_trades_dict: Dict[datetime.datetime, Collection[Trade]]
     all_bids_dict: Dict[datetime.datetime, Collection[BidWithAcceptanceStatus]]
     all_extra_costs: List[ExtraCost]
-    storage_levels_dict: Dict[Tuple[datetime.datetime, str], float]
-    heat_pump_levels_dict: Dict[Tuple[datetime.datetime, str], float]
+    storage_levels_dict: Dict[str, Dict[datetime.datetime, float]]
+    heat_pump_levels_dict: Dict[str, Dict[datetime.datetime, float]]
     config_data: Dict[str, Any]
     agents: List[IAgent]

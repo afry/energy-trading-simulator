@@ -24,8 +24,8 @@ from tradingplatformpoc.mock_data_generation_functions import get_all_residentia
     get_heat_cons_key, get_pv_prod_key
 from tradingplatformpoc.simulation_results import SimulationResults
 from tradingplatformpoc.trade import Trade
-from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, flatten_collection, get_if_exists_else, \
-    get_intersection
+from tradingplatformpoc.trading_platform_utils import add_to_nested_dict, calculate_solar_prod, flatten_collection, \
+    get_if_exists_else, get_intersection
 
 logger = logging.getLogger(__name__)
 
@@ -60,8 +60,8 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
     clearing_prices_historical: Dict[datetime.datetime, Dict[Resource, float]] = {}
     all_trades_dict: Dict[datetime.datetime, Collection[Trade]] = {}
     all_bids_dict: Dict[datetime.datetime, Collection[BidWithAcceptanceStatus]] = {}
-    storage_levels_dict: Dict[Tuple[datetime.datetime, str], float] = {}
-    heat_pump_levels_dict: Dict[Tuple[datetime.datetime, str], float] = {}
+    storage_levels_dict: Dict[str, Dict[datetime.datetime, float]] = {}
+    heat_pump_levels_dict: Dict[str, Dict[datetime.datetime, float]] = {}
     all_extra_costs: List[ExtraCost] = []
     # Store the exact external prices, need them for some calculations
     exact_retail_electricity_prices_by_period: Dict[datetime.datetime, float] = {}
@@ -109,9 +109,9 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
             if isinstance(agent, StorageAgent):
                 capacity_for_agent = agent.digital_twin.capacity_kwh
                 storage_levels_csv_file.write(str(period) + ',' + agent.guid + ',' + str(capacity_for_agent) + '\n')
-                storage_levels_dict[(period, agent.guid)] = capacity_for_agent
+                add_to_nested_dict(storage_levels_dict, agent.guid, period, capacity_for_agent)
             if isinstance(agent, BuildingAgent) and agent.n_heat_pumps > 0:
-                heat_pump_levels_dict[(period, agent.guid)] = agent.current_heat_pump_level
+                add_to_nested_dict(heat_pump_levels_dict, agent.guid, period, agent.current_heat_pump_level)
 
         trades_excl_external = [i for i in trades_excl_external if i]  # filter out None
         external_trades = flatten_collection([ga.calculate_external_trades(trades_excl_external, clearing_prices)
