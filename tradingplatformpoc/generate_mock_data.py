@@ -16,7 +16,7 @@ import statsmodels.api as sm
 from statsmodels.regression.linear_model import RegressionResultsWrapper
 
 from tradingplatformpoc import commercial_heating_model
-from tradingplatformpoc.mock_data_generation_functions import get_all_residential_building_agents, \
+from tradingplatformpoc.mock_data_generation_functions import MockDataKey, get_all_building_agents, \
     get_commercial_electricity_consumption_hourly_factor, \
     get_commercial_heating_consumption_hourly_factor, \
     get_elec_cons_key, get_heat_cons_key, get_pv_prod_key, \
@@ -75,17 +75,18 @@ For some more information: https://doc.afdrift.se/display/RPJ/Household+electric
 logger = logging.getLogger(__name__)
 
 
-def run(config_data: Dict[str, Any]) -> Dict[frozenset, pd.DataFrame]:
+def run(config_data: Dict[str, Any]) -> Dict[MockDataKey, pd.DataFrame]:
     # Load pre-existing mock data sets
     all_data_sets = load_existing_data_sets(MOCK_DATAS_PICKLE)
 
-    residential_building_agents, total_gross_floor_area_residential = get_all_residential_building_agents(config_data)
+    building_agents, total_gross_floor_area_residential = get_all_building_agents(config_data)
     default_pv_efficiency = config_data["AreaInfo"]["DefaultPVEfficiency"]
+    mock_data_key = MockDataKey(frozenset(building_agents), frozenset(config_data["AreaInfo"].items()))
 
-    # Need to freeze, else can't use it as key in dict
-    residential_building_agents_frozen_set = frozenset(residential_building_agents)
+    # # Need to freeze, else can't use it as key in dict
+    # building_agents_frozen_set = frozenset(building_agents)
 
-    if residential_building_agents_frozen_set in all_data_sets:
+    if mock_data_key in all_data_sets:
         logger.info('Already had mock data for the configuration described in %s, exiting generate_mock_data' %
                     CONFIG_FILE)
     else:
@@ -107,9 +108,9 @@ def run(config_data: Dict[str, Any]) -> Dict[frozenset, pd.DataFrame]:
 
         total_time_elapsed = 0.0
         n_areas_done = 0
-        n_areas = len(residential_building_agents)
+        n_areas = len(building_agents)
         logger.debug('{} areas to iterate over'.format(n_areas))
-        for agent in residential_building_agents:
+        for agent in building_agents:
 
             agent_dict = dict(agent)
             logger.debug('Generating new data for ' + agent_dict['Name'])
@@ -124,7 +125,7 @@ def run(config_data: Dict[str, Any]) -> Dict[frozenset, pd.DataFrame]:
                 estimated_time_left = n_areas_remaining * time_taken_per_area
                 logger.info('Estimated time left: {:.2f} seconds'.format(estimated_time_left))
 
-        all_data_sets[residential_building_agents_frozen_set] = output_per_building
+        all_data_sets[mock_data_key] = output_per_building
         pickle.dump(all_data_sets, open(MOCK_DATAS_PICKLE, 'wb'))
     return all_data_sets
 
@@ -137,7 +138,7 @@ def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd:
     logger.debug('Starting work on \'{}\''.format(agent['Name']))
     pv_area = get_if_exists_else(agent, 'PVArea', 0)
 
-    pre_existing_data = find_agent_in_other_data_sets(agent, all_data_sets)
+    pre_existing_data = find_agent_in_other_data_sets(agent, all_data_sets, default_pv_efficiency)
     output_per_actor = pd.concat(objs=(output_per_actor, pre_existing_data), axis=1)
 
     if (not get_elec_cons_key(agent['Name']) in output_per_actor.columns) or \
@@ -586,19 +587,23 @@ def simulate_residential_total_heating(df_inputs: pd.DataFrame, gross_floor_area
     return heating_scaled
 
 
-def find_agent_in_other_data_sets(agent_dict: dict, all_data_sets: dict) -> pd.DataFrame:
+def find_agent_in_other_data_sets(agent_dict: Dict[str, Any], all_data_sets: Dict[MockDataKey, pd.DataFrame],
+                                  default_pv_efficiency: float) -> pd.DataFrame:
     """Introduced in RES-216 - looking through other data sets, if this agent was present there, we can re-use that,
     instead of running the generation step again. This saves time. If no usable data is found, the returned DataFrame
     will be empty."""
     data_to_reuse = pd.DataFrame()
     found_prod_data = False
     found_cons_data = False
-    for set_of_building_agents, mock_data in all_data_sets.items():
+    for mock_data_key, mock_data in all_data_sets.items():
+        set_of_building_agents = mock_data_key.building_agents_frozen_set
+        other_area_info = dict(mock_data_key.area_info_frozen_set)
+        other_default_pv_eff = other_area_info['DefaultPVEfficiency']
         for other_agent in set_of_building_agents:
             other_agent_dict = dict(other_agent)
             if (not found_prod_data) and (agent_dict['PVArea'] == other_agent_dict['PVArea']) and \
-                    (get_if_exists_else(agent_dict, 'PVEfficiency', 0)
-                     == get_if_exists_else(other_agent_dict, 'PVEfficiency', 0)):
+                    (get_if_exists_else(agent_dict, 'PVEfficiency', default_pv_efficiency)
+                     == get_if_exists_else(other_agent_dict, 'PVEfficiency', other_default_pv_eff)):
                 # All parameters relating to generating solar power production are the same
                 logger.debug('For agent \'{}\' found PV production data to re-use'.format(agent_dict['Name']))
                 found_prod_data = True

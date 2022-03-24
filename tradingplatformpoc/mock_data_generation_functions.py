@@ -1,7 +1,10 @@
 import datetime
 import logging
 import pickle
-from typing import Set, Tuple
+from dataclasses import dataclass
+from typing import Any, Dict, Set, Tuple
+
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +39,13 @@ COMMERCIAL_ELECTRICITY_CONSUMPTION_HOURLY_FACTOR = {
 }
 
 
-def load_existing_data_sets(file_path: str) -> dict:
+@dataclass(frozen=True)
+class MockDataKey:
+    building_agents_frozen_set: frozenset
+    area_info_frozen_set: frozenset
+
+
+def load_existing_data_sets(file_path: str) -> Dict[MockDataKey, pd.DataFrame]:
     try:
         all_data_sets = pickle.load(open(file_path, 'rb'))
     except FileNotFoundError:
@@ -45,22 +54,22 @@ def load_existing_data_sets(file_path: str) -> dict:
     return all_data_sets
 
 
-def get_all_residential_building_agents(config_data: dict) -> Tuple[Set, float]:
+def get_all_building_agents(config_data: Dict[str, Any]) -> Tuple[Set, float]:
     """
-    Gets all residential building agents specified in config_data, and also returns the total gross floor area, summed
-    over all residential building agents.
+    Gets all building agents specified in config_data, and also returns the total gross floor area, summed
+    over all building agents.
     @param config_data: A dictionary
-    @return: residential_building_agents: Set of dictionaries, total_gross_floor_area: a float
+    @return: building_agents: Set of frozen sets, total_gross_floor_area: a float
     """
     total_gross_floor_area = 0
-    residential_building_agents = set()
+    building_agents = set()
     for agent in config_data["Agents"]:
         agent_type = agent["Type"]
         if agent_type == "BuildingAgent":
             key = frozenset(agent.items())
-            residential_building_agents.add(key)
+            building_agents.add(key)
             total_gross_floor_area = total_gross_floor_area + agent['GrossFloorArea']
-    return residential_building_agents, total_gross_floor_area
+    return building_agents, total_gross_floor_area
 
 
 def get_elec_cons_key(agent_name: str):

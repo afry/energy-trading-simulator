@@ -5,7 +5,7 @@ import pandas as pd
 
 from pkg_resources import resource_filename
 
-from tradingplatformpoc.mock_data_generation_functions import get_all_residential_building_agents, get_elec_cons_key, \
+from tradingplatformpoc.mock_data_generation_functions import get_all_building_agents, get_elec_cons_key, \
     get_heat_cons_key
 
 DATA_PATH = 'tradingplatformpoc.data'
@@ -23,7 +23,7 @@ different configurations.
 # Open config file
 with open(resource_filename(DATA_PATH, CONFIG_FILE), "r") as json_file:
     config_data = json.load(json_file)
-residential_building_agents, total_gross_floor_area = get_all_residential_building_agents(config_data)
+residential_building_agents, total_gross_floor_area = get_all_building_agents(config_data)
 # The residential building agents in the current config:
 current_config_rbas = frozenset(residential_building_agents)
 

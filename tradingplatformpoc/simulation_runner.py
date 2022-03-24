@@ -20,7 +20,7 @@ from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
 from tradingplatformpoc.extra_cost import ExtraCost
-from tradingplatformpoc.mock_data_generation_functions import get_all_residential_building_agents, get_elec_cons_key, \
+from tradingplatformpoc.mock_data_generation_functions import MockDataKey, get_all_building_agents, get_elec_cons_key, \
     get_heat_cons_key, get_pv_prod_key
 from tradingplatformpoc.trade import Trade
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, flatten_collection, get_if_exists_else, \
@@ -202,14 +202,13 @@ def get_generated_mock_data(config_data: dict, mock_datas_pickle_path: str):
     """
     with open(mock_datas_pickle_path, 'rb') as f:
         all_data_sets = pickle.load(f)
-    residential_building_agents, total_gross_floor_area = get_all_residential_building_agents(config_data)
-    # Need to freeze, else can't use it as key in dict
-    residential_building_agents_frozen_set = frozenset(residential_building_agents)
-    if residential_building_agents_frozen_set not in all_data_sets:
+    building_agents, total_gross_floor_area = get_all_building_agents(config_data)
+    mock_data_key = MockDataKey(frozenset(building_agents), frozenset(config_data["AreaInfo"].items()))
+    if mock_data_key not in all_data_sets:
         logger.info("No mock data found for this configuration. Running mock data generation.")
         all_data_sets = generate_mock_data.run(config_data)
         logger.info("Finished mock data generation.")
-    return all_data_sets[residential_building_agents_frozen_set]
+    return all_data_sets[mock_data_key]
 
 
 def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings_mock_data: pd.DataFrame,
