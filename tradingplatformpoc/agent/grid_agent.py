@@ -1,6 +1,6 @@
 import datetime
 import logging
-from typing import Dict, Iterable, List, Union, Tuple
+from typing import Dict, Iterable, List, Tuple, Union
 
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.bid import Action, Bid, BidWithAcceptanceStatus, Resource

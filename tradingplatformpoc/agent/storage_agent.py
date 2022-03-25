@@ -1,6 +1,6 @@
 import datetime
 import logging
-from typing import Dict, List, Union, Tuple
+from typing import Dict, List, Tuple, Union
 
 import numpy as np
 
@@ -113,12 +113,12 @@ class StorageAgent(IAgent):
                 actual_charge_quantity = self.digital_twin.charge(bid_quantity)
                 if actual_charge_quantity > 0:
                     trades = [self.construct_trade(Action.BUY, self.resource, actual_charge_quantity,
-                                                   clearing_price, Market.LOCAL, period)], {}
+                                                   clearing_price, Market.LOCAL, period)]
             else:  # action was SELL
                 actual_discharge_quantity = self.digital_twin.discharge(bid_quantity)
                 if actual_discharge_quantity > 0:
                     trades = [self.construct_trade(Action.SELL, self.resource, actual_discharge_quantity,
-                                                   clearing_price, Market.LOCAL, period)], {}
+                                                   clearing_price, Market.LOCAL, period)]
         return trades, {TradeMetadataKey.STORAGE_LEVEL: self.digital_twin.capacity_kwh}
 
     def calculate_buy_price(self, prices_last_n_hours: List[float]):

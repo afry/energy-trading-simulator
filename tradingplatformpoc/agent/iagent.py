@@ -1,6 +1,6 @@
 import datetime
 from abc import ABC, abstractmethod
-from typing import Dict, List, Union, Tuple
+from typing import Dict, List, Tuple, Union
 
 import numpy as np
 

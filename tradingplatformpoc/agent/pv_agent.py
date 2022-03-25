@@ -1,5 +1,5 @@
 import datetime
-from typing import Dict, List, Union, Tuple
+from typing import Dict, List, Tuple, Union
 
 from tradingplatformpoc.agent.iagent import IAgent, get_price_and_market_to_use_when_selling
 from tradingplatformpoc.bid import Action, Bid, BidWithAcceptanceStatus, Resource
