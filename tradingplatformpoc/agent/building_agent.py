@@ -2,7 +2,7 @@ import datetime
 import logging
 import math
 from collections import OrderedDict
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -62,7 +62,7 @@ class BuildingAgent(IAgent):
 
     def make_trades_given_clearing_price(self, period: datetime.datetime, clearing_prices: Dict[Resource, float],
                                          accepted_bids_for_agent: List[BidWithAcceptanceStatus]) -> \
-            Tuple[List[Trade], dict]:
+            Tuple[List[Trade], Dict[TradeMetadataKey, Any]]:
         trades = []
         elec_retail_price = self.data_store.get_estimated_retail_price(period, Resource.ELECTRICITY)
         elec_wholesale_price = self.data_store.get_estimated_wholesale_price(period, Resource.ELECTRICITY)

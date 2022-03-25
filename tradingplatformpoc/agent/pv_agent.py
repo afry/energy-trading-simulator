@@ -1,11 +1,11 @@
 import datetime
-from typing import Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union
 
 from tradingplatformpoc.agent.iagent import IAgent, get_price_and_market_to_use_when_selling
 from tradingplatformpoc.bid import Action, Bid, BidWithAcceptanceStatus, Resource
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
-from tradingplatformpoc.trade import Trade
+from tradingplatformpoc.trade import Trade, TradeMetadataKey
 from tradingplatformpoc.trading_platform_utils import minus_n_hours
 
 
@@ -46,7 +46,7 @@ class PVAgent(IAgent):
 
     def make_trades_given_clearing_price(self, period: datetime.datetime, clearing_prices: Dict[Resource, float],
                                          accepted_bids_for_agent: List[BidWithAcceptanceStatus]) -> \
-            Tuple[List[Trade], dict]:
+            Tuple[List[Trade], Dict[TradeMetadataKey, Any]]:
         usage = self.get_actual_usage(period, Resource.ELECTRICITY)
         if usage < 0:
             wholesale_price = self.get_external_grid_buy_price(period, Resource.ELECTRICITY)

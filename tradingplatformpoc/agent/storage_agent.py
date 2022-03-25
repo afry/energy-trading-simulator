@@ -1,6 +1,6 @@
 import datetime
 import logging
-from typing import Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
 
@@ -100,7 +100,7 @@ class StorageAgent(IAgent):
 
     def make_trades_given_clearing_price(self, period: datetime.datetime, clearing_prices: Dict[Resource, float],
                                          accepted_bids_for_agent: List[BidWithAcceptanceStatus]) -> \
-            Tuple[List[Trade], dict]:
+            Tuple[List[Trade], Dict[TradeMetadataKey, Any]]:
         trades = []
         # In this implementation, the battery never sells or buys directly from the external grid.
         if len(accepted_bids_for_agent) > 1:
