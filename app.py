@@ -1,3 +1,5 @@
+import pickle
+
 from pkg_resources import resource_filename
 
 from tradingplatformpoc.app import app_constants
@@ -77,6 +79,10 @@ if __name__ == '__main__':
     elif page_selected == app_constants.SETUP_PAGE:
 
         run_sim = st.button("Click here to run simulation")
+        success_placeholder = st.empty()
+        results_download_button = st.empty()
+        results_download_button.download_button(label="Download simulation results", data=b'placeholder',
+                                                disabled=True)
 
         if ("config_data" not in st.session_state.keys()) or (st.session_state.config_data is None):
             logger.debug("Using default configuration")
@@ -178,7 +184,12 @@ if __name__ == '__main__':
             logger.info("Running simulation")
             st.spinner("Running simulation")
             simulation_results = run_trading_simulations(st.session_state.config_data, mock_datas_path, results_path)
-            st.success('Simulation finished!')
+            logger.info("Simulation finished!")
+            success_placeholder.success('Simulation finished!')
+            results_download_button.download_button(label="Download simulation results",
+                                                    data=pickle.dumps(simulation_results),
+                                                    file_name="simulation_results.pickle",
+                                                    mime='application/octet-stream')
 
     elif page_selected == app_constants.LOAD_PAGE:
         data_button = st.button("Click here to load data")

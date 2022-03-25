@@ -1,3 +1,5 @@
+import pickle
+
 from pkg_resources import resource_filename
 from tradingplatformpoc.simulation_runner import run_trading_simulations
 import json
@@ -46,3 +48,6 @@ with open(config_filename, "r") as jsonfile:
 if __name__ == '__main__':
     logger.info("Running main")
     simulation_results = run_trading_simulations(config_data, mock_datas_path, results_path)
+    logger.info("Finished running simulations. Will save simulations results as a pickle file.")
+    with open(results_path + 'simulation_results.pickle', 'wb') as destination:
+        pickle.dump(simulation_results, destination)
