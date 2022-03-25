@@ -4,6 +4,7 @@ from typing import Any, Collection, Dict, List
 
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.bid import BidWithAcceptanceStatus, Resource
+from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.extra_cost import ExtraCost
 from tradingplatformpoc.trade import Trade
 
@@ -18,3 +19,4 @@ class SimulationResults:
     heat_pump_levels_dict: Dict[str, Dict[datetime.datetime, float]]
     config_data: Dict[str, Any]
     agents: List[IAgent]
+    data_store: DataStore

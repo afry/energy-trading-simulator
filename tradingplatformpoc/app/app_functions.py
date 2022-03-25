@@ -12,6 +12,7 @@ import streamlit as st
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.bid import Resource
 from tradingplatformpoc.data_store import DataStore
+from tradingplatformpoc.simulation_results import SimulationResults
 from tradingplatformpoc.trading_platform_utils import ALL_AGENT_TYPES, ALL_IMPLEMENTED_RESOURCES_STR, get_if_exists_else
 
 
@@ -55,22 +56,15 @@ def construct_storage_level_chart(storage_levels_df: pd.DataFrame, agent: str) -
         interactive(bind_y=False)
 
 
-@st.cache
-def load_data(results_path: str):
-    clearing_prices_df = pd.read_csv(results_path + "clearing_prices.csv")
-    clearing_prices_df['period'] = pd.to_datetime(clearing_prices_df['period'])
-    # Un-pivot the dataframe from wide to long, which is how Altair prefers it
-    clearing_prices_df = clearing_prices_df.melt('period')
-    clearing_prices_df['Resource'] = np.where(clearing_prices_df.variable == 'electricity', Resource.ELECTRICITY,
-                                              Resource.HEATING)
+def construct_prices_df(simulation_results: SimulationResults) -> pd.DataFrame:
+    """Constructs a pandas DataFrame on the format which fits Altair, which we use for plots."""
+    clearing_prices_df = pd.DataFrame.from_dict(simulation_results.clearing_prices_historical, orient='index')
+    clearing_prices_df.index.set_names('period', inplace=True)
+    clearing_prices_df = clearing_prices_df.reset_index().melt('period')
+    clearing_prices_df['Resource'] = clearing_prices_df['variable']
     clearing_prices_df.variable = app_constants.LOCAL_PRICE_STR
 
-    # Initialize a DataStore
-    config_filename = results_path + "config_used.json"
-    with open(config_filename, "r") as json_file:
-        config_data = json.load(json_file)
-
-    data_store_entity = DataStore.from_csv_files(config_area_info=config_data['AreaInfo'])
+    data_store_entity = simulation_results.data_store
     nordpool_data = data_store_entity.nordpool_data
     nordpool_data.name = 'value'
     nordpool_data = nordpool_data.to_frame().reset_index()
@@ -83,21 +77,7 @@ def load_data(results_path: str):
     wholesale_df = nordpool_data.copy()
     wholesale_df['value'] = wholesale_df['value'] + data_store_entity.elec_wholesale_offset
     wholesale_df['variable'] = app_constants.WHOLESALE_PRICE_STR
-
-    prices_df = pd.concat([clearing_prices_df, retail_df, wholesale_df])
-
-    all_bids = pd.read_csv(results_path + "bids.csv")
-    all_bids['period'] = pd.to_datetime(all_bids['period'])
-    all_bids.drop(['by_external'], axis=1, inplace=True)  # Don't need this column
-
-    all_trades = pd.read_csv(results_path + "trades.csv")
-    all_trades['period'] = pd.to_datetime(all_trades['period'])
-    all_trades.drop(['by_external'], axis=1, inplace=True)  # Don't need this column
-
-    storage_levels = pd.read_csv(results_path + "storages.csv")
-    storage_levels['period'] = pd.to_datetime(storage_levels['period'])
-
-    return prices_df, all_bids, all_trades, storage_levels
+    return pd.concat([clearing_prices_df, retail_df, wholesale_df])
 
 
 def remove_agent(some_agent):
