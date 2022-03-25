@@ -1,6 +1,6 @@
 import datetime
 import logging
-from typing import Dict, List, Union
+from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
 
@@ -8,7 +8,7 @@ from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.bid import Action, Bid, BidWithAcceptanceStatus, Resource
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
-from tradingplatformpoc.trade import Market, Trade
+from tradingplatformpoc.trade import Market, Trade, TradeMetadataKey
 from tradingplatformpoc.trading_platform_utils import minus_n_hours
 
 LOWEST_BID_QUANTITY = 0.001  # Bids with a lower quantity than this won't have any real effect, will only clog things up
@@ -99,7 +99,9 @@ class StorageAgent(IAgent):
         pass
 
     def make_trades_given_clearing_price(self, period: datetime.datetime, clearing_prices: Dict[Resource, float],
-                                         accepted_bids_for_agent: List[BidWithAcceptanceStatus]) -> List[Trade]:
+                                         accepted_bids_for_agent: List[BidWithAcceptanceStatus]) -> \
+            Tuple[List[Trade], Dict[TradeMetadataKey, Any]]:
+        trades = []
         # In this implementation, the battery never sells or buys directly from the external grid.
         if len(accepted_bids_for_agent) > 1:
             # Only supporting one Resource, this would be unexpected
@@ -110,14 +112,14 @@ class StorageAgent(IAgent):
             if accepted_bids_for_agent[0].action == Action.BUY:
                 actual_charge_quantity = self.digital_twin.charge(bid_quantity)
                 if actual_charge_quantity > 0:
-                    return [self.construct_trade(Action.BUY, self.resource, actual_charge_quantity,
-                                                 clearing_price, Market.LOCAL, period)]
+                    trades = [self.construct_trade(Action.BUY, self.resource, actual_charge_quantity,
+                                                   clearing_price, Market.LOCAL, period)]
             else:  # action was SELL
                 actual_discharge_quantity = self.digital_twin.discharge(bid_quantity)
                 if actual_discharge_quantity > 0:
-                    return [self.construct_trade(Action.SELL, self.resource, actual_discharge_quantity,
-                                                 clearing_price, Market.LOCAL, period)]
-        return []
+                    trades = [self.construct_trade(Action.SELL, self.resource, actual_discharge_quantity,
+                                                   clearing_price, Market.LOCAL, period)]
+        return trades, {TradeMetadataKey.STORAGE_LEVEL: self.digital_twin.capacity_kwh}
 
     def calculate_buy_price(self, prices_last_n_hours: List[float]):
         return np.percentile(prices_last_n_hours, self.if_lower_than_this_percentile_then_buy)
