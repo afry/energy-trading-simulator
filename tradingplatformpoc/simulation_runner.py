@@ -2,7 +2,7 @@ import datetime
 import json
 import logging
 import pickle
-from typing import Any, Collection, Dict, List, Tuple
+from typing import Any, Collection, Dict, List, TextIO, Tuple
 
 import pandas as pd
 
@@ -103,13 +103,8 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
                                        if bid.source == agent.guid and bid.was_accepted]
             trades, metadata = agent.make_trades_given_clearing_price(period, clearing_prices, accepted_bids_for_agent)
             trades_excl_external.extend(trades)
-            if TradeMetadataKey.STORAGE_LEVEL in metadata:
-                capacity_for_agent = metadata[TradeMetadataKey.STORAGE_LEVEL]
-                storage_levels_csv_file.write(str(period) + ',' + agent.guid + ',' + str(capacity_for_agent) + '\n')
-                add_to_nested_dict(storage_levels_dict, agent.guid, period, capacity_for_agent)
-            if TradeMetadataKey.HEAT_PUMP_WORKLOAD in metadata:
-                current_heat_pump_level = metadata[TradeMetadataKey.HEAT_PUMP_WORKLOAD]
-                add_to_nested_dict(heat_pump_levels_dict, agent.guid, period, current_heat_pump_level)
+            go_through_trades_metadata(metadata, period, agent.guid, heat_pump_levels_dict, storage_levels_dict,
+                                       storage_levels_csv_file)
 
         trades_excl_external = [i for i in trades_excl_external if i]  # filter out None
         external_trades = flatten_collection([ga.calculate_external_trades(trades_excl_external, clearing_prices)
@@ -175,6 +170,27 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
                              heat_pump_levels_dict=heat_pump_levels_dict,
                              config_data=config_data,
                              agents=agents)
+
+
+def go_through_trades_metadata(metadata: Dict[TradeMetadataKey, Any], period: datetime.datetime, agent_guid: str,
+                               heat_pump_levels_dict: Dict[str, Dict[datetime.datetime, float]],
+                               storage_levels_dict: Dict[str, Dict[datetime.datetime, float]],
+                               storage_levels_csv_file: TextIO):
+    """
+    The agent may want to send some metadata along with its trade, to the simulation runner. Any such metadata is dealt
+    with here.
+    """
+    for metadata_key in metadata:
+        if metadata_key == TradeMetadataKey.STORAGE_LEVEL:
+            capacity_for_agent = metadata[metadata_key]
+            storage_levels_csv_file.write(str(period) + ',' + agent_guid + ',' + str(capacity_for_agent) + '\n')
+            add_to_nested_dict(storage_levels_dict, agent_guid, period, capacity_for_agent)
+        elif metadata_key == TradeMetadataKey.HEAT_PUMP_WORKLOAD:
+            current_heat_pump_level = metadata[metadata_key]
+            add_to_nested_dict(heat_pump_levels_dict, agent_guid, period, current_heat_pump_level)
+        else:
+            logger.info('Encountered unexpected metadata! Key: {}, Value: {}'.
+                        format(metadata_key, metadata[metadata_key]))
 
 
 def get_external_heating_prices(data_store_entity: DataStore, trading_periods: Collection[datetime.datetime]) -> \
