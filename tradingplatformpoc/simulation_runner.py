@@ -2,7 +2,7 @@ import datetime
 import json
 import logging
 import pickle
-from typing import Any, Collection, Dict, List, TextIO, Tuple, Union
+from typing import Any, Collection, Dict, List, Tuple, Union
 
 import pandas as pd
 
@@ -15,7 +15,7 @@ from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.agent.storage_agent import StorageAgent
 from tradingplatformpoc.balance_manager import correct_for_exact_heating_price
-from tradingplatformpoc.bid import Action, Bid, BidWithAcceptanceStatus, Resource, write_bid_rows
+from tradingplatformpoc.bid import Action, Bid, BidWithAcceptanceStatus, Resource
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
@@ -48,14 +48,6 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
     # Output files
     clearing_prices_file = open(results_path + 'clearing_prices.csv', 'w')
     clearing_prices_file.write('period,electricity,heating\n')
-    trades_csv_file = open(results_path + 'trades.csv', 'w')
-    trades_csv_file.write('period,agent,by_external,action,resource,market,quantity,price\n')
-    bids_csv_file = open(results_path + 'bids.csv', 'w')
-    bids_csv_file.write('period,agent,by_external,action,resource,quantity,price,was_accepted\n')
-    extra_costs_file = open(results_path + 'extra_costs.csv', 'w')
-    extra_costs_file.write('period,agent,cost_type,cost\n')
-    storage_levels_csv_file = open(results_path + 'storages.csv', 'w')
-    storage_levels_csv_file.write('period,agent,capacity_kwh\n')
     # Output lists
     clearing_prices_historical: Dict[datetime.datetime, Dict[Resource, float]] = {}
     all_trades_dict: Dict[datetime.datetime, Collection[Trade]] = {}
@@ -90,7 +82,6 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
 
         clearing_prices_file.write('{},{},{}\n'.format(period, clearing_prices[Resource.ELECTRICITY],
                                                        clearing_prices[Resource.HEATING]))
-        bids_csv_file.write(write_bid_rows(bids_with_acceptance_status, period))
         all_bids_dict[period] = bids_with_acceptance_status
 
         # Send clearing price back to agents, allow them to "make trades", i.e. decide if they want to buy/sell
@@ -103,15 +94,13 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
                                        if bid.source == agent.guid and bid.was_accepted]
             trades, metadata = agent.make_trades_given_clearing_price(period, clearing_prices, accepted_bids_for_agent)
             trades_excl_external.extend(trades)
-            go_through_trades_metadata(metadata, period, agent.guid, heat_pump_levels_dict, storage_levels_dict,
-                                       storage_levels_csv_file)
+            go_through_trades_metadata(metadata, period, agent.guid, heat_pump_levels_dict, storage_levels_dict)
 
         trades_excl_external = [i for i in trades_excl_external if i]  # filter out None
         external_trades = flatten_collection([ga.calculate_external_trades(trades_excl_external, clearing_prices)
                                               for ga in grid_agents])
         all_trades_for_period = trades_excl_external + external_trades
         all_trades_dict[period] = all_trades_for_period
-        trades_csv_file.writelines([str(trade) + "\n" for trade in all_trades_for_period])
 
         external_heating_sell_quantity = get_quantity_heating_sold_by_external_grid(external_trades)
         data_store_entity.add_external_heating_sell(period, external_heating_sell_quantity)
@@ -143,18 +132,12 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
                                                                   estimated_wholesale_heating_prices_by_year_and_month)
     all_extra_costs.extend(heat_cost_discr_corrections)
 
-    extra_costs_file.writelines([str(ec) + "\n" for ec in all_extra_costs])
-
     # Save the config used in the results folder as well
     with open(results_path + 'config_used.json', 'w') as file_path:
         json.dump(config_data, file_path, indent="\t")
 
     # Exit gracefully
     clearing_prices_file.close()
-    trades_csv_file.close()
-    bids_csv_file.close()
-    extra_costs_file.close()
-    storage_levels_csv_file.close()
 
     results_calculator.print_basic_results(agents, all_trades_dict, all_extra_costs,
                                            exact_retail_electricity_prices_by_period,
@@ -175,8 +158,7 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
 
 def go_through_trades_metadata(metadata: Dict[TradeMetadataKey, Any], period: datetime.datetime, agent_guid: str,
                                heat_pump_levels_dict: Dict[str, Dict[datetime.datetime, float]],
-                               storage_levels_dict: Dict[str, Dict[datetime.datetime, float]],
-                               storage_levels_csv_file: TextIO):
+                               storage_levels_dict: Dict[str, Dict[datetime.datetime, float]]):
     """
     The agent may want to send some metadata along with its trade, to the simulation runner. Any such metadata is dealt
     with here.
@@ -184,7 +166,6 @@ def go_through_trades_metadata(metadata: Dict[TradeMetadataKey, Any], period: da
     for metadata_key in metadata:
         if metadata_key == TradeMetadataKey.STORAGE_LEVEL:
             capacity_for_agent = metadata[metadata_key]
-            storage_levels_csv_file.write(str(period) + ',' + agent_guid + ',' + str(capacity_for_agent) + '\n')
             add_to_nested_dict(storage_levels_dict, agent_guid, period, capacity_for_agent)
         elif metadata_key == TradeMetadataKey.HEAT_PUMP_WORKLOAD:
             current_heat_pump_level = metadata[metadata_key]
