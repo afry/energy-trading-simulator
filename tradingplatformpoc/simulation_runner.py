@@ -2,7 +2,7 @@ import datetime
 import json
 import logging
 import pickle
-from typing import Any, Collection, Dict, List, TextIO, Tuple
+from typing import Any, Collection, Dict, List, TextIO, Tuple, Union
 
 import pandas as pd
 
@@ -163,13 +163,14 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
                                            exact_wholesale_heating_prices_by_year_and_month)
 
     return SimulationResults(clearing_prices_historical=clearing_prices_historical,
-                             all_trades_dict=all_trades_dict,
+                             all_trades=construct_df(all_trades_dict),
                              all_extra_costs=all_extra_costs,
-                             all_bids_dict=all_bids_dict,
+                             all_bids=construct_df(all_bids_dict),
                              storage_levels_dict=storage_levels_dict,
                              heat_pump_levels_dict=heat_pump_levels_dict,
                              config_data=config_data,
-                             agents=agents)
+                             agents=agents,
+                             data_store=data_store_entity)
 
 
 def go_through_trades_metadata(metadata: Dict[TradeMetadataKey, Any], period: datetime.datetime, agent_guid: str,
@@ -309,3 +310,15 @@ def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings
 def get_quantity_heating_sold_by_external_grid(external_trades: List[Trade]) -> float:
     return sum([x.quantity for x in external_trades if
                 (x.resource == Resource.HEATING) & (x.action == Action.SELL)])
+
+
+def construct_df(some_dict: Dict[datetime.datetime, Union[Collection[BidWithAcceptanceStatus], Collection[Trade]]]) -> \
+        pd.DataFrame:
+    """
+    Streamlit likes to deal with pd.DataFrames, so we'll save data in that format.
+    Takes a little while to run - about 20 seconds for an input with 8760 keys and 30-35 entries per key.
+    """
+    series_list = []
+    for (period, some_collection) in some_dict.items():
+        series_list.extend([x.to_series_with_period(period) for x in some_collection])
+    return pd.DataFrame(series_list)

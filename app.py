@@ -3,11 +3,10 @@ import pickle
 from pkg_resources import resource_filename
 
 from tradingplatformpoc.app import app_constants
-from tradingplatformpoc.app.app_functions import add_building_agent, add_grid_agent, add_grocery_store_agent, \
+from tradingplatformpoc.app.app_functions import add_building_agent, add_grocery_store_agent, \
     add_pv_agent, add_storage_agent, agent_inputs, construct_price_chart, construct_storage_level_chart, \
-    get_price_df_when_local_price_inbetween, load_data, remove_agent, remove_all_building_agents, construct_prices_df
+    get_price_df_when_local_price_inbetween, remove_all_building_agents, construct_prices_df
 from tradingplatformpoc.bid import Resource
-from tradingplatformpoc.simulation_results import SimulationResults
 from tradingplatformpoc.simulation_runner import run_trading_simulations
 import json
 import logging
@@ -222,18 +221,20 @@ if __name__ == '__main__':
                                                                  Resource.ELECTRICITY))
 
     elif page_selected == app_constants.BIDS_PAGE:
-        if 'combined_price_df' in st.session_state:
-            agent_chosen = st.selectbox(label='Choose agent', options=st.session_state.agents_sorted)
+        if 'simulation_results' in st.session_state:
+            agent_ids = [x.guid for x in st.session_state.simulation_results.agents]
+            agent_chosen = st.selectbox(label='Choose agent', options=agent_ids)
             st.write('Bids for ' + agent_chosen + ':')
-            st.dataframe(st.session_state.bids_df.loc[st.session_state.bids_df.agent == agent_chosen].
-                         drop(['agent'], axis=1))
+            st.dataframe(st.session_state.simulation_results.all_bids.loc[st.session_state.simulation_results.
+                         all_bids.source == agent_chosen].drop(['source'], axis=1).set_index(['period']))
             st.write('Trades for ' + agent_chosen + ':')
-            st.dataframe(st.session_state.trades_df.loc[st.session_state.trades_df.agent == agent_chosen].
-                         drop(['agent'], axis=1))
+            st.dataframe(st.session_state.simulation_results.all_trades.loc[st.session_state.simulation_results.
+                         all_trades.source == agent_chosen].drop(['source'], axis=1).set_index(['period']))
 
-            if agent_chosen in st.session_state.storage_levels.agent.unique():
+            if agent_chosen in st.session_state.simulation_results.storage_levels_dict:
                 st.write('Charging level over time for ' + agent_chosen + ':')
-                storage_chart = construct_storage_level_chart(st.session_state.storage_levels, agent_chosen)
+                storage_chart = construct_storage_level_chart(
+                    st.session_state.simulation_results.storage_levels_dict[agent_chosen])
                 st.altair_chart(storage_chart, use_container_width=True)
         else:
             st.write('Run simulations and load data first!')
