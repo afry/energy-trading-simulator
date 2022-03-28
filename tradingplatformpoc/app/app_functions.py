@@ -1,19 +1,15 @@
 import datetime
-import json
-from typing import Any, Dict, Collection, Union
+from typing import Any, Dict
 
 import altair as alt
-
-import numpy as np
 
 import pandas as pd
 
 import streamlit as st
 
 from tradingplatformpoc.app import app_constants
-from tradingplatformpoc.bid import Resource, BidWithAcceptanceStatus
+from tradingplatformpoc.bid import Resource
 from tradingplatformpoc.simulation_results import SimulationResults
-from tradingplatformpoc.trade import Trade
 from tradingplatformpoc.trading_platform_utils import ALL_AGENT_TYPES, ALL_IMPLEMENTED_RESOURCES_STR, get_if_exists_else
 
 
@@ -47,8 +43,8 @@ def construct_price_chart(prices_df: pd.DataFrame, resource: Resource) -> alt.Ch
         interactive(bind_y=False)
 
 
-def construct_storage_level_chart(storage_levels: Dict[datetime.datetime, float]) -> alt.Chart:
-    storage_levels = pd.DataFrame.from_dict(storage_levels, orient='index').reset_index()
+def construct_storage_level_chart(storage_levels_dict: Dict[datetime.datetime, float]) -> alt.Chart:
+    storage_levels = pd.DataFrame.from_dict(storage_levels_dict, orient='index').reset_index()
     storage_levels.columns = ['period', 'capacity_kwh']
     return alt.Chart(storage_levels).mark_line(). \
         encode(x=alt.X('period', axis=alt.Axis(title='Period')),

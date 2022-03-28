@@ -312,7 +312,8 @@ def get_quantity_heating_sold_by_external_grid(external_trades: List[Trade]) -> 
                 (x.resource == Resource.HEATING) & (x.action == Action.SELL)])
 
 
-def construct_df(some_dict: Dict[datetime.datetime, Union[Collection[BidWithAcceptanceStatus], Collection[Trade]]]) -> \
+def construct_df(some_dict: Union[Dict[datetime.datetime, Collection[BidWithAcceptanceStatus]],
+                                  Dict[datetime.datetime, Collection[Trade]]]) -> \
         pd.DataFrame:
     """
     Streamlit likes to deal with pd.DataFrames, so we'll save data in that format.
