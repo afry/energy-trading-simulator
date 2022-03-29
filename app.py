@@ -5,7 +5,7 @@ from pkg_resources import resource_filename
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.app.app_functions import add_building_agent, add_grocery_store_agent, \
     add_pv_agent, add_storage_agent, agent_inputs, construct_price_chart, construct_storage_level_chart, \
-    get_price_df_when_local_price_inbetween, remove_all_building_agents, construct_prices_df
+    get_price_df_when_local_price_inbetween, remove_all_building_agents, construct_prices_df, get_viewable_df
 from tradingplatformpoc.bid import Resource
 from tradingplatformpoc.simulation_runner import run_trading_simulations
 import json
@@ -225,11 +225,9 @@ if __name__ == '__main__':
             agent_ids = [x.guid for x in st.session_state.simulation_results.agents]
             agent_chosen = st.selectbox(label='Choose agent', options=agent_ids)
             st.write('Bids for ' + agent_chosen + ':')
-            st.dataframe(st.session_state.simulation_results.all_bids.loc[st.session_state.simulation_results.
-                         all_bids.source == agent_chosen].drop(['source'], axis=1).set_index(['period']))
+            st.dataframe(get_viewable_df(st.session_state.simulation_results.all_bids, agent_chosen))
             st.write('Trades for ' + agent_chosen + ':')
-            st.dataframe(st.session_state.simulation_results.all_trades.loc[st.session_state.simulation_results.
-                         all_trades.source == agent_chosen].drop(['source'], axis=1).set_index(['period']))
+            st.dataframe(get_viewable_df(st.session_state.simulation_results.all_trades, agent_chosen))
 
             if agent_chosen in st.session_state.simulation_results.storage_levels_dict:
                 st.write('Charging level over time for ' + agent_chosen + ':')

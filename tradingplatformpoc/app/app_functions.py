@@ -1,4 +1,5 @@
 import datetime
+from enum import Enum
 from typing import Any, Dict
 
 import altair as alt
@@ -76,6 +77,19 @@ def construct_prices_df(simulation_results: SimulationResults) -> pd.DataFrame:
     wholesale_df['value'] = wholesale_df['value'] + data_store_entity.elec_wholesale_offset
     wholesale_df['variable'] = app_constants.WHOLESALE_PRICE_STR
     return pd.concat([clearing_prices_df, retail_df, wholesale_df])
+
+
+def get_viewable_df(full_df: pd.DataFrame, source: str) -> pd.DataFrame:
+    """
+    Will filter on the given 'source', drop the 'source' and 'by_external' columns, set 'period' as index, and
+    finally transform all Enums so that only their name is kept (i.e. 'Action.BUY' becomes 'BUY', which streamlit can
+    serialize.
+    """
+    return full_df.\
+        loc[full_df.source == source].\
+        drop(['source', 'by_external'], axis=1).\
+        set_index(['period']). \
+        apply(lambda x: x.apply(lambda y: y.name) if isinstance(x.iloc[0], Enum) else x)
 
 
 def remove_agent(some_agent):
