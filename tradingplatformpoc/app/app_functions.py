@@ -1,6 +1,6 @@
 import datetime
 from enum import Enum
-from typing import Any, Dict
+from typing import Any, Dict, Iterable
 
 import altair as alt
 
@@ -8,8 +8,10 @@ import pandas as pd
 
 import streamlit as st
 
+from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.bid import Resource
+from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.simulation_results import SimulationResults
 from tradingplatformpoc.trading_platform_utils import ALL_AGENT_TYPES, ALL_IMPLEMENTED_RESOURCES_STR, get_if_exists_else
 
@@ -42,6 +44,52 @@ def construct_price_chart(prices_df: pd.DataFrame, resource: Resource) -> alt.Ch
                         alt.Tooltip(field='variable', title='Variable'),
                         alt.Tooltip(field='value', title='Value')]). \
         interactive(bind_y=False)
+
+
+def construct_static_digital_twin_chart(digital_twin: StaticDigitalTwin) -> alt.Chart:
+    df = pd.DataFrame()
+    if digital_twin.electricity_usage is not None:
+        df = pd.concat((df, pd.DataFrame({'period': digital_twin.electricity_usage.index,
+                                          'value': digital_twin.electricity_usage.values,
+                                          'variable': 'Electricity consumption'})))
+    if digital_twin.electricity_production is not None:
+        df = pd.concat((df, pd.DataFrame({'period': digital_twin.electricity_production.index,
+                                          'value': digital_twin.electricity_production.values,
+                                          'variable': 'Electricity production'})))
+    if digital_twin.heating_usage is not None:
+        df = pd.concat((df, pd.DataFrame({'period': digital_twin.heating_usage.index,
+                                          'value': digital_twin.heating_usage.values,
+                                          'variable': 'Heat consumption'})))
+    if digital_twin.heating_production is not None:
+        df = pd.concat((df, pd.DataFrame({'period': digital_twin.heating_production.index,
+                                          'value': digital_twin.heating_production.values,
+                                          'variable': 'Heat production'})))
+    return alt.Chart(df).mark_line(). \
+        encode(x=alt.X('period:T', axis=alt.Axis(title='Period')),
+               y=alt.Y('value', axis=alt.Axis(title='Energy [kWh]')),
+               color='variable',
+               tooltip=[alt.Tooltip(field='period', title='Period', type='temporal', format='%Y-%m-%d %H:%M'),
+                        alt.Tooltip(field='variable', title='Variable'),
+                        alt.Tooltip(field='value', title='Value')]). \
+        interactive(bind_y=False)
+
+
+def construct_building_with_heat_pump_chart(digital_twin: StaticDigitalTwin,
+                                            heat_pump_data: Dict[datetime.datetime, float]):# -> alt.Chart:
+    """Should just return 1 chart, currently 2 for evaluation purposes"""
+    base = construct_static_digital_twin_chart(digital_twin)
+    if heat_pump_data is None:
+        return base
+
+    heat_pump_df = pd.DataFrame.from_dict(heat_pump_data, orient='index').reset_index()
+    heat_pump_df.columns = ['period', 'Heat pump workload']
+    heat_pump_chart = alt.Chart(heat_pump_df).mark_line(stroke='gray').encode(
+        x=alt.X('period:T', axis=alt.Axis(title='Period')),
+        y=alt.Y('Heat pump workload', axis=alt.Axis(title='Heat pump workload', titleColor='gray')),
+        tooltip=[alt.Tooltip(field='period', title='Period', type='temporal', format='%Y-%m-%d %H:%M'),
+                 alt.Tooltip(field='Heat pump workload', title='Heat pump workload', type='quantitative')]
+    )
+    return alt.layer(base, heat_pump_chart).resolve_scale(y='independent'), heat_pump_chart
 
 
 def construct_storage_level_chart(storage_levels_dict: Dict[datetime.datetime, float]) -> alt.Chart:
@@ -85,9 +133,9 @@ def get_viewable_df(full_df: pd.DataFrame, source: str) -> pd.DataFrame:
     finally transform all Enums so that only their name is kept (i.e. 'Action.BUY' becomes 'BUY', which streamlit can
     serialize.
     """
-    return full_df.\
-        loc[full_df.source == source].\
-        drop(['source', 'by_external'], axis=1).\
+    return full_df. \
+        loc[full_df.source == source]. \
+        drop(['source', 'by_external'], axis=1). \
         set_index(['period']). \
         apply(lambda x: x.apply(lambda y: y.name) if isinstance(x.iloc[0], Enum) else x)
 
@@ -249,3 +297,7 @@ def agent_inputs(agent):
     else:
         st.button('Remove agent', key='RemoveButton' + agent['Name'], on_click=remove_agent, args=(agent,))
     form.form_submit_button('Save agent')
+
+
+def get_agent(all_agents: Iterable[IAgent], agent_chosen_guid: str) -> IAgent:
+    return [x for x in all_agents if x.guid == agent_chosen_guid][0]

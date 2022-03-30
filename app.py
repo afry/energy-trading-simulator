@@ -2,10 +2,12 @@ import pickle
 
 from pkg_resources import resource_filename
 
+from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.app.app_functions import add_building_agent, add_grocery_store_agent, \
     add_pv_agent, add_storage_agent, agent_inputs, construct_price_chart, construct_storage_level_chart, \
-    get_price_df_when_local_price_inbetween, remove_all_building_agents, construct_prices_df, get_viewable_df
+    get_price_df_when_local_price_inbetween, remove_all_building_agents, construct_prices_df, get_viewable_df, \
+    get_agent, construct_static_digital_twin_chart, construct_building_with_heat_pump_chart
 from tradingplatformpoc.bid import Resource
 from tradingplatformpoc.simulation_runner import run_trading_simulations
 import json
@@ -216,23 +218,35 @@ if __name__ == '__main__':
 
         if 'price_chart' in st.session_state:
             st.altair_chart(st.session_state.price_chart, use_container_width=True)
-            st.write("Periods where local electricity price was between external retail and wholesale price:")
-            st.dataframe(get_price_df_when_local_price_inbetween(st.session_state.combined_price_df,
-                                                                 Resource.ELECTRICITY))
+            with st.expander("Periods where local electricity price was between external retail and wholesale price:"):
+                st.dataframe(get_price_df_when_local_price_inbetween(st.session_state.combined_price_df,
+                                                                     Resource.ELECTRICITY))
 
     elif page_selected == app_constants.BIDS_PAGE:
         if 'simulation_results' in st.session_state:
             agent_ids = [x.guid for x in st.session_state.simulation_results.agents]
-            agent_chosen = st.selectbox(label='Choose agent', options=agent_ids)
-            st.write('Bids for ' + agent_chosen + ':')
-            st.dataframe(get_viewable_df(st.session_state.simulation_results.all_bids, agent_chosen))
-            st.write('Trades for ' + agent_chosen + ':')
-            st.dataframe(get_viewable_df(st.session_state.simulation_results.all_trades, agent_chosen))
+            agent_chosen_guid = st.selectbox(label='Choose agent', options=agent_ids)
+            with st.expander('Bids'):
+                st.dataframe(get_viewable_df(st.session_state.simulation_results.all_bids, agent_chosen_guid))
+            with st.expander('Trades'):
+                st.dataframe(get_viewable_df(st.session_state.simulation_results.all_trades, agent_chosen_guid))
+            agent_chosen = get_agent(st.session_state.simulation_results.agents, agent_chosen_guid)
 
-            if agent_chosen in st.session_state.simulation_results.storage_levels_dict:
-                st.write('Charging level over time for ' + agent_chosen + ':')
-                storage_chart = construct_storage_level_chart(
-                    st.session_state.simulation_results.storage_levels_dict[agent_chosen])
-                st.altair_chart(storage_chart, use_container_width=True)
+            if agent_chosen_guid in st.session_state.simulation_results.storage_levels_dict:
+                with st.expander('Charging level over time for ' + agent_chosen_guid + ':'):
+                    storage_chart = construct_storage_level_chart(
+                        st.session_state.simulation_results.storage_levels_dict[agent_chosen_guid])
+                    st.altair_chart(storage_chart, use_container_width=True)
+
+            if isinstance(agent_chosen, BuildingAgent):
+                with st.expander('Energy production/consumption'):
+                    digital_twin_chart = construct_static_digital_twin_chart(agent_chosen.digital_twin)
+                    st.altair_chart(digital_twin_chart, use_container_width=True)
+                with st.expander('Energy production/consumption incl. heat pump'):
+                    heat_pump_data = st.session_state.simulation_results.heat_pump_levels_dict[agent_chosen_guid]
+                    hp_chart1, hp_chart2 = construct_building_with_heat_pump_chart(agent_chosen.digital_twin, heat_pump_data)
+                    st.altair_chart(hp_chart1, use_container_width=True)
+                    st.altair_chart(hp_chart2, use_container_width=True)
+
         else:
             st.write('Run simulations and load data first!')
