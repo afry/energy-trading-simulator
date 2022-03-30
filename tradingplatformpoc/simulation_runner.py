@@ -45,9 +45,6 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
     # Load generated mock data
     buildings_mock_data: pd.DataFrame = get_generated_mock_data(config_data, mock_datas_pickle_path)
 
-    # Output files
-    clearing_prices_file = open(results_path + 'clearing_prices.csv', 'w')
-    clearing_prices_file.write('period,electricity,heating\n')
     # Output lists
     clearing_prices_historical: Dict[datetime.datetime, Dict[Resource, float]] = {}
     all_trades_dict: Dict[datetime.datetime, Collection[Trade]] = {}
@@ -80,8 +77,6 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
         clearing_prices, bids_with_acceptance_status = market_solver.resolve_bids(period, bids_flat)
         clearing_prices_historical[period] = clearing_prices
 
-        clearing_prices_file.write('{},{},{}\n'.format(period, clearing_prices[Resource.ELECTRICITY],
-                                                       clearing_prices[Resource.HEATING]))
         all_bids_dict[period] = bids_with_acceptance_status
 
         # Send clearing price back to agents, allow them to "make trades", i.e. decide if they want to buy/sell
@@ -135,9 +130,6 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
     # Save the config used in the results folder as well
     with open(results_path + 'config_used.json', 'w') as file_path:
         json.dump(config_data, file_path, indent="\t")
-
-    # Exit gracefully
-    clearing_prices_file.close()
 
     results_calculator.print_basic_results(agents, all_trades_dict, all_extra_costs,
                                            exact_retail_electricity_prices_by_period,
