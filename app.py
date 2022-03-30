@@ -1,9 +1,11 @@
+import pickle
+
 from pkg_resources import resource_filename
 
 from tradingplatformpoc.app import app_constants
-from tradingplatformpoc.app.app_functions import add_building_agent, add_grid_agent, add_grocery_store_agent, \
+from tradingplatformpoc.app.app_functions import add_building_agent, add_grocery_store_agent, \
     add_pv_agent, add_storage_agent, agent_inputs, construct_price_chart, construct_storage_level_chart, \
-    get_price_df_when_local_price_inbetween, load_data, remove_agent, remove_all_building_agents
+    get_price_df_when_local_price_inbetween, remove_all_building_agents, construct_prices_df, get_viewable_df
 from tradingplatformpoc.bid import Resource
 from tradingplatformpoc.simulation_runner import run_trading_simulations
 import json
@@ -77,6 +79,10 @@ if __name__ == '__main__':
     elif page_selected == app_constants.SETUP_PAGE:
 
         run_sim = st.button("Click here to run simulation")
+        success_placeholder = st.empty()
+        results_download_button = st.empty()
+        results_download_button.download_button(label="Download simulation results", data=b'placeholder',
+                                                disabled=True)
 
         if ("config_data" not in st.session_state.keys()) or (st.session_state.config_data is None):
             logger.debug("Using default configuration")
@@ -178,25 +184,35 @@ if __name__ == '__main__':
             logger.info("Running simulation")
             st.spinner("Running simulation")
             simulation_results = run_trading_simulations(st.session_state.config_data, mock_datas_path, results_path)
-            st.success('Simulation finished!')
+            st.session_state.simulation_results = simulation_results
+            logger.info("Simulation finished!")
+            success_placeholder.success('Simulation finished!')
+            results_download_button.download_button(label="Download simulation results",
+                                                    data=pickle.dumps(simulation_results),
+                                                    file_name="simulation_results.pickle",
+                                                    mime='application/octet-stream')
 
     elif page_selected == app_constants.LOAD_PAGE:
-        data_button = st.button("Click here to load data")
-        if data_button:
-            data_button = False
-            logger.info("Loading data")
-            st.spinner("Loading data")
-            combined_price_df, bids_df, trades_df, storage_levels = load_data(results_path)
-            st.session_state.combined_price_df = combined_price_df
-            st.session_state.bids_df = bids_df
-            st.session_state.trades_df = trades_df
-            st.session_state.storage_levels = storage_levels
-            st.session_state.agents_sorted = sorted(bids_df.agent.unique())
-            st.success("Data loaded!")
 
-            price_chart = construct_price_chart(combined_price_df, Resource.ELECTRICITY)
+        uploaded_results_file = st.file_uploader(label="Upload results", type="pickle", help="Some help-text")
+        if uploaded_results_file is not None:
+            st.session_state.uploaded_results_file = uploaded_results_file
+            logger.info("Reading uploaded results file")
+            st.session_state.simulation_results = pickle.load(uploaded_results_file)
+
+        load_button = st.button("Click here to load data", disabled='simulation_results' not in st.session_state)
+
+        if load_button:
+            load_button = False
+            logger.info("Constructing price graph")
+            st.spinner("Constructing price graph")
+
+            st.session_state.combined_price_df = construct_prices_df(st.session_state.simulation_results)
+            price_chart = construct_price_chart(st.session_state.combined_price_df, Resource.ELECTRICITY)
 
             st.session_state.price_chart = price_chart
+
+            st.success("Data loaded!")
 
         if 'price_chart' in st.session_state:
             st.altair_chart(st.session_state.price_chart, use_container_width=True)
@@ -205,18 +221,18 @@ if __name__ == '__main__':
                                                                  Resource.ELECTRICITY))
 
     elif page_selected == app_constants.BIDS_PAGE:
-        if 'combined_price_df' in st.session_state:
-            agent_chosen = st.selectbox(label='Choose agent', options=st.session_state.agents_sorted)
+        if 'simulation_results' in st.session_state:
+            agent_ids = [x.guid for x in st.session_state.simulation_results.agents]
+            agent_chosen = st.selectbox(label='Choose agent', options=agent_ids)
             st.write('Bids for ' + agent_chosen + ':')
-            st.dataframe(st.session_state.bids_df.loc[st.session_state.bids_df.agent == agent_chosen].
-                         drop(['agent'], axis=1))
+            st.dataframe(get_viewable_df(st.session_state.simulation_results.all_bids, agent_chosen))
             st.write('Trades for ' + agent_chosen + ':')
-            st.dataframe(st.session_state.trades_df.loc[st.session_state.trades_df.agent == agent_chosen].
-                         drop(['agent'], axis=1))
+            st.dataframe(get_viewable_df(st.session_state.simulation_results.all_trades, agent_chosen))
 
-            if agent_chosen in st.session_state.storage_levels.agent.unique():
+            if agent_chosen in st.session_state.simulation_results.storage_levels_dict:
                 st.write('Charging level over time for ' + agent_chosen + ':')
-                storage_chart = construct_storage_level_chart(st.session_state.storage_levels, agent_chosen)
+                storage_chart = construct_storage_level_chart(
+                    st.session_state.simulation_results.storage_levels_dict[agent_chosen])
                 st.altair_chart(storage_chart, use_container_width=True)
         else:
             st.write('Run simulations and load data first!')

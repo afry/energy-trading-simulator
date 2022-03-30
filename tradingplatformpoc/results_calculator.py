@@ -1,8 +1,6 @@
 import datetime
 from typing import Collection, Dict, Iterable, List, Tuple
 
-import streamlit as st
-
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.storage_agent import StorageAgent
@@ -17,10 +15,8 @@ def print_basic_results(agents: Iterable[IAgent], all_trades_dict: Dict[datetime
                         exact_wholesale_electricity_prices_by_period: Dict[datetime.datetime, float],
                         exact_retail_heating_prices_by_year_and_month: Dict[Tuple[int, int], float],
                         exact_wholesale_heating_prices_by_year_and_month: Dict[Tuple[int, int], float]):
-    # FUTURE: We should probably move away from just typing this out as strings. Perhaps construct a DF here where each
-    # row represents an agent, and there are columns for "quantity heating bought", "sek bought elec for", ...
-    # That way we can show it better in the UI.
-    st.write(""" ## Results: """)
+    # FUTURE: Perhaps construct a DF here where each row represents an agent, and there are columns for "quantity
+    # heating bought", "sek bought elec for", ... That way we can show it in the UI.
     for agent in agents:
         print_basic_results_for_agent(agent, all_trades_dict, all_extra_costs,
                                       exact_retail_electricity_prices_by_period,
@@ -141,4 +137,3 @@ def get_relevant_price(electricity_prices_by_period: Dict[datetime.datetime, flo
 
 def print_message(message: str):
     print(message)
-    st.write(message)

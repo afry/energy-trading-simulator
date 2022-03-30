@@ -1,6 +1,8 @@
 import datetime
 from enum import Enum
 
+import pandas as pd
+
 from tradingplatformpoc.bid import Action, Resource, action_string, resource_string
 
 
@@ -65,12 +67,16 @@ class Trade:
                                                 self.quantity,
                                                 self.price)
 
-    def get_cost_of_trade(self) -> float:
-        """Negative if it is an income, i.e. if the trade is a SELL"""
-        if self.action == Action.BUY:
-            return self.quantity * self.price
-        else:
-            return -self.quantity * self.price
+    def to_series_with_period(self, period: datetime.datetime) -> pd.Series:
+        """Same function name as the one in BidWithAcceptanceStatus, so that the same method can be reused."""
+        return pd.Series(data={'period': self.period,
+                               'source': self.source,
+                               'by_external': self.by_external,
+                               'action': self.action,
+                               'resource': self.resource,
+                               'market': self.market,
+                               'quantity': self.quantity,
+                               'price': self.price})
 
 
 def market_string(market: Market) -> str:

@@ -3,6 +3,8 @@ import logging
 from enum import Enum
 from typing import Iterable
 
+import pandas as pd
+
 
 class Action(Enum):
     BUY = 0
@@ -74,7 +76,7 @@ class BidWithAcceptanceStatus(Bid):
         return BidWithAcceptanceStatus(bid.action, bid.resource, bid.quantity, bid.price, bid.source, bid.by_external,
                                        was_accepted)
 
-    def to_string_with_period(self, period: datetime.datetime):
+    def to_string_with_period(self, period: datetime.datetime) -> str:
         return "{},{},{},{},{},{},{},{}".format(period,
                                                 self.source,
                                                 self.by_external,
@@ -83,6 +85,16 @@ class BidWithAcceptanceStatus(Bid):
                                                 self.quantity,
                                                 self.price,
                                                 self.was_accepted)
+
+    def to_series_with_period(self, period: datetime.datetime) -> pd.Series:
+        return pd.Series(data={'period': period,
+                               'source': self.source,
+                               'by_external': self.by_external,
+                               'action': self.action,
+                               'resource': self.resource,
+                               'quantity': self.quantity,
+                               'price': self.price,
+                               'was_accepted': self.was_accepted})
 
 
 def write_bid_rows(bids_with_acceptance_status: Iterable[BidWithAcceptanceStatus], period: datetime.datetime) -> str:

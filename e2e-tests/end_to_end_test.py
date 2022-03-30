@@ -29,24 +29,35 @@ class Test(TestCase):
         simulation_results = simulation_runner.run_trading_simulations(config_data, mock_datas_file_path, results_path)
 
         for period in simulation_results.clearing_prices_historical.keys():
-            trades_for_period = simulation_results.all_trades_dict[period]
+            trades_for_period = simulation_results.all_trades.loc[simulation_results.all_trades.period == period]
             extra_costs_for_period = [ec for ec in simulation_results.all_extra_costs if (ec.period == period)]
             for resource in ALL_IMPLEMENTED_RESOURCES:
-                trades_for_period_and_resource = [x for x in trades_for_period if x.resource == resource]
-                energy_bought_kwh = sum([x.quantity for x in trades_for_period_and_resource if x.action == Action.BUY])
-                energy_sold_kwh = sum([x.quantity for x in trades_for_period_and_resource if x.action == Action.SELL])
+                trades_for_period_and_resource = trades_for_period.loc[trades_for_period.resource == resource]
+                energy_bought_kwh = sum(trades_for_period_and_resource.loc[trades_for_period_and_resource.action ==
+                                                                           Action.BUY, 'quantity'])
+                energy_sold_kwh = sum(trades_for_period_and_resource.loc[trades_for_period_and_resource.action ==
+                                                                         Action.SELL, 'quantity'])
                 self.assertAlmostEqual(energy_bought_kwh, energy_sold_kwh, places=7)
 
             total_cost = 0  # Should sum to 0 at the end of this loop
-            agents_who_traded_or_were_penalized = set([x.source for x in trades_for_period]
-                                                      + [x.agent for x in extra_costs_for_period])
+            agents_who_traded_or_were_penalized = set(trades_for_period.source.tolist() +
+                                                      [x.agent for x in extra_costs_for_period])
             for agent_id in agents_who_traded_or_were_penalized:
-                trades_for_agent = [x for x in trades_for_period if x.source == agent_id]
+                trades_for_agent = trades_for_period.loc[trades_for_period.source == agent_id]
                 extra_costs_for_agent = get_extra_cost_for_agent(extra_costs_for_period, agent_id)
-                cost_for_agent = sum([x.get_cost_of_trade() for x in trades_for_agent]) + extra_costs_for_agent
+                cost_for_agent = sum(trades_for_agent.apply(lambda x: get_cost_of_trade(x.action, x.quantity, x.price),
+                                                            axis=1)) + extra_costs_for_agent
                 total_cost = total_cost + cost_for_agent
             self.assertAlmostEqual(0, total_cost)
 
 
 def get_extra_cost_for_agent(extra_costs_for_period: List[ExtraCost], agent_id: str) -> float:
     return sum([ec.cost for ec in extra_costs_for_period if (ec.agent == agent_id)])
+
+
+def get_cost_of_trade(action: Action, quantity: float, price: float) -> float:
+    """Negative if it is an income, i.e. if the trade is a SELL"""
+    if action == Action.BUY:
+        return quantity * price
+    else:
+        return -quantity * price
