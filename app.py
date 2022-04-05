@@ -3,6 +3,7 @@ import pickle
 from pkg_resources import resource_filename
 
 from tradingplatformpoc.agent.building_agent import BuildingAgent
+from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.app.app_functions import add_building_agent, add_grocery_store_agent, \
     add_pv_agent, add_storage_agent, agent_inputs, construct_price_chart, construct_storage_level_chart, \
@@ -251,11 +252,12 @@ if __name__ == '__main__':
                         st.session_state.simulation_results.storage_levels_dict[agent_chosen_guid])
                     st.altair_chart(storage_chart, use_container_width=True)
 
-            if isinstance(agent_chosen, BuildingAgent):
+            if isinstance(agent_chosen, BuildingAgent) or isinstance(agent_chosen, PVAgent):
+                # Any building agent with a StaticDigitalTwin
                 with st.expander('Energy production/consumption'):
-                    heat_pump_data = st.session_state.simulation_results.heat_pump_levels_dict[agent_chosen_guid]
-                    hp_chart1 = construct_building_with_heat_pump_chart(agent_chosen.digital_twin, heat_pump_data)
-                    st.altair_chart(hp_chart1, use_container_width=True)
+                    hp_chart = construct_building_with_heat_pump_chart(agent_chosen, st.session_state.
+                                                                       simulation_results.heat_pump_levels_dict)
+                    st.altair_chart(hp_chart, use_container_width=True)
 
         else:
             st.write('Run simulations and load data first!')

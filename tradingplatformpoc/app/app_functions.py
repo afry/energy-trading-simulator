@@ -8,7 +8,9 @@ import pandas as pd
 
 import streamlit as st
 
+from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.iagent import IAgent
+from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.bid import Resource
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
@@ -47,6 +49,9 @@ def construct_price_chart(prices_df: pd.DataFrame, resource: Resource) -> alt.Ch
 
 
 def construct_static_digital_twin_chart(digital_twin: StaticDigitalTwin) -> alt.Chart:
+    """
+    Constructs a multi-line chart from a StaticDigitalTwin, containing all data held therein.
+    """
     df = pd.DataFrame()
     if digital_twin.electricity_usage is not None:
         df = pd.concat((df, pd.DataFrame({'period': digital_twin.electricity_usage.index,
@@ -74,11 +79,17 @@ def construct_static_digital_twin_chart(digital_twin: StaticDigitalTwin) -> alt.
         interactive(bind_y=False)
 
 
-def construct_building_with_heat_pump_chart(digital_twin: StaticDigitalTwin,
-                                            heat_pump_data: Dict[datetime.datetime, float]) -> alt.Chart:
-    """Should just return 1 chart, currently 2 for evaluation purposes"""
-    base = construct_static_digital_twin_chart(digital_twin)
-    if heat_pump_data is None:
+def construct_building_with_heat_pump_chart(agent_chosen: Union[BuildingAgent, PVAgent],
+                                            heat_pump_levels_dict: Dict[str, Dict[datetime.datetime, float]]) -> \
+        alt.Chart:
+    """
+    Constructs a multi-line chart with energy production/consumption levels, with any heat pump workload data in the
+    background. If there is no heat_pump_data, will just return construct_static_digital_twin_chart(digital_twin).
+    """
+    base = construct_static_digital_twin_chart(agent_chosen.digital_twin)
+
+    heat_pump_data = heat_pump_levels_dict.get(agent_chosen.guid, {})
+    if heat_pump_data == {}:
         return base
 
     heat_pump_df = pd.DataFrame.from_dict(heat_pump_data, orient='index').reset_index()
