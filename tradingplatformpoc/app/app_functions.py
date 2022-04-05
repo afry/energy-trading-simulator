@@ -48,7 +48,8 @@ def construct_price_chart(prices_df: pd.DataFrame, resource: Resource) -> alt.Ch
         interactive(bind_y=False)
 
 
-def construct_static_digital_twin_chart(digital_twin: StaticDigitalTwin) -> alt.Chart:
+def construct_static_digital_twin_chart(digital_twin: StaticDigitalTwin, should_add_hp_to_legend: bool = False) -> \
+        alt.Chart:
     """
     Constructs a multi-line chart from a StaticDigitalTwin, containing all data held therein.
     """
@@ -81,6 +82,9 @@ def construct_static_digital_twin_chart(digital_twin: StaticDigitalTwin) -> alt.
                                           'variable': app_constants.HEAT_CONS})))
         domain.append(app_constants.HEAT_CONS)
         range_color.append(app_constants.ALTAIR_BASE_COLORS[3])
+    if should_add_hp_to_legend:
+        domain.append('Heat pump workload')
+        range_color.append(app_constants.HEAT_PUMP_CHART_COLOR)
     return alt.Chart(df).mark_line(). \
         encode(x=alt.X('period:T', axis=alt.Axis(title='Period')),
                y=alt.Y('value', axis=alt.Axis(title='Energy [kWh]')),
@@ -98,22 +102,25 @@ def construct_building_with_heat_pump_chart(agent_chosen: Union[BuildingAgent, P
     Constructs a multi-line chart with energy production/consumption levels, with any heat pump workload data in the
     background. If there is no heat_pump_data, will just return construct_static_digital_twin_chart(digital_twin).
     """
-    base = construct_static_digital_twin_chart(agent_chosen.digital_twin)
 
     heat_pump_data = heat_pump_levels_dict.get(agent_chosen.guid, {})
     if heat_pump_data == {}:
-        return base
+        return construct_static_digital_twin_chart(agent_chosen.digital_twin, False)
 
     st.write('Note: Energy production/consumption values do not include production/consumption by the heat pumps.')
     heat_pump_df = pd.DataFrame.from_dict(heat_pump_data, orient='index').reset_index()
     heat_pump_df.columns = ['period', 'Heat pump workload']
-    heat_pump_area = alt.Chart(heat_pump_df).mark_area(color='gray', opacity=0.3, interpolate='step-after').encode(
-        x=alt.X('period:T', axis=alt.Axis(title='Period')),
-        y=alt.Y('Heat pump workload', axis=alt.Axis(title='Heat pump workload', titleColor='gray')),
-        tooltip=[alt.Tooltip(field='period', title='Period', type='temporal', format='%Y-%m-%d %H:%M'),
-                 alt.Tooltip(field='Heat pump workload', title='Heat pump workload', type='quantitative')]
+    heat_pump_area = alt.Chart(heat_pump_df).\
+        mark_area(color=app_constants.HEAT_PUMP_CHART_COLOR, opacity=0.3, interpolate='step-after').\
+        encode(
+            x=alt.X('period:T', axis=alt.Axis(title='Period')),
+            y=alt.Y('Heat pump workload', axis=alt.Axis(title='Heat pump workload', titleColor='gray')),
+            tooltip=[alt.Tooltip(field='period', title='Period', type='temporal', format='%Y-%m-%d %H:%M'),
+                     alt.Tooltip(field='Heat pump workload', title='Heat pump workload', type='quantitative')]
     )
-    return alt.layer(heat_pump_area, base).resolve_scale(y='independent')
+
+    energy_multiline = construct_static_digital_twin_chart(agent_chosen.digital_twin, True)
+    return alt.layer(heat_pump_area, energy_multiline).resolve_scale(y='independent')
 
 
 def construct_storage_level_chart(storage_levels_dict: Dict[datetime.datetime, float]) -> alt.Chart:

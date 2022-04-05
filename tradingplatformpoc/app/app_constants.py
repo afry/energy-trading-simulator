@@ -13,6 +13,8 @@ HEAT_PROD = "Heat production"
 ALTAIR_BASE_COLORS = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
                       "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"]
 
+HEAT_PUMP_CHART_COLOR = 'gray'
+
 START_PAGE = "Start page"
 SETUP_PAGE = "Set up experiment"
 LOAD_PAGE = "Load results"
