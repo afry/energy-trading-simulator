@@ -1,6 +1,6 @@
 import datetime
 from enum import Enum
-from typing import Any, Dict, Iterable
+from typing import Any, Dict, Iterable, List, Union
 
 import altair as alt
 
@@ -75,7 +75,7 @@ def construct_static_digital_twin_chart(digital_twin: StaticDigitalTwin) -> alt.
 
 
 def construct_building_with_heat_pump_chart(digital_twin: StaticDigitalTwin,
-                                            heat_pump_data: Dict[datetime.datetime, float]):# -> alt.Chart:
+                                            heat_pump_data: Dict[datetime.datetime, float]) -> alt.Chart:
     """Should just return 1 chart, currently 2 for evaluation purposes"""
     base = construct_static_digital_twin_chart(digital_twin)
     if heat_pump_data is None:
@@ -83,13 +83,13 @@ def construct_building_with_heat_pump_chart(digital_twin: StaticDigitalTwin,
 
     heat_pump_df = pd.DataFrame.from_dict(heat_pump_data, orient='index').reset_index()
     heat_pump_df.columns = ['period', 'Heat pump workload']
-    heat_pump_chart = alt.Chart(heat_pump_df).mark_line(stroke='gray').encode(
+    heat_pump_area = alt.Chart(heat_pump_df).mark_area(color='gray', opacity=0.3, interpolate='step-after').encode(
         x=alt.X('period:T', axis=alt.Axis(title='Period')),
         y=alt.Y('Heat pump workload', axis=alt.Axis(title='Heat pump workload', titleColor='gray')),
         tooltip=[alt.Tooltip(field='period', title='Period', type='temporal', format='%Y-%m-%d %H:%M'),
                  alt.Tooltip(field='Heat pump workload', title='Heat pump workload', type='quantitative')]
     )
-    return alt.layer(base, heat_pump_chart).resolve_scale(y='independent'), heat_pump_chart
+    return alt.layer(heat_pump_area, base).resolve_scale(y='independent')
 
 
 def construct_storage_level_chart(storage_levels_dict: Dict[datetime.datetime, float]) -> alt.Chart:
@@ -127,16 +127,20 @@ def construct_prices_df(simulation_results: SimulationResults) -> pd.DataFrame:
     return pd.concat([clearing_prices_df, retail_df, wholesale_df])
 
 
-def get_viewable_df(full_df: pd.DataFrame, source: str) -> pd.DataFrame:
+def get_viewable_df(full_df: pd.DataFrame, key: str, value: Any, want_index: str,
+                    cols_to_drop: Union[None, List[str]] = None) -> pd.DataFrame:
     """
-    Will filter on the given 'source', drop the 'source' and 'by_external' columns, set 'period' as index, and
-    finally transform all Enums so that only their name is kept (i.e. 'Action.BUY' becomes 'BUY', which streamlit can
+    Will filter on the given key-value pair, drop the key and cols_to_drop columns, set want_index as index, and
+    finally transform all Enums so that only their name is kept (i.e. 'Action.BUY' becomes 'BUY', which Streamlit can
     serialize.
     """
+    if cols_to_drop is None:
+        cols_to_drop = []
+    cols_to_drop.append(key)
     return full_df. \
-        loc[full_df.source == source]. \
-        drop(['source', 'by_external'], axis=1). \
-        set_index(['period']). \
+        loc[full_df[key] == value]. \
+        drop(cols_to_drop, axis=1). \
+        set_index([want_index]). \
         apply(lambda x: x.apply(lambda y: y.name) if isinstance(x.iloc[0], Enum) else x)
 
 

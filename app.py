@@ -223,13 +223,26 @@ if __name__ == '__main__':
                                                                      Resource.ELECTRICITY))
 
     elif page_selected == app_constants.BIDS_PAGE:
+        # TODO: In this tab, would like to display things wider if possible.
+        #  One can use st.set_page_config(layout='wide') at the top, but that then applies to all tabs, and it makes
+        #  the configuration tab for example look quite bad. Perhaps something can be done with custom CSS.
         if 'simulation_results' in st.session_state:
             agent_ids = [x.guid for x in st.session_state.simulation_results.agents]
             agent_chosen_guid = st.selectbox(label='Choose agent', options=agent_ids)
             with st.expander('Bids'):
-                st.dataframe(get_viewable_df(st.session_state.simulation_results.all_bids, agent_chosen_guid))
+                st.dataframe(get_viewable_df(st.session_state.simulation_results.all_bids,
+                                             key='source', value=agent_chosen_guid, want_index='period',
+                                             cols_to_drop=['by_external']))
             with st.expander('Trades'):
-                st.dataframe(get_viewable_df(st.session_state.simulation_results.all_trades, agent_chosen_guid))
+                st.dataframe(get_viewable_df(st.session_state.simulation_results.all_trades,
+                                             key='source', value=agent_chosen_guid, want_index='period',
+                                             cols_to_drop=['by_external']))
+            with st.expander('Extra costs'):
+                st.write('A negative cost means that the agent was owed money for the period, rather than owing the '
+                         'money to someone else.')
+                st.dataframe(get_viewable_df(st.session_state.simulation_results.all_extra_costs,
+                                             key='agent', value=agent_chosen_guid, want_index='period'))
+
             agent_chosen = get_agent(st.session_state.simulation_results.agents, agent_chosen_guid)
 
             if agent_chosen_guid in st.session_state.simulation_results.storage_levels_dict:
@@ -240,13 +253,9 @@ if __name__ == '__main__':
 
             if isinstance(agent_chosen, BuildingAgent):
                 with st.expander('Energy production/consumption'):
-                    digital_twin_chart = construct_static_digital_twin_chart(agent_chosen.digital_twin)
-                    st.altair_chart(digital_twin_chart, use_container_width=True)
-                with st.expander('Energy production/consumption incl. heat pump'):
                     heat_pump_data = st.session_state.simulation_results.heat_pump_levels_dict[agent_chosen_guid]
-                    hp_chart1, hp_chart2 = construct_building_with_heat_pump_chart(agent_chosen.digital_twin, heat_pump_data)
+                    hp_chart1 = construct_building_with_heat_pump_chart(agent_chosen.digital_twin, heat_pump_data)
                     st.altair_chart(hp_chart1, use_container_width=True)
-                    st.altair_chart(hp_chart2, use_container_width=True)
 
         else:
             st.write('Run simulations and load data first!')

@@ -137,10 +137,11 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
                                            exact_retail_heating_prices_by_year_and_month,
                                            exact_wholesale_heating_prices_by_year_and_month)
 
+    extra_costs_df = pd.DataFrame([x.to_series() for x in all_extra_costs]).sort_values(['period', 'agent'])
     return SimulationResults(clearing_prices_historical=clearing_prices_historical,
-                             all_trades=construct_df(all_trades_dict),
-                             all_extra_costs=all_extra_costs,
-                             all_bids=construct_df(all_bids_dict),
+                             all_trades=construct_df_from_datetime_dict(all_trades_dict),
+                             all_extra_costs=extra_costs_df,
+                             all_bids=construct_df_from_datetime_dict(all_bids_dict),
                              storage_levels_dict=storage_levels_dict,
                              heat_pump_levels_dict=heat_pump_levels_dict,
                              config_data=config_data,
@@ -285,8 +286,8 @@ def get_quantity_heating_sold_by_external_grid(external_trades: List[Trade]) -> 
                 (x.resource == Resource.HEATING) & (x.action == Action.SELL)])
 
 
-def construct_df(some_dict: Union[Dict[datetime.datetime, Collection[BidWithAcceptanceStatus]],
-                                  Dict[datetime.datetime, Collection[Trade]]]) -> \
+def construct_df_from_datetime_dict(some_dict: Union[Dict[datetime.datetime, Collection[BidWithAcceptanceStatus]],
+                                                     Dict[datetime.datetime, Collection[Trade]]]) -> \
         pd.DataFrame:
     """
     Streamlit likes to deal with pd.DataFrames, so we'll save data in that format.
