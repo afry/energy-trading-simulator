@@ -28,6 +28,7 @@ HEATING_WHOLESALE_PRICE_FRACTION_HELP_TEXT = "The price at which the microgrid c
     "In reality, the external grid may not want to buy any heat from the microgrid at all - this can be achieved by " \
     "setting this number to 0. If not specified, will default to " + \
     str(data_store.DEFAULT_HEATING_WHOLESALE_PRICE_FRACTION)
+CO2_PEN_RATE_HELP_TEXT = "Not yet implemented!"
 GROSS_FLOOR_AREA_HELP_TEXT = "Specified in square meters, used for calculating the energy demand"
 FRACTION_COMMERCIAL_HELP_TEXT = "A number from 0 to 1, specifying how large a " \
     "share of the area which should be treated as commercial buildings, as opposed to residential. " \
