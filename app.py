@@ -5,10 +5,10 @@ from pkg_resources import resource_filename
 from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app import app_constants
-from tradingplatformpoc.app.app_functions import add_building_agent, add_grocery_store_agent, \
-    add_pv_agent, add_storage_agent, agent_inputs, construct_price_chart, construct_storage_level_chart, \
-    get_price_df_when_local_price_inbetween, remove_all_building_agents, construct_prices_df, get_viewable_df, \
-    get_agent, construct_static_digital_twin_chart, construct_building_with_heat_pump_chart
+from tradingplatformpoc.app.app_functions import add_building_agent, add_grocery_store_agent, agent_inputs, \
+    add_pv_agent, add_storage_agent, construct_building_with_heat_pump_chart, construct_price_chart, \
+    construct_prices_df, construct_storage_level_chart, get_agent, get_price_df_when_local_price_inbetween, \
+    get_viewable_df, remove_all_building_agents, set_max_width
 from tradingplatformpoc.bid import Resource
 from tradingplatformpoc.simulation_runner import run_trading_simulations
 import json
@@ -63,7 +63,7 @@ if string_to_log_later is not None:
 
 if __name__ == '__main__':
 
-    st.set_page_config(page_title="Trading platform POC")
+    st.set_page_config(page_title="Trading platform POC", layout="wide")
 
     st.sidebar.write("""
     # Navigation
@@ -80,6 +80,7 @@ if __name__ == '__main__':
             """
         )
     elif page_selected == app_constants.SETUP_PAGE:
+        set_max_width('1000px')  # This tab looks a bit daft when it is too wide, so limiting it here.
 
         run_sim = st.button("Click here to run simulation")
         success_placeholder = st.empty()
@@ -224,9 +225,6 @@ if __name__ == '__main__':
                                                                      Resource.ELECTRICITY))
 
     elif page_selected == app_constants.BIDS_PAGE:
-        # TODO: In this tab, would like to display things wider if possible.
-        #  One can use st.set_page_config(layout='wide') at the top, but that then applies to all tabs, and it makes
-        #  the configuration tab for example look quite bad. Perhaps something can be done with custom CSS.
         if 'simulation_results' in st.session_state:
             agent_ids = [x.guid for x in st.session_state.simulation_results.agents]
             agent_chosen_guid = st.selectbox(label='Choose agent', options=agent_ids)

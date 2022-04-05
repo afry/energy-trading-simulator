@@ -336,3 +336,16 @@ def agent_inputs(agent):
 
 def get_agent(all_agents: Iterable[IAgent], agent_chosen_guid: str) -> IAgent:
     return [x for x in all_agents if x.guid == agent_chosen_guid][0]
+
+
+def set_max_width(width: str):
+    """
+    Sets the max width of the page. The input can be specified either in pixels (i.e. "500px") or as a percentage (i.e.
+    "50%").
+    Taken from https://discuss.streamlit.io/t/where-to-set-page-width-when-set-into-non-widescreeen-mode/959/16.
+    """
+    st.markdown(f"""
+    <style>
+    .appview-container .main .block-container{{ max-width: {width}; }}
+    </style>
+    """, unsafe_allow_html=True,)
