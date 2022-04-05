@@ -8,7 +8,7 @@ DATA_PATH = "tradingplatformpoc.data"
 START_PAGE = "Start page"
 SETUP_PAGE = "Set up experiment"
 LOAD_PAGE = "Load results"
-BIDS_PAGE = "Bids/trades"
+BIDS_PAGE = "Results per agent"
 
 SELECT_PAGE_RADIO_LABEL = "Select page"
 ALL_PAGES = (START_PAGE, SETUP_PAGE, LOAD_PAGE, BIDS_PAGE)
