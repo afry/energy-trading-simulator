@@ -53,26 +53,38 @@ def construct_static_digital_twin_chart(digital_twin: StaticDigitalTwin) -> alt.
     Constructs a multi-line chart from a StaticDigitalTwin, containing all data held therein.
     """
     df = pd.DataFrame()
-    if digital_twin.electricity_usage is not None:
-        df = pd.concat((df, pd.DataFrame({'period': digital_twin.electricity_usage.index,
-                                          'value': digital_twin.electricity_usage.values,
-                                          'variable': 'Electricity consumption'})))
+    # Defining colors manually, so that for example heat consumption has the same color for every agent, even if for
+    # example electricity production doesn't exist for one of them.
+    domain = []
+    range_color = []
     if digital_twin.electricity_production is not None:
         df = pd.concat((df, pd.DataFrame({'period': digital_twin.electricity_production.index,
                                           'value': digital_twin.electricity_production.values,
-                                          'variable': 'Electricity production'})))
-    if digital_twin.heating_usage is not None:
-        df = pd.concat((df, pd.DataFrame({'period': digital_twin.heating_usage.index,
-                                          'value': digital_twin.heating_usage.values,
-                                          'variable': 'Heat consumption'})))
+                                          'variable': app_constants.ELEC_PROD})))
+        domain.append(app_constants.ELEC_PROD)
+        range_color.append(app_constants.ALTAIR_BASE_COLORS[0])
+    if digital_twin.electricity_usage is not None:
+        df = pd.concat((df, pd.DataFrame({'period': digital_twin.electricity_usage.index,
+                                          'value': digital_twin.electricity_usage.values,
+                                          'variable': app_constants.ELEC_CONS})))
+        domain.append(app_constants.ELEC_CONS)
+        range_color.append(app_constants.ALTAIR_BASE_COLORS[1])
     if digital_twin.heating_production is not None:
         df = pd.concat((df, pd.DataFrame({'period': digital_twin.heating_production.index,
                                           'value': digital_twin.heating_production.values,
-                                          'variable': 'Heat production'})))
+                                          'variable': app_constants.HEAT_PROD})))
+        domain.append(app_constants.HEAT_PROD)
+        range_color.append(app_constants.ALTAIR_BASE_COLORS[2])
+    if digital_twin.heating_usage is not None:
+        df = pd.concat((df, pd.DataFrame({'period': digital_twin.heating_usage.index,
+                                          'value': digital_twin.heating_usage.values,
+                                          'variable': app_constants.HEAT_CONS})))
+        domain.append(app_constants.HEAT_CONS)
+        range_color.append(app_constants.ALTAIR_BASE_COLORS[3])
     return alt.Chart(df).mark_line(). \
         encode(x=alt.X('period:T', axis=alt.Axis(title='Period')),
                y=alt.Y('value', axis=alt.Axis(title='Energy [kWh]')),
-               color='variable',
+               color=alt.Color('variable', scale=alt.Scale(domain=domain, range=range_color)),
                tooltip=[alt.Tooltip(field='period', title='Period', type='temporal', format='%Y-%m-%d %H:%M'),
                         alt.Tooltip(field='variable', title='Variable'),
                         alt.Tooltip(field='value', title='Value')]). \
@@ -92,6 +104,7 @@ def construct_building_with_heat_pump_chart(agent_chosen: Union[BuildingAgent, P
     if heat_pump_data == {}:
         return base
 
+    st.write('Note: Energy production/consumption values do not include production/consumption by the heat pumps.')
     heat_pump_df = pd.DataFrame.from_dict(heat_pump_data, orient='index').reset_index()
     heat_pump_df.columns = ['period', 'Heat pump workload']
     heat_pump_area = alt.Chart(heat_pump_df).mark_area(color='gray', opacity=0.3, interpolate='step-after').encode(
