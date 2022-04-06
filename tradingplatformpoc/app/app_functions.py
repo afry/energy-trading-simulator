@@ -1,6 +1,6 @@
 import datetime
 from enum import Enum
-from typing import Any, Dict
+from typing import Any, Dict, Iterable, List, Union
 
 import altair as alt
 
@@ -8,8 +8,12 @@ import pandas as pd
 
 import streamlit as st
 
+from tradingplatformpoc.agent.building_agent import BuildingAgent
+from tradingplatformpoc.agent.iagent import IAgent
+from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.bid import Resource
+from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.simulation_results import SimulationResults
 from tradingplatformpoc.trading_platform_utils import ALL_AGENT_TYPES, ALL_IMPLEMENTED_RESOURCES_STR, get_if_exists_else
 
@@ -42,6 +46,81 @@ def construct_price_chart(prices_df: pd.DataFrame, resource: Resource) -> alt.Ch
                         alt.Tooltip(field='variable', title='Variable'),
                         alt.Tooltip(field='value', title='Value')]). \
         interactive(bind_y=False)
+
+
+def construct_static_digital_twin_chart(digital_twin: StaticDigitalTwin, should_add_hp_to_legend: bool = False) -> \
+        alt.Chart:
+    """
+    Constructs a multi-line chart from a StaticDigitalTwin, containing all data held therein.
+    """
+    df = pd.DataFrame()
+    # Defining colors manually, so that for example heat consumption has the same color for every agent, even if for
+    # example electricity production doesn't exist for one of them.
+    domain = []
+    range_color = []
+    if digital_twin.electricity_production is not None:
+        df = pd.concat((df, pd.DataFrame({'period': digital_twin.electricity_production.index,
+                                          'value': digital_twin.electricity_production.values,
+                                          'variable': app_constants.ELEC_PROD})))
+        domain.append(app_constants.ELEC_PROD)
+        range_color.append(app_constants.ALTAIR_BASE_COLORS[0])
+    if digital_twin.electricity_usage is not None:
+        df = pd.concat((df, pd.DataFrame({'period': digital_twin.electricity_usage.index,
+                                          'value': digital_twin.electricity_usage.values,
+                                          'variable': app_constants.ELEC_CONS})))
+        domain.append(app_constants.ELEC_CONS)
+        range_color.append(app_constants.ALTAIR_BASE_COLORS[1])
+    if digital_twin.heating_production is not None:
+        df = pd.concat((df, pd.DataFrame({'period': digital_twin.heating_production.index,
+                                          'value': digital_twin.heating_production.values,
+                                          'variable': app_constants.HEAT_PROD})))
+        domain.append(app_constants.HEAT_PROD)
+        range_color.append(app_constants.ALTAIR_BASE_COLORS[2])
+    if digital_twin.heating_usage is not None:
+        df = pd.concat((df, pd.DataFrame({'period': digital_twin.heating_usage.index,
+                                          'value': digital_twin.heating_usage.values,
+                                          'variable': app_constants.HEAT_CONS})))
+        domain.append(app_constants.HEAT_CONS)
+        range_color.append(app_constants.ALTAIR_BASE_COLORS[3])
+    if should_add_hp_to_legend:
+        domain.append('Heat pump workload')
+        range_color.append(app_constants.HEAT_PUMP_CHART_COLOR)
+    return alt.Chart(df).mark_line(). \
+        encode(x=alt.X('period:T', axis=alt.Axis(title='Period')),
+               y=alt.Y('value', axis=alt.Axis(title='Energy [kWh]')),
+               color=alt.Color('variable', scale=alt.Scale(domain=domain, range=range_color)),
+               tooltip=[alt.Tooltip(field='period', title='Period', type='temporal', format='%Y-%m-%d %H:%M'),
+                        alt.Tooltip(field='variable', title='Variable'),
+                        alt.Tooltip(field='value', title='Value')]). \
+        interactive(bind_y=False)
+
+
+def construct_building_with_heat_pump_chart(agent_chosen: Union[BuildingAgent, PVAgent],
+                                            heat_pump_levels_dict: Dict[str, Dict[datetime.datetime, float]]) -> \
+        alt.Chart:
+    """
+    Constructs a multi-line chart with energy production/consumption levels, with any heat pump workload data in the
+    background. If there is no heat_pump_data, will just return construct_static_digital_twin_chart(digital_twin).
+    """
+
+    heat_pump_data = heat_pump_levels_dict.get(agent_chosen.guid, {})
+    if heat_pump_data == {}:
+        return construct_static_digital_twin_chart(agent_chosen.digital_twin, False)
+
+    st.write('Note: Energy production/consumption values do not include production/consumption by the heat pumps.')
+    heat_pump_df = pd.DataFrame.from_dict(heat_pump_data, orient='index').reset_index()
+    heat_pump_df.columns = ['period', 'Heat pump workload']
+    heat_pump_area = alt.Chart(heat_pump_df).\
+        mark_area(color=app_constants.HEAT_PUMP_CHART_COLOR, opacity=0.3, interpolate='step-after').\
+        encode(
+            x=alt.X('period:T', axis=alt.Axis(title='Period')),
+            y=alt.Y('Heat pump workload', axis=alt.Axis(title='Heat pump workload', titleColor='gray')),
+            tooltip=[alt.Tooltip(field='period', title='Period', type='temporal', format='%Y-%m-%d %H:%M'),
+                     alt.Tooltip(field='Heat pump workload', title='Heat pump workload', type='quantitative')]
+    )
+
+    energy_multiline = construct_static_digital_twin_chart(agent_chosen.digital_twin, True)
+    return alt.layer(heat_pump_area, energy_multiline).resolve_scale(y='independent')
 
 
 def construct_storage_level_chart(storage_levels_dict: Dict[datetime.datetime, float]) -> alt.Chart:
@@ -79,16 +158,20 @@ def construct_prices_df(simulation_results: SimulationResults) -> pd.DataFrame:
     return pd.concat([clearing_prices_df, retail_df, wholesale_df])
 
 
-def get_viewable_df(full_df: pd.DataFrame, source: str) -> pd.DataFrame:
+def get_viewable_df(full_df: pd.DataFrame, key: str, value: Any, want_index: str,
+                    cols_to_drop: Union[None, List[str]] = None) -> pd.DataFrame:
     """
-    Will filter on the given 'source', drop the 'source' and 'by_external' columns, set 'period' as index, and
-    finally transform all Enums so that only their name is kept (i.e. 'Action.BUY' becomes 'BUY', which streamlit can
+    Will filter on the given key-value pair, drop the key and cols_to_drop columns, set want_index as index, and
+    finally transform all Enums so that only their name is kept (i.e. 'Action.BUY' becomes 'BUY', which Streamlit can
     serialize.
     """
-    return full_df.\
-        loc[full_df.source == source].\
-        drop(['source', 'by_external'], axis=1).\
-        set_index(['period']). \
+    if cols_to_drop is None:
+        cols_to_drop = []
+    cols_to_drop.append(key)
+    return full_df. \
+        loc[full_df[key] == value]. \
+        drop(cols_to_drop, axis=1). \
+        set_index([want_index]). \
         apply(lambda x: x.apply(lambda y: y.name) if isinstance(x.iloc[0], Enum) else x)
 
 
@@ -249,3 +332,20 @@ def agent_inputs(agent):
     else:
         st.button('Remove agent', key='RemoveButton' + agent['Name'], on_click=remove_agent, args=(agent,))
     form.form_submit_button('Save agent')
+
+
+def get_agent(all_agents: Iterable[IAgent], agent_chosen_guid: str) -> IAgent:
+    return [x for x in all_agents if x.guid == agent_chosen_guid][0]
+
+
+def set_max_width(width: str):
+    """
+    Sets the max width of the page. The input can be specified either in pixels (i.e. "500px") or as a percentage (i.e.
+    "50%").
+    Taken from https://discuss.streamlit.io/t/where-to-set-page-width-when-set-into-non-widescreeen-mode/959/16.
+    """
+    st.markdown(f"""
+    <style>
+    .appview-container .main .block-container{{ max-width: {width}; }}
+    </style>
+    """, unsafe_allow_html=True,)

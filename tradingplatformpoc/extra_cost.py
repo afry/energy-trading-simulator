@@ -1,6 +1,8 @@
 import datetime
 from enum import Enum
 
+import pandas as pd
+
 from tradingplatformpoc.bid import Resource
 
 
@@ -37,3 +39,9 @@ class ExtraCost:
     def __str__(self):
         """Creates a CSV string."""
         return "{},{},{},{}".format(self.period, self.agent, self.cost_type, self.cost)
+
+    def to_series(self) -> pd.Series:
+        return pd.Series(data={'period': self.period,
+                               'agent': self.agent,
+                               'cost_type': self.cost_type,
+                               'cost': self.cost})

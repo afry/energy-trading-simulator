@@ -2,10 +2,13 @@ import pickle
 
 from pkg_resources import resource_filename
 
+from tradingplatformpoc.agent.building_agent import BuildingAgent
+from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app import app_constants
-from tradingplatformpoc.app.app_functions import add_building_agent, add_grocery_store_agent, \
-    add_pv_agent, add_storage_agent, agent_inputs, construct_price_chart, construct_storage_level_chart, \
-    get_price_df_when_local_price_inbetween, remove_all_building_agents, construct_prices_df, get_viewable_df
+from tradingplatformpoc.app.app_functions import add_building_agent, add_grocery_store_agent, agent_inputs, \
+    add_pv_agent, add_storage_agent, construct_building_with_heat_pump_chart, construct_price_chart, \
+    construct_prices_df, construct_storage_level_chart, get_agent, get_price_df_when_local_price_inbetween, \
+    get_viewable_df, remove_all_building_agents, set_max_width
 from tradingplatformpoc.bid import Resource
 from tradingplatformpoc.simulation_runner import run_trading_simulations
 import json
@@ -60,7 +63,7 @@ if string_to_log_later is not None:
 
 if __name__ == '__main__':
 
-    st.set_page_config(page_title="Trading platform POC")
+    st.set_page_config(page_title="Trading platform POC", layout="wide")
 
     st.sidebar.write("""
     # Navigation
@@ -77,6 +80,7 @@ if __name__ == '__main__':
             """
         )
     elif page_selected == app_constants.SETUP_PAGE:
+        set_max_width('1000px')  # This tab looks a bit daft when it is too wide, so limiting it here.
 
         run_sim = st.button("Click here to run simulation")
         success_placeholder = st.empty()
@@ -216,23 +220,42 @@ if __name__ == '__main__':
 
         if 'price_chart' in st.session_state:
             st.altair_chart(st.session_state.price_chart, use_container_width=True)
-            st.write("Periods where local electricity price was between external retail and wholesale price:")
-            st.dataframe(get_price_df_when_local_price_inbetween(st.session_state.combined_price_df,
-                                                                 Resource.ELECTRICITY))
+            with st.expander("Periods where local electricity price was between external retail and wholesale price:"):
+                st.dataframe(get_price_df_when_local_price_inbetween(st.session_state.combined_price_df,
+                                                                     Resource.ELECTRICITY))
 
     elif page_selected == app_constants.BIDS_PAGE:
         if 'simulation_results' in st.session_state:
             agent_ids = [x.guid for x in st.session_state.simulation_results.agents]
-            agent_chosen = st.selectbox(label='Choose agent', options=agent_ids)
-            st.write('Bids for ' + agent_chosen + ':')
-            st.dataframe(get_viewable_df(st.session_state.simulation_results.all_bids, agent_chosen))
-            st.write('Trades for ' + agent_chosen + ':')
-            st.dataframe(get_viewable_df(st.session_state.simulation_results.all_trades, agent_chosen))
+            agent_chosen_guid = st.selectbox(label='Choose agent', options=agent_ids)
+            with st.expander('Bids'):
+                st.dataframe(get_viewable_df(st.session_state.simulation_results.all_bids,
+                                             key='source', value=agent_chosen_guid, want_index='period',
+                                             cols_to_drop=['by_external']))
+            with st.expander('Trades'):
+                st.dataframe(get_viewable_df(st.session_state.simulation_results.all_trades,
+                                             key='source', value=agent_chosen_guid, want_index='period',
+                                             cols_to_drop=['by_external']))
+            with st.expander('Extra costs'):
+                st.write('A negative cost means that the agent was owed money for the period, rather than owing the '
+                         'money to someone else.')
+                st.dataframe(get_viewable_df(st.session_state.simulation_results.all_extra_costs,
+                                             key='agent', value=agent_chosen_guid, want_index='period'))
 
-            if agent_chosen in st.session_state.simulation_results.storage_levels_dict:
-                st.write('Charging level over time for ' + agent_chosen + ':')
-                storage_chart = construct_storage_level_chart(
-                    st.session_state.simulation_results.storage_levels_dict[agent_chosen])
-                st.altair_chart(storage_chart, use_container_width=True)
+            agent_chosen = get_agent(st.session_state.simulation_results.agents, agent_chosen_guid)
+
+            if agent_chosen_guid in st.session_state.simulation_results.storage_levels_dict:
+                with st.expander('Charging level over time for ' + agent_chosen_guid + ':'):
+                    storage_chart = construct_storage_level_chart(
+                        st.session_state.simulation_results.storage_levels_dict[agent_chosen_guid])
+                    st.altair_chart(storage_chart, use_container_width=True)
+
+            if isinstance(agent_chosen, BuildingAgent) or isinstance(agent_chosen, PVAgent):
+                # Any building agent with a StaticDigitalTwin
+                with st.expander('Energy production/consumption'):
+                    hp_chart = construct_building_with_heat_pump_chart(agent_chosen, st.session_state.
+                                                                       simulation_results.heat_pump_levels_dict)
+                    st.altair_chart(hp_chart, use_container_width=True)
+
         else:
             st.write('Run simulations and load data first!')

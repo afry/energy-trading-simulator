@@ -5,10 +5,20 @@ RETAIL_PRICE_STR = 'External retail price'
 LOCAL_PRICE_STR = 'Local price'
 DATA_PATH = "tradingplatformpoc.data"
 
+ELEC_CONS = "Electricity consumption"
+ELEC_PROD = "Electricity production"
+HEAT_CONS = "Heat consumption"
+HEAT_PROD = "Heat production"
+
+ALTAIR_BASE_COLORS = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
+                      "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"]
+
+HEAT_PUMP_CHART_COLOR = 'gray'
+
 START_PAGE = "Start page"
 SETUP_PAGE = "Set up experiment"
 LOAD_PAGE = "Load results"
-BIDS_PAGE = "Bids/trades"
+BIDS_PAGE = "Results per agent"
 
 SELECT_PAGE_RADIO_LABEL = "Select page"
 ALL_PAGES = (START_PAGE, SETUP_PAGE, LOAD_PAGE, BIDS_PAGE)
