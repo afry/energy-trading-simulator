@@ -10,7 +10,7 @@
 *.orig
 *.log
 *.pot
-__pycache__/*
+**/__pycache__
 .cache/*
 .*.swp
 */.ipynb_checkpoints/*
@@ -54,17 +54,18 @@ MANIFEST
 venv/
 
 # Results
-results/*
+results
 
 # Notebooks
-notebooks/
-*.ipynb
+notebooks
+**.ipynb
 
 # Scripts
-scripts/*
+scripts
 
-# E2E-tests
-e2e-tests/*
+# Tests
+tests
+e2e-tests
 
 # main.py (we'll use app.py)
 main.py
