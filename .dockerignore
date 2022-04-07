@@ -45,12 +45,26 @@ coverage.xml
 build/*
 dist/*
 sdist/*
-docs/api/*
-docs/_rst/*
-docs/_build/*
+docs/*
 cover/*
 MANIFEST
 
 # Per-project virtualenvs
 .venv*/
 venv/
+
+# Results
+results/*
+
+# Notebooks
+notebooks/
+*.ipynb
+
+# Scripts
+scripts/*
+
+# E2E-tests
+e2e-tests/*
+
+# main.py (we'll use app.py)
+main.py
