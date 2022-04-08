@@ -20,7 +20,7 @@ Consider setting up a virtual environment for the repository. Use conda, or venv
         virtualenv -p python3.9.4 venv
 
 *Note:* don't forget to activate the virtual environment. Depending on your IDE, you can probably choose to set the 
-default interpretor to your venv.
+default interpreter to your venv.
 
 ## Install dependencies
 
@@ -37,11 +37,11 @@ Install package as editable (command automatically searches for the setup.py fil
 * Verify that you have a json config file under the data folder specifying the area to be simulated.
 * Run the mock data generation script:
 
-        python scripts/generate_mock_data.py
+        python tradingplatformpoc/generate_mock_data.py
 
 The resulting data is stored in a pickle file. To verify its contents, save an extract in a .csv file using the 
 [extraction script](scripts/extract_df_from_mock_datas_pickle_file.py).
-## Run POC
+## Run POC (non-GUI)
 
 ### As script from terminal
 From the root of the repository, run the main file:
@@ -49,11 +49,8 @@ From the root of the repository, run the main file:
         python main.py
 
 This will populate the results folder with outputs. In addition, a [log file](trading-platform-poc.log) is generated and stored in the repository root.
-### As docker container
-Install Docker (verify installation by running "docker run hello-world"). Navigate to the root of the trading 
-platform-poc repository; build a docker image based on the Dockerfile
 
-## Streamlit GUI
+## Run Streamlit GUI
 To run the streamlit GUI, make sure streamlit and altair are installed in your venv
 
     pip install streamlit
@@ -71,12 +68,19 @@ and the source repo:
 
 https://github.com/aliavni/awesome-data-explorer
 
+### As docker container
+Install Docker (verify installation by running "docker run hello-world"). Navigate to the root of the trading 
+platform-poc repository; build a docker image based on the Dockerfile
+
         docker build -t imagename .
 
 where the -t flag allows you to specify an image name (imagename). Once built, instantiate (and run) a docker container 
 based on the created image
 
-        docker run imagename:latest
+        docker run -p 8880:8501 imagename:latest
+
+Here, 8880:8501 maps the local port 8880 to the container's port 8501. Therefore, one can navigate to localhost:8880 in
+one's browser, and this should display the Streamlit GUI.
 
 Once the container has run, the logger information relating to the job can be accessed at a later time by identifying 
 the containerID (see below for how to do this), and reviewing its logs
