@@ -1,5 +1,4 @@
 import datetime
-import json
 import logging
 import pickle
 from typing import Any, Collection, Dict, List, Tuple, Union
@@ -30,8 +29,7 @@ from tradingplatformpoc.trading_platform_utils import add_to_nested_dict, calcul
 logger = logging.getLogger(__name__)
 
 
-def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path: str, results_path: str) -> \
-        SimulationResults:
+def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path: str) -> SimulationResults:
     """The core loop of the simulation, running through the desired time period and performing trades."""
 
     logger.info("Starting trading simulations")
@@ -126,10 +124,6 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
                                                                   estimated_retail_heating_prices_by_year_and_month,
                                                                   estimated_wholesale_heating_prices_by_year_and_month)
     all_extra_costs.extend(heat_cost_discr_corrections)
-
-    # Save the config used in the results folder as well
-    with open(results_path + 'config_used.json', 'w') as file_path:
-        json.dump(config_data, file_path, indent="\t")
 
     results_calculator.print_basic_results(agents, all_trades_dict, all_extra_costs,
                                            exact_retail_electricity_prices_by_period,

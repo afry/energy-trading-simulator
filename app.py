@@ -54,7 +54,6 @@ logger = logging.getLogger(__name__)
 # --- Define path to mock data and results
 mock_datas_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
 config_filename = resource_filename("tradingplatformpoc.data", "default_config.json")
-results_path = "./results/"
 with open(config_filename, "r") as jsonfile:
     default_config = json.load(jsonfile)
 
@@ -190,7 +189,7 @@ if __name__ == '__main__':
             run_sim = False
             logger.info("Running simulation")
             st.spinner("Running simulation")
-            simulation_results = run_trading_simulations(st.session_state.config_data, mock_datas_path, results_path)
+            simulation_results = run_trading_simulations(st.session_state.config_data, mock_datas_path)
             st.session_state.simulation_results = simulation_results
             logger.info("Simulation finished!")
             success_placeholder.success('Simulation finished!')
