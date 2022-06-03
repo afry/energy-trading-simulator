@@ -11,7 +11,6 @@ from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES
 
 mock_datas_file_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
 config_filename = resource_filename("tradingplatformpoc.data", "default_config.json")
-results_path = "../results/"
 with open(config_filename, "r") as jsonfile:
     config_data = json.load(jsonfile)
 
@@ -26,7 +25,7 @@ class Test(TestCase):
         and received by different actors all match up.
         """
 
-        simulation_results = simulation_runner.run_trading_simulations(config_data, mock_datas_file_path, results_path)
+        simulation_results = simulation_runner.run_trading_simulations(config_data, mock_datas_file_path)
 
         for period in simulation_results.clearing_prices_historical.keys():
             trades_for_period = simulation_results.all_trades.loc[simulation_results.all_trades.period == period]
