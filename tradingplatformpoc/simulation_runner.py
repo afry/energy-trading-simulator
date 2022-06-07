@@ -287,6 +287,7 @@ def construct_df_from_datetime_dict(some_dict: Union[Dict[datetime.datetime, Col
     Streamlit likes to deal with pd.DataFrames, so we'll save data in that format.
     Takes a little while to run - about 20 seconds for an input with 8760 keys and 30-35 entries per key.
     """
+    logger.info('Constructing dataframe from datetime dict')
     series_list = []
     for (period, some_collection) in some_dict.items():
         series_list.extend([x.to_series_with_period(period) for x in some_collection])
