@@ -48,7 +48,8 @@ From the root of the repository, run the main file:
 
         python main.py
 
-This will populate the results folder with outputs. In addition, a [log file](trading-platform-poc.log) is generated and stored in the repository root.
+This will populate the results folder with outputs. In addition, a [log file](logfiles/trading-platform-poc.log) is 
+generated and stored in the "logfiles" directory.
 
 ## Run Streamlit GUI
 To run the streamlit GUI, make sure streamlit and altair are installed in your venv
