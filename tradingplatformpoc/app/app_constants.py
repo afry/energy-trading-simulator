@@ -71,6 +71,11 @@ DISCHARGE_RATE_HELP_TEXT = "A number specifying how much of the maximum capacity
     "one hour. Must be a positive number. If not specified, will default to the charge rate"
 TRANSFER_RATE_HELP_TEXT = "A number specifying (in kWh) the maximum amount of energy the agent can transfer into, " \
     "or out from, the microgrid in an hour"
+HEAT_PUMPS_HELP_TEXT = "Heat pumps allow the building agent to convert electricity into heating. Currently, all heat " \
+    "pumps are medium sized 'Thermia Mega 2020' pumps, with a maximum effect of 44 kW"
+HEAT_PUMP_COP_HELP_TEXT = "With this parameter, one can modify the relative Coefficient of Performance of the " \
+    "agent's heat pumps. The default is 4.6, which is the tabulated value for a medium sized 'Thermia Mega 2020' " \
+    "running on 3600 RPM, with a forward temperature of 35 degrees and a brine fluid temperature of 0 degrees Celsius"
 # Long texts
 CONFIG_GUIDELINES_MARKDOWN = "-  The configuration file should be in JSON format\n" \
     "-  To construct your own configuration file, you could copy the file below and modify it with " \
@@ -105,6 +110,8 @@ BUILDING_AGENT_SPEC_MARKDOWN = "-  Required properties, in addition to 'Type' an
     "   -   'FractionCommercial': " + FRACTION_COMMERCIAL_HELP_TEXT + "\n" \
     "   -   'FractionSchool': " + FRACTION_SCHOOL_HELP_TEXT + "\n" \
     "   -   'PVEfficiency': " + PV_EFFICIENCY_HELP_TEXT + "\n" \
+    "   -   'NumberHeatPumps': " + HEAT_PUMPS_HELP_TEXT + "\n" \
+    "   -   'COP': " + HEAT_PUMP_COP_HELP_TEXT + "\n" \
     "-  BuildingAgent example:"
 BUILDING_AGENT_EXAMPLE = """
 {
@@ -114,7 +121,9 @@ BUILDING_AGENT_EXAMPLE = """
     "PVArea": 1748.6666666667,
     "FractionCommercial": 0.2,
     "FractionSchool": 0.0,
-    "PVEfficiency": 0.18
+    "PVEfficiency": 0.18,
+    "NumberHeatPumps": 2,
+    "COP": 4.2
 }
 """
 STORAGE_AGENT_SPEC_MARKDOWN = "-  Required properties, in addition to 'Type' and 'Name':\n" \

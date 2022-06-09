@@ -14,6 +14,7 @@ from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.bid import Resource
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
+from tradingplatformpoc.heat_pump import DEFAULT_COP
 from tradingplatformpoc.simulation_results import SimulationResults
 from tradingplatformpoc.trading_platform_utils import ALL_AGENT_TYPES, ALL_IMPLEMENTED_RESOURCES_STR, get_if_exists_else
 
@@ -321,6 +322,20 @@ def agent_inputs(agent):
                                      st.session_state.config_data['AreaInfo']['DefaultPVEfficiency']),
             help=app_constants.PV_EFFICIENCY_HELP_TEXT,
             key='PVEfficiency' + agent['Name']
+        )
+    if agent['Type'] == 'BuildingAgent':
+        agent['NumberHeatPumps'] = form.number_input(
+            'Heat pumps', min_value=0, step=1,
+            value=int(get_if_exists_else(agent, 'NumberHeatPumps', 0)),
+            help=app_constants.HEAT_PUMPS_HELP_TEXT,
+            key='NumberHeatPumps' + agent['Name']
+        )
+        agent['COP'] = form.number_input(
+            'COP', min_value=2.0, step=0.1,
+            value=float(get_if_exists_else(agent, 'COP', DEFAULT_COP)),
+            help=app_constants.HEAT_PUMP_COP_HELP_TEXT,
+            key='COP' + agent['Name'],
+            disabled=(agent['NumberHeatPumps'] == 0)
         )
     if agent['Type'] == 'GridAgent':
         agent['TransferRate'] = form.number_input(
