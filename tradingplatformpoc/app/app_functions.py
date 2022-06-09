@@ -8,13 +8,13 @@ import pandas as pd
 
 import streamlit as st
 
-from tradingplatformpoc.heat_pump import DEFAULT_COP
 from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.bid import Resource
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
+from tradingplatformpoc.heat_pump import DEFAULT_COP
 from tradingplatformpoc.simulation_results import SimulationResults
 from tradingplatformpoc.trading_platform_utils import ALL_AGENT_TYPES, ALL_IMPLEMENTED_RESOURCES_STR, get_if_exists_else
 
