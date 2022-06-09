@@ -123,8 +123,14 @@ if __name__ == '__main__':
             value=st.session_state.config_data['AreaInfo']['ExternalHeatingWholesalePriceFraction'],
             help=app_constants.HEATING_WHOLESALE_PRICE_FRACTION_HELP_TEXT)
 
-        _dummy = area_form.number_input(
+        _dummy1 = area_form.number_input(
             'CO2 penalization rate:', value=0.0, help=app_constants.CO2_PEN_RATE_HELP_TEXT, disabled=True)
+        _dummy2 = area_form.number_input(
+            'Grid fee on internal electricity trades:', value=0.0, help=app_constants.ELEC_GRID_FEE_INTERNAL_HELP_TEXT,
+            disabled=True)
+        _dummy3 = area_form.number_input(
+            'Tax paid on internal electricity trades:', value=0.0, help=app_constants.ELEC_TAX_INTERNAL_HELP_TEXT,
+            disabled=True)
 
         area_form.form_submit_button("Save area info")
 
