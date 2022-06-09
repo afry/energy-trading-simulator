@@ -84,8 +84,14 @@ if __name__ == '__main__':
         run_sim = st.button("Click here to run simulation")
         success_placeholder = st.empty()
         results_download_button = st.empty()
-        results_download_button.download_button(label="Download simulation results", data=b'placeholder',
-                                                disabled=True)
+        if "simulation_results" in st.session_state:
+            results_download_button.download_button(label="Download simulation results",
+                                                    data=pickle.dumps(st.session_state.simulation_results),
+                                                    file_name="simulation_results.pickle",
+                                                    mime='application/octet-stream')
+        else:
+            results_download_button.download_button(label="Download simulation results", data=b'placeholder',
+                                                    disabled=True)
 
         if ("config_data" not in st.session_state.keys()) or (st.session_state.config_data is None):
             logger.debug("Using default configuration")
