@@ -637,7 +637,7 @@ if __name__ == '__main__':
     # --- Format logger for print statements
     FORMAT = "%(asctime)-15s | %(levelname)-7s | %(name)-20.20s | %(message)s"
 
-    file_handler = logging.FileHandler("../generate-mock-data.log")
+    file_handler = logging.FileHandler("../logfiles/generate-mock-data.log")
     stream_handler = logging.StreamHandler()
 
     logging.basicConfig(
