@@ -106,6 +106,15 @@ which returns a list of the containers that have run. To delete all completed co
 
         docker container prune
 
+### Running the app in Azure
+Since May 2022, we are running this web app in Azure. To update the version of the app in Azure, follow these steps:
+1. Make sure you have Azure CLI installed
+2. Make sure you have access to the Azure subscription in which the app lives. Currently "Future Technologies 618013 CSP"
+   1. If you aren't already on that subscription, switch to it by running "az account set --subscription "Future Technologies 618013 CSP""
+3. Navigate to the project root folder
+4. Run the following command: "az acr build --registry jonstakapoccontainerreg --resource-group JonstakaPOC --image tppoc-app ."
+5. When the above command has finished, restart the app. This will automatically pull in the latest docker image version
+
 
 # Specs. on system architecture 
 ## Agents
