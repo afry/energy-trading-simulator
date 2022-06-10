@@ -1,7 +1,7 @@
 from tradingplatformpoc import data_store, trading_platform_utils
 
-WHOLESALE_PRICE_STR = 'External wholesale price'
-RETAIL_PRICE_STR = 'External retail price'
+WHOLESALE_PRICE_STR = 'Wholesale price'
+RETAIL_PRICE_STR = 'Retail price'
 LOCAL_PRICE_STR = 'Local price'
 DATA_PATH = "tradingplatformpoc.data"
 

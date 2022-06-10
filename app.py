@@ -75,7 +75,7 @@ if __name__ == '__main__':
             """
             # Prototype data presentation app for energy microgrid trading platform
 
-            We want to be able to upload, select and run simulations, and evaluate the results with plots.
+            Here, you can upload, select and run simulations, and evaluate the results with tables and graphs.
             """
         )
     elif page_selected == app_constants.SETUP_PAGE:
