@@ -7,6 +7,8 @@ import pandas as pd
 
 from pkg_resources import resource_filename
 
+import streamlit
+
 from tradingplatformpoc import balance_manager, data_store, generate_mock_data, market_solver, results_calculator
 from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.grid_agent import GridAgent
@@ -26,12 +28,21 @@ from tradingplatformpoc.trade import Trade, TradeMetadataKey
 from tradingplatformpoc.trading_platform_utils import add_to_nested_dict, calculate_solar_prod, flatten_collection, \
     get_if_exists_else, get_intersection
 
+FRACTION_OF_CALC_TIME_FOR_1_MONTH_SIMULATED = 0.06
+
 logger = logging.getLogger(__name__)
 
 
-def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path: str) -> SimulationResults:
-    """The core loop of the simulation, running through the desired time period and performing trades."""
+def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path: str, progress_bar:
+                            Union[streamlit.progress, None] = None) -> SimulationResults:
+    """
+    The core loop of the simulation, running through the desired time period and performing trades.
+    @param config_data              A dict specifying some configuration data
+    @param mock_datas_pickle_path   A string specifying the location to look for saved mock data
+    @param progress_bar             A streamlit progress bar, used only when running simulations through the UI
+    """
 
+    frac_complete = 0.0  # Annoyingly, we must keep track of this separately, can't "get" progress from the progress bar
     logger.info("Starting trading simulations")
 
     # Initialize data store
@@ -64,6 +75,9 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
     for period in trading_periods:
         if period.day == period.hour == 1:
             logger.info("Simulations entering {:%B}".format(period))
+            if progress_bar is not None:
+                frac_complete = increase_progress_bar(frac_complete, progress_bar,
+                                                      FRACTION_OF_CALC_TIME_FOR_1_MONTH_SIMULATED)
 
         # Get all bids
         bids = [agent.make_bids(period, clearing_prices_historical) for agent in agents]
@@ -111,6 +125,10 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
         exact_retail_electricity_prices_by_period[period] = retail_price_elec
         all_extra_costs.extend(extra_costs)
 
+    if progress_bar is not None:
+        frac_complete = increase_progress_bar(frac_complete, progress_bar,
+                                              FRACTION_OF_CALC_TIME_FOR_1_MONTH_SIMULATED + 0.01)
+
     # Simulations finished. Now, we need to go through and calculate the exact district heating price for each month
     estimated_retail_heating_prices_by_year_and_month, \
         estimated_wholesale_heating_prices_by_year_and_month, \
@@ -131,16 +149,31 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
                                            exact_retail_heating_prices_by_year_and_month,
                                            exact_wholesale_heating_prices_by_year_and_month)
 
+    if progress_bar is not None:
+        frac_complete = increase_progress_bar(frac_complete, progress_bar, 0.01)
+
     extra_costs_df = pd.DataFrame([x.to_series() for x in all_extra_costs]).sort_values(['period', 'agent'])
+    all_trades_df, frac_complete = construct_df_from_datetime_dict(all_trades_dict, progress_bar, frac_complete)
+    all_bids_df, frac_complete = construct_df_from_datetime_dict(all_bids_dict, progress_bar, frac_complete)
     return SimulationResults(clearing_prices_historical=clearing_prices_historical,
-                             all_trades=construct_df_from_datetime_dict(all_trades_dict),
+                             all_trades=all_trades_df,
                              all_extra_costs=extra_costs_df,
-                             all_bids=construct_df_from_datetime_dict(all_bids_dict),
+                             all_bids=all_bids_df,
                              storage_levels_dict=storage_levels_dict,
                              heat_pump_levels_dict=heat_pump_levels_dict,
                              config_data=config_data,
                              agents=agents,
                              data_store=data_store_entity)
+
+
+def increase_progress_bar(frac_complete: float, progress_bar: streamlit.progress, increase_by: float):
+    """
+    Increases the progress bar, and returns its current value.
+    """
+    # Capping at 0.0 and 1.0 to avoid StreamlitAPIException
+    new_frac_complete = min(1.0, max(0.0, frac_complete + increase_by))
+    progress_bar.progress(new_frac_complete)
+    return new_frac_complete
 
 
 def go_through_trades_metadata(metadata: Dict[TradeMetadataKey, Any], period: datetime.datetime, agent_guid: str,
@@ -281,14 +314,21 @@ def get_quantity_heating_sold_by_external_grid(external_trades: List[Trade]) -> 
 
 
 def construct_df_from_datetime_dict(some_dict: Union[Dict[datetime.datetime, Collection[BidWithAcceptanceStatus]],
-                                                     Dict[datetime.datetime, Collection[Trade]]]) -> \
-        pd.DataFrame:
+                                                     Dict[datetime.datetime, Collection[Trade]]],
+                                    progress_bar: Union[streamlit.progress, None] = None, frac_complete: float = 0.0) \
+        -> Tuple[pd.DataFrame, float]:
     """
     Streamlit likes to deal with pd.DataFrames, so we'll save data in that format.
     Takes a little while to run - about 20 seconds for an input with 8760 keys and 30-35 entries per key.
+
+    progress_bar and frac_complete are only used when called from the UI, to show progress to the user.
     """
     logger.info('Constructing dataframe from datetime dict')
     series_list = []
     for (period, some_collection) in some_dict.items():
         series_list.extend([x.to_series_with_period(period) for x in some_collection])
-    return pd.DataFrame(series_list)
+    data_frame = pd.DataFrame(series_list)
+
+    if progress_bar is not None:
+        frac_complete = increase_progress_bar(frac_complete, progress_bar, 0.1)
+    return data_frame, frac_complete

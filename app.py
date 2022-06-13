@@ -82,6 +82,7 @@ if __name__ == '__main__':
         set_max_width('1000px')  # This tab looks a bit daft when it is too wide, so limiting it here.
 
         run_sim = st.button("Click here to run simulation")
+        progress_bar = st.progress(0.0)
         success_placeholder = st.empty()
         results_download_button = st.empty()
         if "simulation_results" in st.session_state:
@@ -201,7 +202,7 @@ if __name__ == '__main__':
             run_sim = False
             logger.info("Running simulation")
             st.spinner("Running simulation")
-            simulation_results = run_trading_simulations(st.session_state.config_data, mock_datas_path)
+            simulation_results = run_trading_simulations(st.session_state.config_data, mock_datas_path, progress_bar)
             st.session_state.simulation_results = simulation_results
             logger.info("Simulation finished!")
             success_placeholder.success('Simulation finished!')
