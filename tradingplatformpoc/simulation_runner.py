@@ -7,7 +7,7 @@ import pandas as pd
 
 from pkg_resources import resource_filename
 
-import streamlit
+import streamlit as st
 
 from tradingplatformpoc import balance_manager, data_store, generate_mock_data, market_solver, results_calculator
 from tradingplatformpoc.agent.building_agent import BuildingAgent
@@ -34,12 +34,14 @@ logger = logging.getLogger(__name__)
 
 
 def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path: str, progress_bar:
-                            Union[streamlit.progress, None] = None) -> SimulationResults:
+                            Union[st.progress, None] = None, progress_text: Union[st.info, None] = None) -> \
+        SimulationResults:
     """
     The core loop of the simulation, running through the desired time period and performing trades.
     @param config_data              A dict specifying some configuration data
     @param mock_datas_pickle_path   A string specifying the location to look for saved mock data
     @param progress_bar             A streamlit progress bar, used only when running simulations through the UI
+    @param progress_text            A streamlit info field, used only when running simulations through the UI
     """
 
     frac_complete = 0.0  # Annoyingly, we must keep track of this separately, can't "get" progress from the progress bar
@@ -74,10 +76,13 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
                                        data_store_entity.get_nordpool_data_datetimes())
     for period in trading_periods:
         if period.day == period.hour == 1:
-            logger.info("Simulations entering {:%B}".format(period))
+            info_string = "Simulations entering {:%B}".format(period)
+            logger.info(info_string)
             if progress_bar is not None:
                 frac_complete = increase_progress_bar(frac_complete, progress_bar,
                                                       FRACTION_OF_CALC_TIME_FOR_1_MONTH_SIMULATED)
+            if progress_text is not None:
+                progress_text.info(info_string + "...")
 
         # Get all bids
         bids = [agent.make_bids(period, clearing_prices_historical) for agent in agents]
@@ -128,6 +133,8 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
     if progress_bar is not None:
         frac_complete = increase_progress_bar(frac_complete, progress_bar,
                                               FRACTION_OF_CALC_TIME_FOR_1_MONTH_SIMULATED + 0.01)
+    if progress_text is not None:
+        progress_text.info("Simulated a full year, starting some calculations on district heating price...")
 
     # Simulations finished. Now, we need to go through and calculate the exact district heating price for each month
     estimated_retail_heating_prices_by_year_and_month, \
@@ -151,6 +158,8 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
 
     if progress_bar is not None:
         frac_complete = increase_progress_bar(frac_complete, progress_bar, 0.01)
+    if progress_text is not None:
+        progress_text.info("Formatting results...")
 
     extra_costs_df = pd.DataFrame([x.to_series() for x in all_extra_costs]).sort_values(['period', 'agent'])
     all_trades_df, frac_complete = construct_df_from_datetime_dict(all_trades_dict, progress_bar, frac_complete)
@@ -166,7 +175,7 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
                              data_store=data_store_entity)
 
 
-def increase_progress_bar(frac_complete: float, progress_bar: streamlit.progress, increase_by: float):
+def increase_progress_bar(frac_complete: float, progress_bar: st.progress, increase_by: float):
     """
     Increases the progress bar, and returns its current value.
     """
@@ -315,7 +324,7 @@ def get_quantity_heating_sold_by_external_grid(external_trades: List[Trade]) -> 
 
 def construct_df_from_datetime_dict(some_dict: Union[Dict[datetime.datetime, Collection[BidWithAcceptanceStatus]],
                                                      Dict[datetime.datetime, Collection[Trade]]],
-                                    progress_bar: Union[streamlit.progress, None] = None, frac_complete: float = 0.0) \
+                                    progress_bar: Union[st.progress, None] = None, frac_complete: float = 0.0) \
         -> Tuple[pd.DataFrame, float]:
     """
     Streamlit likes to deal with pd.DataFrames, so we'll save data in that format.

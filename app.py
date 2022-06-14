@@ -86,7 +86,7 @@ if __name__ == '__main__':
 
         run_sim = st.button("Click here to run simulation")
         progress_bar = st.progress(0.0)
-        success_placeholder = st.empty()
+        progress_text = st.info("")
         results_download_button = st.empty()
         if "simulation_results" in st.session_state:
             results_download_button.download_button(label="Download simulation results",
@@ -205,10 +205,11 @@ if __name__ == '__main__':
             run_sim = False
             logger.info("Running simulation")
             st.spinner("Running simulation")
-            simulation_results = run_trading_simulations(st.session_state.config_data, mock_datas_path, progress_bar)
+            simulation_results = run_trading_simulations(st.session_state.config_data, mock_datas_path, progress_bar,
+                                                         progress_text)
             st.session_state.simulation_results = simulation_results
             logger.info("Simulation finished!")
-            success_placeholder.success('Simulation finished!')
+            progress_text.success('Simulation finished!')
             results_download_button.download_button(label="Download simulation results",
                                                     data=pickle.dumps(simulation_results),
                                                     file_name="simulation_results.pickle",
