@@ -2,6 +2,7 @@ import datetime
 import json
 import logging
 import math
+import os
 import pickle
 import time
 from typing import Any, Callable, Dict, Tuple
@@ -637,6 +638,8 @@ if __name__ == '__main__':
     # --- Format logger for print statements
     FORMAT = "%(asctime)-15s | %(levelname)-7s | %(name)-20.20s | %(message)s"
 
+    if not os.path.exists("../logfiles"):
+        os.makedirs("../logfiles")
     file_handler = logging.FileHandler("../logfiles/generate-mock-data.log")
     stream_handler = logging.StreamHandler()
 

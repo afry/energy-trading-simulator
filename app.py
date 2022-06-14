@@ -1,3 +1,4 @@
+import os
 import pickle
 
 from pkg_resources import resource_filename
@@ -39,6 +40,8 @@ else:
 # --- Format logger for print statements
 FORMAT = "%(asctime)-15s | %(levelname)-7s | %(name)-35.35s | %(message)s"
 
+if not os.path.exists("logfiles"):
+    os.makedirs("logfiles")
 file_handler = logging.FileHandler("logfiles/trading-platform-poc.log")
 file_handler.setLevel(logging.DEBUG)  # File logging always DEBUG
 stream_handler = logging.StreamHandler()
