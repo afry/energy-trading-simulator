@@ -1,3 +1,4 @@
+import os
 import pickle
 
 from pkg_resources import resource_filename
@@ -39,6 +40,8 @@ else:
 # --- Format logger for print statements
 FORMAT = "%(asctime)-15s | %(levelname)-7s | %(name)-35.35s | %(message)s"
 
+if not os.path.exists("logfiles"):
+    os.makedirs("logfiles")
 file_handler = logging.FileHandler("logfiles/trading-platform-poc.log")
 file_handler.setLevel(logging.DEBUG)  # File logging always DEBUG
 stream_handler = logging.StreamHandler()
@@ -82,7 +85,8 @@ if __name__ == '__main__':
         set_max_width('1000px')  # This tab looks a bit daft when it is too wide, so limiting it here.
 
         run_sim = st.button("Click here to run simulation")
-        success_placeholder = st.empty()
+        progress_bar = st.progress(0.0)
+        progress_text = st.info("")
         results_download_button = st.empty()
         if "simulation_results" in st.session_state:
             results_download_button.download_button(label="Download simulation results",
@@ -201,10 +205,11 @@ if __name__ == '__main__':
             run_sim = False
             logger.info("Running simulation")
             st.spinner("Running simulation")
-            simulation_results = run_trading_simulations(st.session_state.config_data, mock_datas_path)
+            simulation_results = run_trading_simulations(st.session_state.config_data, mock_datas_path, progress_bar,
+                                                         progress_text)
             st.session_state.simulation_results = simulation_results
             logger.info("Simulation finished!")
-            success_placeholder.success('Simulation finished!')
+            progress_text.success('Simulation finished!')
             results_download_button.download_button(label="Download simulation results",
                                                     data=pickle.dumps(simulation_results),
                                                     file_name="simulation_results.pickle",
