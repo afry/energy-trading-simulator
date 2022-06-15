@@ -1,5 +1,6 @@
 import os
 import pickle
+from logging.handlers import TimedRotatingFileHandler
 
 from pkg_resources import resource_filename
 
@@ -28,24 +29,25 @@ string_to_log_later = None
 if len(sys.argv) > 1 and type(sys.argv[1]) == str:
     arg_to_upper = str.upper(sys.argv[1])
     try:
-        console_log_level = getattr(logging, arg_to_upper)
+        log_level = getattr(logging, arg_to_upper)
     except AttributeError:
         # Since we haven't set up the logger yet, will store this message and log it a little bit further down.
         string_to_log_later = "No logging level found with name '{}', console logging level will default to INFO.". \
             format(arg_to_upper)
-        console_log_level = logging.INFO
+        log_level = logging.INFO
 else:
-    console_log_level = logging.INFO
+    log_level = logging.INFO
 
 # --- Format logger for print statements
 FORMAT = "%(asctime)-15s | %(levelname)-7s | %(name)-35.35s | %(message)s"
 
 if not os.path.exists("logfiles"):
     os.makedirs("logfiles")
-file_handler = logging.FileHandler("logfiles/trading-platform-poc.log")
-file_handler.setLevel(logging.DEBUG)  # File logging always DEBUG
+file_handler = TimedRotatingFileHandler("logfiles/trading-platform-poc.log", when="midnight", interval=1)
+file_handler.suffix = "%Y-%m-%d"
+file_handler.setLevel(log_level)
 stream_handler = logging.StreamHandler()
-stream_handler.setLevel(console_log_level)
+stream_handler.setLevel(log_level)
 
 logging.basicConfig(
     level=logging.DEBUG, format=FORMAT, datefmt="%Y-%m-%d %H:%M:%S",
