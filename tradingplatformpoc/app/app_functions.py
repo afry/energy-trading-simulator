@@ -368,8 +368,11 @@ def agent_inputs(agent):
             key='TransferRate' + agent['Name']
         )
     else:
-        st.button('Duplicate agent', key='DuplicateButton' + agent['Name'], on_click=duplicate_agent, args=(agent,))
-        st.button('Remove agent', key='RemoveButton' + agent['Name'], on_click=remove_agent, args=(agent,))
+        col1, col2 = st.columns(2)
+        with col1:
+            st.button('Remove agent', key='RemoveButton' + agent['Name'], on_click=remove_agent, args=(agent,))
+        with col2:
+            st.button('Duplicate agent', key='DuplicateButton' + agent['Name'], on_click=duplicate_agent, args=(agent,))
     form.form_submit_button('Save agent')
 
 
