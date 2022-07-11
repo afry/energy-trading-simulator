@@ -62,7 +62,7 @@ KWH_HOT_TAP_WATER_PER_YEAR_M2_SCHOOL = 7
 KWH_SPACE_HEATING_PER_YEAR_M2_SCHOOL = 25
 
 """
-This script generates the following, for ResidentialBuildingAgents:
+This script generates the following, for BuildingAgents:
 *Household electricity consumption data
 *Commercial electricity consumption data
 *Residential hot water consumption data
@@ -561,8 +561,7 @@ def simulate_residential_total_heating(df_inputs: pd.DataFrame, gross_floor_area
     """
     Following along with https://doc.afdrift.se/display/RPJ/Jonstaka+heating+mock-up
     But as for electricity, we'll just see the whole sub-area as 1 house, shouldn't matter too much.
-    Total heating meaning space heating and hot tap water combined.
-    df_inputs needs to contain a 'heating_energy_kwh' column, with the Vetelangden data.
+    df_inputs needs to contain 'rad_energy' and 'hw_energy' columns, with the Vetelangden data.
     Returns two pd.Series with simulated data: The first representing space heating, the second hot tap water.
     """
 
@@ -587,7 +586,9 @@ def simulate_residential_total_heating(df_inputs: pd.DataFrame, gross_floor_area
     vetelangden_space_heating_data = df_inputs['rad_energy']
     vetelangden_hot_tap_water_data = df_inputs['hw_energy']
     space_heating_unscaled = noise * vetelangden_space_heating_data
-    hot_tap_water_unscaled = noise * vetelangden_hot_tap_water_data  # Should perhaps use different noise here?
+    hot_tap_water_unscaled = noise * vetelangden_hot_tap_water_data
+    # Could argue we should use different noise here ^, but there is some logic to these two varying together
+
     # Scale using BDAB's estimate
     space_heating_scaled = scale_energy_consumption(space_heating_unscaled, gross_floor_area_m2,
                                                     KWH_PER_YEAR_M2_RESIDENTIAL_SPACE_HEATING)
