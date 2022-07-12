@@ -88,27 +88,27 @@ class BuildingAgent(IAgent):
             # Positive net consumption, so need to buy electricity
             price_to_use, market_to_use = get_price_and_market_to_use_when_buying(elec_clearing_price,
                                                                                   elec_retail_price)
-            trades.append(self.construct_trade(Action.BUY, Resource.ELECTRICITY, elec_net_consumption_incl_pump,
-                                               price_to_use, market_to_use, period))
+            trades.append(self.construct_elec_trade(Action.BUY, elec_net_consumption_incl_pump,
+                                                    price_to_use, market_to_use, period))
         elif elec_net_consumption_incl_pump < 0:
             # Negative net consumption, meaning there is a surplus, which the agent will sell
             price_to_use, market_to_use = get_price_and_market_to_use_when_selling(elec_clearing_price,
                                                                                    elec_wholesale_price)
-            trades.append(self.construct_trade(Action.SELL, Resource.ELECTRICITY, -elec_net_consumption_incl_pump,
-                                               price_to_use, market_to_use, period))
+            trades.append(self.construct_elec_trade(Action.SELL, -elec_net_consumption_incl_pump,
+                                                    price_to_use, market_to_use, period))
         if heat_net_consumption_incl_pump > 0:
             # Positive net consumption, so need to buy heating
             price_to_use, market_to_use = get_price_and_market_to_use_when_buying(heat_clearing_price,
                                                                                   heat_retail_price)
-            trades.append(self.construct_trade(Action.BUY, Resource.HEATING, heat_net_consumption_incl_pump,
-                                               price_to_use, market_to_use, period))
+            trades.append(self.construct_buy_heat_trade(heat_net_consumption_incl_pump,
+                                                        price_to_use, market_to_use, period))
         elif heat_net_consumption_incl_pump < 0:
             # Negative net consumption, meaning there is a surplus, which the agent will sell
             if self.allow_sell_heat:
                 price_to_use, market_to_use = get_price_and_market_to_use_when_selling(heat_clearing_price,
                                                                                        heat_wholesale_price)
-                trades.append(self.construct_trade(Action.SELL, Resource.HEATING, -heat_net_consumption_incl_pump,
-                                                   price_to_use, market_to_use, period))
+                trades.append(self.construct_sell_heat_trade(-heat_net_consumption_incl_pump,
+                                                             price_to_use, market_to_use, period))
             else:
                 logger.debug('For period {}, had excess heat of {:.2f} kWh, but could not sell that surplus. This heat '
                              'will be seen as having effectively vanished'.
@@ -137,21 +137,20 @@ class BuildingAgent(IAgent):
         elec_net_consumption_incl_pump = elec_net_consumption + elec_needed_for_1_heat_pump * self.n_heat_pumps
         heat_net_consumption_incl_pump = heat_net_consumption - heat_output_for_1_heat_pump * self.n_heat_pumps
         if elec_net_consumption_incl_pump > 0:
-            bids.append(self.construct_bid(Action.BUY, Resource.ELECTRICITY, elec_net_consumption_incl_pump, math.inf))
+            bids.append(self.construct_elec_bid(Action.BUY, elec_net_consumption_incl_pump, math.inf))
             # This demand must be fulfilled - therefore price is inf
         elif elec_net_consumption_incl_pump < 0:
             # What price to use here? The predicted local clearing price, or the external grid wholesale price?
             # Going with the latter
-            bids.append(self.construct_bid(Action.SELL, Resource.ELECTRICITY, -elec_net_consumption_incl_pump,
-                                           self.get_external_grid_buy_price(period, Resource.ELECTRICITY)))
+            bids.append(self.construct_elec_bid(Action.SELL, -elec_net_consumption_incl_pump,
+                                                self.get_external_grid_buy_price(period, Resource.ELECTRICITY)))
         if heat_net_consumption_incl_pump > 0:
-            bids.append(self.construct_bid(Action.BUY, Resource.HEATING, heat_net_consumption_incl_pump, math.inf))
+            bids.append(self.construct_buy_heat_bid(heat_net_consumption_incl_pump, math.inf))
             # This demand must be fulfilled - therefore price is inf
         elif heat_net_consumption_incl_pump < 0 and self.allow_sell_heat:
             # What price to use here? The predicted local clearing price, or the external grid wholesale price?
             # External grid may not want to buy heat at all, so going with the former, for now.
-            bids.append(self.construct_bid(Action.SELL, Resource.HEATING, -heat_net_consumption_incl_pump,
-                                           pred_heat_price))
+            bids.append(self.construct_sell_heat_bid(-heat_net_consumption_incl_pump, pred_heat_price))
         return bids
 
     def calculate_optimal_workload(self, elec_net_consumption: float, heat_net_consumption: float,
