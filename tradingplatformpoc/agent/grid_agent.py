@@ -6,7 +6,6 @@ from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.bid import Action, Bid, BidWithAcceptanceStatus, Resource
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.trade import Market, Trade, TradeMetadataKey
-from tradingplatformpoc.trading_platform_utils import HEAT_TRANSFER_LOSS_PER_SIDE
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +18,8 @@ class GridAgent(IAgent):
         super().__init__(guid, data_store)
         self.resource = resource
         self.max_transfer_per_hour = max_transfer_per_hour
-        self.resource_loss_per_side = (HEAT_TRANSFER_LOSS_PER_SIDE if self.resource == Resource.HEATING else 0)
+        self.resource_loss_per_side = (data_store.heat_transfer_loss_per_side if self.resource == Resource.HEATING
+                                       else 0)
 
     def make_bids(self, period: datetime.datetime, clearing_prices_historical: Union[Dict[datetime.datetime, Dict[
             Resource, float]], None] = None) -> List[Bid]:

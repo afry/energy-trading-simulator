@@ -226,6 +226,7 @@
 	],
 	"AreaInfo": {
 		"DefaultPVEfficiency": 0.165,
+		"HeatTransferLoss": 0.05,
 		"ExternalHeatingWholesalePriceFraction": 0.5,
 		"ExternalElectricityWholesalePriceOffset": 0.05,
 		"ExternalElectricityRetailPriceOffset": 0.49

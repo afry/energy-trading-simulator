@@ -10,7 +10,6 @@ from tradingplatformpoc.bid import Resource
 ALL_IMPLEMENTED_RESOURCES = [Resource.ELECTRICITY, Resource.HEATING]
 ALL_IMPLEMENTED_RESOURCES_STR = [res.name for res in ALL_IMPLEMENTED_RESOURCES]
 ALL_AGENT_TYPES = ["BuildingAgent", "PVAgent", "StorageAgent", "GridAgent", "GroceryStoreAgent"]
-HEAT_TRANSFER_LOSS_PER_SIDE = 1 - np.sqrt(0.95)  # Square root since it is added both to the BUY and the SELL side
 
 
 def minus_n_hours(t1: datetime, n_hours: int):

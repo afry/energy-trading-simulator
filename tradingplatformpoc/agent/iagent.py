@@ -7,7 +7,6 @@ import numpy as np
 from ..bid import Action, Bid, BidWithAcceptanceStatus, Resource
 from ..data_store import DataStore
 from ..trade import Market, Trade, TradeMetadataKey
-from ..trading_platform_utils import HEAT_TRANSFER_LOSS_PER_SIDE
 
 
 class IAgent(ABC):
@@ -53,12 +52,12 @@ class IAgent(ABC):
 
     def construct_sell_heat_bid(self, quantity: float, price: float) -> Bid:
         # Heat transfer loss added
-        quantity_after_loss = quantity * (1 - HEAT_TRANSFER_LOSS_PER_SIDE)
+        quantity_after_loss = quantity * (1 - self.data_store.heat_transfer_loss_per_side)
         return Bid(Action.SELL, Resource.HEATING, quantity_after_loss, price, self.guid, False)
 
     def construct_buy_heat_bid(self, quantity_needed: float, price: float) -> Bid:
         # The heat transfer loss needs to be accounted for
-        quantity_to_buy = quantity_needed / (1 - HEAT_TRANSFER_LOSS_PER_SIDE)
+        quantity_to_buy = quantity_needed / (1 - self.data_store.heat_transfer_loss_per_side)
         return Bid(Action.BUY, Resource.HEATING, quantity_to_buy, price, self.guid, False)
 
     def construct_elec_trade(self, action: Action, quantity: float, price: float, market: Market,
@@ -68,13 +67,13 @@ class IAgent(ABC):
     def construct_sell_heat_trade(self, quantity: float, price: float, market: Market, period: datetime.datetime) -> \
             Trade:
         # Heat transfer loss added
-        quantity_after_loss = quantity * (1 - HEAT_TRANSFER_LOSS_PER_SIDE)
+        quantity_after_loss = quantity * (1 - self.data_store.heat_transfer_loss_per_side)
         return Trade(Action.SELL, Resource.HEATING, quantity_after_loss, price, self.guid, False, market, period)
 
     def construct_buy_heat_trade(self, quantity_needed: float, price: float, market: Market,
                                  period: datetime.datetime) -> Trade:
         # The heat transfer loss needs to be accounted for
-        quantity_to_buy = quantity_needed / (1 - HEAT_TRANSFER_LOSS_PER_SIDE)
+        quantity_to_buy = quantity_needed / (1 - self.data_store.heat_transfer_loss_per_side)
         return Trade(Action.BUY, Resource.HEATING, quantity_to_buy, price, self.guid, False, market, period)
 
     def get_external_grid_buy_price(self, period: datetime.datetime, resource: Resource):

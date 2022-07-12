@@ -45,6 +45,7 @@ class TestDataStore(TestCase):
         """Test that when we specify a retail price offset when constructing the data store, that is reflected when
         getting the retail price."""
         data_store_2 = data_store.DataStore(config_area_info={"DefaultPVEfficiency": 0.165,
+                                                              "HeatTransferLoss": 0.05,
                                                               "ExternalElectricityRetailPriceOffset": 2.0},
                                             nordpool_data=ONES_SERIES * CONSTANT_NORDPOOL_PRICE,
                                             irradiation_data=ONES_SERIES,

@@ -114,6 +114,11 @@ if __name__ == '__main__':
             value=st.session_state.config_data['AreaInfo']['DefaultPVEfficiency'],
             help=app_constants.DEFAULT_PV_EFFICIENCY_HELP_TEXT)
 
+        st.session_state.config_data['AreaInfo']['HeatTransferLoss'] = area_form.number_input(
+            'Heat transfer loss:', min_value=0.0, max_value=0.99, format='%.3f',
+            value=st.session_state.config_data['AreaInfo']['HeatTransferLoss'],
+            help=app_constants.HEAT_TRANSFER_LOSS_HELP_TEXT)
+
         st.session_state.config_data['AreaInfo']['ExternalElectricityWholesalePriceOffset'] = area_form.number_input(
             'External electricity wholesale price offset:', min_value=-1.0, max_value=1.0,
             value=st.session_state.config_data['AreaInfo']['ExternalElectricityWholesalePriceOffset'],
