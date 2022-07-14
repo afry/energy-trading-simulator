@@ -198,3 +198,25 @@ class TestMarketSolver(TestCase):
         self.assertAlmostEqual(wholesale_price, clearing_prices[Resource.ELECTRICITY])
         accepted_bids = [bid for bid in bids_with_acceptance_status if bid.was_accepted]
         self.assertEqual(3, len(accepted_bids))
+
+    def test_res_220(self):
+        """Quantity of accepted sell bids should be equal to quantity of accepted buy bids - this likely requires
+        one or more bid to be _partially_ accepted."""
+        retail_price = 1.0
+        wholesale_price = 0.5
+        storage_buy_price = 0.8
+        storage_sell_price = 0.9
+        bids = [Bid(Action.SELL, Resource.ELECTRICITY, 10000, retail_price, "Grid", True),
+                Bid(Action.BUY, Resource.ELECTRICITY, 4, math.inf, "Buyer", False),
+                Bid(Action.SELL, Resource.ELECTRICITY, 5, wholesale_price, "Seller", False),
+                Bid(Action.BUY, Resource.ELECTRICITY, 2, storage_buy_price, "Storage", False),
+                Bid(Action.SELL, Resource.ELECTRICITY, 2, storage_sell_price, "Storage", False)]
+        # The storage agent wanting to buy at 0.8 should be ignored, since we have a lower price which satisfies all
+        # demand which has asking price = Inf
+        clearing_prices, bids_with_acceptance_status = resolve_bids(SOME_DATETIME, bids)
+        self.assertAlmostEqual(wholesale_price, clearing_prices[Resource.ELECTRICITY])
+        accepted_sell_quantity = sum([bid.quantity for bid in bids_with_acceptance_status
+                                      if bid.was_accepted and bid.action == Action.SELL])
+        accepted_buy_quantity = sum([bid.quantity for bid in bids_with_acceptance_status
+                                     if bid.was_accepted and bid.action == Action.BUY])
+        self.assertAlmostEqual(accepted_sell_quantity, accepted_buy_quantity)
