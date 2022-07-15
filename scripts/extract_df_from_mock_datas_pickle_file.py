@@ -32,7 +32,8 @@ with open(IN_PICKLE, 'rb') as f:
 
 n_of_other_sets = 0
 comparison_df = pd.DataFrame()
-for frozen_set_of_residential_building_agents, mock_data_frame in all_data_sets.items():
+for mock_data_key, mock_data_frame in all_data_sets.items():
+    frozen_set_of_residential_building_agents = mock_data_key.building_agents_frozen_set
     if get_elec_cons_key(AGENT_TO_LOOK_AT) in mock_data_frame:
         if frozen_set_of_residential_building_agents == current_config_rbas:
             name_for_this_set_of_rbas = 'Current'
