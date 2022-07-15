@@ -107,15 +107,15 @@ class StorageAgent(IAgent):
             # Only supporting one Resource, this would be unexpected
             raise RuntimeError("More than 1 accepted bid in period {} for storage agent '{}'".format(period, self.guid))
         elif len(accepted_bids_for_agent) == 1:
-            bid_quantity = accepted_bids_for_agent[0].quantity
+            accepted_quantity = accepted_bids_for_agent[0].accepted_quantity
             clearing_price = clearing_prices[self.resource]
             if accepted_bids_for_agent[0].action == Action.BUY:
-                actual_charge_quantity = self.digital_twin.charge(bid_quantity)
+                actual_charge_quantity = self.digital_twin.charge(accepted_quantity)
                 if actual_charge_quantity > 0:
                     trades = [self.construct_trade(Action.BUY, self.resource, actual_charge_quantity,
                                                    clearing_price, Market.LOCAL, period)]
             else:  # action was SELL
-                actual_discharge_quantity = self.digital_twin.discharge(bid_quantity)
+                actual_discharge_quantity = self.digital_twin.discharge(accepted_quantity)
                 if actual_discharge_quantity > 0:
                     trades = [self.construct_trade(Action.SELL, self.resource, actual_discharge_quantity,
                                                    clearing_price, Market.LOCAL, period)]

@@ -24,8 +24,8 @@ class TestMarketSolver(TestCase):
         self.assertEqual(len(ALL_IMPLEMENTED_RESOURCES), len(clearing_prices))
         self.assertEqual(1, clearing_prices[Resource.ELECTRICITY])
         for bid in bids_with_acceptance_status:
-            self.assertIsNotNone(bid.was_accepted)
-            self.assertTrue(bid.was_accepted)
+            self.assertIsNotNone(bid.accepted_quantity)
+            self.assertTrue(bid.accepted_quantity > 0)
 
     def test_resolve_bids_2(self):
         """Test the clearing price calculation when there are no accepted bids."""
@@ -38,11 +38,8 @@ class TestMarketSolver(TestCase):
         self.assertEqual(len(ALL_IMPLEMENTED_RESOURCES), len(clearing_prices))
         self.assertEqual(1, clearing_prices[Resource.ELECTRICITY])
         for bid in bids_with_acceptance_status:
-            self.assertIsNotNone(bid.was_accepted)
-            if bid.source == 'Buyer1':
-                self.assertFalse(bid.was_accepted)
-            else:
-                self.assertTrue(bid.was_accepted)
+            self.assertIsNotNone(bid.accepted_quantity)
+            self.assertFalse(bid.accepted_quantity > 0)
 
     def test_resolve_bids_3(self):
         """Test the clearing price calculation when there are 4 different bids, one of them from an external grid."""
@@ -59,7 +56,7 @@ class TestMarketSolver(TestCase):
         self.assertEqual(len(ALL_IMPLEMENTED_RESOURCES), len(clearing_prices))
         self.assertEqual(10, clearing_prices[Resource.ELECTRICITY])
         for bid in bids_with_acceptance_status:
-            self.assertTrue(bid.was_accepted)
+            self.assertTrue(bid.accepted_quantity > 0)
 
     def test_resolve_bids_4(self):
         """Test the clearing price calculation when there are 4 different bids, and the locally produced energy covers
@@ -77,11 +74,11 @@ class TestMarketSolver(TestCase):
         self.assertEqual(len(ALL_IMPLEMENTED_RESOURCES), len(clearing_prices))
         self.assertEqual(1, clearing_prices[Resource.ELECTRICITY])
         for bid in bids_with_acceptance_status:
-            self.assertIsNotNone(bid.was_accepted)
+            self.assertIsNotNone(bid.accepted_quantity)
             if bid.source == 'Grid':
-                self.assertFalse(bid.was_accepted)
+                self.assertFalse(bid.accepted_quantity > 0)
             else:
-                self.assertTrue(bid.was_accepted)
+                self.assertTrue(bid.accepted_quantity > 0)
 
     def test_resolve_bids_5(self):
         """
@@ -94,7 +91,7 @@ class TestMarketSolver(TestCase):
         self.assertEqual(len(ALL_IMPLEMENTED_RESOURCES), len(clearing_prices))
         self.assertTrue(np.isnan(clearing_prices[Resource.ELECTRICITY]))
         for bid in bids_with_acceptance_status:
-            self.assertFalse(bid.was_accepted)
+            self.assertFalse(bid.accepted_quantity > 0)
 
     def test_resolve_bids_with_no_inf_buy(self):
         """Test the clearing price calculation when there are no buy-bids with Inf asking price."""
@@ -109,12 +106,14 @@ class TestMarketSolver(TestCase):
         self.assertEqual(len(ALL_IMPLEMENTED_RESOURCES), len(clearing_prices))
         self.assertEqual(1, clearing_prices[Resource.ELECTRICITY])
         for bid in bids_with_acceptance_status:
-            self.assertIsNotNone(bid.was_accepted)
+            self.assertIsNotNone(bid.accepted_quantity)
             if bid.source == 'Seller2':
-                self.assertFalse(bid.was_accepted)
+                self.assertFalse(bid.accepted_quantity > 0)
+            elif bid.source == 'Buyer1':
+                self.assertTrue(bid.accepted_quantity > 0)
+                self.assertTrue(bid.accepted_quantity < bid.quantity)
             else:
-                # If/when we allow for "partial" acceptance, Buyer1's bid should be partially accepted
-                self.assertTrue(bid.was_accepted)
+                self.assertAlmostEqual(bid.accepted_quantity, bid.quantity)
 
     def test_resolve_bids_with_local_surplus(self):
         """Test that the clearing price is calculated correctly when there is a local surplus."""
@@ -129,11 +128,11 @@ class TestMarketSolver(TestCase):
         self.assertEqual(len(ALL_IMPLEMENTED_RESOURCES), len(clearing_prices))
         self.assertEqual(0.46069, clearing_prices[Resource.ELECTRICITY])
         for bid in bids_with_acceptance_status:
-            self.assertIsNotNone(bid.was_accepted)
+            self.assertIsNotNone(bid.accepted_quantity)
             if bid.source == 'ElectricityGridAgent':
-                self.assertFalse(bid.was_accepted)
+                self.assertFalse(bid.accepted_quantity > 0)
             else:
-                self.assertTrue(bid.was_accepted)
+                self.assertTrue(bid.accepted_quantity > 0)
 
     def test_resolve_bids_with_only_sell_bid_for_heating(self):
         """Test that if for a resource, there are only sell bids and no buy bids, the clearing price is nan. Also, it
@@ -148,11 +147,11 @@ class TestMarketSolver(TestCase):
         self.assertEqual(0.8, clearing_prices[Resource.ELECTRICITY])
         self.assertTrue(np.isnan(clearing_prices[Resource.HEATING]))
         for bid in bids_with_acceptance_status:
-            self.assertIsNotNone(bid.was_accepted)
+            self.assertIsNotNone(bid.accepted_quantity)
             if bid.source == 'HeatingGridAgent':
-                self.assertFalse(bid.was_accepted)
+                self.assertFalse(bid.accepted_quantity > 0)
             else:
-                self.assertTrue(bid.was_accepted)
+                self.assertTrue(bid.accepted_quantity > 0)
 
     def test_resolve_bids_with_two_resources(self):
         """Test that clearing prices are calculated correctly for two resources."""
@@ -165,8 +164,8 @@ class TestMarketSolver(TestCase):
         self.assertEqual(0.8, clearing_prices[Resource.ELECTRICITY])
         self.assertEqual(2, clearing_prices[Resource.HEATING])
         for bid in bids_with_acceptance_status:
-            self.assertIsNotNone(bid.was_accepted)
-            self.assertTrue(bid.was_accepted)
+            self.assertIsNotNone(bid.accepted_quantity)
+            self.assertTrue(bid.accepted_quantity > 0)
 
     def test_no_bids_accepted(self):
         """Test that the no_bids_accepted method doesn't throw a fit when an empty list is passed in."""
@@ -196,7 +195,7 @@ class TestMarketSolver(TestCase):
         # demand which has asking price = Inf
         clearing_prices, bids_with_acceptance_status = resolve_bids(SOME_DATETIME, bids)
         self.assertAlmostEqual(wholesale_price, clearing_prices[Resource.ELECTRICITY])
-        accepted_bids = [bid for bid in bids_with_acceptance_status if bid.was_accepted]
+        accepted_bids = [bid for bid in bids_with_acceptance_status if bid.accepted_quantity > 0]
         self.assertEqual(3, len(accepted_bids))
 
     def test_res_220(self):
@@ -215,8 +214,8 @@ class TestMarketSolver(TestCase):
         # demand which has asking price = Inf
         clearing_prices, bids_with_acceptance_status = resolve_bids(SOME_DATETIME, bids)
         self.assertAlmostEqual(wholesale_price, clearing_prices[Resource.ELECTRICITY])
-        accepted_sell_quantity = sum([bid.quantity for bid in bids_with_acceptance_status
-                                      if bid.was_accepted and bid.action == Action.SELL])
-        accepted_buy_quantity = sum([bid.quantity for bid in bids_with_acceptance_status
-                                     if bid.was_accepted and bid.action == Action.BUY])
+        accepted_sell_quantity = sum([bid.accepted_quantity for bid in bids_with_acceptance_status
+                                      if bid.action == Action.SELL])
+        accepted_buy_quantity = sum([bid.accepted_quantity for bid in bids_with_acceptance_status
+                                     if bid.action == Action.BUY])
         self.assertAlmostEqual(accepted_sell_quantity, accepted_buy_quantity)
