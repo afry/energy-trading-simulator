@@ -56,36 +56,51 @@ def resolve_bids(period: datetime.datetime, bids: Iterable[Bid]) -> \
     return clearing_prices_dict, bids_with_acceptance_status
 
 
-def calculate_bids_with_acceptance_status(clearing_price: float, buy_bids_resource: List[Bid],
-                                          sell_bids_resource: List[Bid], supply_for_price_point: float) -> \
+def calculate_bids_with_acceptance_status(clearing_price: float, buy_bids: List[Bid],
+                                          sell_bids: List[Bid], supply_for_price_point: float) -> \
         List[BidWithAcceptanceStatus]:
     """
     Builds a list of bids with the extra information of how much of their quantity was "accepted" in the market solver.
     """
-    # Now specify what bids were accepted.
-    # TODO: Exact same prices
     bwas_for_resource: List[BidWithAcceptanceStatus] = []
-    # First, sort buy bids, biggest price first
-    buy_bids_resource.sort(key=lambda x: x.price, reverse=True)
-    # Now, go through them and accept as large a part as possible
+
+    # First, go through buy bids, biggest price first
     buy_quantity_accepted = 0.0
-    for bid in buy_bids_resource:
-        if bid.price < clearing_price:
-            bwas_for_resource.append(BidWithAcceptanceStatus.from_bid(bid, 0.0))
+    buy_bid_price_points = get_price_points(buy_bids)
+    for buy_bid_price_point in sorted(buy_bid_price_points, reverse=True):
+        buy_bids_with_this_price = [bid for bid in buy_bids if bid.price == buy_bid_price_point]
+        if buy_bid_price_point < clearing_price:
+            for bid in buy_bids_with_this_price:
+                bwas_for_resource.append(BidWithAcceptanceStatus.from_bid(bid, 0.0))
         else:
-            accept_quantity = min(bid.quantity, supply_for_price_point - buy_quantity_accepted)
-            buy_quantity_accepted = buy_quantity_accepted + accept_quantity
-            bwas_for_resource.append(BidWithAcceptanceStatus.from_bid(bid, accept_quantity))
-    # Now do the same for sell bids - sort by lowest price first
-    sell_bids_resource.sort(key=lambda x: x.price, reverse=False)
+            # Accept as much as possible
+            total_quantity_at_price_point = sum([bid.quantity for bid in buy_bids_with_this_price])
+            max_possible_accept_quantity = supply_for_price_point - buy_quantity_accepted
+            frac_to_accept = min(1.0, max_possible_accept_quantity / total_quantity_at_price_point)
+            for bid in buy_bids_with_this_price:
+                bwas_for_resource.append(BidWithAcceptanceStatus.from_bid(bid, bid.quantity * frac_to_accept))
+            buy_quantity_accepted = buy_quantity_accepted + total_quantity_at_price_point * frac_to_accept
+
+    # Now go through sell bids, lowest price first
     sell_quantity_accepted = 0.0
-    for bid in sell_bids_resource:
-        if bid.price > clearing_price:
-            bwas_for_resource.append(BidWithAcceptanceStatus.from_bid(bid, 0.0))
+    sell_bid_price_points = get_price_points(sell_bids)
+    for sell_bid_price_point in sorted(sell_bid_price_points, reverse=False):
+        sell_bids_with_this_price = [bid for bid in sell_bids if bid.price == sell_bid_price_point]
+        if sell_bid_price_point > clearing_price:
+            for bid in sell_bids_with_this_price:
+                bwas_for_resource.append(BidWithAcceptanceStatus.from_bid(bid, 0.0))
         else:
-            accept_quantity = min(bid.quantity, buy_quantity_accepted - sell_quantity_accepted)
-            sell_quantity_accepted = sell_quantity_accepted + accept_quantity
-            bwas_for_resource.append(BidWithAcceptanceStatus.from_bid(bid, accept_quantity))
+            # Accept as much as possible
+            total_quantity_at_price_point = sum([bid.quantity for bid in sell_bids_with_this_price])
+            max_possible_accept_quantity = buy_quantity_accepted - sell_quantity_accepted
+            frac_to_accept = min(1.0, max_possible_accept_quantity / total_quantity_at_price_point)
+            for bid in sell_bids_with_this_price:
+                bwas_for_resource.append(BidWithAcceptanceStatus.from_bid(bid, bid.quantity * frac_to_accept))
+            sell_quantity_accepted = sell_quantity_accepted + total_quantity_at_price_point * frac_to_accept
+
+    if buy_quantity_accepted != sell_quantity_accepted:
+        logger.warning('buy_quantity_accepted was not equal to sell_quantity_accepted! Difference: '
+                       + str(buy_quantity_accepted - sell_quantity_accepted))
     return bwas_for_resource
 
 

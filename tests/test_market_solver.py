@@ -219,3 +219,24 @@ class TestMarketSolver(TestCase):
         accepted_buy_quantity = sum([bid.accepted_quantity for bid in bids_with_acceptance_status
                                      if bid.action == Action.BUY])
         self.assertAlmostEqual(accepted_sell_quantity, accepted_buy_quantity)
+
+    def test_partial_acceptance_same_price(self):
+        """If multiple bids have the same price, we may require them all to be partially accepted"""
+        local_sell_price = 1.5
+        bids = [Bid(Action.SELL, Resource.ELECTRICITY, 200, local_sell_price, "Seller1", False),
+                Bid(Action.SELL, Resource.ELECTRICITY, 200, local_sell_price, "Seller2", False),
+                Bid(Action.SELL, Resource.ELECTRICITY, 10000, 10, "Grid", True),
+                Bid(Action.BUY, Resource.ELECTRICITY, 300, math.inf, "Buyer1", False)]
+
+        clearing_prices, bids_with_acceptance_status = resolve_bids(SOME_DATETIME, bids)
+        self.assertAlmostEqual(local_sell_price, clearing_prices[Resource.ELECTRICITY])
+        accepted_sell_quantity = sum([bid.accepted_quantity for bid in bids_with_acceptance_status
+                                      if bid.action == Action.SELL])
+        accepted_buy_quantity = sum([bid.accepted_quantity for bid in bids_with_acceptance_status
+                                     if bid.action == Action.BUY])
+        self.assertAlmostEqual(accepted_sell_quantity, accepted_buy_quantity)
+
+        # Seller1 and Seller2 should both be partially accepted
+        for bid_with_acceptance_status in bids_with_acceptance_status:
+            if bid_with_acceptance_status.source in ["Seller1", "Seller2"]:
+                self.assertAlmostEqual(150, bid_with_acceptance_status.accepted_quantity)
