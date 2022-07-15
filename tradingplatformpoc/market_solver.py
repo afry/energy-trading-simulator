@@ -98,9 +98,9 @@ def calculate_bids_with_acceptance_status(clearing_price: float, buy_bids: List[
                 bwas_for_resource.append(BidWithAcceptanceStatus.from_bid(bid, bid.quantity * frac_to_accept))
             sell_quantity_accepted = sell_quantity_accepted + total_quantity_at_price_point * frac_to_accept
 
-    if buy_quantity_accepted != sell_quantity_accepted:
+    if abs(buy_quantity_accepted - sell_quantity_accepted) > 1e-5:
         logger.warning('buy_quantity_accepted was not equal to sell_quantity_accepted! Difference: '
-                       + str(buy_quantity_accepted - sell_quantity_accepted))
+                       + str(abs(buy_quantity_accepted - sell_quantity_accepted)))
     return bwas_for_resource
 
 
