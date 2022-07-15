@@ -23,7 +23,7 @@ different configurations.
 # Open config file
 with open(resource_filename(DATA_PATH, CONFIG_FILE), "r") as json_file:
     config_data = json.load(json_file)
-residential_building_agents, total_gross_floor_area = get_all_building_agents(config_data)
+residential_building_agents, total_gross_floor_area = get_all_building_agents(config_data["Agents"])
 # The residential building agents in the current config:
 current_config_rbas = frozenset(residential_building_agents)
 
