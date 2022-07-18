@@ -1,6 +1,6 @@
 import datetime
 import logging
-from typing import Dict, Iterable, List, Set, Tuple
+from typing import Dict, Iterable, List, Set, Tuple, Union
 
 import numpy as np
 
@@ -22,8 +22,9 @@ def resolve_bids(period: datetime.datetime, bids: Iterable[Bid]) -> \
 
     for resource in ALL_IMPLEMENTED_RESOURCES:
         bids_for_resource = [x for x in bids if x.resource == resource]
-        bwas_for_resource: List[BidWithAcceptanceStatus] = []
-        if not has_at_least_one_bid_each_side(bids_for_resource):
+        buy_bids_resource = [x for x in bids_for_resource if x.action == Action.BUY]
+        sell_bids_resource = [x for x in bids_for_resource if x.action == Action.SELL]
+        if not has_at_least_one_bid_each_side(buy_bids_resource, sell_bids_resource):
             logger.debug('For period {}, {} had only bids on one side! Setting clearing price to NaN'.
                          format(period, resource))
             clearing_prices_dict[resource] = np.nan
@@ -32,39 +33,20 @@ def resolve_bids(period: datetime.datetime, bids: Iterable[Bid]) -> \
             price_points = get_price_points(bids_for_resource)
 
             demand_which_needs_to_be_filled = 0.0
-            for bid in bids_for_resource:
-                if bid.action == Action.BUY and bid.price == float("inf"):
+            for bid in buy_bids_resource:
+                if bid.price == float("inf"):
                     demand_which_needs_to_be_filled = demand_which_needs_to_be_filled + bid.quantity
 
-            for price_point in sorted(price_points):
-                # Going through price points in ascending order
-                supply_for_price_point = 0.0
-                for bid in bids_for_resource:
-                    if bid.action == Action.SELL:
-                        if bid.price <= price_point:
-                            supply_for_price_point = supply_for_price_point + bid.quantity
+            clearing_price, supply_for_price_point = calculate_clearing_price(demand_which_needs_to_be_filled,
+                                                                              price_points, sell_bids_resource)
 
-                if supply_for_price_point >= demand_which_needs_to_be_filled and supply_for_price_point > 0:
-                    # Found an acceptable price!
-                    # Now specify what bids were accepted.
-                    for bid in bids_for_resource:
-                        if bid.action == Action.SELL:
-                            if bid.price <= price_point:
-                                bwas_for_resource.append(BidWithAcceptanceStatus.from_bid(bid, True))
-                            else:
-                                bwas_for_resource.append(BidWithAcceptanceStatus.from_bid(bid, False))
-                        else:  # BUY
-                            if bid.price >= price_point:
-                                bwas_for_resource.append(BidWithAcceptanceStatus.from_bid(bid, True))
-                            else:
-                                bwas_for_resource.append(BidWithAcceptanceStatus.from_bid(bid, False))
-                    clearing_prices_dict[resource] = price_point
-                    break
-
-            if resource not in clearing_prices_dict:
+            if clearing_price is None:
                 # This means we haven't found a clearing price for this resource
                 clearing_price, bwas_for_resource = deal_with_no_solution_found(bids_for_resource, period)
-                clearing_prices_dict[resource] = clearing_price
+            else:
+                bwas_for_resource = calculate_bids_with_acceptance_status(clearing_price, buy_bids_resource,
+                                                                          sell_bids_resource, supply_for_price_point)
+            clearing_prices_dict[resource] = clearing_price
 
             if len(bwas_for_resource) != len(bids_for_resource):
                 # Should never happen
@@ -72,6 +54,75 @@ def resolve_bids(period: datetime.datetime, bids: Iterable[Bid]) -> \
         bids_with_acceptance_status.extend(bwas_for_resource)
 
     return clearing_prices_dict, bids_with_acceptance_status
+
+
+def calculate_bids_with_acceptance_status(clearing_price: float, buy_bids: List[Bid],
+                                          sell_bids: List[Bid], supply_for_price_point: float) -> \
+        List[BidWithAcceptanceStatus]:
+    """
+    Builds a list of bids with the extra information of how much of their quantity was "accepted" in the market solver.
+    """
+    bwas_for_resource: List[BidWithAcceptanceStatus] = []
+
+    # First, go through buy bids, biggest price first
+    buy_quantity_accepted = 0.0
+    buy_bid_price_points = get_price_points(buy_bids)
+    for buy_bid_price_point in sorted(buy_bid_price_points, reverse=True):
+        buy_bids_with_this_price = [bid for bid in buy_bids if bid.price == buy_bid_price_point]
+        if buy_bid_price_point < clearing_price:
+            for bid in buy_bids_with_this_price:
+                bwas_for_resource.append(BidWithAcceptanceStatus.from_bid(bid, 0.0))
+        else:
+            # Accept as much as possible
+            total_quantity_at_price_point = sum([bid.quantity for bid in buy_bids_with_this_price])
+            max_possible_accept_quantity = supply_for_price_point - buy_quantity_accepted
+            frac_to_accept = min(1.0, max_possible_accept_quantity / total_quantity_at_price_point)
+            for bid in buy_bids_with_this_price:
+                bwas_for_resource.append(BidWithAcceptanceStatus.from_bid(bid, bid.quantity * frac_to_accept))
+            buy_quantity_accepted = buy_quantity_accepted + total_quantity_at_price_point * frac_to_accept
+
+    # Now go through sell bids, lowest price first
+    sell_quantity_accepted = 0.0
+    sell_bid_price_points = get_price_points(sell_bids)
+    for sell_bid_price_point in sorted(sell_bid_price_points, reverse=False):
+        sell_bids_with_this_price = [bid for bid in sell_bids if bid.price == sell_bid_price_point]
+        if sell_bid_price_point > clearing_price:
+            for bid in sell_bids_with_this_price:
+                bwas_for_resource.append(BidWithAcceptanceStatus.from_bid(bid, 0.0))
+        else:
+            # Accept as much as possible
+            total_quantity_at_price_point = sum([bid.quantity for bid in sell_bids_with_this_price])
+            max_possible_accept_quantity = buy_quantity_accepted - sell_quantity_accepted
+            frac_to_accept = min(1.0, max_possible_accept_quantity / total_quantity_at_price_point)
+            for bid in sell_bids_with_this_price:
+                bwas_for_resource.append(BidWithAcceptanceStatus.from_bid(bid, bid.quantity * frac_to_accept))
+            sell_quantity_accepted = sell_quantity_accepted + total_quantity_at_price_point * frac_to_accept
+
+    if abs(buy_quantity_accepted - sell_quantity_accepted) > 1e-5:
+        logger.warning('buy_quantity_accepted was not equal to sell_quantity_accepted! Difference: '
+                       + str(abs(buy_quantity_accepted - sell_quantity_accepted)))
+    return bwas_for_resource
+
+
+def calculate_clearing_price(demand_which_needs_to_be_filled: float, price_points: Set[float],
+                             sell_bids_resource: List[Bid]) -> Tuple[Union[float, None], float]:
+    """
+    Goes through price points in ascending order. When a price point for which the available supply exceeds or equals
+    the demand which "needs to" be filled is found, that price point is returned.
+    @return: A tuple, the first entry being the calculated clearing price, and the second being the total supply for
+        that price point.
+    """
+    for price_point in sorted(price_points):
+        # Going through price points in ascending order
+        supply_for_price_point = 0.0
+        for bid in sell_bids_resource:
+            if bid.price <= price_point:
+                supply_for_price_point = supply_for_price_point + bid.quantity
+
+        if supply_for_price_point >= demand_which_needs_to_be_filled and supply_for_price_point > 0:
+            # Found an acceptable price!
+            return price_point, supply_for_price_point
+    return None, 0
 
 
 def get_price_points(bids: Iterable[Bid]) -> Set[float]:
@@ -93,11 +144,9 @@ def deal_with_no_solution_found(bids_without_acceptance_status: Iterable[Bid], p
 
 
 def no_bids_accepted(bids_without_acceptance_status: Iterable[Bid]) -> List[BidWithAcceptanceStatus]:
-    return [BidWithAcceptanceStatus.from_bid(bid, False) for bid in bids_without_acceptance_status]
+    return [BidWithAcceptanceStatus.from_bid(bid, 0.0) for bid in bids_without_acceptance_status]
 
 
-def has_at_least_one_bid_each_side(bids: Iterable[Bid]) -> bool:
+def has_at_least_one_bid_each_side(buy_bids: List[Bid], sell_bids: List[Bid]) -> bool:
     """If this isn't true, the market solver won't need to do any work, essentially."""
-    buy_bids = [x for x in bids if x.action == Action.BUY]
-    sell_bids = [x for x in bids if x.action == Action.SELL]
     return len(buy_bids) > 0 and len(sell_bids) > 0

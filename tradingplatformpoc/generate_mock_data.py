@@ -1,4 +1,5 @@
 import datetime
+import hashlib
 import json
 import logging
 import math
@@ -629,8 +630,14 @@ def find_agent_in_other_data_sets(agent_dict: Dict[str, Any], all_data_sets: Dic
 
 
 def calculate_seed_from_string(some_string: str) -> int:
-    """Hashes the string, and truncates the value to a 32-bit integer, since that is what seeds are allowed to be."""
-    return some_string.__hash__() & 0xFFFFFFFF
+    """
+    Hashes the string, and truncates the value to a 32-bit integer, since that is what seeds are allowed to be.
+    __hash__() is non-deterministic, so we use hashlib.
+    """
+    bytes_to_hash = some_string.encode('utf-8')
+    hashed_hexadecimal = hashlib.sha256(bytes_to_hash).hexdigest()
+    very_big_int = int(hashed_hexadecimal, 16)
+    return very_big_int & 0xFFFFFFFF
 
 
 if __name__ == '__main__':

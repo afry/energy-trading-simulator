@@ -38,7 +38,7 @@ def calculate_penalty_costs_for_period_and_resource(bids_for_resource: Collectio
     all_periods = set([x.period for x in trades_for_resource])
     if len(all_periods) > 1:
         raise RuntimeError("When calculating costs, received trades for more than 1 trading period!")
-    accepted_bids = [x for x in bids_for_resource if x.was_accepted]
+    accepted_bids = [x for x in bids_for_resource if x.accepted_quantity > 0]
     agent_ids = set([x.source for x in accepted_bids] + [x.source for x in trades_for_resource])
 
     external_bid = get_external_bid(bids_for_resource)
@@ -188,7 +188,7 @@ def get_bid_usage(accepted_bids_for_agent: List[BidWithAcceptanceStatus], agent_
         return 0
     else:
         accepted_bid = accepted_bids_for_agent[0]
-        return accepted_bid.quantity if accepted_bid.action == Action.BUY else -accepted_bid.quantity
+        return accepted_bid.accepted_quantity if accepted_bid.action == Action.BUY else -accepted_bid.accepted_quantity
 
 
 def get_actual_usage(trades_for_agent: List[Trade], agent_id: str) -> float:
