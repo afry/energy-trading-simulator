@@ -62,19 +62,19 @@ class Bid:
 
 class BidWithAcceptanceStatus(Bid):
     """
-    A bid, with the additional information of whether the bid was accepted or not, in the market clearing process.
+    A bid, with the additional information of how much of the bid was accepted, in the market clearing process.
     """
-    was_accepted: bool
+    accepted_quantity: float
 
     def __init__(self, action: Action, resource: Resource, quantity: float, price: float, source: str,
-                 by_external: bool, was_accepted: bool):
+                 by_external: bool, accepted_quantity: float):
         super().__init__(action, resource, quantity, price, source, by_external)
-        self.was_accepted = was_accepted
+        self.accepted_quantity = accepted_quantity
 
     @staticmethod
-    def from_bid(bid: Bid, was_accepted: bool):
+    def from_bid(bid: Bid, accepted_quantity: float):
         return BidWithAcceptanceStatus(bid.action, bid.resource, bid.quantity, bid.price, bid.source, bid.by_external,
-                                       was_accepted)
+                                       accepted_quantity)
 
     def to_string_with_period(self, period: datetime.datetime) -> str:
         return "{},{},{},{},{},{},{},{}".format(period,
@@ -84,7 +84,7 @@ class BidWithAcceptanceStatus(Bid):
                                                 resource_string(self.resource),
                                                 self.quantity,
                                                 self.price,
-                                                self.was_accepted)
+                                                self.accepted_quantity)
 
     def to_series_with_period(self, period: datetime.datetime) -> pd.Series:
         return pd.Series(data={'period': period,
@@ -94,7 +94,7 @@ class BidWithAcceptanceStatus(Bid):
                                'resource': self.resource,
                                'quantity': self.quantity,
                                'price': self.price,
-                               'was_accepted': self.was_accepted})
+                               'accepted_quantity': self.accepted_quantity})
 
 
 def write_bid_rows(bids_with_acceptance_status: Iterable[BidWithAcceptanceStatus], period: datetime.datetime) -> str:

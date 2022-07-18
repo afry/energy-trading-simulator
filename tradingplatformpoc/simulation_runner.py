@@ -103,7 +103,7 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
         trades_excl_external = []
         for agent in agents:
             accepted_bids_for_agent = [bid for bid in bids_with_acceptance_status
-                                       if bid.source == agent.guid and bid.was_accepted]
+                                       if bid.source == agent.guid and bid.accepted_quantity > 0]
             trades, metadata = agent.make_trades_given_clearing_price(period, clearing_prices, accepted_bids_for_agent)
             trades_excl_external.extend(trades)
             go_through_trades_metadata(metadata, period, agent.guid, heat_pump_levels_dict, storage_levels_dict)
