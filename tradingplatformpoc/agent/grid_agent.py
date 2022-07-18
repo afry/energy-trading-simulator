@@ -18,6 +18,8 @@ class GridAgent(IAgent):
         super().__init__(guid, data_store)
         self.resource = resource
         self.max_transfer_per_hour = max_transfer_per_hour
+        self.resource_loss_per_side = (data_store.heat_transfer_loss_per_side if self.resource == Resource.HEATING
+                                       else 0)
 
     def make_bids(self, period: datetime.datetime, clearing_prices_historical: Union[Dict[datetime.datetime, Dict[
             Resource, float]], None] = None) -> List[Bid]:
@@ -87,8 +89,10 @@ class GridAgent(IAgent):
         sum_sells = sum(
             [trade.quantity for trade in trades_for_this_resource_and_market if trade.action == Action.SELL])
         if sum_buys > sum_sells:
+            deficit_in_market = sum_buys - sum_sells
+            need_to_provide = deficit_in_market / (1 - self.resource_loss_per_side)
             trades_to_add.append(
-                Trade(Action.SELL, resource, sum_buys - sum_sells, retail_price, self.guid, True, market, period))
+                Trade(Action.SELL, resource, need_to_provide, retail_price, self.guid, True, market, period))
             if market == Market.LOCAL:
                 if local_clearing_price < retail_price:
                     # What happened here is that the market solver believed that locally produced energy would cover
@@ -102,8 +106,10 @@ class GridAgent(IAgent):
                     logger.warning("In period {}: Unexpected result: Local clearing price higher than external retail "
                                    "price".format(period))
         elif sum_buys < sum_sells:
+            surplus_in_market = sum_sells - sum_buys
+            need_to_buy = surplus_in_market * (1 - self.resource_loss_per_side)
             trades_to_add.append(
-                Trade(Action.BUY, resource, sum_sells - sum_buys, wholesale_price, self.guid, True, market, period))
+                Trade(Action.BUY, resource, need_to_buy, wholesale_price, self.guid, True, market, period))
             if market == Market.LOCAL:
                 if local_clearing_price > wholesale_price:
                     # What happened here is that the market solver believed that there would be a local deficit,

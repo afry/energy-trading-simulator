@@ -20,8 +20,8 @@ class Trade:
     """The Trade class is used to keep track of energy trades that have taken place
 
     Parameters:
-        action: Buy/sell
-        resource: Electricity
+        action: Buy or sell
+        resource: Electricity or heating
         quantity: Amount in kWh
         price: SEK/kWh
         source: String specifying which entity that did the trade (used for debugging)

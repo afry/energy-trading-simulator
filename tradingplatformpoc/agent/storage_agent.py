@@ -72,17 +72,15 @@ class StorageAgent(IAgent):
 
         buy_quantity = self.calculate_buy_quantity()
         if buy_quantity >= LOWEST_BID_QUANTITY:
-            bids.append(self.construct_bid(action=Action.BUY,
-                                           quantity=buy_quantity,
-                                           price=self.calculate_buy_price(prices_last_n_hours),
-                                           resource=self.resource))
+            bids.append(self.construct_elec_bid(action=Action.BUY,
+                                                quantity=buy_quantity,
+                                                price=self.calculate_buy_price(prices_last_n_hours)))
 
         sell_quantity = self.calculate_sell_quantity()
         if sell_quantity >= LOWEST_BID_QUANTITY:
-            bids.append(self.construct_bid(action=Action.SELL,
-                                           quantity=sell_quantity,
-                                           price=self.calculate_sell_price(prices_last_n_hours),
-                                           resource=self.resource))
+            bids.append(self.construct_elec_bid(action=Action.SELL,
+                                                quantity=sell_quantity,
+                                                price=self.calculate_sell_price(prices_last_n_hours)))
         return bids
 
     def get_clearing_prices_for_resource(self, clearing_prices_hist: Dict[datetime.datetime, Dict[Resource, float]]) \
@@ -112,13 +110,13 @@ class StorageAgent(IAgent):
             if accepted_bids_for_agent[0].action == Action.BUY:
                 actual_charge_quantity = self.digital_twin.charge(accepted_quantity)
                 if actual_charge_quantity > 0:
-                    trades = [self.construct_trade(Action.BUY, self.resource, actual_charge_quantity,
-                                                   clearing_price, Market.LOCAL, period)]
+                    trades = [self.construct_elec_trade(Action.BUY, actual_charge_quantity,
+                                                        clearing_price, Market.LOCAL, period)]
             else:  # action was SELL
                 actual_discharge_quantity = self.digital_twin.discharge(accepted_quantity)
                 if actual_discharge_quantity > 0:
-                    trades = [self.construct_trade(Action.SELL, self.resource, actual_discharge_quantity,
-                                                   clearing_price, Market.LOCAL, period)]
+                    trades = [self.construct_elec_trade(Action.SELL, actual_discharge_quantity,
+                                                        clearing_price, Market.LOCAL, period)]
         return trades, {TradeMetadataKey.STORAGE_LEVEL: self.digital_twin.capacity_kwh}
 
     def calculate_buy_price(self, prices_last_n_hours: List[float]):
