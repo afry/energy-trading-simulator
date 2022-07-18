@@ -40,6 +40,8 @@ class DataStore:
                                                         DEFAULT_ELECTRICITY_WHOLESALE_PRICE_OFFSET)
         self.elec_retail_offset = get_if_exists_else(config_area_info, 'ExternalElectricityRetailPriceOffset',
                                                      DEFAULT_ELECTRICITY_RETAIL_PRICE_OFFSET)
+        # Square root since it is added both to the BUY and the SELL side
+        self.heat_transfer_loss_per_side = 1 - np.sqrt(1 - config_area_info["HeatTransferLoss"])
 
         self.nordpool_data = nordpool_data
         self.irradiation_data = irradiation_data
