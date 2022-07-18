@@ -24,7 +24,10 @@ SELECT_PAGE_RADIO_LABEL = "Select page"
 ALL_PAGES = (START_PAGE, SETUP_PAGE, LOAD_PAGE, BIDS_PAGE)
 
 DEFAULT_PV_EFFICIENCY_HELP_TEXT = "A number specifying the efficiency of solar panels in the microgrid. Can " \
-    "be overridden by individual agents. Number should be between 0 and 1, and is typically in the 0.15-0.25 range"
+    "be overridden by individual agents. Number must be between 0 and 1, and is typically in the 0.15-0.25 range"
+HEAT_TRANSFER_LOSS_HELP_TEXT = "A number specifying the loss of heat in every transfer. Must be between 0 and " \
+    "0.99, where 0 would mean no losses at all, and 0.99 would mean that almost all energy " \
+    "is lost when trying to transfer heat from one agent to another. A reasonable number would be in the 0-0.10 range."
 ELECTRICITY_WHOLESALE_PRICE_OFFSET_HELP_TEXT = "The price at which the microgrid can export " \
     "electricity to the external grid, will be set to the Nordpool spot price, plus this offset. The unit is SEK/kWh." \
     " For Varberg Energi, indications are that this will be in the 0-0.15 range. If not specified, will default " \
@@ -92,6 +95,7 @@ CONFIG_GUIDELINES_MARKDOWN = "-  The configuration file should be in JSON format
     "   -   'AreaInfo'\n" \
     "       -   Requires the following properties:\n" \
     "           -   'DefaultPVEfficiency': " + DEFAULT_PV_EFFICIENCY_HELP_TEXT + "\n" \
+    "           -   'HeatTransferLoss': " + HEAT_TRANSFER_LOSS_HELP_TEXT + "\n" \
     "       -   Optional properties:\n" \
     "           -   'ExternalElectricityWholesalePriceOffset': " + ELECTRICITY_WHOLESALE_PRICE_OFFSET_HELP_TEXT + "\n" \
     "           -   'ExternalElectricityRetailPriceOffset': " + ELECTRICITY_RETAIL_PRICE_OFFSET_HELP_TEXT + "\n" \
@@ -100,6 +104,7 @@ CONFIG_GUIDELINES_MARKDOWN = "-  The configuration file should be in JSON format
 AREA_INFO_EXAMPLE = """
 {
     "DefaultPVEfficiency": 0.165,
+    "HeatTransferLoss": 0.05,
     "ExternalHeatingWholesalePriceFraction": 0.5,
     "ExternalElectricityWholesalePriceOffset": 0.05,
     "ExternalElectricityRetailPriceOffset": 0.49

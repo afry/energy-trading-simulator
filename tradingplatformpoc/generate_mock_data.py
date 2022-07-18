@@ -84,9 +84,9 @@ def run(config_data: Dict[str, Any]) -> Dict[MockDataKey, pd.DataFrame]:
     # Load pre-existing mock data sets
     all_data_sets = load_existing_data_sets(MOCK_DATAS_PICKLE)
 
-    building_agents, total_gross_floor_area_residential = get_all_building_agents(config_data)
+    building_agents, total_gross_floor_area_residential = get_all_building_agents(config_data["Agents"])
     default_pv_efficiency = config_data["AreaInfo"]["DefaultPVEfficiency"]
-    mock_data_key = MockDataKey(frozenset(building_agents), frozenset(config_data["AreaInfo"].items()))
+    mock_data_key = MockDataKey(frozenset(building_agents), default_pv_efficiency)
 
     # # Need to freeze, else can't use it as key in dict
     # building_agents_frozen_set = frozenset(building_agents)
@@ -607,8 +607,7 @@ def find_agent_in_other_data_sets(agent_dict: Dict[str, Any], all_data_sets: Dic
     found_cons_data = False
     for mock_data_key, mock_data in all_data_sets.items():
         set_of_building_agents = mock_data_key.building_agents_frozen_set
-        other_area_info = dict(mock_data_key.area_info_frozen_set)
-        other_default_pv_eff = other_area_info['DefaultPVEfficiency']
+        other_default_pv_eff = mock_data_key.default_pv_efficiency
         for other_agent in set_of_building_agents:
             other_agent_dict = dict(other_agent)
             if (not found_prod_data) and (agent_dict['PVArea'] == other_agent_dict['PVArea']) and \

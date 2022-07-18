@@ -111,13 +111,13 @@ def construct_building_with_heat_pump_chart(agent_chosen: Union[BuildingAgent, P
     st.write('Note: Energy production/consumption values do not include production/consumption by the heat pumps.')
     heat_pump_df = pd.DataFrame.from_dict(heat_pump_data, orient='index').reset_index()
     heat_pump_df.columns = ['period', 'Heat pump workload']
-    heat_pump_area = alt.Chart(heat_pump_df).\
-        mark_area(color=app_constants.HEAT_PUMP_CHART_COLOR, opacity=0.3, interpolate='step-after').\
+    heat_pump_area = alt.Chart(heat_pump_df). \
+        mark_area(color=app_constants.HEAT_PUMP_CHART_COLOR, opacity=0.3, interpolate='step-after'). \
         encode(
-            x=alt.X('period:T', axis=alt.Axis(title='Period')),
-            y=alt.Y('Heat pump workload', axis=alt.Axis(title='Heat pump workload', titleColor='gray')),
-            tooltip=[alt.Tooltip(field='period', title='Period', type='temporal', format='%Y-%m-%d %H:%M'),
-                     alt.Tooltip(field='Heat pump workload', title='Heat pump workload', type='quantitative')]
+        x=alt.X('period:T', axis=alt.Axis(title='Period')),
+        y=alt.Y('Heat pump workload', axis=alt.Axis(title='Heat pump workload', titleColor='gray')),
+        tooltip=[alt.Tooltip(field='period', title='Period', type='temporal', format='%Y-%m-%d %H:%M'),
+                 alt.Tooltip(field='Heat pump workload', title='Heat pump workload', type='quantitative')]
     )
 
     energy_multiline = construct_static_digital_twin_chart(agent_chosen.digital_twin, True)
@@ -176,8 +176,26 @@ def get_viewable_df(full_df: pd.DataFrame, key: str, value: Any, want_index: str
         apply(lambda x: x.apply(lambda y: y.name) if isinstance(x.iloc[0], Enum) else x)
 
 
-def remove_agent(some_agent):
+def remove_agent(some_agent: Dict[str, Any]):
     st.session_state.config_data['Agents'].remove(some_agent)
+
+
+def duplicate_agent(some_agent: Dict[str, Any]):
+    """
+    Takes a copy of the input agent, modifies the name (making sure that no other agent has exactly that name), and adds
+    it to the session_state list of agents.
+    """
+    new_agent = some_agent.copy()
+    all_agent_names = [agent['Name'] for agent in st.session_state.config_data['Agents']]
+    n_copies_existing = 1
+    while n_copies_existing:
+        new_name = new_agent['Name'] + " copy " + str(n_copies_existing)
+        if new_name not in all_agent_names:
+            new_agent['Name'] = new_name
+            break
+        else:
+            n_copies_existing += 1
+    st.session_state.config_data['Agents'].append(new_agent)
 
 
 def remove_all_building_agents():
@@ -186,6 +204,11 @@ def remove_all_building_agents():
 
 
 def add_agent(new_agent: Dict[str, Any]):
+    """
+    Adds the argument agent to the session_state list of agents. Keeps track of how many agents have been added since
+    session startup (again using session_state) and names the new agent accordingly: The first will be named
+    'NewAgent1', the second 'NewAgent2' etc.
+    """
     if 'agents_added' not in st.session_state:
         st.session_state.agents_added = 1
     else:
@@ -345,7 +368,11 @@ def agent_inputs(agent):
             key='TransferRate' + agent['Name']
         )
     else:
-        st.button('Remove agent', key='RemoveButton' + agent['Name'], on_click=remove_agent, args=(agent,))
+        col1, col2 = st.columns(2)
+        with col1:
+            st.button('Remove agent', key='RemoveButton' + agent['Name'], on_click=remove_agent, args=(agent,))
+        with col2:
+            st.button('Duplicate agent', key='DuplicateButton' + agent['Name'], on_click=duplicate_agent, args=(agent,))
     form.form_submit_button('Save agent')
 
 
@@ -363,4 +390,4 @@ def set_max_width(width: str):
     <style>
     .appview-container .main .block-container{{ max-width: {width}; }}
     </style>
-    """, unsafe_allow_html=True,)
+    """, unsafe_allow_html=True, )

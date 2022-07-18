@@ -2,7 +2,7 @@ import datetime
 import logging
 import pickle
 from dataclasses import dataclass
-from typing import Any, Dict, Set, Tuple
+from typing import Dict, List, Set, Tuple
 
 import pandas as pd
 
@@ -42,7 +42,7 @@ COMMERCIAL_ELECTRICITY_CONSUMPTION_HOURLY_FACTOR = {
 @dataclass(frozen=True)
 class MockDataKey:
     building_agents_frozen_set: frozenset
-    area_info_frozen_set: frozenset
+    default_pv_efficiency: float
 
 
 def load_existing_data_sets(file_path: str) -> Dict[MockDataKey, pd.DataFrame]:
@@ -54,16 +54,16 @@ def load_existing_data_sets(file_path: str) -> Dict[MockDataKey, pd.DataFrame]:
     return all_data_sets
 
 
-def get_all_building_agents(config_data: Dict[str, Any]) -> Tuple[Set, float]:
+def get_all_building_agents(all_agents: List[Dict]) -> Tuple[Set, float]:
     """
-    Gets all building agents specified in config_data, and also returns the total gross floor area, summed
-    over all building agents.
-    @param config_data: A dictionary
+    Gets all building agents from all_agents, and also returns the total gross floor area, summed over all building
+    agents.
+    @param all_agents: A list of dictionaries, each dict representing an agent
     @return: building_agents: Set of frozen sets, total_gross_floor_area: a float
     """
     total_gross_floor_area = 0
     building_agents = set()
-    for agent in config_data["Agents"]:
+    for agent in all_agents:
         agent_type = agent["Type"]
         if agent_type == "BuildingAgent":
             key = frozenset(agent.items())
