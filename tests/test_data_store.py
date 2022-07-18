@@ -46,7 +46,8 @@ class TestDataStore(TestCase):
         getting the retail price."""
         data_store_2 = data_store.DataStore(config_area_info={"DefaultPVEfficiency": 0.165,
                                                               "HeatTransferLoss": 0.05,
-                                                              "ExternalElectricityRetailPriceOffset": 2.0},
+                                                              "ElectricityTax": 1.5,
+                                                              "ElectricityGridFee": 0.5},
                                             nordpool_data=ONES_SERIES * CONSTANT_NORDPOOL_PRICE,
                                             irradiation_data=ONES_SERIES,
                                             grid_carbon_intensity=ONES_SERIES)

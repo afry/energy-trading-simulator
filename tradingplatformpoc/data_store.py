@@ -17,8 +17,7 @@ from tradingplatformpoc.trading_platform_utils import get_if_exists_else, minus_
 DEFAULT_HEATING_WHOLESALE_PRICE_FRACTION = 0.5  # External grid buys heat at 50% of the price they buy for - arbitrary
 
 DEFAULT_ELECTRICITY_WHOLESALE_PRICE_OFFSET = 0.05
-# Tax + variable consumption fee + effektavgift/(hours in a year) = 0.36+0.0588+620/8768 = 0.49
-DEFAULT_ELECTRICITY_RETAIL_PRICE_OFFSET = 0.49
+# Variable consumption fee + effektavgift/(hours in a year) = 0.0588+620/8768 = 0.13
 
 logger = logging.getLogger(__name__)
 
@@ -38,8 +37,7 @@ class DataStore:
                                                                    DEFAULT_HEATING_WHOLESALE_PRICE_FRACTION)
         self.elec_wholesale_offset = get_if_exists_else(config_area_info, 'ExternalElectricityWholesalePriceOffset',
                                                         DEFAULT_ELECTRICITY_WHOLESALE_PRICE_OFFSET)
-        self.elec_retail_offset = get_if_exists_else(config_area_info, 'ExternalElectricityRetailPriceOffset',
-                                                     DEFAULT_ELECTRICITY_RETAIL_PRICE_OFFSET)
+        self.elec_retail_offset = config_area_info["ElectricityTax"] + config_area_info["ElectricityGridFee"]
         # Square root since it is added both to the BUY and the SELL side
         self.heat_transfer_loss_per_side = 1 - np.sqrt(1 - config_area_info["HeatTransferLoss"])
 
