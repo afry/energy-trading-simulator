@@ -21,9 +21,8 @@ from tradingplatformpoc import commercial_heating_model
 from tradingplatformpoc.mock_data_generation_functions import MockDataKey, get_all_building_agents, \
     get_commercial_electricity_consumption_hourly_factor, \
     get_commercial_heating_consumption_hourly_factor, \
-    get_elec_cons_key, get_heat_cons_key, get_pv_prod_key, \
-    get_school_heating_consumption_hourly_factor, \
-    load_existing_data_sets
+    get_elec_cons_key, get_hot_tap_water_cons_key, get_pv_prod_key, \
+    get_school_heating_consumption_hourly_factor, get_space_heat_cons_key, load_existing_data_sets
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, get_if_exists_else, nan_helper
 
 CONFIG_FILE = 'default_config.json'
@@ -40,7 +39,9 @@ M2_PER_APARTMENT = 70
 RESIDENTIAL_HEATING_SEED_SUFFIX = "RH"
 EVERY_X_HOURS = 3  # Random noise will be piecewise linear, with knots every X hours
 HEATING_RELATIVE_ERROR_STD_DEV = 0.2
-KWH_PER_YEAR_M2_RESIDENTIAL_HEATING = 43.75  # See https://doc.afdrift.se/display/RPJ/BDAB+data
+# For the following two, see https://doc.afdrift.se/display/RPJ/Expected+energy+use+for+different+buildings
+KWH_PER_YEAR_M2_RESIDENTIAL_SPACE_HEATING = 25
+KWH_PER_YEAR_M2_RESIDENTIAL_HOT_TAP_WATER = 25
 # Constants for the 'commercial' electricity bit:
 COMMERCIAL_ELECTRICITY_SEED_SUFFIX = "CE"
 KWH_ELECTRICITY_PER_YEAR_M2_COMMERCIAL = 118
@@ -57,15 +58,18 @@ SCHOOL_ELECTRICITY_SEED_SUFFIX = "SE"
 KWH_ELECTRICITY_PER_YEAR_M2_SCHOOL = 60
 SCHOOL_ELECTRICITY_RELATIVE_ERROR_STD_DEV = 0.2
 SCHOOL_HOT_TAP_WATER_RELATIVE_ERROR_STD_DEV = 0.2
+# For the following two, see https://doc.afdrift.se/display/RPJ/Expected+energy+use+for+different+buildings
 KWH_HOT_TAP_WATER_PER_YEAR_M2_SCHOOL = 7
 KWH_SPACE_HEATING_PER_YEAR_M2_SCHOOL = 25
 
 """
-This script generates the following, for ResidentialBuildingAgents:
+This script generates the following, for BuildingAgents:
 *Household electricity consumption data
 *Commercial electricity consumption data
-*Residential heating consumption data
-*Commercial heating consumption data
+*Residential hot water consumption data
+*Commercial hot water consumption data
+*Residential space heating consumption data
+*Commercial space heating consumption data
 *Rooftop PV production data
 It stores such data in the MOCK_DATAS_PICKLE file, as a dictionary, where the set of BuildingAgents used to generate the
 data is the key, and a pd.DataFrame of generated data is the value. This way, simulation_runner can get the correct mock
@@ -144,7 +148,8 @@ def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd:
     output_per_actor = pd.concat(objs=(output_per_actor, pre_existing_data), axis=1)
 
     if (not get_elec_cons_key(agent['Name']) in output_per_actor.columns) or \
-            (not get_heat_cons_key(agent['Name']) in output_per_actor.columns):
+            (not get_space_heat_cons_key(agent['Name']) in output_per_actor.columns) or \
+            (not get_hot_tap_water_cons_key(agent['Name']) in output_per_actor.columns):
         seed_residential_electricity = calculate_seed_from_string(agent['Name'])
         seed_residential_heating = calculate_seed_from_string(agent['Name'] + RESIDENTIAL_HEATING_SEED_SUFFIX)
         seed_commercial_electricity = calculate_seed_from_string(agent['Name'] + COMMERCIAL_ELECTRICITY_SEED_SUFFIX)
@@ -169,11 +174,11 @@ def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd:
             KWH_ELECTRICITY_PER_YEAR_M2_COMMERCIAL,
             COMMERCIAL_ELECTRICITY_RELATIVE_ERROR_STD_DEV,
             get_commercial_electricity_consumption_hourly_factor)
-        commercial_heating_cons = simulate_commercial_area_total_heating(commercial_gross_floor_area,
-                                                                         seed_commercial_heating, df_inputs)
+        commercial_space_heating_cons, commercial_hot_tap_water_cons = \
+            simulate_commercial_area_total_heating(commercial_gross_floor_area, seed_commercial_heating, df_inputs)
 
-        residential_heating_cons = simulate_residential_total_heating(df_inputs, residential_gross_floor_area,
-                                                                      seed_residential_heating)
+        residential_space_heating_cons, residential_hot_tap_water_cons = \
+            simulate_residential_total_heating(df_inputs, residential_gross_floor_area, seed_residential_heating)
 
         household_electricity_cons = simulate_household_electricity_aggregated(
             df_inputs, model, residential_gross_floor_area, seed_residential_electricity)
@@ -182,13 +187,15 @@ def simulate_and_add_to_output_df(agent: dict, df_inputs: pd.DataFrame, df_irrd:
                                                             df_inputs.index, KWH_ELECTRICITY_PER_YEAR_M2_SCHOOL,
                                                             SCHOOL_ELECTRICITY_RELATIVE_ERROR_STD_DEV,
                                                             get_school_heating_consumption_hourly_factor)
-        school_heating_cons = simulate_school_area_total_heating(school_gross_floor_area_m2, seed_school_heating,
-                                                                 df_inputs)
+        school_space_heating_cons, school_hot_tap_water_cons = \
+            simulate_school_area_heating(school_gross_floor_area_m2, seed_school_heating, df_inputs)
         logger.debug("Adding output for agent {}".format(agent['Name']))
         output_per_actor[get_elec_cons_key(agent['Name'])] = household_electricity_cons + \
             commercial_electricity_cons + school_electricity_cons
-        output_per_actor[get_heat_cons_key(agent['Name'])] = residential_heating_cons + commercial_heating_cons + \
-            school_heating_cons
+        output_per_actor[get_space_heat_cons_key(agent['Name'])] = residential_space_heating_cons + \
+            commercial_space_heating_cons + school_space_heating_cons
+        output_per_actor[get_hot_tap_water_cons_key(agent['Name'])] = residential_hot_tap_water_cons + \
+            commercial_hot_tap_water_cons + school_hot_tap_water_cons
 
     if not get_pv_prod_key(agent['Name']) in output_per_actor.columns:
         pv_efficiency = get_if_exists_else(agent, 'PVEfficiency', default_pv_efficiency)
@@ -355,8 +362,6 @@ def create_inputs_df(temperature_csv_path: str, irradiation_csv_path: str, heati
     # Finally, convert to UTC
     df_heat['datetime'] = df_heat['datetime'].dt.tz_convert('UTC')
 
-    df_heat['heating_energy_kwh'] = df_heat['rad_energy'] + df_heat['hw_energy']
-    df_heat.drop(['rad_energy', 'hw_energy'], axis=1, inplace=True)
     df_heat.set_index('datetime', inplace=True)
 
     df_inputs = df_inputs.merge(df_heat, left_index=True, right_index=True)
@@ -424,16 +429,15 @@ def simulate_area_electricity(gross_floor_area_m2: float, random_seed: int,
 
 
 def simulate_commercial_area_total_heating(commercial_gross_floor_area_m2: float, random_seed: int,
-                                           input_df: pd.DataFrame) -> pd.Series:
+                                           input_df: pd.DataFrame) -> Tuple[pd.Series, pd.Series]:
     """
     For more information, see https://doc.afdrift.se/display/RPJ/Commercial+areas and
     https://doc.afdrift.se/display/RPJ/Coop+heating+energy+use+mock-up
-    Total heating = space heating + hot water
-    @return A pd.Series with hourly total heating load, in kWh.
+    @return Two pd.Series with hourly heating load, in kWh. The first space heating, the second hot tap water.
     """
     space_heating = simulate_commercial_area_space_heating(commercial_gross_floor_area_m2, random_seed, input_df)
     hot_tap_water = simulate_commercial_area_hot_tap_water(commercial_gross_floor_area_m2, random_seed, input_df.index)
-    return space_heating + hot_tap_water
+    return space_heating, hot_tap_water
 
 
 def simulate_commercial_area_hot_tap_water(commercial_gross_floor_area_m2: float, random_seed: int,
@@ -487,16 +491,15 @@ def simulate_commercial_area_space_heating(commercial_gross_floor_area_m2: float
     return scaled_series
 
 
-def simulate_school_area_total_heating(school_gross_floor_area_m2: float, random_seed: int,
-                                       input_df: pd.DataFrame) -> pd.Series:
+def simulate_school_area_heating(school_gross_floor_area_m2: float, random_seed: int,
+                                 input_df: pd.DataFrame) -> Tuple[pd.Series, pd.Series]:
     """
     This function follows the recipe outlined in the corresponding function for commercial buildings.
-    Total energy demand ("load function") = space heating + hot water
-    @return A pd.Series with hourly total heating load, in kWh.
+    @return Two pd.Series with hourly total heating load, in kWh.
     """
     space_heating = simulate_school_area_space_heating(school_gross_floor_area_m2, random_seed, input_df)
     hot_tap_water = simulate_school_area_hot_tap_water(school_gross_floor_area_m2, random_seed, input_df.index)
-    return space_heating + hot_tap_water
+    return space_heating, hot_tap_water
 
 
 def simulate_school_area_hot_tap_water(school_gross_floor_area_m2: float, random_seed: int,
@@ -555,18 +558,18 @@ def simulate_school_area_space_heating(school_gross_floor_area_m2: float, random
 
 
 def simulate_residential_total_heating(df_inputs: pd.DataFrame, gross_floor_area_m2: float, random_seed: int) -> \
-        pd.Series:
+        Tuple[pd.Series, pd.Series]:
     """
     Following along with https://doc.afdrift.se/display/RPJ/Jonstaka+heating+mock-up
     But as for electricity, we'll just see the whole sub-area as 1 house, shouldn't matter too much.
-    Total heating meaning space heating and hot tap water combined.
-    df_inputs needs to contain a 'heating_energy_kwh' column, with the Vetelangden data.
-    Returns a pd.Series with simulated data.
+    df_inputs needs to contain 'rad_energy' and 'hw_energy' columns, with the Vetelangden data.
+    Returns two pd.Series with simulated data: The first representing space heating, the second hot tap water.
     """
 
     nrow_input_df = len(df_inputs.index)
     if gross_floor_area_m2 == 0:
-        return pd.Series(np.zeros(nrow_input_df), index=df_inputs.index)
+        zeroes = pd.Series(np.zeros(nrow_input_df), index=df_inputs.index)
+        return zeroes, zeroes
 
     every_xth = np.arange(0, nrow_input_df, EVERY_X_HOURS)
     points_to_generate = len(every_xth)
@@ -581,12 +584,18 @@ def simulate_residential_total_heating(df_inputs: pd.DataFrame, gross_floor_area
     nans, x = nan_helper(noise)
     noise[nans] = np.interp(x(nans), x(~nans), noise[~nans])
 
-    vetelangden_data = df_inputs['heating_energy_kwh']
-    heating_unscaled = noise * vetelangden_data
+    vetelangden_space_heating_data = df_inputs['rad_energy']
+    vetelangden_hot_tap_water_data = df_inputs['hw_energy']
+    space_heating_unscaled = noise * vetelangden_space_heating_data
+    hot_tap_water_unscaled = noise * vetelangden_hot_tap_water_data
+    # Could argue we should use different noise here ^, but there is some logic to these two varying together
+
     # Scale using BDAB's estimate
-    heating_scaled = scale_energy_consumption(heating_unscaled, gross_floor_area_m2,
-                                              KWH_PER_YEAR_M2_RESIDENTIAL_HEATING)
-    return heating_scaled
+    space_heating_scaled = scale_energy_consumption(space_heating_unscaled, gross_floor_area_m2,
+                                                    KWH_PER_YEAR_M2_RESIDENTIAL_SPACE_HEATING)
+    hot_tap_water_scaled = scale_energy_consumption(hot_tap_water_unscaled, gross_floor_area_m2,
+                                                    KWH_PER_YEAR_M2_RESIDENTIAL_HOT_TAP_WATER)
+    return space_heating_scaled, hot_tap_water_scaled
 
 
 def find_agent_in_other_data_sets(agent_dict: Dict[str, Any], all_data_sets: Dict[MockDataKey, pd.DataFrame],
@@ -622,9 +631,11 @@ def find_agent_in_other_data_sets(agent_dict: Dict[str, Any], all_data_sets: Dic
                 logger.debug('For agent \'{}\' found energy consumption data to re-use'.format(agent_dict['Name']))
                 found_cons_data = True
                 cons_data = mock_data[[get_elec_cons_key(other_agent_dict['Name']),
-                                       get_heat_cons_key(other_agent_dict['Name'])]]
+                                       get_space_heat_cons_key(other_agent_dict['Name']),
+                                       get_hot_tap_water_cons_key(other_agent_dict['Name'])]]
                 cons_data.set_axis([get_elec_cons_key(agent_dict['Name']),
-                                    get_heat_cons_key(agent_dict['Name'])], axis=1, inplace=True)
+                                    get_space_heat_cons_key(agent_dict['Name']),
+                                    get_hot_tap_water_cons_key(agent_dict['Name'])], axis=1, inplace=True)
                 data_to_reuse = pd.concat((data_to_reuse, cons_data), axis=1)
     return data_to_reuse
 

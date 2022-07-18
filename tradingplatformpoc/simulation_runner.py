@@ -22,7 +22,7 @@ from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
 from tradingplatformpoc.extra_cost import ExtraCost
 from tradingplatformpoc.mock_data_generation_functions import MockDataKey, get_all_building_agents, get_elec_cons_key, \
-    get_heat_cons_key, get_pv_prod_key
+    get_hot_tap_water_cons_key, get_pv_prod_key, get_space_heat_cons_key
 from tradingplatformpoc.simulation_results import SimulationResults
 from tradingplatformpoc.trade import Trade, TradeMetadataKey
 from tradingplatformpoc.trading_platform_utils import add_to_nested_dict, calculate_solar_prod, flatten_collection, \
@@ -265,12 +265,16 @@ def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings
         agent_name = agent['Name']
         if agent_type == "BuildingAgent":
             elec_cons_series = buildings_mock_data[get_elec_cons_key(agent_name)]
-            heat_cons_series = buildings_mock_data[get_heat_cons_key(agent_name)]
+            space_heat_cons_series = buildings_mock_data[get_space_heat_cons_key(agent_name)]
+            hot_tap_water_cons_series = buildings_mock_data[get_hot_tap_water_cons_key(agent_name)]
             pv_prod_series = buildings_mock_data[get_pv_prod_key(agent_name)]
+            # We're not currently supporting different temperatures of heating, it's just "heating" as a very simplified
+            # entity. Therefore we'll bunch them together here for now.
+            total_heat_cons_series = space_heat_cons_series + hot_tap_water_cons_series
 
             building_digital_twin = StaticDigitalTwin(electricity_usage=elec_cons_series,
                                                       electricity_production=pv_prod_series,
-                                                      heating_usage=heat_cons_series)
+                                                      heating_usage=total_heat_cons_series)
 
             nbr_heat_pumps = agent["NumberHeatPumps"] if "NumberHeatPumps" in agent.keys() else 0
             cop = agent["COP"] if "COP" in agent.keys() else None

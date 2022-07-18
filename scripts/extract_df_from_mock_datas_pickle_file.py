@@ -6,7 +6,7 @@ import pandas as pd
 from pkg_resources import resource_filename
 
 from tradingplatformpoc.mock_data_generation_functions import get_all_building_agents, get_elec_cons_key, \
-    get_heat_cons_key
+    get_hot_tap_water_cons_key, get_space_heat_cons_key
 
 DATA_PATH = 'tradingplatformpoc.data'
 CONFIG_FILE = 'default_config.json'
@@ -32,7 +32,8 @@ with open(IN_PICKLE, 'rb') as f:
 
 n_of_other_sets = 0
 comparison_df = pd.DataFrame()
-for frozen_set_of_residential_building_agents, mock_data_frame in all_data_sets.items():
+for mock_data_key, mock_data_frame in all_data_sets.items():
+    frozen_set_of_residential_building_agents = mock_data_key.building_agents_frozen_set
     if get_elec_cons_key(AGENT_TO_LOOK_AT) in mock_data_frame:
         if frozen_set_of_residential_building_agents == current_config_rbas:
             name_for_this_set_of_rbas = 'Current'
@@ -40,8 +41,10 @@ for frozen_set_of_residential_building_agents, mock_data_frame in all_data_sets.
             n_of_other_sets = n_of_other_sets + 1
             name_for_this_set_of_rbas = 'Other' + str(n_of_other_sets)
         elec_cons_bc1 = mock_data_frame[get_elec_cons_key(AGENT_TO_LOOK_AT)]
-        heat_cons_bc1 = mock_data_frame[get_heat_cons_key(AGENT_TO_LOOK_AT)]
+        hot_tap_water_cons_bc1 = mock_data_frame[get_hot_tap_water_cons_key(AGENT_TO_LOOK_AT)]
+        space_heat_cons_bc1 = mock_data_frame[get_space_heat_cons_key(AGENT_TO_LOOK_AT)]
         comparison_df[name_for_this_set_of_rbas + 'Elec'] = elec_cons_bc1
-        comparison_df[name_for_this_set_of_rbas + 'Heat'] = heat_cons_bc1
+        comparison_df[name_for_this_set_of_rbas + 'HotTapWater'] = hot_tap_water_cons_bc1
+        comparison_df[name_for_this_set_of_rbas + 'SpaceHeat'] = space_heat_cons_bc1
 
 comparison_df.to_csv('./agent_elec_cons.csv')
