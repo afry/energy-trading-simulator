@@ -32,10 +32,15 @@ ELECTRICITY_WHOLESALE_PRICE_OFFSET_HELP_TEXT = "The price at which the microgrid
     "electricity to the external grid, will be set to the Nordpool spot price, plus this offset. The unit is SEK/kWh." \
     " For Varberg Energi, indications are that this will be in the 0-0.15 range. If not specified, will default " \
     "to " + str(data_store.DEFAULT_ELECTRICITY_WHOLESALE_PRICE_OFFSET)
-ELECTRICITY_RETAIL_PRICE_OFFSET_HELP_TEXT = "The price at which the microgrid can import " \
-    "electricity from the external grid, will be set to the Nordpool spot price, plus this offset. The unit is " \
-    "SEK/kWh. For 2022, for Varberg Energi, this is roughly equal to 0.49. If not specified, will default " \
-    "to " + str(data_store.DEFAULT_ELECTRICITY_RETAIL_PRICE_OFFSET)
+ELECTRICITY_TAX_HELP_TEXT = "The electricity tax in SEK/kWh. For 2022, this is 0.36, but here it can be set to any " \
+                            "(non-negative) number"
+ELECTRICITY_GRID_FEE_HELP_TEXT = "The electricity grid fee in SEK/kWh. The price at which electricity can be " \
+                                 "imported into the microgrid will be set to the Nordpool spot price, plus the " \
+                                 "electricity tax, plus this number. In reality it is quite complicated to calculate," \
+                                 " since it depends on the average effect used for the three months with highest " \
+                                 "consumption over the year, but here we approximate it with a flat SEK/kWh rate. " \
+                                 "For Varberg Energi in 2022 this approximation is roughly equal " \
+                                 "to 0.13, but here it can be set to any (non-negative) number"
 HEATING_WHOLESALE_PRICE_FRACTION_HELP_TEXT = "The price at which the microgrid can export heat to the " \
     "external grid, will be set to the import (retail) price, multiplied by this factor. Should be less than 1. " \
     "In reality, the external grid may not want to buy any heat from the microgrid at all - this can be achieved by " \
@@ -96,18 +101,20 @@ CONFIG_GUIDELINES_MARKDOWN = "-  The configuration file should be in JSON format
     "       -   Requires the following properties:\n" \
     "           -   'DefaultPVEfficiency': " + DEFAULT_PV_EFFICIENCY_HELP_TEXT + "\n" \
     "           -   'HeatTransferLoss': " + HEAT_TRANSFER_LOSS_HELP_TEXT + "\n" \
+    "           -   'ElectricityTax': " + ELECTRICITY_TAX_HELP_TEXT + "\n" \
+    "           -   'ElectricityGridFee': " + ELECTRICITY_GRID_FEE_HELP_TEXT + "\n" \
     "       -   Optional properties:\n" \
     "           -   'ExternalElectricityWholesalePriceOffset': " + ELECTRICITY_WHOLESALE_PRICE_OFFSET_HELP_TEXT + "\n" \
-    "           -   'ExternalElectricityRetailPriceOffset': " + ELECTRICITY_RETAIL_PRICE_OFFSET_HELP_TEXT + "\n" \
     "           -   'ExternalHeatingWholesalePriceFraction': " + HEATING_WHOLESALE_PRICE_FRACTION_HELP_TEXT + "\n" \
     "       -  AreaInfo example:"
 AREA_INFO_EXAMPLE = """
 {
     "DefaultPVEfficiency": 0.165,
     "HeatTransferLoss": 0.05,
+    "ElectricityTax": 0.36,
+    "ElectricityGridFee": 0.13,
     "ExternalHeatingWholesalePriceFraction": 0.5,
-    "ExternalElectricityWholesalePriceOffset": 0.05,
-    "ExternalElectricityRetailPriceOffset": 0.49
+    "ExternalElectricityWholesalePriceOffset": 0.05
 }
 """
 BUILDING_AGENT_SPEC_MARKDOWN = "-  Required properties, in addition to 'Type' and 'Name':\n" \

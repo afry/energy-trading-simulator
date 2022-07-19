@@ -17,8 +17,7 @@ from tradingplatformpoc.trading_platform_utils import get_if_exists_else, minus_
 DEFAULT_HEATING_WHOLESALE_PRICE_FRACTION = 0.5  # External grid buys heat at 50% of the price they buy for - arbitrary
 
 DEFAULT_ELECTRICITY_WHOLESALE_PRICE_OFFSET = 0.05
-# Tax + variable consumption fee + effektavgift/(hours in a year) = 0.36+0.0588+620/8768 = 0.49
-DEFAULT_ELECTRICITY_RETAIL_PRICE_OFFSET = 0.49
+# Variable consumption fee + effektavgift/(hours in a year) = 0.0588+620/8768 = 0.13
 
 logger = logging.getLogger(__name__)
 
@@ -38,8 +37,8 @@ class DataStore:
                                                                    DEFAULT_HEATING_WHOLESALE_PRICE_FRACTION)
         self.elec_wholesale_offset = get_if_exists_else(config_area_info, 'ExternalElectricityWholesalePriceOffset',
                                                         DEFAULT_ELECTRICITY_WHOLESALE_PRICE_OFFSET)
-        self.elec_retail_offset = get_if_exists_else(config_area_info, 'ExternalElectricityRetailPriceOffset',
-                                                     DEFAULT_ELECTRICITY_RETAIL_PRICE_OFFSET)
+        self.elec_tax = config_area_info["ElectricityTax"]
+        self.elec_grid_fee = config_area_info["ElectricityGridFee"]
         # Square root since it is added both to the BUY and the SELL side
         self.heat_transfer_loss_per_side = 1 - np.sqrt(1 - config_area_info["HeatTransferLoss"])
 
@@ -146,14 +145,26 @@ class DataStore:
         For electricity, the price is known, so 'estimated' and 'exact' are the same.
         See also https://doc.afdrift.se/pages/viewpage.action?pageId=17072325
         """
-        return self.get_nordpool_price_for_period(period) + self.elec_retail_offset
+        return self.get_electricity_retail_price_from_nordpool_price(self.get_nordpool_price_for_period(period))
+
+    def get_electricity_retail_price_from_nordpool_price(self, nordpool_price: float) -> float:
+        """
+        Retail price = Nordpool spot price + tax + grid fee
+        """
+        return nordpool_price + self.elec_tax + self.elec_grid_fee
 
     def get_electricity_wholesale_price(self, period: datetime.datetime) -> float:
         """
         For electricity, the price is known, so 'estimated' and 'exact' are the same.
         See also https://doc.afdrift.se/pages/viewpage.action?pageId=17072325
         """
-        return self.get_nordpool_price_for_period(period) + self.elec_wholesale_offset
+        return self.get_electricity_wholesale_price_from_nordpool_price(self.get_nordpool_price_for_period(period))
+
+    def get_electricity_wholesale_price_from_nordpool_price(self, nordpool_price: float) -> float:
+        """
+        Wholesale price = Nordpool spot price + self.elec_wholesale_offset
+        """
+        return nordpool_price + self.elec_wholesale_offset
 
     def get_nordpool_data_datetimes(self):
         return self.nordpool_data.index.tolist()

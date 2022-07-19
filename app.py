@@ -124,10 +124,15 @@ if __name__ == '__main__':
             value=st.session_state.config_data['AreaInfo']['ExternalElectricityWholesalePriceOffset'],
             help=app_constants.ELECTRICITY_WHOLESALE_PRICE_OFFSET_HELP_TEXT)
 
-        st.session_state.config_data['AreaInfo']['ExternalElectricityRetailPriceOffset'] = area_form.number_input(
-            'External electricity retail price offset:', min_value=-1.0, max_value=1.0,
-            value=st.session_state.config_data['AreaInfo']['ExternalElectricityRetailPriceOffset'],
-            help=app_constants.ELECTRICITY_RETAIL_PRICE_OFFSET_HELP_TEXT)
+        st.session_state.config_data['AreaInfo']['ElectricityTax'] = area_form.number_input(
+            'Electricity tax:', min_value=0.0,
+            value=st.session_state.config_data['AreaInfo']['ElectricityTax'],
+            help=app_constants.ELECTRICITY_TAX_HELP_TEXT)
+
+        st.session_state.config_data['AreaInfo']['ElectricityGridFee'] = area_form.number_input(
+            'Electricity grid fee:', min_value=0.0,
+            value=st.session_state.config_data['AreaInfo']['ElectricityGridFee'],
+            help=app_constants.ELECTRICITY_GRID_FEE_HELP_TEXT)
 
         st.session_state.config_data['AreaInfo']['ExternalHeatingWholesalePriceFraction'] = area_form.number_input(
             'External heating wholesale price fraction:', min_value=0.0, max_value=1.0,
