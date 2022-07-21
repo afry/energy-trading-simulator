@@ -16,7 +16,7 @@ from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.agent.storage_agent import StorageAgent
 from tradingplatformpoc.balance_manager import correct_for_exact_heating_price
-from tradingplatformpoc.bid import Action, Bid, BidWithAcceptanceStatus, Resource
+from tradingplatformpoc.bid import Action, GrossBid, NetBid, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
@@ -59,13 +59,17 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
     # Output lists
     clearing_prices_historical: Dict[datetime.datetime, Dict[Resource, float]] = {}
     all_trades_dict: Dict[datetime.datetime, Collection[Trade]] = {}
-    all_bids_dict: Dict[datetime.datetime, Collection[BidWithAcceptanceStatus]] = {}
+    all_bids_dict: Dict[datetime.datetime, Collection[NetBidWithAcceptanceStatus]] = {}
     storage_levels_dict: Dict[str, Dict[datetime.datetime, float]] = {}
     heat_pump_levels_dict: Dict[str, Dict[datetime.datetime, float]] = {}
     all_extra_costs: List[ExtraCost] = []
     # Store the exact external prices, need them for some calculations
     exact_retail_electricity_prices_by_period: Dict[datetime.datetime, float] = {}
     exact_wholesale_electricity_prices_by_period: Dict[datetime.datetime, float] = {}
+    # Amount of tax paid
+    tax_paid = 0.0
+    # Amount of grid fees paid on internal trades
+    grid_fees_paid_on_internal_trades = 0.0
 
     # Register all agents
     # Keep a list of all agents to iterate over later
@@ -88,10 +92,13 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
         bids = [agent.make_bids(period, clearing_prices_historical) for agent in agents]
 
         # Flatten bids list
-        bids_flat: List[Bid] = flatten_collection(bids)
+        bids_flat: List[GrossBid] = flatten_collection(bids)
+
+        # Add in tax and grid fee for SELL bids (for electricity, heating is not taxed)
+        net_bids = net_bids_from_gross_bids(bids_flat, data_store_entity)
 
         # Resolve bids
-        clearing_prices, bids_with_acceptance_status = market_solver.resolve_bids(period, bids_flat)
+        clearing_prices, bids_with_acceptance_status = market_solver.resolve_bids(period, net_bids)
         clearing_prices_historical[period] = clearing_prices
 
         all_bids_dict[period] = bids_with_acceptance_status
@@ -114,11 +121,18 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
         all_trades_for_period = trades_excl_external + external_trades
         all_trades_dict[period] = all_trades_for_period
 
+        # Sum up grid fees paid
+        grid_fees_paid_period = sum([trade.grid_fee_paid * trade.quantity for trade in trades_excl_external])
+        grid_fees_paid_on_internal_trades = grid_fees_paid_on_internal_trades + grid_fees_paid_period
+        # Sum up tax paid
+        tax_paid_period = sum([trade.tax_paid * trade.quantity for trade in all_trades_for_period])
+        tax_paid = tax_paid + tax_paid_period
+
         external_heating_sell_quantity = get_quantity_heating_sold_by_external_grid(external_trades)
         data_store_entity.add_external_heating_sell(period, external_heating_sell_quantity)
 
         wholesale_price_elec = data_store_entity.get_exact_wholesale_price(period, Resource.ELECTRICITY)
-        retail_price_elec = data_store_entity.get_exact_retail_price(period, Resource.ELECTRICITY)
+        retail_price_elec = data_store_entity.get_exact_retail_price(period, Resource.ELECTRICITY, False)
         wholesale_prices = {Resource.ELECTRICITY: wholesale_price_elec,
                             Resource.HEATING: data_store_entity.get_estimated_wholesale_price(period, Resource.HEATING)}
         extra_costs = balance_manager.calculate_penalty_costs_for_period(bids_with_acceptance_status,
@@ -142,6 +156,8 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
         exact_retail_heating_prices_by_year_and_month, \
         exact_wholesale_heating_prices_by_year_and_month = get_external_heating_prices(data_store_entity,
                                                                                        trading_periods)
+
+    # TODO: Do something with grid_fees_paid_on_internal_trades and tax_paid
 
     heat_cost_discr_corrections = correct_for_exact_heating_price(trading_periods, all_trades_dict,
                                                                   exact_retail_heating_prices_by_year_and_month,
@@ -173,6 +189,25 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
                              config_data=config_data,
                              agents=agents,
                              data_store=data_store_entity)
+
+
+def net_bids_from_gross_bids(gross_bids: List[GrossBid], data_store_entity: DataStore) -> List[NetBid]:
+    """
+    Add in internal tax and internal grid fee for internal SELL bids (for electricity, heating is not taxed).
+    Note: External electricity bids already have tax and grid fee
+    """
+    net_bids: List[NetBid] = []
+    for bid in gross_bids:
+        if bid.action == Action.SELL and bid.resource == Resource.ELECTRICITY:
+            if bid.by_external:
+                net_price = data_store_entity.get_electricity_net_external_price(bid.price)
+                net_bids.append(NetBid.from_gross_bid(bid, net_price))
+            else:
+                net_price = data_store_entity.get_electricity_net_internal_price(bid.price)
+                net_bids.append(NetBid.from_gross_bid(bid, net_price))
+        else:
+            net_bids.append(NetBid.from_gross_bid(bid, bid.price))
+    return net_bids
 
 
 def increase_progress_bar(frac_complete: float, progress_bar: st.progress, increase_by: float):
@@ -216,11 +251,11 @@ def get_external_heating_prices(data_store_entity: DataStore, trading_periods: C
     for (year, month) in set([(dt.year, dt.month) for dt in trading_periods]):
         first_day_of_month = datetime.datetime(year, month, 1)  # Which day it is doesn't matter
         exact_retail_heating_prices_by_year_and_month[(year, month)] = \
-            data_store_entity.get_exact_retail_price(first_day_of_month, Resource.HEATING)
+            data_store_entity.get_exact_retail_price(first_day_of_month, Resource.HEATING, False)
         exact_wholesale_heating_prices_by_year_and_month[(year, month)] = \
             data_store_entity.get_exact_wholesale_price(first_day_of_month, Resource.HEATING)
         estimated_retail_heating_prices_by_year_and_month[(year, month)] = \
-            data_store_entity.get_estimated_retail_price(first_day_of_month, Resource.HEATING)
+            data_store_entity.get_estimated_retail_price(first_day_of_month, Resource.HEATING, False)
         estimated_wholesale_heating_prices_by_year_and_month[(year, month)] = \
             data_store_entity.get_estimated_wholesale_price(first_day_of_month, Resource.HEATING)
     return estimated_retail_heating_prices_by_year_and_month, \
@@ -326,7 +361,7 @@ def get_quantity_heating_sold_by_external_grid(external_trades: List[Trade]) -> 
                 (x.resource == Resource.HEATING) & (x.action == Action.SELL)])
 
 
-def construct_df_from_datetime_dict(some_dict: Union[Dict[datetime.datetime, Collection[BidWithAcceptanceStatus]],
+def construct_df_from_datetime_dict(some_dict: Union[Dict[datetime.datetime, Collection[NetBidWithAcceptanceStatus]],
                                                      Dict[datetime.datetime, Collection[Trade]]],
                                     progress_bar: Union[st.progress, None] = None, frac_complete: float = 0.0) \
         -> Tuple[pd.DataFrame, float]:

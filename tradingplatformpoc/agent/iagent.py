@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
 
-from ..bid import Action, Bid, BidWithAcceptanceStatus, Resource
+from ..bid import Action, GrossBid, NetBidWithAcceptanceStatus, Resource
 from ..data_store import DataStore
 from ..trade import Market, Trade, TradeMetadataKey
 
@@ -21,7 +21,7 @@ class IAgent(ABC):
 
     @abstractmethod
     def make_bids(self, period: datetime.datetime, clearing_prices_historical: Union[Dict[datetime.datetime, Dict[
-            Resource, float]], None]) -> List[Bid]:
+            Resource, float]], None]) -> List[GrossBid]:
         # Make a bid for produced or needed energy for next time step
         pass
 
@@ -38,7 +38,7 @@ class IAgent(ABC):
 
     @abstractmethod
     def make_trades_given_clearing_price(self, period: datetime.datetime, clearing_prices: Dict[Resource, float],
-                                         accepted_bids_for_agent: List[BidWithAcceptanceStatus]) -> \
+                                         accepted_bids_for_agent: List[NetBidWithAcceptanceStatus]) -> \
             Tuple[List[Trade], Dict[TradeMetadataKey, Any]]:
         """
         Once market solver has decided a clearing price for each resource, it will send them to the agents with this
@@ -47,22 +47,23 @@ class IAgent(ABC):
         """
         pass
 
-    def construct_elec_bid(self, action: Action, quantity: float, price: float) -> Bid:
-        return Bid(action, Resource.ELECTRICITY, quantity, price, self.guid, False)
+    def construct_elec_bid(self, action: Action, quantity: float, price: float) -> GrossBid:
+        return GrossBid(action, Resource.ELECTRICITY, quantity, price, self.guid, False)
 
-    def construct_sell_heat_bid(self, quantity: float, price: float) -> Bid:
+    def construct_sell_heat_bid(self, quantity: float, price: float) -> GrossBid:
         # Heat transfer loss added
         quantity_after_loss = quantity * (1 - self.data_store.heat_transfer_loss_per_side)
-        return Bid(Action.SELL, Resource.HEATING, quantity_after_loss, price, self.guid, False)
+        return GrossBid(Action.SELL, Resource.HEATING, quantity_after_loss, price, self.guid, False)
 
-    def construct_buy_heat_bid(self, quantity_needed: float, price: float) -> Bid:
+    def construct_buy_heat_bid(self, quantity_needed: float, price: float) -> GrossBid:
         # The heat transfer loss needs to be accounted for
         quantity_to_buy = quantity_needed / (1 - self.data_store.heat_transfer_loss_per_side)
-        return Bid(Action.BUY, Resource.HEATING, quantity_to_buy, price, self.guid, False)
+        return GrossBid(Action.BUY, Resource.HEATING, quantity_to_buy, price, self.guid, False)
 
     def construct_elec_trade(self, action: Action, quantity: float, price: float, market: Market,
-                             period: datetime.datetime) -> Trade:
-        return Trade(action, Resource.ELECTRICITY, quantity, price, self.guid, False, market, period)
+                             period: datetime.datetime, tax_paid: float = 0.0, grid_fee_paid: float = 0.0) -> Trade:
+        return Trade(action, Resource.ELECTRICITY, quantity, price, self.guid, False, market, period, tax_paid,
+                     grid_fee_paid)
 
     def construct_sell_heat_trade(self, quantity: float, price: float, market: Market, period: datetime.datetime) -> \
             Trade:

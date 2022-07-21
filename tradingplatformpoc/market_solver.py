@@ -4,21 +4,21 @@ from typing import Dict, Iterable, List, Set, Tuple, Union
 
 import numpy as np
 
-from tradingplatformpoc.bid import Action, Bid, BidWithAcceptanceStatus, Resource
+from tradingplatformpoc.bid import Action, NetBid, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES
 
 logger = logging.getLogger(__name__)
 
 
-def resolve_bids(period: datetime.datetime, bids: Iterable[Bid]) -> \
-        Tuple[Dict[Resource, float], List[BidWithAcceptanceStatus]]:
+def resolve_bids(period: datetime.datetime, bids: Iterable[NetBid]) -> \
+        Tuple[Dict[Resource, float], List[NetBidWithAcceptanceStatus]]:
     """Function for resolving all bids for the next trading period.
     Will try to find the lowest price where supply equals or exceeds demand.
     @return A dict with clearing prices per energy carrier, and a list of BidWithAcceptanceStatus
     """
 
     clearing_prices_dict: Dict[Resource, float] = {}
-    bids_with_acceptance_status: List[BidWithAcceptanceStatus] = []
+    bids_with_acceptance_status: List[NetBidWithAcceptanceStatus] = []
 
     for resource in ALL_IMPLEMENTED_RESOURCES:
         bids_for_resource = [x for x in bids if x.resource == resource]
@@ -56,13 +56,13 @@ def resolve_bids(period: datetime.datetime, bids: Iterable[Bid]) -> \
     return clearing_prices_dict, bids_with_acceptance_status
 
 
-def calculate_bids_with_acceptance_status(clearing_price: float, buy_bids: List[Bid],
-                                          sell_bids: List[Bid], supply_for_price_point: float) -> \
-        List[BidWithAcceptanceStatus]:
+def calculate_bids_with_acceptance_status(clearing_price: float, buy_bids: List[NetBid],
+                                          sell_bids: List[NetBid], supply_for_price_point: float) -> \
+        List[NetBidWithAcceptanceStatus]:
     """
     Builds a list of bids with the extra information of how much of their quantity was "accepted" in the market solver.
     """
-    bwas_for_resource: List[BidWithAcceptanceStatus] = []
+    bwas_for_resource: List[NetBidWithAcceptanceStatus] = []
 
     # First, go through buy bids, biggest price first
     buy_quantity_accepted = 0.0
@@ -71,14 +71,14 @@ def calculate_bids_with_acceptance_status(clearing_price: float, buy_bids: List[
         buy_bids_with_this_price = [bid for bid in buy_bids if bid.price == buy_bid_price_point]
         if buy_bid_price_point < clearing_price:
             for bid in buy_bids_with_this_price:
-                bwas_for_resource.append(BidWithAcceptanceStatus.from_bid(bid, 0.0))
+                bwas_for_resource.append(NetBidWithAcceptanceStatus.from_bid(bid, 0.0))
         else:
             # Accept as much as possible
             total_quantity_at_price_point = sum([bid.quantity for bid in buy_bids_with_this_price])
             max_possible_accept_quantity = supply_for_price_point - buy_quantity_accepted
             frac_to_accept = min(1.0, max_possible_accept_quantity / total_quantity_at_price_point)
             for bid in buy_bids_with_this_price:
-                bwas_for_resource.append(BidWithAcceptanceStatus.from_bid(bid, bid.quantity * frac_to_accept))
+                bwas_for_resource.append(NetBidWithAcceptanceStatus.from_bid(bid, bid.quantity * frac_to_accept))
             buy_quantity_accepted = buy_quantity_accepted + total_quantity_at_price_point * frac_to_accept
 
     # Now go through sell bids, lowest price first
@@ -88,14 +88,14 @@ def calculate_bids_with_acceptance_status(clearing_price: float, buy_bids: List[
         sell_bids_with_this_price = [bid for bid in sell_bids if bid.price == sell_bid_price_point]
         if sell_bid_price_point > clearing_price:
             for bid in sell_bids_with_this_price:
-                bwas_for_resource.append(BidWithAcceptanceStatus.from_bid(bid, 0.0))
+                bwas_for_resource.append(NetBidWithAcceptanceStatus.from_bid(bid, 0.0))
         else:
             # Accept as much as possible
             total_quantity_at_price_point = sum([bid.quantity for bid in sell_bids_with_this_price])
             max_possible_accept_quantity = buy_quantity_accepted - sell_quantity_accepted
             frac_to_accept = min(1.0, max_possible_accept_quantity / total_quantity_at_price_point)
             for bid in sell_bids_with_this_price:
-                bwas_for_resource.append(BidWithAcceptanceStatus.from_bid(bid, bid.quantity * frac_to_accept))
+                bwas_for_resource.append(NetBidWithAcceptanceStatus.from_bid(bid, bid.quantity * frac_to_accept))
             sell_quantity_accepted = sell_quantity_accepted + total_quantity_at_price_point * frac_to_accept
 
     if abs(buy_quantity_accepted - sell_quantity_accepted) > 1e-5:
@@ -105,7 +105,7 @@ def calculate_bids_with_acceptance_status(clearing_price: float, buy_bids: List[
 
 
 def calculate_clearing_price(demand_which_needs_to_be_filled: float, price_points: Set[float],
-                             sell_bids_resource: List[Bid]) -> Tuple[Union[float, None], float]:
+                             sell_bids_resource: List[NetBid]) -> Tuple[Union[float, None], float]:
     """
     Goes through price points in ascending order. When a price point for which the available supply exceeds or equals
     the demand which "needs to" be filled is found, that price point is returned.
@@ -125,12 +125,12 @@ def calculate_clearing_price(demand_which_needs_to_be_filled: float, price_point
     return None, 0
 
 
-def get_price_points(bids: Iterable[Bid]) -> Set[float]:
+def get_price_points(bids: Iterable[NetBid]) -> Set[float]:
     return set([x.price for x in bids])
 
 
-def deal_with_no_solution_found(bids_without_acceptance_status: Iterable[Bid], period: datetime.datetime) -> \
-        Tuple[float, List[BidWithAcceptanceStatus]]:
+def deal_with_no_solution_found(bids_without_acceptance_status: Iterable[NetBid], period: datetime.datetime) -> \
+        Tuple[float, List[NetBidWithAcceptanceStatus]]:
     """
     Not entirely clear what we should do here. This will only happen if ExternalGridAgent cannot provide
     enough energy, basically, which should never be the case. Currently, we will set clearing price to np.nan
@@ -143,10 +143,10 @@ def deal_with_no_solution_found(bids_without_acceptance_status: Iterable[Bid], p
     return np.nan, no_bids_accepted(bids_without_acceptance_status)
 
 
-def no_bids_accepted(bids_without_acceptance_status: Iterable[Bid]) -> List[BidWithAcceptanceStatus]:
-    return [BidWithAcceptanceStatus.from_bid(bid, 0.0) for bid in bids_without_acceptance_status]
+def no_bids_accepted(bids_without_acceptance_status: Iterable[NetBid]) -> List[NetBidWithAcceptanceStatus]:
+    return [NetBidWithAcceptanceStatus.from_bid(bid, 0.0) for bid in bids_without_acceptance_status]
 
 
-def has_at_least_one_bid_each_side(buy_bids: List[Bid], sell_bids: List[Bid]) -> bool:
+def has_at_least_one_bid_each_side(buy_bids: List[NetBid], sell_bids: List[NetBid]) -> bool:
     """If this isn't true, the market solver won't need to do any work, essentially."""
     return len(buy_bids) > 0 and len(sell_bids) > 0

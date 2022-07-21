@@ -1,13 +1,13 @@
 import datetime
 from typing import Collection, Dict, List, Tuple, Union
 
-from tradingplatformpoc.bid import Action, BidWithAcceptanceStatus, Resource
+from tradingplatformpoc.bid import Action, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.extra_cost import ExtraCost, ExtraCostType, get_extra_cost_type_for_bid_inaccuracy
 from tradingplatformpoc.trade import Market, Trade
 from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES
 
 
-def calculate_penalty_costs_for_period(bids_for_period: Collection[BidWithAcceptanceStatus],
+def calculate_penalty_costs_for_period(bids_for_period: Collection[NetBidWithAcceptanceStatus],
                                        trades_for_period: Collection[Trade],
                                        period: datetime.datetime,
                                        clearing_prices: Dict[Resource, float],
@@ -27,7 +27,7 @@ def calculate_penalty_costs_for_period(bids_for_period: Collection[BidWithAccept
     return extra_costs_for_period
 
 
-def calculate_penalty_costs_for_period_and_resource(bids_for_resource: Collection[BidWithAcceptanceStatus],
+def calculate_penalty_costs_for_period_and_resource(bids_for_resource: Collection[NetBidWithAcceptanceStatus],
                                                     trades_for_resource: Collection[Trade], clearing_price: float,
                                                     external_wholesale_price: float) -> Dict[str, float]:
     """
@@ -56,7 +56,7 @@ def calculate_penalty_costs_for_period_and_resource(bids_for_resource: Collectio
 
 
 def calculate_costs_for_heating(trading_periods: Collection[datetime.datetime],
-                                all_bids: Dict[datetime.datetime, Collection[BidWithAcceptanceStatus]],
+                                all_bids: Dict[datetime.datetime, Collection[NetBidWithAcceptanceStatus]],
                                 all_trades: Collection[Trade],
                                 clearing_prices_historical: Dict[datetime.datetime, Dict[Resource, float]],
                                 est_wholesale_heating_prices_by_year_and_month: Dict[Tuple[int, int], float]) -> \
@@ -90,7 +90,7 @@ def get_external_trade_on_local_market(trades: Collection[Trade]) -> Union[Trade
         return external_trades_on_local_market[0]
 
 
-def get_external_bid(bids: Collection[BidWithAcceptanceStatus]) -> BidWithAcceptanceStatus:
+def get_external_bid(bids: Collection[NetBidWithAcceptanceStatus]) -> NetBidWithAcceptanceStatus:
     """
     From a collection of bids, gets the one which has by_external = True. If there is no such bid, or if there are more
     than one, the function throws a RuntimeError.
@@ -149,7 +149,7 @@ def distribute_cost(error_by_agent: Dict[str, float], extra_cost: float) -> Dict
     return {k: extra_cost * v for (k, v) in perc_of_cost_to_be_paid_by_agent.items()}
 
 
-def is_agent_external(accepted_bids_for_agent: List[BidWithAcceptanceStatus], trades_for_agent: List[Trade]) -> bool:
+def is_agent_external(accepted_bids_for_agent: List[NetBidWithAcceptanceStatus], trades_for_agent: List[Trade]) -> bool:
     """Helper method to figure out whether an agent represents an external grid, based on bids and trades for the agent.
     """
     if len(trades_for_agent) > 0:
@@ -161,7 +161,7 @@ def is_agent_external(accepted_bids_for_agent: List[BidWithAcceptanceStatus], tr
     return False
 
 
-def calculate_error_by_agent(accepted_bids: Collection[BidWithAcceptanceStatus], agent_ids: Collection[str],
+def calculate_error_by_agent(accepted_bids: Collection[NetBidWithAcceptanceStatus], agent_ids: Collection[str],
                              trades: Collection[Trade]) -> Dict[str, float]:
     """
     The error being the difference between the projected (i.e. the bid quantity) usage and the actual usage for the
@@ -179,7 +179,7 @@ def calculate_error_by_agent(accepted_bids: Collection[BidWithAcceptanceStatus],
     return error_by_agent
 
 
-def get_bid_usage(accepted_bids_for_agent: List[BidWithAcceptanceStatus], agent_id: str) -> float:
+def get_bid_usage(accepted_bids_for_agent: List[NetBidWithAcceptanceStatus], agent_id: str) -> float:
     """Usage is negative if the agent is a supplier of energy"""
     if len(accepted_bids_for_agent) > 1:
         raise RuntimeError("Expected max 1 bid accepted per agent and trading period, but had {} for agent '{}'".

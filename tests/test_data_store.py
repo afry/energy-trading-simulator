@@ -37,28 +37,37 @@ class TestDataStore(TestCase):
         """Test that the retail price is always greater than the wholesale price"""
         # May want to test for other resources than ELECTRICITY
         for dt in DATETIME_ARRAY:
-            retail_price = self.data_store_entity.get_estimated_retail_price(dt, Resource.ELECTRICITY)
+            retail_price = self.data_store_entity.get_estimated_retail_price(dt, Resource.ELECTRICITY, False)
             wholesale_price = self.data_store_entity.get_estimated_wholesale_price(dt, Resource.ELECTRICITY)
             self.assertTrue(retail_price > wholesale_price)
 
     def test_retail_price_offset(self):
-        """Test that when we specify a retail price offset when constructing the data store, that is reflected when
-        getting the retail price."""
+        """
+        Test that different tax rates and grid fees are reflected in the price we get from get_estimated_retail_price.
+        """
         data_store_2 = data_store.DataStore(config_area_info={"DefaultPVEfficiency": 0.165,
                                                               "HeatTransferLoss": 0.05,
                                                               "ElectricityTax": 1.5,
-                                                              "ElectricityGridFee": 0.5},
+                                                              "ElectricityGridFee": 0.5,
+                                                              "ElectricityTaxInternal": 0,
+                                                              "ElectricityGridFeeInternal": 0},
                                             nordpool_data=ONES_SERIES * CONSTANT_NORDPOOL_PRICE,
                                             irradiation_data=ONES_SERIES,
                                             grid_carbon_intensity=ONES_SERIES)
 
-        price_for_normal_ds = self.data_store_entity.get_estimated_retail_price(FEB_1_1_AM, Resource.ELECTRICITY)
+        # Comparing gross prices
+        price_for_normal_ds = self.data_store_entity.get_estimated_retail_price(FEB_1_1_AM, Resource.ELECTRICITY,
+                                                                                False)
+        self.assertAlmostEqual(0.73, price_for_normal_ds)
+        self.assertAlmostEqual(1.1, data_store_2.get_estimated_retail_price(FEB_1_1_AM, Resource.ELECTRICITY, False))
+        # Comparing net prices
+        price_for_normal_ds = self.data_store_entity.get_estimated_retail_price(FEB_1_1_AM, Resource.ELECTRICITY, True)
         self.assertAlmostEqual(1.09, price_for_normal_ds)
-        self.assertAlmostEqual(2.6, data_store_2.get_estimated_retail_price(FEB_1_1_AM, Resource.ELECTRICITY))
+        self.assertAlmostEqual(2.6, data_store_2.get_estimated_retail_price(FEB_1_1_AM, Resource.ELECTRICITY, True))
 
     def test_get_estimated_price_for_non_implemented_resource(self):
         with self.assertRaises(RuntimeError):
-            self.data_store_entity.get_estimated_retail_price(FEB_1_1_AM, Resource.COOLING)
+            self.data_store_entity.get_estimated_retail_price(FEB_1_1_AM, Resource.COOLING, False)
 
     def test_read_electricitymap_csv(self):
         """Test that the CSV file with ElectricityMap carbon intensity data reads correctly."""
@@ -114,4 +123,5 @@ class TestDataStore(TestCase):
         ds.add_external_heating_sell(datetime(2019, 3, 2, 1, tzinfo=timezone.utc), 50)
         ds.add_external_heating_sell(datetime(2019, 3, 2, 2, tzinfo=timezone.utc), 50)
         ds.add_external_heating_sell(datetime(2019, 3, 2, 3, tzinfo=timezone.utc), 50)
-        self.assertAlmostEqual(26.546859852476288, ds.get_exact_retail_price(datetime(2019, 3, 2, 3), Resource.HEATING))
+        self.assertAlmostEqual(26.546859852476288,
+                               ds.get_exact_retail_price(datetime(2019, 3, 2, 3), Resource.HEATING, False))

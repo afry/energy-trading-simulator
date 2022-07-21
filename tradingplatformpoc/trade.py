@@ -23,12 +23,16 @@ class Trade:
         action: Buy or sell
         resource: Electricity or heating
         quantity: Amount in kWh
-        price: SEK/kWh
+        price: The _net_ price in SEK/kWh
         source: String specifying which entity that did the trade (used for debugging)
         by_external: True if trade is made by an external grid agent, False otherwise. Needed for example when
             calculating extra cost distribution in balance_manager
         market: LOCAL or EXTERNAL (agents can decide to buy/sell directly to external grids)
         period: What period the trade happened
+        tax_paid: Tax, in SEK/kWh, that the "source" pays for this trade. Sellers pay the tax so this will be 0 for all
+            BUY-trades
+        grid_fee_paid: Grid fee, in SEK/kWh, that the "source" pays for this trade. Will be 0 for trades made by a
+            GridAgent, since anything else would mean that they would "pay to themselves" essentially
     """
 
     action: Action
@@ -39,9 +43,12 @@ class Trade:
     by_external: bool
     market: Market
     period: datetime.datetime
+    tax_paid: float
+    grid_fee_paid: float
 
     def __init__(self, action: Action, resource: Resource, quantity: float, price: float, source: str,
-                 by_external: bool, market: Market, period: datetime.datetime):
+                 by_external: bool, market: Market, period: datetime.datetime, tax_paid: float = 0.0,
+                 grid_fee_paid: float = 0.0):
         if quantity <= 0:
             raise RuntimeError('Trade must have quantity > 0, but was ' + str(quantity))
         self.action = action
@@ -53,19 +60,17 @@ class Trade:
         self.market = market
         self.period = period
 
-    def with_modified_price(self, new_price: float):
-        return Trade(self.action, self.resource, self.quantity, new_price, self.source, self.by_external, self.market,
-                     self.period)
-
     def __str__(self):
-        return "{},{},{},{},{},{},{},{}".format(self.period,
-                                                self.source,
-                                                self.by_external,
-                                                action_string(self.action),
-                                                resource_string(self.resource),
-                                                market_string(self.market),
-                                                self.quantity,
-                                                self.price)
+        return "{},{},{},{},{},{},{},{},{},{}".format(self.period,
+                                                      self.source,
+                                                      self.by_external,
+                                                      action_string(self.action),
+                                                      resource_string(self.resource),
+                                                      market_string(self.market),
+                                                      self.quantity,
+                                                      self.price,
+                                                      self.tax_paid,
+                                                      self.grid_fee_paid)
 
     def to_series_with_period(self, period: datetime.datetime) -> pd.Series:
         """Same function name as the one in BidWithAcceptanceStatus, so that the same method can be reused."""
@@ -76,7 +81,9 @@ class Trade:
                                'resource': self.resource,
                                'market': self.market,
                                'quantity': self.quantity,
-                               'price': self.price})
+                               'price': self.price,
+                               'tax_paid': self.tax_paid,
+                               'grid_fee_paid': self.grid_fee_paid})
 
 
 def market_string(market: Market) -> str:

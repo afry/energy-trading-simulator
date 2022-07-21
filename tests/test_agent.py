@@ -13,7 +13,7 @@ from tradingplatformpoc.agent.building_agent import BuildingAgent, construct_wor
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.agent.storage_agent import StorageAgent
-from tradingplatformpoc.bid import Action, BidWithAcceptanceStatus, Resource
+from tradingplatformpoc.bid import Action, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
 from tradingplatformpoc.trade import Market, Trade
@@ -241,8 +241,8 @@ class TestStorageAgent(unittest.TestCase):
     def test_make_trade_with_2_accepted_bids(self):
         """Test that an error is raised when trying to calculate what trade to make, with more than 1 accepted bid."""
         accepted_bids_for_agent = [
-            BidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 100, 1, 'StorageAgent', False, True),
-            BidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 100, 1, 'StorageAgent', False, True)
+            NetBidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 100, 1, 'StorageAgent', False, True),
+            NetBidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 100, 1, 'StorageAgent', False, True)
         ]
         clearing_prices = {Resource.ELECTRICITY: 1.0, Resource.HEATING: np.nan}
         with self.assertRaises(RuntimeError):
