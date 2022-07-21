@@ -59,6 +59,8 @@ class Trade:
         self.by_external = by_external
         self.market = market
         self.period = period
+        self.tax_paid = tax_paid
+        self.grid_fee_paid = grid_fee_paid
 
     def __str__(self):
         return "{},{},{},{},{},{},{},{},{},{}".format(self.period,
