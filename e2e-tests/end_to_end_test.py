@@ -24,7 +24,6 @@ class Test(TestCase):
         """
 
         simulation_results = simulation_runner.run_trading_simulations(config_data, mock_datas_file_path)
-        heat_transfer_loss_per_side = simulation_results.data_store.heat_transfer_loss_per_side
 
         for period in simulation_results.clearing_prices_historical.keys():
             trades_for_period = simulation_results.all_trades.loc[simulation_results.all_trades.period == period]
