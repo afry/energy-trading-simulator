@@ -73,9 +73,27 @@ class TestGridAgent(unittest.TestCase):
         self.assertEqual(1, len(external_trades))
         self.assertEqual(Action.SELL, external_trades[0].action)
         self.assertEqual(Resource.ELECTRICITY, external_trades[0].resource)
-        self.assertEqual(trades_excl_external[0].quantity, external_trades[0].quantity)
+        self.assertEqual(trades_excl_external[0].quantity_pre_loss, external_trades[0].quantity_post_loss)
         self.assertAlmostEqual(retail_price, external_trades[0].price)
         self.assertEqual("ElectricityGridAgent", external_trades[0].source)
+        self.assertEqual(Market.LOCAL, external_trades[0].market)
+        self.assertEqual(SOME_DATETIME, external_trades[0].period)
+
+    def test_calculate_trades_1_heating(self):
+        """Ensure that the "pre-loss-quantity" of BUY-trades equal the "post-loss-quantity" of SELL trades."""
+        retail_price = 1.3225484261501212
+        clearing_prices = {Resource.ELECTRICITY: np.nan, Resource.HEATING: retail_price}
+        trades_excl_external = [
+            Trade(Action.BUY, Resource.HEATING, 100, retail_price, "BuildingAgent", False, Market.LOCAL,
+                  SOME_DATETIME, self.heating_grid_agent.resource_loss_per_side)
+        ]
+        external_trades = self.heating_grid_agent.calculate_external_trades(trades_excl_external, clearing_prices)
+        self.assertEqual(1, len(external_trades))
+        self.assertEqual(Action.SELL, external_trades[0].action)
+        self.assertEqual(Resource.HEATING, external_trades[0].resource)
+        self.assertEqual(trades_excl_external[0].quantity_pre_loss, external_trades[0].quantity_post_loss)
+        self.assertAlmostEqual(retail_price, external_trades[0].price)
+        self.assertEqual("HeatingGridAgent", external_trades[0].source)
         self.assertEqual(Market.LOCAL, external_trades[0].market)
         self.assertEqual(SOME_DATETIME, external_trades[0].period)
 
@@ -132,7 +150,7 @@ class TestGridAgent(unittest.TestCase):
         self.assertEqual(1, len(external_trades))
         self.assertEqual(Action.BUY, external_trades[0].action)
         self.assertEqual(Resource.ELECTRICITY, external_trades[0].resource)
-        self.assertEqual(100, external_trades[0].quantity)
+        self.assertEqual(100, external_trades[0].quantity_post_loss)
         self.assertAlmostEqual(wholesale_price, external_trades[0].price)
         self.assertEqual("ElectricityGridAgent", external_trades[0].source)
         self.assertEqual(Market.LOCAL, external_trades[0].market)
@@ -152,7 +170,7 @@ class TestGridAgent(unittest.TestCase):
         self.assertEqual(1, len(external_trades))
         self.assertEqual(Action.SELL, external_trades[0].action)
         self.assertEqual(Resource.ELECTRICITY, external_trades[0].resource)
-        self.assertEqual(trades_excl_external[0].quantity, external_trades[0].quantity)
+        self.assertEqual(trades_excl_external[0].quantity_pre_loss, external_trades[0].quantity_post_loss)
         self.assertAlmostEqual(retail_price, external_trades[0].price)
         self.assertEqual("ElectricityGridAgent", external_trades[0].source)
         self.assertEqual(Market.LOCAL, external_trades[0].market)
@@ -319,7 +337,8 @@ class TestBuildingAgent(TestCase):
         elec_trade = elec_trades[0]
         self.assertEqual(elec_trade.resource, Resource.ELECTRICITY)
         self.assertEqual(elec_trade.action, Action.BUY)
-        self.assertTrue(elec_trade.quantity > 0)
+        self.assertTrue(elec_trade.quantity_pre_loss > 0)
+        self.assertTrue(elec_trade.quantity_post_loss > 0)
         self.assertTrue(elec_trade.price > 0)
         self.assertEqual(elec_trade.source, self.building_agent_cons.guid)
         self.assertFalse(elec_trade.by_external)
@@ -338,7 +357,8 @@ class TestBuildingAgent(TestCase):
         elec_trade = elec_trades[0]
         self.assertEqual(elec_trade.resource, Resource.ELECTRICITY)
         self.assertEqual(elec_trade.action, Action.SELL)
-        self.assertTrue(elec_trade.quantity > 0)
+        self.assertTrue(elec_trade.quantity_pre_loss > 0)
+        self.assertTrue(elec_trade.quantity_post_loss > 0)
         self.assertTrue(elec_trade.price >= MIN_NORDPOOL_PRICE)
         self.assertEqual(elec_trade.source, self.building_agent_prod.guid)
         self.assertFalse(elec_trade.by_external)
@@ -357,7 +377,8 @@ class TestBuildingAgent(TestCase):
         elec_trade = elec_trades[0]
         self.assertEqual(elec_trade.resource, Resource.ELECTRICITY)
         self.assertEqual(elec_trade.action, Action.SELL)
-        self.assertTrue(elec_trade.quantity > 0)
+        self.assertTrue(elec_trade.quantity_pre_loss > 0)
+        self.assertTrue(elec_trade.quantity_post_loss > 0)
         self.assertAlmostEqual(elec_trade.price, clearing_prices[Resource.ELECTRICITY])
         self.assertEqual(elec_trade.source, self.building_agent_prod.guid)
         self.assertFalse(elec_trade.by_external)

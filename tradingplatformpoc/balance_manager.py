@@ -126,11 +126,11 @@ def calculate_total_extra_cost_for_period(external_trade: Union[Trade, None], cl
         return 0.0
     else:
         if external_trade.action == Action.BUY:
-            external_actual_export = external_trade.quantity
+            external_actual_export = external_trade.quantity_post_loss
             price_difference = clearing_price - external_wholesale_price
             return external_actual_export * price_difference
         else:
-            external_actual_import = external_trade.quantity
+            external_actual_import = external_trade.quantity_pre_loss
             price_difference = external_retail_price - clearing_price
             return external_actual_import * price_difference
 
@@ -200,7 +200,7 @@ def get_actual_usage(trades_for_agent: List[Trade], agent_id: str) -> float:
         return 0.0
     else:
         trade = trades_for_agent[0]
-        return trade.quantity if trade.action == Action.BUY else -trade.quantity
+        return trade.quantity_post_loss if trade.action == Action.BUY else -trade.quantity_pre_loss
 
 
 def correct_for_exact_heating_price(trading_periods: Collection[datetime.datetime],
@@ -238,30 +238,30 @@ def correct_for_exact_heating_price(trading_periods: Collection[datetime.datetim
             exact_ext_wholesale_price = exact_wholesale_heating_prices_by_year_and_month[(period.year, period.month)]
             est_ext_retail_price = estimated_retail_heating_prices_by_year_and_month[(period.year, period.month)]
             est_ext_wholesale_price = estimated_wholesale_heating_prices_by_year_and_month[(period.year, period.month)]
-            external_trade_quantity = external_trade.quantity
+            external_trade_quantity = external_trade.quantity_post_loss
             if external_trade.action == Action.SELL:
                 internal_buy_trades = [x for x in heating_trades if (not x.by_external) & (x.action == Action.BUY)]
-                total_internal_usage = sum([x.quantity for x in internal_buy_trades])
+                total_internal_usage = sum([x.quantity_pre_loss for x in internal_buy_trades])
                 total_debt = (exact_ext_retail_price - est_ext_retail_price) * external_trade_quantity
 
                 extra_costs.append(ExtraCost(period, external_trade.source, ExtraCostType.HEAT_EXT_COST_CORR,
                                              -total_debt))
 
                 for internal_trade in internal_buy_trades:
-                    net_usage = internal_trade.quantity
+                    net_usage = internal_trade.quantity_pre_loss
                     share_of_debt = net_usage / total_internal_usage
                     extra_costs.append(ExtraCost(period, internal_trade.source, ExtraCostType.HEAT_EXT_COST_CORR,
                                                  share_of_debt * total_debt))
             else:
                 internal_sell_trades = [x for x in heating_trades if (not x.by_external) & (x.action == Action.SELL)]
-                total_internal_prod = sum([x.quantity for x in internal_sell_trades])
+                total_internal_prod = sum([x.quantity_post_loss for x in internal_sell_trades])
                 total_debt = (est_ext_wholesale_price - exact_ext_wholesale_price) * external_trade_quantity
 
                 extra_costs.append(ExtraCost(period, external_trade.source, ExtraCostType.HEAT_EXT_COST_CORR,
                                              -total_debt))
 
                 for internal_trade in internal_sell_trades:
-                    net_prod = internal_trade.quantity
+                    net_prod = internal_trade.quantity_post_loss
                     share_of_debt = net_prod / total_internal_prod
                     extra_costs.append(ExtraCost(period, internal_trade.source, ExtraCostType.HEAT_EXT_COST_CORR,
                                                  share_of_debt * total_debt))

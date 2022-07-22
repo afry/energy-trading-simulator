@@ -33,21 +33,23 @@ def print_basic_results_for_agent(agent: IAgent, all_trades_dict: Dict[datetime.
                                   exact_wholesale_heating_prices_by_year_and_month: Dict[Tuple[int, int], float]):
     trades_for_agent = [x for v in all_trades_dict.values() for x in v if x.source == agent.guid]
 
-    quantity_bought_elec = sum([x.quantity for x in trades_for_agent
+    quantity_bought_elec = sum([x.quantity_pre_loss for x in trades_for_agent
                                 if (x.action == Action.BUY) & (x.resource == Resource.ELECTRICITY)])
-    quantity_bought_heat = sum([x.quantity for x in trades_for_agent
+    quantity_bought_heat = sum([x.quantity_pre_loss for x in trades_for_agent
                                 if (x.action == Action.BUY) & (x.resource == Resource.HEATING)])
-    quantity_sold_elec = sum([x.quantity for x in trades_for_agent
+    quantity_sold_elec = sum([x.quantity_post_loss for x in trades_for_agent
                               if (x.action == Action.SELL) & (x.resource == Resource.ELECTRICITY)])
-    quantity_sold_heat = sum([x.quantity for x in trades_for_agent
+    quantity_sold_heat = sum([x.quantity_post_loss for x in trades_for_agent
                               if (x.action == Action.SELL) & (x.resource == Resource.HEATING)])
-    sek_bought_for_elec = sum([x.quantity * x.price for x in trades_for_agent
+    # For BUY-trades, the buyer pays for the quantity before losses.
+    sek_bought_for_elec = sum([x.quantity_pre_loss * x.price for x in trades_for_agent
                                if (x.action == Action.BUY) & (x.resource == Resource.ELECTRICITY)])
-    sek_bought_for_heat = sum([x.quantity * x.price for x in trades_for_agent
+    sek_bought_for_heat = sum([x.quantity_pre_loss * x.price for x in trades_for_agent
                                if (x.action == Action.BUY) & (x.resource == Resource.HEATING)])
-    sek_sold_for_elec = sum([x.quantity * x.price for x in trades_for_agent
+    # For SELL-trades, the seller gets paid for the quantity after losses.
+    sek_sold_for_elec = sum([x.quantity_post_loss * x.price for x in trades_for_agent
                              if (x.action == Action.SELL) & (x.resource == Resource.ELECTRICITY)])
-    sek_sold_for_heat = sum([x.quantity * x.price for x in trades_for_agent
+    sek_sold_for_heat = sum([x.quantity_post_loss * x.price for x in trades_for_agent
                              if (x.action == Action.SELL) & (x.resource == Resource.HEATING)])
     sek_bought_for = sek_bought_for_heat + sek_bought_for_elec
     sek_sold_for = sek_sold_for_heat + sek_sold_for_elec
@@ -114,13 +116,15 @@ def get_savings_vs_only_external(trades_for_agent: Iterable[Trade],
         if trade.action == Action.BUY:
             retail_price = get_relevant_price(exact_retail_electricity_prices_by_period,
                                               exact_retail_heating_prices_by_year_and_month, period, resource)
+            # For BUY-trades, the buyer pays for the quantity before losses
             saved_on_buy_vs_using_only_external = saved_on_buy_vs_using_only_external + \
-                trade.quantity * (retail_price - trade.price)
+                trade.quantity_pre_loss * (retail_price - trade.price)
         elif trade.action == Action.SELL:
             wholesale_price = get_relevant_price(exact_wholesale_electricity_prices_by_period,
                                                  exact_wholesale_heating_prices_by_year_and_month, period, resource)
+            # For SELL-trades, the seller gets paid for the quantity after losses.
             saved_on_sell_vs_using_only_external = saved_on_sell_vs_using_only_external + \
-                trade.quantity * (trade.price - wholesale_price)
+                trade.quantity_post_loss * (trade.price - wholesale_price)
     return saved_on_buy_vs_using_only_external, saved_on_sell_vs_using_only_external
 
 
