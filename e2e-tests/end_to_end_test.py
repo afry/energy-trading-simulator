@@ -49,4 +49,17 @@ class Test(TestCase):
 
 
 def get_costs_of_trades_for_agent(trades_for_agent):
-    return trades_for_agent.apply(lambda x: x.get_cost_of_trade(), axis=1)
+    return trades_for_agent.apply(lambda x: get_cost_of_trade(x.action, x.quantity_pre_loss, x.quantity_post_loss,
+                                                              x.price), axis=1)
+
+
+def get_cost_of_trade(action: Action, quantity_pre_loss: float, quantity_post_loss: float, price: float) -> float:
+    """
+    Negative if it is an income, i.e. if the trade is a SELL.
+    For BUY-trades, the buyer pays for the quantity before losses.
+    For SELL-trades, the seller gets paid for the quantity after losses.
+    """
+    if action == Action.BUY:
+        return quantity_pre_loss * price
+    else:
+        return -quantity_post_loss * price

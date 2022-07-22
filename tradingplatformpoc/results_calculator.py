@@ -47,6 +47,7 @@ def print_basic_results_for_agent(agent: IAgent, all_trades_dict: Dict[datetime.
     sek_bought_for_heat = sum([x.quantity_pre_loss * x.price for x in trades_for_agent
                                if (x.action == Action.BUY) & (x.resource == Resource.HEATING)])
     # For SELL-trades, the seller gets paid for the quantity after losses.
+    # These sums will include taxes and grid fees, that the seller is to pay
     sek_sold_for_elec = sum([x.quantity_post_loss * x.price for x in trades_for_agent
                              if (x.action == Action.SELL) & (x.resource == Resource.ELECTRICITY)])
     sek_sold_for_heat = sum([x.quantity_post_loss * x.price for x in trades_for_agent
