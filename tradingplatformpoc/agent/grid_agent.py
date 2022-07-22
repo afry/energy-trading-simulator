@@ -51,7 +51,8 @@ class GridAgent(IAgent):
         # calculated at a later stage (in calculate_external_trades)
         return [], {}
 
-    def calculate_external_trades(self, trades_excl_external: Iterable[Trade], clearing_prices: Dict[Resource, float]):
+    def calculate_external_trades(self, trades_excl_external: Iterable[Trade], clearing_prices: Dict[Resource, float]) \
+            -> List[Trade]:
         trades_to_add: List[Trade] = []
 
         trades_for_this_resource = [trade for trade in trades_excl_external if trade.resource == self.resource]
@@ -85,16 +86,20 @@ class GridAgent(IAgent):
                                                           trades_to_add: List[Trade], retail_price: float,
                                                           wholesale_price: float, local_clearing_price: float):
         trades_for_this_resource_and_market = [trade for trade in trades_for_this_resource if trade.market == market]
-        sum_buys = sum([trade.quantity for trade in trades_for_this_resource_and_market if trade.action == Action.BUY])
+        sum_buys = sum(
+            [trade.quantity_pre_loss for trade in trades_for_this_resource_and_market if trade.action == Action.BUY])
         sum_sells = sum(
-            [trade.quantity for trade in trades_for_this_resource_and_market if trade.action == Action.SELL])
+            [trade.quantity_post_loss for trade in trades_for_this_resource_and_market if trade.action == Action.SELL])
         if sum_buys > sum_sells:
             deficit_in_market = sum_buys - sum_sells
             need_to_provide = deficit_in_market / (1 - self.resource_loss_per_side)
             tax_to_pay = self.data_store.elec_tax if resource == Resource.ELECTRICITY else 0
             trades_to_add.append(
                 Trade(Action.SELL, resource, need_to_provide, retail_price, self.guid, True, market, period,
+                      loss=self.resource_loss_per_side,
                       tax_paid=tax_to_pay))
+                Trade(Action.SELL, resource, need_to_provide, retail_price, self.guid, True, market, period,
+                      loss=self.resource_loss_per_side))
             if market == Market.LOCAL:
                 if local_clearing_price < retail_price:
                     # What happened here is that the market solver believed that locally produced energy would cover
@@ -111,7 +116,8 @@ class GridAgent(IAgent):
             surplus_in_market = sum_sells - sum_buys
             need_to_buy = surplus_in_market * (1 - self.resource_loss_per_side)
             trades_to_add.append(
-                Trade(Action.BUY, resource, need_to_buy, wholesale_price, self.guid, True, market, period))
+                Trade(Action.BUY, resource, need_to_buy, wholesale_price, self.guid, True, market, period,
+                      loss=self.resource_loss_per_side))
             if market == Market.LOCAL:
                 if local_clearing_price > wholesale_price:
                     # What happened here is that the market solver believed that there would be a local deficit,

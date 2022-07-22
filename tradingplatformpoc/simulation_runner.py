@@ -357,7 +357,7 @@ def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings
 
 
 def get_quantity_heating_sold_by_external_grid(external_trades: List[Trade]) -> float:
-    return sum([x.quantity for x in external_trades if
+    return sum([x.quantity_post_loss for x in external_trades if
                 (x.resource == Resource.HEATING) & (x.action == Action.SELL)])
 
 

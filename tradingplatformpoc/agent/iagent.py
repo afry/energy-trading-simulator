@@ -69,13 +69,15 @@ class IAgent(ABC):
             Trade:
         # Heat transfer loss added
         quantity_after_loss = quantity * (1 - self.data_store.heat_transfer_loss_per_side)
-        return Trade(Action.SELL, Resource.HEATING, quantity_after_loss, price, self.guid, False, market, period)
+        return Trade(Action.SELL, Resource.HEATING, quantity_after_loss, price, self.guid, False, market, period,
+                     self.data_store.heat_transfer_loss_per_side)
 
     def construct_buy_heat_trade(self, quantity_needed: float, price: float, market: Market,
                                  period: datetime.datetime) -> Trade:
         # The heat transfer loss needs to be accounted for
         quantity_to_buy = quantity_needed / (1 - self.data_store.heat_transfer_loss_per_side)
-        return Trade(Action.BUY, Resource.HEATING, quantity_to_buy, price, self.guid, False, market, period)
+        return Trade(Action.BUY, Resource.HEATING, quantity_to_buy, price, self.guid, False, market, period,
+                     self.data_store.heat_transfer_loss_per_side)
 
     def get_external_grid_buy_price(self, period: datetime.datetime, resource: Resource):
         wholesale_price = self.data_store.get_estimated_wholesale_price(period, resource)
