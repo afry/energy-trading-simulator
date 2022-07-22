@@ -112,6 +112,24 @@ class Trade:
         else:
             return -self.quantity_post_loss * self.price
 
+    def get_total_grid_fee_paid(self) -> float:
+        """
+        Paid by seller, and the seller gets paid for the quantity after losses
+        """
+        if self.action == Action.BUY:
+            return 0.0
+        else:
+            return self.quantity_post_loss * self.grid_fee_paid
+
+    def get_total_tax_paid(self) -> float:
+        """
+        Paid by seller, and the seller gets paid for the quantity after losses
+        """
+        if self.action == Action.BUY:
+            return 0.0
+        else:
+            return self.quantity_post_loss * self.tax_paid
+
 
 def market_string(market: Market) -> str:
     return "LOCAL" if market == Market.LOCAL else "EXTERNAL"

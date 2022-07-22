@@ -98,8 +98,6 @@ class GridAgent(IAgent):
                 Trade(Action.SELL, resource, need_to_provide, retail_price, self.guid, True, market, period,
                       loss=self.resource_loss_per_side,
                       tax_paid=tax_to_pay))
-                Trade(Action.SELL, resource, need_to_provide, retail_price, self.guid, True, market, period,
-                      loss=self.resource_loss_per_side))
             if market == Market.LOCAL:
                 if local_clearing_price < retail_price:
                     # What happened here is that the market solver believed that locally produced energy would cover

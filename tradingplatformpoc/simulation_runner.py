@@ -122,10 +122,10 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
         all_trades_dict[period] = all_trades_for_period
 
         # Sum up grid fees paid
-        grid_fees_paid_period = sum([trade.grid_fee_paid * trade.quantity for trade in trades_excl_external])
+        grid_fees_paid_period = sum([trade.get_total_grid_fee_paid() for trade in trades_excl_external])
         grid_fees_paid_on_internal_trades = grid_fees_paid_on_internal_trades + grid_fees_paid_period
         # Sum up tax paid
-        tax_paid_period = sum([trade.tax_paid * trade.quantity for trade in all_trades_for_period])
+        tax_paid_period = sum([trade.get_total_tax_paid() for trade in all_trades_for_period])
         tax_paid = tax_paid + tax_paid_period
 
         external_heating_sell_quantity = get_quantity_heating_sold_by_external_grid(external_trades)
