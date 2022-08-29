@@ -106,7 +106,7 @@ def get_school_heating_consumption_hourly_factor(timestamp: datetime.datetime) -
         return 0.5
     if is_break(timestamp):
         return 0.5
-    if not(8 <= timestamp.hour < 17):
+    if not (8 <= timestamp.hour < 17):
         return 0.5
     return 1
 
