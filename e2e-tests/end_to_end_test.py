@@ -32,9 +32,9 @@ class Test(TestCase):
             for resource in ALL_IMPLEMENTED_RESOURCES:
                 trades_for_period_and_resource = trades_for_period.loc[trades_for_period.resource == resource]
                 energy_bought_kwh = sum(trades_for_period_and_resource.loc[trades_for_period_and_resource.action ==
-                                                                           Action.BUY, 'quantity'])
+                                                                           Action.BUY, 'quantity_pre_loss'])
                 energy_sold_kwh = sum(trades_for_period_and_resource.loc[trades_for_period_and_resource.action ==
-                                                                         Action.SELL, 'quantity'])
+                                                                         Action.SELL, 'quantity_post_loss'])
                 self.assertAlmostEqual(energy_bought_kwh, energy_sold_kwh, places=7)
 
             total_cost = 0  # Should sum to 0 at the end of this loop
@@ -49,12 +49,4 @@ class Test(TestCase):
 
 
 def get_costs_of_trades_for_agent(trades_for_agent):
-    return trades_for_agent.apply(lambda x: get_cost_of_trade(x.action, x.quantity, x.price), axis=1)
-
-
-def get_cost_of_trade(action: Action, quantity: float, price: float) -> float:
-    """Negative if it is an income, i.e. if the trade is a SELL"""
-    if action == Action.BUY:
-        return quantity * price
-    else:
-        return -quantity * price
+    return trades_for_agent.apply(lambda x: x.get_cost_of_trade(), axis=1)
