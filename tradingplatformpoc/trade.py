@@ -30,7 +30,7 @@ class Trade:
         action: Buy or sell
         resource: Electricity or heating
         quantity: Amount in kWh (before any losses are taken into account)
-        price: The _net_ price in SEK/kWh
+        price: The _net_ price in SEK/kWh (i.e. after including tax and grid fees, if applicable)
         source: String specifying which entity that did the trade (used for debugging)
         by_external: True if trade is made by an external grid agent, False otherwise. Needed for example when
             calculating extra cost distribution in balance_manager

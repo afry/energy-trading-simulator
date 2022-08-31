@@ -253,6 +253,12 @@ if __name__ == '__main__':
 
             st.success("Data loaded!")
 
+            st.write("Total taxes paid on internal trades: {:.2f} SEK "
+                     "(this includes taxes that the ElectricityGridAgent are to pay, on sales to the microgrid)".
+                     format(st.session_state.simulation_results.tax_paid))
+            st.write("Total grid fees paid on internal trades: {:.2f} SEK".
+                     format(st.session_state.simulation_results.grid_fees_paid_on_internal_trades))
+
         if 'price_chart' in st.session_state:
             st.altair_chart(st.session_state.price_chart, use_container_width=True)
             with st.expander("Periods where local electricity price was between external retail and wholesale price:"):

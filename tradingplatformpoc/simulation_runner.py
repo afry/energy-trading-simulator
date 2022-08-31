@@ -132,7 +132,8 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
         data_store_entity.add_external_heating_sell(period, external_heating_sell_quantity)
 
         wholesale_price_elec = data_store_entity.get_exact_wholesale_price(period, Resource.ELECTRICITY)
-        retail_price_elec = data_store_entity.get_exact_retail_price(period, Resource.ELECTRICITY, False)
+        retail_price_elec = data_store_entity.get_exact_retail_price(period, Resource.ELECTRICITY,
+                                                                     include_taxes_and_fees=True)
         wholesale_prices = {Resource.ELECTRICITY: wholesale_price_elec,
                             Resource.HEATING: data_store_entity.get_estimated_wholesale_price(period, Resource.HEATING)}
         extra_costs = balance_manager.calculate_penalty_costs_for_period(bids_with_acceptance_status,
@@ -156,8 +157,6 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
         exact_retail_heating_prices_by_year_and_month, \
         exact_wholesale_heating_prices_by_year_and_month = get_external_heating_prices(data_store_entity,
                                                                                        trading_periods)
-
-    # TODO: Do something with grid_fees_paid_on_internal_trades and tax_paid
 
     heat_cost_discr_corrections = correct_for_exact_heating_price(trading_periods, all_trades_dict,
                                                                   exact_retail_heating_prices_by_year_and_month,
@@ -188,7 +187,9 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
                              heat_pump_levels_dict=heat_pump_levels_dict,
                              config_data=config_data,
                              agents=agents,
-                             data_store=data_store_entity)
+                             data_store=data_store_entity,
+                             grid_fees_paid_on_internal_trades=grid_fees_paid_on_internal_trades,
+                             tax_paid=tax_paid)
 
 
 def net_bids_from_gross_bids(gross_bids: List[GrossBid], data_store_entity: DataStore) -> List[NetBid]:
