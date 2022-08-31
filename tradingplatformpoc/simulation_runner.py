@@ -132,8 +132,7 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
         data_store_entity.add_external_heating_sell(period, external_heating_sell_quantity)
 
         wholesale_price_elec = data_store_entity.get_exact_wholesale_price(period, Resource.ELECTRICITY)
-        retail_price_elec = data_store_entity.get_exact_retail_price(period, Resource.ELECTRICITY,
-                                                                     include_taxes_and_fees=True)
+        retail_price_elec = data_store_entity.get_exact_retail_price(period, Resource.ELECTRICITY, include_tax=True)
         wholesale_prices = {Resource.ELECTRICITY: wholesale_price_elec,
                             Resource.HEATING: data_store_entity.get_estimated_wholesale_price(period, Resource.HEATING)}
         extra_costs = balance_manager.calculate_penalty_costs_for_period(bids_with_acceptance_status,
@@ -195,7 +194,7 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
 def net_bids_from_gross_bids(gross_bids: List[GrossBid], data_store_entity: DataStore) -> List[NetBid]:
     """
     Add in internal tax and internal grid fee for internal SELL bids (for electricity, heating is not taxed).
-    Note: External electricity bids already have tax and grid fee
+    Note: External electricity bids already have grid fee
     """
     net_bids: List[NetBid] = []
     for bid in gross_bids:
@@ -252,11 +251,11 @@ def get_external_heating_prices(data_store_entity: DataStore, trading_periods: C
     for (year, month) in set([(dt.year, dt.month) for dt in trading_periods]):
         first_day_of_month = datetime.datetime(year, month, 1)  # Which day it is doesn't matter
         exact_retail_heating_prices_by_year_and_month[(year, month)] = \
-            data_store_entity.get_exact_retail_price(first_day_of_month, Resource.HEATING, False)
+            data_store_entity.get_exact_retail_price(first_day_of_month, Resource.HEATING, include_tax=True)
         exact_wholesale_heating_prices_by_year_and_month[(year, month)] = \
             data_store_entity.get_exact_wholesale_price(first_day_of_month, Resource.HEATING)
         estimated_retail_heating_prices_by_year_and_month[(year, month)] = \
-            data_store_entity.get_estimated_retail_price(first_day_of_month, Resource.HEATING, False)
+            data_store_entity.get_estimated_retail_price(first_day_of_month, Resource.HEATING, include_tax=True)
         estimated_wholesale_heating_prices_by_year_and_month[(year, month)] = \
             data_store_entity.get_estimated_wholesale_price(first_day_of_month, Resource.HEATING)
     return estimated_retail_heating_prices_by_year_and_month, \

@@ -70,21 +70,21 @@ class DataStore:
     def get_nordpool_price_for_period(self, period: datetime.datetime):
         return self.nordpool_data.loc[period]
 
-    def get_estimated_retail_price(self, period: datetime.datetime, resource: Resource,
-                                   include_taxes_and_fees: bool) -> float:
+    def get_estimated_retail_price(self, period: datetime.datetime, resource: Resource, include_tax: bool) -> float:
         """
         Returns the price at which the external grid operator is believed to be willing to sell energy, in SEK/kWh.
         For some energy carriers the price may be known, but for others it may in fact be set after the fact. That is
         why this method is named 'estimated'.
         """
         if resource == Resource.ELECTRICITY:
-            """For electricity, the price is known, so 'estimated' and 'exact' are the same."""
+            # For electricity, the price is known, so 'estimated' and 'exact' are the same
             gross_price = self.get_electricity_gross_retail_price(period)
-            if include_taxes_and_fees:
+            if include_tax:
                 return self.get_electricity_net_external_price(gross_price)
             else:
                 return gross_price
         elif resource == Resource.HEATING:
+            # District heating is not taxed
             return estimate_district_heating_price(period)
         else:
             raise RuntimeError('Method not implemented for {}'.format(resource))
@@ -102,16 +102,16 @@ class DataStore:
         else:
             raise RuntimeError('Method not implemented for {}'.format(resource))
 
-    def get_exact_retail_price(self, period: datetime.datetime, resource: Resource, include_taxes_and_fees: bool) -> \
-            float:
+    def get_exact_retail_price(self, period: datetime.datetime, resource: Resource, include_tax: bool) -> float:
         """Returns the price at which the external grid operator is willing to sell energy, in SEK/kWh"""
         if resource == Resource.ELECTRICITY:
             gross_price = self.get_electricity_gross_retail_price(period)
-            if include_taxes_and_fees:
+            if include_tax:
                 return self.get_electricity_net_external_price(gross_price)
             else:
                 return gross_price
         elif resource == Resource.HEATING:
+            # District heating is not taxed
             consumption_this_month_kwh = self.calculate_consumption_this_month(period.year, period.month)
             if consumption_this_month_kwh == 0:
                 return handle_no_consumption_when_calculating_heating_price(period)
@@ -231,7 +231,7 @@ class DataStore:
             if (resource not in to_return) or (to_return[resource] is None) or (np.isnan(to_return[resource])):
                 logger.debug('For period {}, resource {}, no historical clearing prices available, will use external '
                              'prices instead.'.format(period, resource))
-                to_return[resource] = self.get_estimated_retail_price(period, resource, False)
+                to_return[resource] = self.get_estimated_retail_price(period, resource, include_tax=True)
         return to_return
 
     def add_external_heating_sell(self, period: datetime.datetime, external_heating_sell_quantity: float):
