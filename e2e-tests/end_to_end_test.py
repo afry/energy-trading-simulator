@@ -61,5 +61,7 @@ def get_cost_of_trade(action: Action, quantity_pre_loss: float, quantity_post_lo
     """
     if action == Action.BUY:
         return quantity_pre_loss * price
-    else:
+    elif action == Action.SELL:
         return -quantity_post_loss * price
+    else:
+        raise RuntimeError('Unrecognized action: ' + action.name)
