@@ -4,7 +4,7 @@ import pickle
 from dataclasses import dataclass
 from typing import Dict, List, Set, Tuple
 
-import pandas as pd
+import polars as pl
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +67,7 @@ class MockDataKey:
     default_pv_efficiency: float
 
 
-def load_existing_data_sets(file_path: str) -> Dict[MockDataKey, pd.DataFrame]:
+def load_existing_data_sets(file_path: str) -> Dict[MockDataKey, pl.DataFrame]:
     try:
         all_data_sets = pickle.load(open(file_path, 'rb'))
     except FileNotFoundError:

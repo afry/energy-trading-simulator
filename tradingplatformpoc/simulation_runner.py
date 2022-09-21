@@ -246,7 +246,7 @@ def get_generated_mock_data(config_data: dict, mock_datas_pickle_path: str) -> p
         logger.info("No mock data found for this configuration. Running mock data generation.")
         all_data_sets = generate_mock_data.run(config_data)
         logger.info("Finished mock data generation.")
-    return all_data_sets[mock_data_key]
+    return all_data_sets[mock_data_key].to_pandas().set_index('datetime')
 
 
 def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings_mock_data: pd.DataFrame,
