@@ -20,3 +20,5 @@ class SimulationResults:
     config_data: Dict[str, Any]
     agents: List[IAgent]
     data_store: DataStore
+    grid_fees_paid_on_internal_trades: float
+    tax_paid: float

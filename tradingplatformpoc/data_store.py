@@ -25,9 +25,12 @@ logger = logging.getLogger(__name__)
 class DataStore:
     nordpool_data: pd.Series
     irradiation_data: pd.Series
-    coop_pv_prod: pd.Series  # Rooftop PV production
     all_external_heating_sells: pd.Series
     grid_carbon_intensity: pd.Series
+    elec_tax: float  # SEK/kWh
+    elec_grid_fee: float  # SEK/kWh
+    elec_tax_internal: float  # SEK/kWh
+    elec_grid_fee_internal: float  # SEK/kWh
 
     def __init__(self, config_area_info: dict, nordpool_data: pd.Series, irradiation_data: pd.Series,
                  grid_carbon_intensity: pd.Series):
@@ -39,6 +42,8 @@ class DataStore:
                                                         DEFAULT_ELECTRICITY_WHOLESALE_PRICE_OFFSET)
         self.elec_tax = config_area_info["ElectricityTax"]
         self.elec_grid_fee = config_area_info["ElectricityGridFee"]
+        self.elec_tax_internal = config_area_info["ElectricityTaxInternal"]
+        self.elec_grid_fee_internal = config_area_info["ElectricityGridFeeInternal"]
         # Square root since it is added both to the BUY and the SELL side
         self.heat_transfer_loss_per_side = 1 - np.sqrt(1 - config_area_info["HeatTransferLoss"])
 
@@ -65,21 +70,26 @@ class DataStore:
     def get_nordpool_price_for_period(self, period: datetime.datetime):
         return self.nordpool_data.loc[period]
 
-    def get_estimated_retail_price(self, period: datetime.datetime, resource: Resource):
+    def get_estimated_retail_price(self, period: datetime.datetime, resource: Resource, include_tax: bool) -> float:
         """
         Returns the price at which the external grid operator is believed to be willing to sell energy, in SEK/kWh.
         For some energy carriers the price may be known, but for others it may in fact be set after the fact. That is
         why this method is named 'estimated'.
         """
         if resource == Resource.ELECTRICITY:
-            """For electricity, the price is known, so 'estimated' and 'exact' are the same."""
-            return self.get_electricity_retail_price(period)
+            # For electricity, the price is known, so 'estimated' and 'exact' are the same
+            gross_price = self.get_electricity_gross_retail_price(period)
+            if include_tax:
+                return self.get_electricity_net_external_price(gross_price)
+            else:
+                return gross_price
         elif resource == Resource.HEATING:
+            # District heating is not taxed
             return estimate_district_heating_price(period)
         else:
             raise RuntimeError('Method not implemented for {}'.format(resource))
 
-    def get_estimated_wholesale_price(self, period: datetime.datetime, resource: Resource):
+    def get_estimated_wholesale_price(self, period: datetime.datetime, resource: Resource) -> float:
         """
         Returns the price at which the external grid operator is believed to be willing to buy energy, in SEK/kWh.
         For some energy carriers the price may be known, but for others it may in fact be set after the fact. That is
@@ -92,11 +102,16 @@ class DataStore:
         else:
             raise RuntimeError('Method not implemented for {}'.format(resource))
 
-    def get_exact_retail_price(self, period: datetime.datetime, resource: Resource):
+    def get_exact_retail_price(self, period: datetime.datetime, resource: Resource, include_tax: bool) -> float:
         """Returns the price at which the external grid operator is willing to sell energy, in SEK/kWh"""
         if resource == Resource.ELECTRICITY:
-            return self.get_electricity_retail_price(period)
+            gross_price = self.get_electricity_gross_retail_price(period)
+            if include_tax:
+                return self.get_electricity_net_external_price(gross_price)
+            else:
+                return gross_price
         elif resource == Resource.HEATING:
+            # District heating is not taxed
             consumption_this_month_kwh = self.calculate_consumption_this_month(period.year, period.month)
             if consumption_this_month_kwh == 0:
                 return handle_no_consumption_when_calculating_heating_price(period)
@@ -111,7 +126,7 @@ class DataStore:
         else:
             raise RuntimeError('Method not implemented for {}'.format(resource))
 
-    def get_exact_wholesale_price(self, period: datetime.datetime, resource: Resource):
+    def get_exact_wholesale_price(self, period: datetime.datetime, resource: Resource) -> float:
         """Returns the price at which the external grid operator is willing to buy energy, in SEK/kWh"""
         if resource == Resource.ELECTRICITY:
             return self.get_electricity_wholesale_price(period)
@@ -140,18 +155,39 @@ class DataStore:
                  (self.all_external_heating_sells.index.month == month)
         return sum(self.all_external_heating_sells[subset])
 
-    def get_electricity_retail_price(self, period: datetime.datetime) -> float:
+    def get_electricity_gross_retail_price(self, period: datetime.datetime) -> float:
         """
         For electricity, the price is known, so 'estimated' and 'exact' are the same.
         See also https://doc.afdrift.se/pages/viewpage.action?pageId=17072325
         """
-        return self.get_electricity_retail_price_from_nordpool_price(self.get_nordpool_price_for_period(period))
+        nordpool_price = self.get_nordpool_price_for_period(period)
+        return self.get_electricity_gross_retail_price_from_nordpool_price(nordpool_price)
 
-    def get_electricity_retail_price_from_nordpool_price(self, nordpool_price: float) -> float:
+    def get_electricity_gross_retail_price_from_nordpool_price(self, nordpool_price: float) -> float:
         """
-        Retail price = Nordpool spot price + tax + grid fee
+        The external grid sells at the Nordpool spot price, plus the "grid fee".
+        See also https://doc.afdrift.se/pages/viewpage.action?pageId=17072325
         """
-        return nordpool_price + self.elec_tax + self.elec_grid_fee
+        return nordpool_price + self.elec_grid_fee
+
+    def get_electricity_net_external_price(self, gross_price: float) -> float:
+        """
+        Net external price = gross external price (i.e. what the seller receives) + tax
+        """
+        return gross_price + self.elec_tax
+
+    def get_electricity_net_internal_price(self, gross_price: float) -> float:
+        """
+        Net internal price = gross price (i.e. what the seller receives) + tax + grid fee
+        """
+        return gross_price + self.elec_tax_internal + self.elec_grid_fee_internal
+
+    def get_electricity_gross_internal_price(self, net_price: float) -> float:
+        """
+        Given a "net" price, for example the market clearing price, this method calculates how much a seller actually
+        receives after paying taxes and grid fees.
+        """
+        return net_price - self.elec_tax_internal - self.elec_grid_fee_internal
 
     def get_electricity_wholesale_price(self, period: datetime.datetime) -> float:
         """
@@ -195,7 +231,7 @@ class DataStore:
             if (resource not in to_return) or (to_return[resource] is None) or (np.isnan(to_return[resource])):
                 logger.debug('For period {}, resource {}, no historical clearing prices available, will use external '
                              'prices instead.'.format(period, resource))
-                to_return[resource] = self.get_estimated_retail_price(period, resource)
+                to_return[resource] = self.get_estimated_retail_price(period, resource, include_tax=True)
         return to_return
 
     def add_external_heating_sell(self, period: datetime.datetime, external_heating_sell_quantity: float):
