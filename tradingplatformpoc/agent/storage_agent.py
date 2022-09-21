@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Tuple, Union
 import numpy as np
 
 from tradingplatformpoc.agent.iagent import IAgent
-from tradingplatformpoc.bid import Action, Bid, BidWithAcceptanceStatus, Resource
+from tradingplatformpoc.bid import Action, GrossBid, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
 from tradingplatformpoc.trade import Market, Trade, TradeMetadataKey
@@ -50,7 +50,7 @@ class StorageAgent(IAgent):
         self.need_at_least_n_hours = int(self.go_back_n_hours / 2)
 
     def make_bids(self, period: datetime.datetime, clearing_prices_historical: Union[Dict[datetime.datetime, Dict[
-            Resource, float]], None]) -> List[Bid]:
+            Resource, float]], None]) -> List[GrossBid]:
         bids = []
 
         if clearing_prices_historical is not None:
@@ -97,7 +97,7 @@ class StorageAgent(IAgent):
         pass
 
     def make_trades_given_clearing_price(self, period: datetime.datetime, clearing_prices: Dict[Resource, float],
-                                         accepted_bids_for_agent: List[BidWithAcceptanceStatus]) -> \
+                                         accepted_bids_for_agent: List[NetBidWithAcceptanceStatus]) -> \
             Tuple[List[Trade], Dict[TradeMetadataKey, Any]]:
         trades = []
         # In this implementation, the battery never sells or buys directly from the external grid.
@@ -116,7 +116,9 @@ class StorageAgent(IAgent):
                 actual_discharge_quantity = self.digital_twin.discharge(accepted_quantity)
                 if actual_discharge_quantity > 0:
                     trades = [self.construct_elec_trade(Action.SELL, actual_discharge_quantity,
-                                                        clearing_price, Market.LOCAL, period)]
+                                                        clearing_price, Market.LOCAL, period,
+                                                        tax_paid=self.data_store.elec_tax_internal,
+                                                        grid_fee_paid=self.data_store.elec_grid_fee_internal)]
         return trades, {TradeMetadataKey.STORAGE_LEVEL: self.digital_twin.capacity_kwh}
 
     def calculate_buy_price(self, prices_last_n_hours: List[float]):

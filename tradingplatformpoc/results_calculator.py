@@ -47,10 +47,13 @@ def print_basic_results_for_agent(agent: IAgent, all_trades_dict: Dict[datetime.
     sek_bought_for_heat = sum([x.quantity_pre_loss * x.price for x in trades_for_agent
                                if (x.action == Action.BUY) & (x.resource == Resource.HEATING)])
     # For SELL-trades, the seller gets paid for the quantity after losses.
+    # These sums will already have deducted taxes and grid fees, that the seller is to pay
     sek_sold_for_elec = sum([x.quantity_post_loss * x.price for x in trades_for_agent
                              if (x.action == Action.SELL) & (x.resource == Resource.ELECTRICITY)])
     sek_sold_for_heat = sum([x.quantity_post_loss * x.price for x in trades_for_agent
                              if (x.action == Action.SELL) & (x.resource == Resource.HEATING)])
+    sek_tax_paid = sum([x.quantity_post_loss * x.tax_paid for x in trades_for_agent])
+    sek_grid_fee_paid = sum([x.quantity_post_loss * x.grid_fee_paid for x in trades_for_agent])
     sek_bought_for = sek_bought_for_heat + sek_bought_for_elec
     sek_sold_for = sek_sold_for_heat + sek_sold_for_elec
     sek_traded_for = sek_bought_for + sek_sold_for
@@ -76,8 +79,14 @@ def print_basic_results_for_agent(agent: IAgent, all_trades_dict: Dict[datetime.
             format(agent.guid, extra_costs_for_bad_bids, total_saved - extra_costs_for_bad_bids))
 
         if isinstance(agent, StorageAgent):
-            total_profit = sek_sold_for - sek_bought_for
-            print_message("For agent {} total profit was {:.2f} SEK".format(agent.guid, total_profit))
+            total_profit_gross = sek_sold_for - sek_bought_for + sek_tax_paid + sek_grid_fee_paid
+            total_profit_net = sek_sold_for - sek_bought_for
+            print_message("For agent {} total profit was {:.2f} SEK before taxes and grid fees".
+                          format(agent.guid, total_profit_gross))
+            print_message("For agent {} total tax paid was {:.2f} SEK, and total grid fees paid was {:.2f} SEK".
+                          format(agent.guid, sek_tax_paid, sek_grid_fee_paid))
+            print_message("For agent {} total profit was {:.2f} SEK after taxes and grid fees".
+                          format(agent.guid, total_profit_net))
 
     # Maybe we want to split this up by energy carrier?
     print_message("For agent {} bought a total of {:.2f} kWh electricity.".format(agent.guid, quantity_bought_elec))

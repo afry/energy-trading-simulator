@@ -229,6 +229,8 @@
 		"HeatTransferLoss": 0.05,
 		"ElectricityTax": 0.36,
 		"ElectricityGridFee": 0.13,
+		"ElectricityTaxInternal": 0.36,
+		"ElectricityGridFeeInternal": 0.13,
 		"ExternalHeatingWholesalePriceFraction": 0.5,
 		"ExternalElectricityWholesalePriceOffset": 0.05
 	}

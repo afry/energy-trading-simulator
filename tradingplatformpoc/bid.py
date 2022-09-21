@@ -29,14 +29,14 @@ def resource_string(resource: Resource) -> str:
         ("HEATING" if resource == Resource.HEATING else "COOLING")
 
 
-class Bid:
+class GrossBid:
     """The bid model for our trading tradingplatformpoc.
 
     Parameters:
         action: Buy/sell
         resource: Electricity
         quantity: Amount in kWh
-        price: SEK/kWh
+        price: The _gross_ price in SEK/kWh
         source: String specifying which entity created the bid (used for debugging)
         by_external: True if bid is made by an external grid agent, False otherwise. Needed for example when calculating
             extra cost distribution in balance_manager
@@ -60,7 +60,19 @@ class Bid:
         self.by_external = by_external
 
 
-class BidWithAcceptanceStatus(Bid):
+class NetBid(GrossBid):
+
+    def __init__(self, action: Action, resource: Resource, quantity: float, price: float, source: str,
+                 by_external: bool):
+        super().__init__(action, resource, quantity, price, source, by_external)
+
+    @staticmethod
+    def from_gross_bid(gross_bid: GrossBid, net_price: float):
+        return NetBid(gross_bid.action, gross_bid.resource, gross_bid.quantity, net_price, gross_bid.source,
+                      gross_bid.by_external)
+
+
+class NetBidWithAcceptanceStatus(NetBid):
     """
     A bid, with the additional information of how much of the bid was accepted, in the market clearing process.
     """
@@ -72,9 +84,9 @@ class BidWithAcceptanceStatus(Bid):
         self.accepted_quantity = accepted_quantity
 
     @staticmethod
-    def from_bid(bid: Bid, accepted_quantity: float):
-        return BidWithAcceptanceStatus(bid.action, bid.resource, bid.quantity, bid.price, bid.source, bid.by_external,
-                                       accepted_quantity)
+    def from_bid(bid: NetBid, accepted_quantity: float):
+        return NetBidWithAcceptanceStatus(bid.action, bid.resource, bid.quantity, bid.price, bid.source,
+                                          bid.by_external, accepted_quantity)
 
     def to_string_with_period(self, period: datetime.datetime) -> str:
         return "{},{},{},{},{},{},{},{}".format(period,
@@ -97,7 +109,7 @@ class BidWithAcceptanceStatus(Bid):
                                'accepted_quantity': self.accepted_quantity})
 
 
-def write_bid_rows(bids_with_acceptance_status: Iterable[BidWithAcceptanceStatus], period: datetime.datetime) -> str:
+def write_bid_rows(bids_with_acceptance_status: Iterable[NetBidWithAcceptanceStatus], period: datetime.datetime) -> str:
     full_string = ""
     for bid in bids_with_acceptance_status:
         full_string = full_string + bid.to_string_with_period(period) + "\n"

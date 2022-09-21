@@ -9,7 +9,7 @@ import numpy as np
 from tradingplatformpoc import trading_platform_utils
 from tradingplatformpoc.agent.iagent import IAgent, get_price_and_market_to_use_when_buying, \
     get_price_and_market_to_use_when_selling
-from tradingplatformpoc.bid import Action, Bid, BidWithAcceptanceStatus, Resource
+from tradingplatformpoc.bid import Action, GrossBid, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.heat_pump import HeatPump
@@ -35,7 +35,7 @@ class BuildingAgent(IAgent):
         self.allow_sell_heat = False
 
     def make_bids(self, period: datetime.datetime, clearing_prices_historical: Union[Dict[datetime.datetime, Dict[
-            Resource, float]], None] = None) -> List[Bid]:
+            Resource, float]], None] = None) -> List[GrossBid]:
         # The building should make a bid for purchasing energy, or selling if it has a surplus
         prev_period = trading_platform_utils.minus_n_hours(period, 1)
         prev_prices = self.data_store.get_local_price_if_exists_else_external_estimate(prev_period,
@@ -61,12 +61,12 @@ class BuildingAgent(IAgent):
         return actual_consumption - actual_production
 
     def make_trades_given_clearing_price(self, period: datetime.datetime, clearing_prices: Dict[Resource, float],
-                                         accepted_bids_for_agent: List[BidWithAcceptanceStatus]) -> \
+                                         accepted_bids_for_agent: List[NetBidWithAcceptanceStatus]) -> \
             Tuple[List[Trade], Dict[TradeMetadataKey, Any]]:
         trades = []
-        elec_retail_price = self.data_store.get_estimated_retail_price(period, Resource.ELECTRICITY)
+        elec_retail_price = self.data_store.get_estimated_retail_price(period, Resource.ELECTRICITY, True)
         elec_wholesale_price = self.data_store.get_estimated_wholesale_price(period, Resource.ELECTRICITY)
-        heat_retail_price = self.data_store.get_estimated_retail_price(period, Resource.HEATING)
+        heat_retail_price = self.data_store.get_estimated_retail_price(period, Resource.HEATING, True)
         heat_wholesale_price = self.data_store.get_estimated_wholesale_price(period, Resource.HEATING)
 
         elec_net_consumption_pred = self.make_prognosis(period, Resource.ELECTRICITY)
@@ -94,8 +94,12 @@ class BuildingAgent(IAgent):
             # Negative net consumption, meaning there is a surplus, which the agent will sell
             price_to_use, market_to_use = get_price_and_market_to_use_when_selling(elec_clearing_price,
                                                                                    elec_wholesale_price)
+            # NOTE: Here we assume that even if we sell electricity on the "external market", we still pay
+            # the internal electricity tax, and the internal grid fee
             trades.append(self.construct_elec_trade(Action.SELL, -elec_net_consumption_incl_pump,
-                                                    price_to_use, market_to_use, period))
+                                                    price_to_use, market_to_use, period,
+                                                    tax_paid=self.data_store.elec_tax_internal,
+                                                    grid_fee_paid=self.data_store.elec_grid_fee_internal))
         if heat_net_consumption_incl_pump > 0:
             # Positive net consumption, so need to buy heating
             price_to_use, market_to_use = get_price_and_market_to_use_when_buying(heat_clearing_price,
@@ -120,7 +124,7 @@ class BuildingAgent(IAgent):
         return trades, {TradeMetadataKey.HEAT_PUMP_WORKLOAD: workload_to_use}
 
     def make_bids_with_heat_pump(self, period: datetime.datetime, pred_elec_price: float, pred_heat_price: float) -> \
-            List[Bid]:
+            List[GrossBid]:
         """
         Note that if the agent doesn't have any heat pumps, this method will still work.
         """
@@ -160,7 +164,8 @@ class BuildingAgent(IAgent):
         lowest cost - the cost stemming from the import of electricity and/or heating, minus any income from electricity
         sold.
         """
-        elec_sell_price = pred_elec_price
+        # Gross price, since we are interested in calculating our potential profit
+        elec_sell_price = self.data_store.get_electricity_gross_internal_price(pred_elec_price)
         heat_sell_price = pred_heat_price if self.allow_sell_heat else 0
 
         min_cost = 1e10  # Big placeholder number
