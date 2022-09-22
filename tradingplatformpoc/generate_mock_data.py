@@ -371,7 +371,7 @@ def create_inputs_df(temperature_csv_path: str, irradiation_csv_path: str, heati
     return pl.from_pandas(df_inputs.reset_index()), pl.from_pandas(df_irrd)
 
 
-def is_major_holiday_sweden(timestamp: pd.Timestamp):
+def is_major_holiday_sweden(timestamp: pd.Timestamp) -> bool:
     swedish_time = timestamp.tz_convert("Europe/Stockholm")
     month_of_year = swedish_time.month
     day_of_month = swedish_time.day
@@ -387,7 +387,7 @@ def is_major_holiday_sweden(timestamp: pd.Timestamp):
            ((month_of_year == 6) & (day_of_month == 6))
 
 
-def is_day_before_major_holiday_sweden(timestamp: pd.Timestamp):
+def is_day_before_major_holiday_sweden(timestamp: pd.Timestamp) -> bool:
     swedish_time = timestamp.tz_convert("Europe/Stockholm")
     month_of_year = swedish_time.month
     day_of_month = swedish_time.day
@@ -517,7 +517,7 @@ def simulate_space_heating(school_gross_floor_area_m2: float, random_seed: int,
         [pl.col('datetime'),
             pl.col('temperature').
             apply(lambda x: commercial_heating_model.probability_of_0_space_heating(x)).
-            apply(lambda x: np.random.binomial(n=1, p=1 - x)).alias('has_heat_demand'),
+            apply(lambda x: rng.binomial(n=1, p=1 - x)).alias('has_heat_demand'),
          pl.col('temperature').
             apply(lambda x: commercial_heating_model.space_heating_given_more_than_0(x)).
             apply(lambda x: np.maximum(0, rng.normal(loc=x, scale=commercial_heating_model.LM_STD_DEV))).alias(
