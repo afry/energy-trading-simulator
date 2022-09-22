@@ -195,21 +195,21 @@ def simulate_and_add_to_output_df(agent: dict, df_inputs: pl.LazyFrame, n_rows: 
         logger.debug("Adding output for agent {}".format(agent['Name']))
 
         # Note: Here we join a normal DataFrame (output_per_actor) with LazyFrames
-        output_per_actor = output_per_actor.\
+        output_per_actor = output_per_actor. \
             join(add_datetime_value_frames(commercial_electricity_cons,
                                            household_electricity_cons,
                                            school_electricity_cons),
-                 on='datetime').\
-            rename({'value': get_elec_cons_key(agent['Name'])}).\
+                 on='datetime'). \
+            rename({'value': get_elec_cons_key(agent['Name'])}). \
             join(add_datetime_value_frames(commercial_space_heating_cons,
                                            residential_space_heating_cons,
                                            school_space_heating_cons),
-                 on='datetime').\
-            rename({'value': get_space_heat_cons_key(agent['Name'])}).\
+                 on='datetime'). \
+            rename({'value': get_space_heat_cons_key(agent['Name'])}). \
             join(add_datetime_value_frames(commercial_hot_tap_water_cons,
                                            residential_hot_tap_water_cons,
                                            school_hot_tap_water_cons),
-                 on='datetime').\
+                 on='datetime'). \
             rename({'value': get_hot_tap_water_cons_key(agent['Name'])})
 
     if not get_pv_prod_key(agent['Name']) in output_per_actor.columns:
@@ -234,7 +234,7 @@ def add_datetime_value_frames(*dfs: Union[pl.DataFrame, pl.LazyFrame]) -> Union[
     else:
         base_df = dfs[0]
         for i in range(1, len(dfs)):
-            base_df = base_df.join(dfs[i], on='datetime').\
+            base_df = base_df.join(dfs[i], on='datetime'). \
                 select([pl.col('datetime'), (pl.col('value') + pl.col('value_right')).alias('value')])
         return base_df
 
@@ -407,8 +407,8 @@ def scale_energy_consumption(unscaled_simulated_values_kwh: pl.LazyFrame, m2: fl
         # unscaled_simulated_values may contain more than 1 year, so to scale, compare the sum of the first 8766 hours
         # i.e. 365.25 days, with the wanted yearly sum.
         wanted_yearly_sum = m2 * kwh_per_year_per_m2
-        return unscaled_simulated_values_kwh.\
-            with_row_count().\
+        return unscaled_simulated_values_kwh. \
+            with_row_count(). \
             select([pl.col('datetime'),
                     pl.col('value') * wanted_yearly_sum / pl.col('value').where(pl.col('row_nr') < 8766).sum()])
     else:
@@ -500,7 +500,7 @@ def simulate_school_area_heating(school_gross_floor_area_m2: float, random_seed:
 
 
 def simulate_space_heating(school_gross_floor_area_m2: float, random_seed: int,
-                           input_df: pl.LazyFrame, space_heating_per_year_m2: float,
+                           lazy_inputs: pl.LazyFrame, space_heating_per_year_m2: float,
                            time_factor_function: Callable, n_rows: int) -> pl.LazyFrame:
     """
     For more information, see https://doc.afdrift.se/display/RPJ/Commercial+areas and
@@ -513,21 +513,18 @@ def simulate_space_heating(school_gross_floor_area_m2: float, random_seed: int,
 
     # First calculate probability that there is 0 heating demand, then simulate.
     # Then, if heat demand non-zero, how much is it? Calculate expectancy then simulate
-    lf = input_df.lazy().select(
+    lf = lazy_inputs.select(
         [pl.col('datetime'),
-            pl.col('temperature').
-            apply(lambda x: commercial_heating_model.probability_of_0_space_heating(x)).
-            apply(lambda x: rng.binomial(n=1, p=1 - x)).alias('has_heat_demand'),
-         pl.col('temperature').
-            apply(lambda x: commercial_heating_model.space_heating_given_more_than_0(x)).
-            apply(lambda x: np.maximum(0, rng.normal(loc=x, scale=commercial_heating_model.LM_STD_DEV))).alias(
-            'heat_given_non_0')
-         ])
-
-    # Combine the above
-    lf = lf.with_column(
-        pl.when(pl.col('has_heat_demand') == 1).then(pl.col('heat_given_non_0')).otherwise(0).
-        alias('sim_energy_unscaled_no_time_factor')
+         pl.when(
+             pl.col('temperature').
+             apply(lambda x: commercial_heating_model.probability_of_0_space_heating(x)).
+             apply(lambda x: rng.binomial(n=1, p=1 - x)) == 1
+        ).then(
+             pl.col('temperature').
+             apply(lambda x: commercial_heating_model.space_heating_given_more_than_0(x)).
+             apply(lambda x: np.maximum(0, rng.normal(loc=x, scale=commercial_heating_model.LM_STD_DEV)))
+        ).otherwise(0).alias('sim_energy_unscaled_no_time_factor')
+        ]
     )
 
     # Adjust for opening times
