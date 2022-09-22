@@ -349,8 +349,10 @@ def create_inputs_df(temperature_csv_path: str, irradiation_csv_path: str, heati
     df_inputs['day_of_week'] = df_inputs['datetime'].dt.dayofweek + 1
     df_inputs['day_of_month'] = df_inputs['datetime'].dt.day
     df_inputs['month_of_year'] = df_inputs['datetime'].dt.month
-    df_inputs['major_holiday'] = df_inputs['datetime'].apply(lambda dt: is_major_holiday_sweden(dt))
-    df_inputs['pre_major_holiday'] = df_inputs['datetime'].apply(lambda dt: is_day_before_major_holiday_sweden(dt))
+    df_inputs['major_holiday'] = df_inputs['datetime'].apply(lambda dt: is_major_holiday_sweden(dt)).\
+        astype(bool)
+    df_inputs['pre_major_holiday'] = df_inputs['datetime'].apply(lambda dt: is_day_before_major_holiday_sweden(dt)).\
+        astype(bool)
     df_inputs.set_index('datetime', inplace=True)
 
     df_heat = pd.read_csv(heating_csv_path, names=['datetime', 'rad_energy', 'hw_energy'], header=0)
@@ -370,7 +372,7 @@ def create_inputs_df(temperature_csv_path: str, irradiation_csv_path: str, heati
     return df_inputs, df_irrd
 
 
-def is_major_holiday_sweden(timestamp: pd.Timestamp):
+def is_major_holiday_sweden(timestamp: pd.Timestamp) -> bool:
     swedish_time = timestamp.tz_convert("Europe/Stockholm")
     month_of_year = swedish_time.month
     day_of_month = swedish_time.day
@@ -386,7 +388,7 @@ def is_major_holiday_sweden(timestamp: pd.Timestamp):
            ((month_of_year == 6) & (day_of_month == 6))
 
 
-def is_day_before_major_holiday_sweden(timestamp: pd.Timestamp):
+def is_day_before_major_holiday_sweden(timestamp: pd.Timestamp) -> bool:
     swedish_time = timestamp.tz_convert("Europe/Stockholm")
     month_of_year = swedish_time.month
     day_of_month = swedish_time.day
