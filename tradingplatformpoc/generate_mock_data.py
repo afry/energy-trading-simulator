@@ -142,7 +142,6 @@ def simulate_and_add_to_output_df(agent: dict, df_inputs: pl.LazyFrame, n_rows: 
     start = time.time()
     agent = dict(agent)  # "Unfreezing" the frozenset
     logger.debug('Starting work on \'{}\''.format(agent['Name']))
-    pv_area = get_if_exists_else(agent, 'PVArea', 0)
 
     pre_existing_data = find_agent_in_other_data_sets(agent, all_data_sets, default_pv_efficiency)
     # 'diagonal' here means that columns that only exist in one of the dataframes will be included, and filled with null
@@ -195,6 +194,7 @@ def simulate_and_add_to_output_df(agent: dict, df_inputs: pl.LazyFrame, n_rows: 
             simulate_school_area_heating(school_gross_floor_area_m2, seed_school_heating, df_inputs, n_rows)
         logger.debug("Adding output for agent {}".format(agent['Name']))
 
+        # Note: Here we join a normal DataFrame (output_per_actor) with LazyFrames
         output_per_actor = output_per_actor.\
             join(add_datetime_value_frames(commercial_electricity_cons,
                                            household_electricity_cons,
@@ -213,9 +213,12 @@ def simulate_and_add_to_output_df(agent: dict, df_inputs: pl.LazyFrame, n_rows: 
             rename({'value': get_hot_tap_water_cons_key(agent['Name'])})
 
     if not get_pv_prod_key(agent['Name']) in output_per_actor.columns:
+        pv_area = get_if_exists_else(agent, 'PVArea', 0)
         pv_efficiency = get_if_exists_else(agent, 'PVEfficiency', default_pv_efficiency)
-        prod = pl.DataFrame({'datetime': df_irrd['datetime'], get_pv_prod_key(agent['Name']):
-                            calculate_solar_prod(df_irrd['irradiation'], pv_area, pv_efficiency)})
+        prod = df_irrd.select([pl.col('datetime'),
+                               pl.col('irradiation').
+                              apply(lambda x: calculate_solar_prod(x, pv_area, pv_efficiency)).
+                              alias(get_pv_prod_key(agent['Name']))])
         output_per_actor = output_per_actor.join(prod, on='datetime')
 
     end = time.time()
@@ -284,9 +287,6 @@ def simulate_series(input_df: pl.DataFrame, rand_seed: int, model: RegressionRes
 
     # For t=0, z=y. For t>0, set y_t to np.nan for now
     simulated_log_energy_unscaled = [input_df[0, 'z_hat'] + eps_vec[0]]
-    # input_df = input_df.with_column(pl.concat([pl.lit(input_df[0, 'z_hat'] + eps_vec[0]),
-    #                                 pl.repeat(np.nan, input_df.height - 1)]).
-    #                                 alias('simulated_log_energy_unscaled'))
 
     # For t>0, y_t = max(0, zhat_t + beta * y_(t-1) + eps_t)
     # This is slow!
