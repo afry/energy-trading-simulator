@@ -404,11 +404,13 @@ def is_day_before_major_holiday_sweden(timestamp: pd.Timestamp):
 def scale_energy_consumption(unscaled_simulated_values_kwh: pl.LazyFrame, m2: float,
                              kwh_per_year_per_m2: float, n_rows: int) -> pl.LazyFrame:
     if n_rows > 8760:
-        # unscaled_simulated_values may contain more than 1 year, so just look at the first 8766 hours (365.25 days)
+        # unscaled_simulated_values may contain more than 1 year, so to scale, compare the sum of the first 8766 hours
+        # i.e. 365.25 days, with the wanted yearly sum.
+        wanted_yearly_sum = m2 * kwh_per_year_per_m2
         return unscaled_simulated_values_kwh.\
-            with_column(pl.Series('incr', range(1, n_rows + 1))).\
+            with_row_count().\
             select([pl.col('datetime'),
-                    pl.col('value') * m2 * kwh_per_year_per_m2 / pl.col('value').where(pl.col('incr') <= 8766).sum()])
+                    pl.col('value') * wanted_yearly_sum / pl.col('value').where(pl.col('row_nr') < 8766).sum()])
     else:
         raise RuntimeError("Less than a year's worth of data!")
 
