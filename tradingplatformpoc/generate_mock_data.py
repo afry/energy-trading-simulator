@@ -468,7 +468,7 @@ def simulate_commercial_area_space_heating(commercial_gross_floor_area_m2: float
     predicted_prob_of_0 = input_df['temperature'].\
         apply(lambda x: commercial_heating_model.probability_of_0_space_heating(x))
     # Simulate whether there is 0 heating demand:
-    has_heat_demand = np.random.binomial(n=1, p=1 - predicted_prob_of_0)  # 1 if heat demand > 0
+    has_heat_demand = rng.binomial(n=1, p=1 - predicted_prob_of_0)  # 1 if heat demand > 0
 
     # Now, if heat demand non-zero, how much is it?
     pred_given_non_0 = input_df['temperature'].\
@@ -534,7 +534,7 @@ def simulate_school_area_space_heating(school_gross_floor_area_m2: float, random
     predicted_prob_of_0 = input_df['temperature'].\
         apply(lambda x: commercial_heating_model.probability_of_0_space_heating(x))
     # Simulate whether there is 0 heating demand:
-    has_heat_demand = np.random.binomial(n=1, p=1 - predicted_prob_of_0)  # 1 if heat demand > 0
+    has_heat_demand = rng.binomial(n=1, p=1 - predicted_prob_of_0)  # 1 if heat demand > 0
 
     # Now, if heat demand non-zero, how much is it?
     pred_given_non_0 = input_df['temperature'].\
