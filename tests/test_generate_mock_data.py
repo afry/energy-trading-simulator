@@ -1,3 +1,4 @@
+import unittest
 from datetime import datetime, timezone
 from unittest import TestCase
 
@@ -44,6 +45,7 @@ class Test(TestCase):
         self.assertAlmostEqual(2500, space_heating[:8766].sum())
         self.assertAlmostEqual(0.5805394474233916, space_heating[0])
 
+    @unittest.skip("Shouldn't run this in the pipeline, since the model file is gitignored")
     def test_simulate_residential_electricity(self):
         """
         Test residential electricity generation.
