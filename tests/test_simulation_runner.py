@@ -10,8 +10,11 @@ from pkg_resources import resource_filename
 from tests import utility_test_objects
 
 from tradingplatformpoc import simulation_runner
+from tradingplatformpoc.bid import Action, Resource
 from tradingplatformpoc.data_store import DataStore
-from tradingplatformpoc.simulation_runner import get_quantity_heating_sold_by_external_grid
+from tradingplatformpoc.simulation_runner import construct_df_from_datetime_dict, \
+    get_quantity_heating_sold_by_external_grid
+from tradingplatformpoc.trade import Market, Trade
 from tradingplatformpoc.trading_platform_utils import hourly_datetime_array_between
 
 
@@ -51,3 +54,14 @@ class Test(TestCase):
         self.assertTrue(np.isnan(exact_wholesale_heating_prices_by_year_and_month[(2019, 2)]))
         self.assertFalse(np.isnan(estimated_retail_heating_prices_by_year_and_month[(2019, 2)]))
         self.assertFalse(np.isnan(estimated_wholesale_heating_prices_by_year_and_month[(2019, 2)]))
+
+    def test_construct_df_from_datetime_dict(self):
+        """
+        Test construct_df_from_datetime_dict method, by creating a Dict[datetime, Trade]
+        """
+        dts = hourly_datetime_array_between(datetime.datetime(2019, 1, 1), datetime.datetime(2020, 1, 1))
+        dt_dict = {dt: [Trade(Action.BUY, Resource.ELECTRICITY, i, i, 'Agent' + str(i), False, Market.LOCAL, dt)
+                        for i in range(1, 6)]
+                   for dt in dts}
+        my_df, _some_float = construct_df_from_datetime_dict(dt_dict)
+        self.assertEqual(8761 * 5, len(my_df.index))
