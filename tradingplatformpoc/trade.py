@@ -1,8 +1,6 @@
 import datetime
 from enum import Enum
 
-import pandas as pd
-
 from tradingplatformpoc.bid import Action, Resource, action_string, resource_string
 
 
@@ -87,19 +85,19 @@ class Trade:
                                                          self.tax_paid,
                                                          self.grid_fee_paid)
 
-    def to_series_with_period(self, period: datetime.datetime) -> pd.Series:
+    def to_dict_with_period(self, period: datetime.datetime) -> dict:
         """Same function name as the one in BidWithAcceptanceStatus, so that the same method can be reused."""
-        return pd.Series(data={'period': self.period,
-                               'source': self.source,
-                               'by_external': self.by_external,
-                               'action': self.action,
-                               'resource': self.resource,
-                               'market': self.market,
-                               'quantity_pre_loss': self.quantity_pre_loss,
-                               'quantity_post_loss': self.quantity_post_loss,
-                               'price': self.price,
-                               'tax_paid': self.tax_paid,
-                               'grid_fee_paid': self.grid_fee_paid})
+        return {'period': self.period,
+                'source': self.source,
+                'by_external': self.by_external,
+                'action': self.action,
+                'resource': self.resource,
+                'market': self.market,
+                'quantity_pre_loss': self.quantity_pre_loss,
+                'quantity_post_loss': self.quantity_post_loss,
+                'price': self.price,
+                'tax_paid': self.tax_paid,
+                'grid_fee_paid': self.grid_fee_paid}
 
     def get_cost_of_trade(self) -> float:
         """
