@@ -372,10 +372,10 @@ def construct_df_from_datetime_dict(some_dict: Union[Dict[datetime.datetime, Col
     progress_bar and frac_complete are only used when called from the UI, to show progress to the user.
     """
     logger.info('Constructing dataframe from datetime dict')
-    series_list = []
+    dict_list = []
     for (period, some_collection) in some_dict.items():
-        series_list.extend([x.to_series_with_period(period) for x in some_collection])
-    data_frame = pd.DataFrame(series_list)
+        dict_list.extend([x.to_dict_with_period(period) for x in some_collection])
+    data_frame = pd.DataFrame(dict_list)
 
     if progress_bar is not None:
         frac_complete = increase_progress_bar(frac_complete, progress_bar, 0.1)
