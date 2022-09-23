@@ -144,8 +144,8 @@ def simulate_and_add_to_output_df(agent: dict, df_inputs: pl.LazyFrame, n_rows: 
     logger.debug('Starting work on \'{}\''.format(agent['Name']))
 
     pre_existing_data = find_agent_in_other_data_sets(agent, all_data_sets, default_pv_efficiency)
-    # 'diagonal' here means that columns that only exist in one of the dataframes will be included, and filled with null
-    output_per_actor = pl.concat((output_per_actor, pre_existing_data), how='diagonal')
+    if len(pre_existing_data.columns) > 0:
+        output_per_actor = output_per_actor.join(pre_existing_data, on='datetime', how='left')
 
     if (not get_elec_cons_key(agent['Name']) in output_per_actor.columns) or \
             (not get_space_heat_cons_key(agent['Name']) in output_per_actor.columns) or \
@@ -601,6 +601,9 @@ def find_agent_in_other_data_sets(agent_dict: Dict[str, Any], all_data_sets: Dic
                 logger.debug('For agent \'{}\' found PV production data to re-use'.format(agent_dict['Name']))
                 found_prod_data = True
                 prod_data = mock_data[get_pv_prod_key(other_agent_dict['Name'])]
+                # Make sure that the datetime column is present
+                if 'datetime' not in data_to_reuse.columns:
+                    data_to_reuse = data_to_reuse.with_column(mock_data['datetime'])
                 data_to_reuse = data_to_reuse.with_column(prod_data.alias(get_pv_prod_key(agent_dict['Name'])))
 
             if (not found_cons_data) and (agent_dict['Name'] == other_agent_dict['Name']) and \
@@ -615,6 +618,9 @@ def find_agent_in_other_data_sets(agent_dict: Dict[str, Any], all_data_sets: Dic
                 cons_data = mock_data.select([pl.col(get_elec_cons_key(other_agent_dict['Name'])),
                                               pl.col(get_space_heat_cons_key(other_agent_dict['Name'])),
                                               pl.col(get_hot_tap_water_cons_key(other_agent_dict['Name']))])
+                # Make sure that the datetime column is present
+                if 'datetime' not in data_to_reuse.columns:
+                    data_to_reuse = data_to_reuse.with_column(mock_data['datetime'])
                 data_to_reuse = pl.concat((data_to_reuse, cons_data), how='horizontal')
     return data_to_reuse
 
