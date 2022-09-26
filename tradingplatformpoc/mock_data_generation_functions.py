@@ -4,12 +4,34 @@ import pickle
 from dataclasses import dataclass
 from typing import Dict, List, Set, Tuple
 
-import pandas as pd
+import polars as pl
 
 logger = logging.getLogger(__name__)
 
 """Here goes functions that are used both for generating mock data, and for loading that data when starting simulations.
 """
+
+# Constants used in the 'is_break' method. Better to instantiate these here, since is_break is called many times, and
+# instantiating these over and over again is really unnecessary.
+# Year doesn't really matter, we'll only use the day-of-year
+JUST_SOME_NONE_LEAP_YEAR = 2019
+# Summer break 15/6 - 15/8
+SUMMER_START = datetime.datetime(JUST_SOME_NONE_LEAP_YEAR, 6, 15).timetuple().tm_yday
+SUMMER_END = SUMMER_START + 60
+# Fall break 1/11 - 7/11
+FALL_START = datetime.datetime(JUST_SOME_NONE_LEAP_YEAR, 11, 1).timetuple().tm_yday
+FALL_END = FALL_START + 7
+# Christmas break 22/12 - 2/1
+CHRISTMAS_START = datetime.datetime(JUST_SOME_NONE_LEAP_YEAR, 12, 22).timetuple().tm_yday
+CHRISTMAS_END = CHRISTMAS_START + 14
+# Sportlov 15/2 - 21/2
+SPRING_START = datetime.datetime(JUST_SOME_NONE_LEAP_YEAR, 2, 1).timetuple().tm_yday
+SPRING_END = SPRING_START + 7
+# Easter 07/04 - 14/04
+# Easter moves yearly, but the since we are only interested in capturing the feature
+# of a week off school sometime in mid-spring, we simply chose an average date (April 7th)
+EASTER_START = datetime.datetime(JUST_SOME_NONE_LEAP_YEAR, 4, 7).timetuple().tm_yday
+EASTER_END = EASTER_START + 7
 
 COMMERCIAL_ELECTRICITY_CONSUMPTION_HOURLY_FACTOR = {
     0: 0.2,
@@ -45,7 +67,7 @@ class MockDataKey:
     default_pv_efficiency: float
 
 
-def load_existing_data_sets(file_path: str) -> Dict[MockDataKey, pd.DataFrame]:
+def load_existing_data_sets(file_path: str) -> Dict[MockDataKey, pl.DataFrame]:
     try:
         all_data_sets = pickle.load(open(file_path, 'rb'))
     except FileNotFoundError:
@@ -112,43 +134,21 @@ def get_school_heating_consumption_hourly_factor(timestamp: datetime.datetime) -
 
 
 def is_break(timestamp: datetime.datetime):
-    current_year = timestamp.year
-    # Removing timezone so we can compare to timezone-naive datetimes. This method is just approximating break times
-    # anyway, so an hour back or forth doesn't matter too much
-    timestamp = timestamp.replace(tzinfo=None)
+    # We compare the day-of-year to some pre-defined starts and ends of break periods
+    day_of_year = timestamp.timetuple().tm_yday
 
-    # Define breaks, return true if timestamp falls on break, false if not
-    # Summer break 15/6 - 15/8
-    summer_start = datetime.datetime(current_year, 6, 1)
-    summer_length = datetime.timedelta(days=60)
-
-    if summer_start <= timestamp <= summer_start + summer_length:
+    # Return true if timestamp falls on break, false if not
+    if SUMMER_START <= day_of_year <= SUMMER_END:
         return True
 
-    # Fall break 1/11 - 7/11
-    fall_start = datetime.datetime(current_year, 11, 1)
-    fall_length = datetime.timedelta(days=7)
-    if fall_start <= timestamp <= fall_start + fall_length:
+    if FALL_START <= day_of_year <= FALL_END:
         return True
 
-    # Christmas break 22/12 - 2/1
-    christmas_start = datetime.datetime(current_year, 12, 22)
-    christmas_length = datetime.timedelta(days=14)
-    if christmas_start <= timestamp <= christmas_start + christmas_length:
+    if CHRISTMAS_START <= day_of_year <= CHRISTMAS_END:
         return True
 
-    # Sportlov 15/2 - 21/2
-    spring_start = datetime.datetime(current_year, 2, 1)
-    spring_length = datetime.timedelta(days=7)
-    if spring_start <= timestamp <= spring_start + spring_length:
+    if SPRING_START <= day_of_year <= SPRING_END:
         return True
 
-    # Easter 07/04 - 14/04
-    # Easter moves yearly, but the since we are only interested in capturing the feature
-    # of a week off school sometime in mid-spring, we simply chose an average date.
-    easter_start = datetime.datetime(current_year, 4, 7)
-    easter_length = datetime.timedelta(days=7)
-    if easter_start <= timestamp <= easter_start + easter_length:
+    if EASTER_START <= day_of_year <= EASTER_END:
         return True
-
-    return False
