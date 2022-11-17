@@ -9,7 +9,7 @@ from pkg_resources import resource_filename
 
 import streamlit as st
 
-from tradingplatformpoc import balance_manager, data_store, generate_mock_data, market_solver, results_calculator
+from tradingplatformpoc import balance_manager, data_store, generate_mock_data, market_solver
 from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
@@ -23,7 +23,8 @@ from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTw
 from tradingplatformpoc.extra_cost import ExtraCost
 from tradingplatformpoc.mock_data_generation_functions import MockDataKey, get_all_building_agents, get_elec_cons_key, \
     get_hot_tap_water_cons_key, get_pv_prod_key, get_space_heat_cons_key
-from tradingplatformpoc.simulation_results import SimulationResults
+from tradingplatformpoc.results import results_calculator
+from tradingplatformpoc.results.simulation_results import SimulationResults
 from tradingplatformpoc.trade import Trade, TradeMetadataKey
 from tradingplatformpoc.trading_platform_utils import add_to_nested_dict, calculate_solar_prod, flatten_collection, \
     get_if_exists_else, get_intersection
