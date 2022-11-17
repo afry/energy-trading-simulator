@@ -1,6 +1,6 @@
 import datetime
 from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 import pandas as pd
 
@@ -22,3 +22,5 @@ class SimulationResults:
     data_store: DataStore
     grid_fees_paid_on_internal_trades: float
     tax_paid: float
+    exact_retail_heating_prices_by_year_and_month: Dict[Tuple[int, int], float]
+    exact_wholesale_heating_prices_by_year_and_month: Dict[Tuple[int, int], float]

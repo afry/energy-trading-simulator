@@ -10,8 +10,9 @@ from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.app.app_functions import add_building_agent, add_grocery_store_agent, agent_inputs, \
     add_pv_agent, add_storage_agent, construct_building_with_heat_pump_chart, construct_price_chart, \
     construct_prices_df, construct_storage_level_chart, get_agent, get_price_df_when_local_price_inbetween, \
-    get_viewable_df, remove_all_building_agents, set_max_width
+    get_viewable_df, results_dict_to_df, remove_all_building_agents, set_max_width
 from tradingplatformpoc.bid import Resource
+from tradingplatformpoc.results import results_calculator
 from tradingplatformpoc.simulation_runner import run_trading_simulations
 import json
 import logging
@@ -64,6 +65,7 @@ with open(config_filename, "r") as jsonfile:
 
 if string_to_log_later is not None:
     logger.info(string_to_log_later)
+
 
 if __name__ == '__main__':
 
@@ -238,6 +240,8 @@ if __name__ == '__main__':
             st.session_state.uploaded_results_file = uploaded_results_file
             logger.info("Reading uploaded results file")
             st.session_state.simulation_results = pickle.load(uploaded_results_file)
+            st.session_state.calculated_results_by_agent = results_calculator.calc_basic_results(
+                st.session_state.simulation_results)  # TODO: This is done again when load_button is clicked...
 
         load_button = st.button("Click here to load data", disabled='simulation_results' not in st.session_state)
 
@@ -297,6 +301,9 @@ if __name__ == '__main__':
                     hp_chart = construct_building_with_heat_pump_chart(agent_chosen, st.session_state.
                                                                        simulation_results.heat_pump_levels_dict)
                     st.altair_chart(hp_chart, use_container_width=True)
+
+            # Table with things calculated in results_calculator
+            st.dataframe(data=results_dict_to_df(st.session_state.calculated_results_by_agent[agent_chosen_guid]))
 
         else:
             st.write('Run simulations and load data first!')

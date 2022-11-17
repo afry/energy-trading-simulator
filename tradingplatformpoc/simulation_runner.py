@@ -23,7 +23,6 @@ from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTw
 from tradingplatformpoc.extra_cost import ExtraCost
 from tradingplatformpoc.mock_data_generation_functions import MockDataKey, get_all_building_agents, get_elec_cons_key, \
     get_hot_tap_water_cons_key, get_pv_prod_key, get_space_heat_cons_key
-from tradingplatformpoc.results import results_calculator
 from tradingplatformpoc.results.simulation_results import SimulationResults
 from tradingplatformpoc.trade import Trade, TradeMetadataKey
 from tradingplatformpoc.trading_platform_utils import add_to_nested_dict, calculate_solar_prod, flatten_collection, \
@@ -165,12 +164,6 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
                                                                   estimated_wholesale_heating_prices_by_year_and_month)
     all_extra_costs.extend(heat_cost_discr_corrections)
 
-    results_calculator.print_basic_results(agents, all_trades_dict, all_extra_costs,
-                                           exact_retail_electricity_prices_by_period,
-                                           exact_wholesale_electricity_prices_by_period,
-                                           exact_retail_heating_prices_by_year_and_month,
-                                           exact_wholesale_heating_prices_by_year_and_month)
-
     if progress_bar is not None:
         frac_complete = increase_progress_bar(frac_complete, progress_bar, 0.01)
     if progress_text is not None:
@@ -179,17 +172,23 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
     extra_costs_df = pd.DataFrame([x.to_series() for x in all_extra_costs]).sort_values(['period', 'agent'])
     all_trades_df, frac_complete = construct_df_from_datetime_dict(all_trades_dict, progress_bar, frac_complete)
     all_bids_df, frac_complete = construct_df_from_datetime_dict(all_bids_dict, progress_bar, frac_complete)
-    return SimulationResults(clearing_prices_historical=clearing_prices_historical,
-                             all_trades=all_trades_df,
-                             all_extra_costs=extra_costs_df,
-                             all_bids=all_bids_df,
-                             storage_levels_dict=storage_levels_dict,
-                             heat_pump_levels_dict=heat_pump_levels_dict,
-                             config_data=config_data,
-                             agents=agents,
-                             data_store=data_store_entity,
-                             grid_fees_paid_on_internal_trades=grid_fees_paid_on_internal_trades,
-                             tax_paid=tax_paid)
+    sim_res = SimulationResults(clearing_prices_historical=clearing_prices_historical,
+                                all_trades=all_trades_df,
+                                all_extra_costs=extra_costs_df,
+                                all_bids=all_bids_df,
+                                storage_levels_dict=storage_levels_dict,
+                                heat_pump_levels_dict=heat_pump_levels_dict,
+                                config_data=config_data,
+                                agents=agents,
+                                data_store=data_store_entity,
+                                grid_fees_paid_on_internal_trades=grid_fees_paid_on_internal_trades,
+                                tax_paid=tax_paid,
+                                exact_retail_heating_prices_by_year_and_month=
+                                exact_retail_heating_prices_by_year_and_month,
+                                exact_wholesale_heating_prices_by_year_and_month=
+                                exact_wholesale_heating_prices_by_year_and_month
+                                )
+    return sim_res
 
 
 def net_bids_from_gross_bids(gross_bids: List[GrossBid], data_store_entity: DataStore) -> List[NetBid]:

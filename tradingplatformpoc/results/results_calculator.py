@@ -1,76 +1,65 @@
-import datetime
-from typing import Collection, Dict, Iterable, List, Tuple
+from typing import Dict, Tuple
+
+import pandas as pd
 
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.storage_agent import StorageAgent
 from tradingplatformpoc.bid import Action, Resource
-from tradingplatformpoc.extra_cost import ExtraCost, ExtraCostType
-from tradingplatformpoc.results.ResultsKey import ResultsKey
-from tradingplatformpoc.trade import Trade
+from tradingplatformpoc.data_store import DataStore
+from tradingplatformpoc.extra_cost import ExtraCostType
+from tradingplatformpoc.results.results_key import ResultsKey
+from tradingplatformpoc.results.simulation_results import SimulationResults
 
 
-def print_basic_results(agents: Iterable[IAgent], all_trades_dict: Dict[datetime.datetime, Collection[Trade]],
-                        all_extra_costs: List[ExtraCost],
-                        exact_retail_electricity_prices_by_period: Dict[datetime.datetime, float],
-                        exact_wholesale_electricity_prices_by_period: Dict[datetime.datetime, float],
-                        exact_retail_heating_prices_by_year_and_month: Dict[Tuple[int, int], float],
-                        exact_wholesale_heating_prices_by_year_and_month: Dict[Tuple[int, int], float]) -> \
+def calc_basic_results(simulation_results: SimulationResults) -> \
         Dict[str, Dict[ResultsKey, float]]:
     results_by_agent = {}
-    for agent in agents:
-        results_by_agent[agent.guid] = calc_basic_results_for_agent(agent, all_trades_dict, all_extra_costs,
-                                                                    exact_retail_electricity_prices_by_period,
-                                                                    exact_wholesale_electricity_prices_by_period,
-                                                                    exact_retail_heating_prices_by_year_and_month,
-                                                                    exact_wholesale_heating_prices_by_year_and_month)
+    for agent in simulation_results.agents:
+        results_by_agent[agent.guid] = calc_basic_results_for_agent_from_sim_res(agent, simulation_results)
     return results_by_agent
 
 
-def calc_basic_results_for_agent(agent: IAgent, all_trades_dict: Dict[datetime.datetime, Collection[Trade]],
-                                 all_extra_costs: List[ExtraCost],
-                                 exact_retail_electricity_prices_by_period: Dict[datetime.datetime, float],
-                                 exact_wholesale_electricity_prices_by_period: Dict[datetime.datetime, float],
-                                 exact_retail_heating_prices_by_year_and_month: Dict[Tuple[int, int], float],
-                                 exact_wholesale_heating_prices_by_year_and_month: Dict[Tuple[int, int], float]) -> \
+def calc_basic_results_for_agent_from_sim_res(agent: IAgent, simulation_results: SimulationResults) -> \
         Dict[ResultsKey, float]:
     results_dict = {}
-    trades_for_agent = [x for v in all_trades_dict.values() for x in v if x.source == agent.guid]
+    trades_df = simulation_results.all_trades.loc[simulation_results.all_trades.source == agent.guid]
 
-    quantity_bought_elec = sum([x.quantity_pre_loss for x in trades_for_agent
-                                if (x.action == Action.BUY) & (x.resource == Resource.ELECTRICITY)])
-    quantity_bought_heat = sum([x.quantity_pre_loss for x in trades_for_agent
-                                if (x.action == Action.BUY) & (x.resource == Resource.HEATING)])
-    quantity_sold_elec = sum([x.quantity_post_loss for x in trades_for_agent
-                              if (x.action == Action.SELL) & (x.resource == Resource.ELECTRICITY)])
-    quantity_sold_heat = sum([x.quantity_post_loss for x in trades_for_agent
-                              if (x.action == Action.SELL) & (x.resource == Resource.HEATING)])
+    elec_buy_trades = trades_df.loc[(trades_df.action == Action.BUY) & (trades_df.resource == Resource.ELECTRICITY)]
+    heat_buy_trades = trades_df.loc[(trades_df.action == Action.BUY) & (trades_df.resource == Resource.HEATING)]
+    elec_sell_trades = trades_df.loc[(trades_df.action == Action.SELL) & (trades_df.resource == Resource.ELECTRICITY)]
+    heat_sell_trades = trades_df.loc[(trades_df.action == Action.SELL) & (trades_df.resource == Resource.HEATING)]
+
+    quantity_bought_elec = elec_buy_trades.quantity_pre_loss.sum()
+    quantity_bought_heat = heat_buy_trades.quantity_pre_loss.sum()
+    quantity_sold_elec = elec_sell_trades.quantity_post_loss.sum()
+    quantity_sold_heat = heat_sell_trades.quantity_post_loss.sum()
     # For BUY-trades, the buyer pays for the quantity before losses.
-    sek_bought_for_elec = sum([x.quantity_pre_loss * x.price for x in trades_for_agent
-                               if (x.action == Action.BUY) & (x.resource == Resource.ELECTRICITY)])
-    sek_bought_for_heat = sum([x.quantity_pre_loss * x.price for x in trades_for_agent
-                               if (x.action == Action.BUY) & (x.resource == Resource.HEATING)])
+    sek_bought_for_elec = elec_buy_trades.apply(lambda x: x.quantity_pre_loss * x.price, axis=1).sum() if \
+        len(elec_buy_trades) > 0 else 0.0  # pandas can log a FutureWarning if trying to sum on an apply of an empty df
+    sek_bought_for_heat = heat_buy_trades.apply(lambda x: x.quantity_pre_loss * x.price, axis=1).sum() if \
+        len(heat_buy_trades) > 0 else 0.0
     # For SELL-trades, the seller gets paid for the quantity after losses.
     # These sums will already have deducted taxes and grid fees, that the seller is to pay
-    sek_sold_for_elec = sum([x.quantity_post_loss * x.price for x in trades_for_agent
-                             if (x.action == Action.SELL) & (x.resource == Resource.ELECTRICITY)])
-    sek_sold_for_heat = sum([x.quantity_post_loss * x.price for x in trades_for_agent
-                             if (x.action == Action.SELL) & (x.resource == Resource.HEATING)])
-    sek_tax_paid = sum([x.quantity_post_loss * x.tax_paid for x in trades_for_agent])
-    sek_grid_fee_paid = sum([x.quantity_post_loss * x.grid_fee_paid for x in trades_for_agent])
+    sek_sold_for_elec = elec_sell_trades.apply(lambda x: x.quantity_post_loss * x.price, axis=1).sum() if \
+        len(elec_sell_trades) > 0 else 0.0
+    sek_sold_for_heat = heat_sell_trades.apply(lambda x: x.quantity_post_loss * x.price, axis=1).sum() if \
+        len(heat_sell_trades) > 0 else 0.0
+    sek_tax_paid = trades_df.apply(lambda x: x.quantity_post_loss * x.tax_paid, axis=1).sum()
+    sek_grid_fee_paid = trades_df.apply(lambda x: x.quantity_post_loss * x.grid_fee_paid, axis=1).sum()
     sek_bought_for = sek_bought_for_heat + sek_bought_for_elec
     sek_sold_for = sek_sold_for_heat + sek_sold_for_elec
     sek_traded_for = sek_bought_for + sek_sold_for
 
     if not isinstance(agent, GridAgent):
-        extra_costs_for_bad_bids = sum([ec.cost for ec in all_extra_costs if (ec.agent == agent.guid)
-                                        & (ec.cost_type.is_for_bid_inaccuracy())])
-        extra_costs_for_heat_cost_discr = sum([ec.cost for ec in all_extra_costs if (ec.agent == agent.guid)
-                                               & (ec.cost_type == ExtraCostType.HEAT_EXT_COST_CORR)])
-        saved_on_buy, saved_on_sell = get_savings_vs_only_external(trades_for_agent,
-                                                                   exact_retail_electricity_prices_by_period,
-                                                                   exact_wholesale_electricity_prices_by_period,
+        ec_df = simulation_results.all_extra_costs.loc[simulation_results.all_extra_costs.agent == agent.guid]
+        extra_costs_for_bad_bids = ec_df.loc[ec_df.cost_type.apply(lambda x: x.is_for_bid_inaccuracy())].cost.sum()
+        extra_costs_for_heat_cost_discr = ec_df.loc[ec_df.cost_type == ExtraCostType.HEAT_EXT_COST_CORR].cost.sum()
+
+        saved_on_buy, saved_on_sell = get_savings_vs_only_external(trades_df, simulation_results.data_store,
+                                                                   simulation_results.
                                                                    exact_retail_heating_prices_by_year_and_month,
+                                                                   simulation_results.
                                                                    exact_wholesale_heating_prices_by_year_and_month)
         total_saved = saved_on_buy + saved_on_sell - extra_costs_for_heat_cost_discr
         if sek_traded_for > 0:
@@ -133,40 +122,32 @@ def calc_basic_results_for_agent(agent: IAgent, all_trades_dict: Dict[datetime.d
     return results_dict
 
 
-def get_savings_vs_only_external(trades_for_agent: Iterable[Trade],
-                                 exact_retail_electricity_prices_by_period: Dict[datetime.datetime, float],
-                                 exact_wholesale_electricity_prices_by_period: Dict[datetime.datetime, float],
+def get_savings_vs_only_external(trades_for_agent: pd.DataFrame, data_store: DataStore,
                                  exact_retail_heating_prices_by_year_and_month: Dict[Tuple[int, int], float],
-                                 exact_wholesale_heating_prices_by_year_and_month: Dict[Tuple[int, int], float]):
+                                 exact_wholesale_heating_prices_by_year_and_month: Dict[Tuple[int, int], float]) -> \
+        Tuple[float, float]:
     saved_on_buy_vs_using_only_external = 0
     saved_on_sell_vs_using_only_external = 0
-    for trade in trades_for_agent:
+    for i_, trade in trades_for_agent.iterrows():
         period = trade.period
         resource = trade.resource
         if trade.action == Action.BUY:
-            retail_price = get_relevant_price(exact_retail_electricity_prices_by_period,
-                                              exact_retail_heating_prices_by_year_and_month, period, resource)
+            if trade.resource == Resource.HEATING:
+                retail_price = exact_retail_heating_prices_by_year_and_month[(period.year, period.month)]
+            else:
+                retail_price = data_store.get_exact_retail_price(period, resource, include_tax=True)
             # For BUY-trades, the buyer pays for the quantity before losses
             saved_on_buy_vs_using_only_external = saved_on_buy_vs_using_only_external + \
                 trade.quantity_pre_loss * (retail_price - trade.price)
         elif trade.action == Action.SELL:
-            wholesale_price = get_relevant_price(exact_wholesale_electricity_prices_by_period,
-                                                 exact_wholesale_heating_prices_by_year_and_month, period, resource)
+            if trade.resource == Resource.HEATING:
+                wholesale_price = exact_wholesale_heating_prices_by_year_and_month[(period.year, period.month)]
+            else:
+                wholesale_price = data_store.get_exact_wholesale_price(period, resource)
             # For SELL-trades, the seller gets paid for the quantity after losses.
             saved_on_sell_vs_using_only_external = saved_on_sell_vs_using_only_external + \
                 trade.quantity_post_loss * (trade.price - wholesale_price)
     return saved_on_buy_vs_using_only_external, saved_on_sell_vs_using_only_external
-
-
-def get_relevant_price(electricity_prices_by_period: Dict[datetime.datetime, float],
-                       heating_prices_by_year_and_month: Dict[Tuple[int, int], float],
-                       period: datetime.datetime, resource: Resource):
-    if resource == Resource.ELECTRICITY:
-        return electricity_prices_by_period[period]
-    elif resource == Resource.HEATING:
-        return heating_prices_by_year_and_month[(period.year, period.month)]
-    else:
-        raise RuntimeError("Method not implemented for resource " + resource.name)
 
 
 def print_message(message: str):
