@@ -241,7 +241,7 @@ if __name__ == '__main__':
             logger.info("Reading uploaded results file")
             st.session_state.simulation_results = pickle.load(uploaded_results_file)
             st.session_state.calculated_results_by_agent = results_calculator.calc_basic_results(
-                st.session_state.simulation_results)  # TODO: This is done again when load_button is clicked...
+                st.session_state.simulation_results)  # FIXME: This is done again when load_button is clicked...
 
         load_button = st.button("Click here to load data", disabled='simulation_results' not in st.session_state)
 
