@@ -128,7 +128,7 @@ def get_savings_vs_only_external(trades_for_agent: pd.DataFrame, data_store: Dat
         Tuple[float, float]:
     saved_on_buy_vs_using_only_external = 0
     saved_on_sell_vs_using_only_external = 0
-    for i_, trade in trades_for_agent.iterrows():
+    for _i, trade in trades_for_agent.iterrows():
         period = trade.period
         resource = trade.resource
         if trade.action == Action.BUY:

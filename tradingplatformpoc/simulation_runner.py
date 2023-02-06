@@ -151,17 +151,16 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
         progress_text.info("Simulated a full year, starting some calculations on district heating price...")
 
     # Simulations finished. Now, we need to go through and calculate the exact district heating price for each month
-    estimated_retail_heating_prices_by_year_and_month, \
-        estimated_wholesale_heating_prices_by_year_and_month, \
-        exact_retail_heating_prices_by_year_and_month, \
-        exact_wholesale_heating_prices_by_year_and_month = get_external_heating_prices(data_store_entity,
-                                                                                       trading_periods)
+    estimated_retail_heat_price_by_ym, \
+        estimated_wholesale_heat_price_by_ym, \
+        exact_retail_heat_price_by_ym, \
+        exact_wholesale_heat_price_by_ym = get_external_heating_prices(data_store_entity, trading_periods)
 
     heat_cost_discr_corrections = correct_for_exact_heating_price(trading_periods, all_trades_dict,
-                                                                  exact_retail_heating_prices_by_year_and_month,
-                                                                  exact_wholesale_heating_prices_by_year_and_month,
-                                                                  estimated_retail_heating_prices_by_year_and_month,
-                                                                  estimated_wholesale_heating_prices_by_year_and_month)
+                                                                  exact_retail_heat_price_by_ym,
+                                                                  exact_wholesale_heat_price_by_ym,
+                                                                  estimated_retail_heat_price_by_ym,
+                                                                  estimated_wholesale_heat_price_by_ym)
     all_extra_costs.extend(heat_cost_discr_corrections)
 
     if progress_bar is not None:
@@ -183,10 +182,8 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
                                 data_store=data_store_entity,
                                 grid_fees_paid_on_internal_trades=grid_fees_paid_on_internal_trades,
                                 tax_paid=tax_paid,
-                                exact_retail_heating_prices_by_year_and_month=
-                                exact_retail_heating_prices_by_year_and_month,
-                                exact_wholesale_heating_prices_by_year_and_month=
-                                exact_wholesale_heating_prices_by_year_and_month
+                                exact_retail_heating_prices_by_year_and_month=exact_retail_heat_price_by_ym,
+                                exact_wholesale_heating_prices_by_year_and_month=exact_wholesale_heat_price_by_ym
                                 )
     return sim_res
 
