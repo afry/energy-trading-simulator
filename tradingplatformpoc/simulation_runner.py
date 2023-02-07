@@ -23,6 +23,7 @@ from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTw
 from tradingplatformpoc.extra_cost import ExtraCost
 from tradingplatformpoc.mock_data_generation_functions import MockDataKey, get_all_building_agents, get_elec_cons_key, \
     get_hot_tap_water_cons_key, get_pv_prod_key, get_space_heat_cons_key
+from tradingplatformpoc.results import results_calculator
 from tradingplatformpoc.results.simulation_results import SimulationResults
 from tradingplatformpoc.trade import Trade, TradeMetadataKey
 from tradingplatformpoc.trading_platform_utils import add_to_nested_dict, calculate_solar_prod, flatten_collection, \
@@ -171,6 +172,11 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
     extra_costs_df = pd.DataFrame([x.to_series() for x in all_extra_costs]).sort_values(['period', 'agent'])
     all_trades_df, frac_complete = construct_df_from_datetime_dict(all_trades_dict, progress_bar, frac_complete)
     all_bids_df, frac_complete = construct_df_from_datetime_dict(all_bids_dict, progress_bar, frac_complete)
+    results_by_agent = results_calculator.calc_basic_results(agents, all_trades_df, extra_costs_df,
+                                                             exact_retail_electricity_prices_by_period,
+                                                             exact_wholesale_electricity_prices_by_period,
+                                                             exact_retail_heat_price_by_ym,
+                                                             exact_wholesale_heat_price_by_ym)
     sim_res = SimulationResults(clearing_prices_historical=clearing_prices_historical,
                                 all_trades=all_trades_df,
                                 all_extra_costs=extra_costs_df,
@@ -183,7 +189,8 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
                                 grid_fees_paid_on_internal_trades=grid_fees_paid_on_internal_trades,
                                 tax_paid=tax_paid,
                                 exact_retail_heating_prices_by_year_and_month=exact_retail_heat_price_by_ym,
-                                exact_wholesale_heating_prices_by_year_and_month=exact_wholesale_heat_price_by_ym
+                                exact_wholesale_heating_prices_by_year_and_month=exact_wholesale_heat_price_by_ym,
+                                results_by_agent=results_by_agent
                                 )
     return sim_res
 

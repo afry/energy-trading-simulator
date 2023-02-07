@@ -7,6 +7,7 @@ import pandas as pd
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.bid import Resource
 from tradingplatformpoc.data_store import DataStore
+from tradingplatformpoc.results.results_key import ResultsKey
 
 
 @dataclass(frozen=True)
@@ -24,3 +25,4 @@ class SimulationResults:
     tax_paid: float
     exact_retail_heating_prices_by_year_and_month: Dict[Tuple[int, int], float]
     exact_wholesale_heating_prices_by_year_and_month: Dict[Tuple[int, int], float]
+    results_by_agent: Dict[str, Dict[ResultsKey, float]]
