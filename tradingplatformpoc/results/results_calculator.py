@@ -1,5 +1,5 @@
 import datetime
-from typing import Dict, Tuple, Iterable
+from typing import Dict, Iterable, Tuple
 
 import pandas as pd
 

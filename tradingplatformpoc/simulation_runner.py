@@ -29,7 +29,7 @@ from tradingplatformpoc.trade import Trade, TradeMetadataKey
 from tradingplatformpoc.trading_platform_utils import add_to_nested_dict, calculate_solar_prod, flatten_collection, \
     get_if_exists_else, get_intersection
 
-FRACTION_OF_CALC_TIME_FOR_1_MONTH_SIMULATED = 0.06
+FRACTION_OF_CALC_TIME_FOR_1_MONTH_SIMULATED = 0.065
 
 logger = logging.getLogger(__name__)
 
@@ -147,16 +147,18 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
 
     if progress_bar is not None:
         frac_complete = increase_progress_bar(frac_complete, progress_bar,
-                                              FRACTION_OF_CALC_TIME_FOR_1_MONTH_SIMULATED + 0.01)
+                                              FRACTION_OF_CALC_TIME_FOR_1_MONTH_SIMULATED + 0.01)  # Final month
     if progress_text is not None:
         progress_text.info("Simulated a full year, starting some calculations on district heating price...")
 
     # Simulations finished. Now, we need to go through and calculate the exact district heating price for each month
+    logger.info('Calculating external_heating_prices')
     estimated_retail_heat_price_by_ym, \
         estimated_wholesale_heat_price_by_ym, \
         exact_retail_heat_price_by_ym, \
         exact_wholesale_heat_price_by_ym = get_external_heating_prices(data_store_entity, trading_periods)
 
+    logger.info('Calculating heat_cost_discr_corrections')
     heat_cost_discr_corrections = correct_for_exact_heating_price(trading_periods, all_trades_dict,
                                                                   exact_retail_heat_price_by_ym,
                                                                   exact_wholesale_heat_price_by_ym,
@@ -164,19 +166,28 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
                                                                   estimated_wholesale_heat_price_by_ym)
     all_extra_costs.extend(heat_cost_discr_corrections)
 
-    if progress_bar is not None:
-        frac_complete = increase_progress_bar(frac_complete, progress_bar, 0.01)
     if progress_text is not None:
         progress_text.info("Formatting results...")
 
+    logger.info('Creating extra_costs_df')
     extra_costs_df = pd.DataFrame([x.to_series() for x in all_extra_costs]).sort_values(['period', 'agent'])
+    if progress_bar is not None:
+        frac_complete = increase_progress_bar(frac_complete, progress_bar, 0.05)
+
     all_trades_df, frac_complete = construct_df_from_datetime_dict(all_trades_dict, progress_bar, frac_complete)
     all_bids_df, frac_complete = construct_df_from_datetime_dict(all_bids_dict, progress_bar, frac_complete)
+
+    logger.info('Aggregating results per agent')
+    if progress_text is not None:
+        progress_text.info("Aggregating results per agent...")
     results_by_agent = results_calculator.calc_basic_results(agents, all_trades_df, extra_costs_df,
                                                              exact_retail_electricity_prices_by_period,
                                                              exact_wholesale_electricity_prices_by_period,
                                                              exact_retail_heat_price_by_ym,
                                                              exact_wholesale_heat_price_by_ym)
+    if progress_bar is not None:
+        increase_progress_bar(frac_complete, progress_bar, 1 - frac_complete)
+
     sim_res = SimulationResults(clearing_prices_historical=clearing_prices_historical,
                                 all_trades=all_trades_df,
                                 all_extra_costs=extra_costs_df,
@@ -371,7 +382,6 @@ def construct_df_from_datetime_dict(some_dict: Union[Dict[datetime.datetime, Col
         -> Tuple[pd.DataFrame, float]:
     """
     Streamlit likes to deal with pd.DataFrames, so we'll save data in that format.
-    Takes a little while to run - about 20 seconds for an input with 8760 keys and 30-35 entries per key.
 
     progress_bar and frac_complete are only used when called from the UI, to show progress to the user.
     """
@@ -382,5 +392,5 @@ def construct_df_from_datetime_dict(some_dict: Union[Dict[datetime.datetime, Col
     data_frame = pd.DataFrame(dict_list)
 
     if progress_bar is not None:
-        frac_complete = increase_progress_bar(frac_complete, progress_bar, 0.1)
+        frac_complete = increase_progress_bar(frac_complete, progress_bar, 0.005)
     return data_frame, frac_complete
