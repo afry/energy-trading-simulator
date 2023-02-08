@@ -15,7 +15,8 @@ from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.bid import Resource
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.heat_pump import DEFAULT_COP
-from tradingplatformpoc.simulation_results import SimulationResults
+from tradingplatformpoc.results.results_key import ResultsKey
+from tradingplatformpoc.results.simulation_results import SimulationResults
 from tradingplatformpoc.trading_platform_utils import ALL_AGENT_TYPES, ALL_IMPLEMENTED_RESOURCES_STR, get_if_exists_else
 
 
@@ -23,7 +24,7 @@ def get_price_df_when_local_price_inbetween(prices_df: pd.DataFrame, resource: R
     """Local price is almost always either equal to the external wholesale or retail price. This method returns the
     subsection of the prices dataframe where the local price is _not_ equal to either of these two."""
     elec_prices = prices_df. \
-        loc[prices_df['Resource'] == resource]. \
+        loc[prices_df['Resource'].apply(lambda x: x.name) == resource.name]. \
         drop('Resource', axis=1). \
         pivot(index="period", columns="variable")['value']
     local_price_between_external = (elec_prices[app_constants.LOCAL_PRICE_STR]
@@ -175,6 +176,14 @@ def get_viewable_df(full_df: pd.DataFrame, key: str, value: Any, want_index: str
         drop(cols_to_drop, axis=1). \
         set_index([want_index]). \
         apply(lambda x: x.apply(lambda y: y.name) if isinstance(x.iloc[0], Enum) else x)
+
+
+def results_dict_to_df(raw_dict: Dict[ResultsKey, float]) -> pd.DataFrame:
+    """Converts the ResultsKey keys to strings, and then the dict to a pd.DataFrame since Streamlit likes that."""
+    df = pd.DataFrame.from_dict({k.value: v for (k, v) in raw_dict.items()}, orient='index')
+    df.rename({0: 'Value'}, axis=1, inplace=True)
+    formatted_df = df.style.format({'Value': '{:.2f}'.format})
+    return formatted_df
 
 
 def remove_agent(some_agent: Dict[str, Any]):
