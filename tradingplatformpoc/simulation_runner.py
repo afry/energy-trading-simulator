@@ -55,6 +55,8 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
     energy_data_csv_path = resource_filename("tradingplatformpoc.data", "full_mock_energy_data.csv")
 
     # Load generated mock data
+    if progress_text is not None:
+        progress_text.info("Generating data...")
     buildings_mock_data: pd.DataFrame = get_generated_mock_data(config_data, mock_datas_pickle_path)
 
     # Output lists
