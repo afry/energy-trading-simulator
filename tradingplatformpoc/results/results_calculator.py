@@ -33,6 +33,10 @@ def calc_basic_results_for_agent(agent: IAgent, all_trades: pd.DataFrame, all_ex
                                  exact_retail_heating_prices_by_year_and_month: Dict[Tuple[int, int], float],
                                  exact_wholesale_heating_prices_by_year_and_month: Dict[Tuple[int, int], float]) -> \
         Dict[ResultsKey, float]:
+    """
+    For the given agent, does various aggregations of trades and extra costs, and returns results in a dict. The
+    possible keys in the dict are defined in the Enum ResultsKey.
+    """
     results_dict = {}
     trades_df = all_trades.loc[all_trades.source == agent.guid]
 
@@ -45,17 +49,10 @@ def calc_basic_results_for_agent(agent: IAgent, all_trades: pd.DataFrame, all_ex
     quantity_bought_heat = heat_buy_trades.quantity_pre_loss.sum()
     quantity_sold_elec = elec_sell_trades.quantity_post_loss.sum()
     quantity_sold_heat = heat_sell_trades.quantity_post_loss.sum()
-    # For BUY-trades, the buyer pays for the quantity before losses.
-    sek_bought_for_elec = elec_buy_trades.apply(lambda x: x.quantity_pre_loss * x.price, axis=1).sum() if \
-        len(elec_buy_trades) > 0 else 0.0  # pandas can log a FutureWarning if trying to sum on an apply of an empty df
-    sek_bought_for_heat = heat_buy_trades.apply(lambda x: x.quantity_pre_loss * x.price, axis=1).sum() if \
-        len(heat_buy_trades) > 0 else 0.0
-    # For SELL-trades, the seller gets paid for the quantity after losses.
-    # These sums will already have deducted taxes and grid fees, that the seller is to pay
-    sek_sold_for_elec = elec_sell_trades.apply(lambda x: x.quantity_post_loss * x.price, axis=1).sum() if \
-        len(elec_sell_trades) > 0 else 0.0
-    sek_sold_for_heat = heat_sell_trades.apply(lambda x: x.quantity_post_loss * x.price, axis=1).sum() if \
-        len(heat_sell_trades) > 0 else 0.0
+    sek_bought_for_elec = sum_total_bought_for(elec_buy_trades)
+    sek_bought_for_heat = sum_total_bought_for(heat_buy_trades)
+    sek_sold_for_elec = sum_total_sold_for(elec_sell_trades)
+    sek_sold_for_heat = sum_total_sold_for(heat_sell_trades)
     sek_tax_paid = trades_df.apply(lambda x: x.quantity_post_loss * x.tax_paid, axis=1).sum()
     sek_grid_fee_paid = trades_df.apply(lambda x: x.quantity_post_loss * x.grid_fee_paid, axis=1).sum()
     sek_bought_for = sek_bought_for_heat + sek_bought_for_elec
@@ -131,6 +128,25 @@ def calc_basic_results_for_agent(agent: IAgent, all_trades: pd.DataFrame, all_ex
                       format(agent.guid, avg_sell_price_heat))
         results_dict[ResultsKey.AVG_SELL_PRICE_HEAT] = avg_sell_price_heat
     return results_dict
+
+
+def sum_total_bought_for(buy_trades: pd.DataFrame) -> float:
+    """
+    For BUY-trades, the buyer pays for the quantity before losses.
+    pandas can log a FutureWarning if trying to sum on an apply of an empty df, so if the length is 0, we just return
+    0 directly.
+    """
+    return buy_trades.apply(lambda x: x.quantity_pre_loss * x.price, axis=1).sum() if len(buy_trades) > 0 else 0.0
+
+
+def sum_total_sold_for(sell_trades: pd.DataFrame) -> float:
+    """
+    For SELL-trades, the seller gets paid for the quantity after losses.
+    These sums will already have deducted taxes and grid fees, that the seller is to pay.
+    pandas can log a FutureWarning if trying to sum on an apply of an empty df, so if the length is 0, we just return
+    0 directly.
+    """
+    return sell_trades.apply(lambda x: x.quantity_post_loss * x.price, axis=1).sum() if len(sell_trades) > 0 else 0.0
 
 
 def get_savings_vs_only_external(trades_for_agent: pd.DataFrame,
