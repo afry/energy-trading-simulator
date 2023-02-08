@@ -6,7 +6,7 @@ from pkg_resources import resource_filename
 
 from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
-from tradingplatformpoc.app import app_constants
+from tradingplatformpoc.app import app_constants, footer
 from tradingplatformpoc.app.app_functions import add_building_agent, add_grocery_store_agent, agent_inputs, \
     add_pv_agent, add_storage_agent, construct_building_with_heat_pump_chart, construct_price_chart, \
     construct_prices_df, construct_storage_level_chart, get_agent, get_price_df_when_local_price_inbetween, \
@@ -306,3 +306,5 @@ if __name__ == '__main__':
 
         else:
             st.write('Run simulations and load data first!')
+
+    st.write(footer.html, unsafe_allow_html=True)

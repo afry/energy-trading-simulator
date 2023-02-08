@@ -4,13 +4,13 @@ with open('README.md', 'r') as f:
     readme = f.read()
 
 setup(name='tradingplatformpoc',
-      version='0.1',
+      version='1.0.0.wip',
       description='A trading platform which enables physical entities to buy and sell energy using bids and agents.',
       long_description=readme,
       url='https://gitlab01.afdrift.se/futuretechnologies/tornet-jonstaka/trading-platform-poc',
       author='AFRY',
       author_email='',
-      license='Unlicenced',
+      license='Unlicensed',
       packages=find_packages(),
       test_suite='tests',
       python_requires='>=3.9',
