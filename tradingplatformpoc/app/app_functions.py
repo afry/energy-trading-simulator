@@ -24,7 +24,7 @@ def get_price_df_when_local_price_inbetween(prices_df: pd.DataFrame, resource: R
     """Local price is almost always either equal to the external wholesale or retail price. This method returns the
     subsection of the prices dataframe where the local price is _not_ equal to either of these two."""
     elec_prices = prices_df. \
-        loc[prices_df['Resource'] == resource]. \
+        loc[prices_df['Resource'].apply(lambda x: x.name) == resource.name]. \
         drop('Resource', axis=1). \
         pivot(index="period", columns="variable")['value']
     local_price_between_external = (elec_prices[app_constants.LOCAL_PRICE_STR]

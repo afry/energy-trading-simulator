@@ -299,6 +299,7 @@ if __name__ == '__main__':
                                                                        simulation_results.heat_pump_levels_dict)
                     st.altair_chart(hp_chart, use_container_width=True)
 
+            st.subheader('Aggregated results')
             # Table with things calculated in results_calculator
             st.dataframe(data=results_dict_to_df(
                 st.session_state.simulation_results.results_by_agent[agent_chosen_guid]))
