@@ -261,7 +261,7 @@ if __name__ == '__main__':
                      format(st.session_state.simulation_results.grid_fees_paid_on_internal_trades))
 
         if 'price_chart' in st.session_state:
-            st.altair_chart(st.session_state.price_chart, use_container_width=True)
+            st.altair_chart(st.session_state.price_chart, use_container_width=True, theme=None)
             with st.expander("Periods where local electricity price was between external retail and wholesale price:"):
                 st.dataframe(get_price_df_when_local_price_inbetween(st.session_state.combined_price_df,
                                                                      Resource.ELECTRICITY))
@@ -290,14 +290,14 @@ if __name__ == '__main__':
                 with st.expander('Charging level over time for ' + agent_chosen_guid + ':'):
                     storage_chart = construct_storage_level_chart(
                         st.session_state.simulation_results.storage_levels_dict[agent_chosen_guid])
-                    st.altair_chart(storage_chart, use_container_width=True)
+                    st.altair_chart(storage_chart, use_container_width=True, theme=None)
 
             if isinstance(agent_chosen, BuildingAgent) or isinstance(agent_chosen, PVAgent):
                 # Any building agent with a StaticDigitalTwin
                 with st.expander('Energy production/consumption'):
                     hp_chart = construct_building_with_heat_pump_chart(agent_chosen, st.session_state.
                                                                        simulation_results.heat_pump_levels_dict)
-                    st.altair_chart(hp_chart, use_container_width=True)
+                    st.altair_chart(hp_chart, use_container_width=True, theme=None)
 
             st.subheader('Aggregated results')
             # Table with things calculated in results_calculator
