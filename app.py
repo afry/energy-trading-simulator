@@ -245,6 +245,7 @@ if __name__ == '__main__':
 
         if load_button:
             load_button = False
+            
             logger.info("Constructing price graph")
             st.spinner("Constructing price graph")
 
@@ -254,6 +255,9 @@ if __name__ == '__main__':
             st.session_state.price_chart = price_chart
 
             st.success("Data loaded!")
+
+            with st.expander('Current configuration in JSON format:'):
+                st.json(body=json.dumps(st.session_state.simulation_results.config_data), expanded=False)
 
             # TODO: Display all this neater, and put the code away somewhere better. Perhaps st.table or st.dataframe
             with st.expander('Taxes and fees on internal trades:'):
