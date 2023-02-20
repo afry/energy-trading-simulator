@@ -12,7 +12,7 @@ from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app import app_constants
-from tradingplatformpoc.bid import Resource
+from tradingplatformpoc.bid import Action, Resource
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.heat_pump import DEFAULT_COP
 from tradingplatformpoc.results.results_key import ResultsKey
@@ -401,3 +401,29 @@ def set_max_width(width: str):
     .appview-container .main .block-container{{ max-width: {width}; }}
     </style>
     """, unsafe_allow_html=True, )
+
+
+def get_total_import_export(resource, action):
+    return sum([row.quantity_post_loss for _i, row in
+                st.session_state.simulation_results.all_trades.loc[
+                    st.session_state.simulation_results.all_trades.by_external
+                    & (st.session_state.simulation_results.all_trades.resource.values
+                        == resource)
+                    & (st.session_state.simulation_results.all_trades.action.values
+                        == action)].iterrows()])
+
+
+def aggregated_import_export_results_df():
+
+    cols = ['electricity', 'heating']
+    rows = ['imported', 'exported']
+    electricity_imported = "{:.2f} kWh".format(get_total_import_export(Resource.ELECTRICITY, Action.SELL))
+    electricity_exported = "{:.2f} kWh".format(get_total_import_export(Resource.ELECTRICITY, Action.BUY))
+    heating_imported = "{:.2f} kWh".format(get_total_import_export(Resource.HEATING, Action.SELL))
+    heating_exported = "{:.2f} kWh".format(get_total_import_export(Resource.HEATING, Action.BUY))
+
+    agg_res = pd.DataFrame([[electricity_imported, electricity_exported],
+                            [heating_imported, heating_exported]],
+                           columns=cols, index=rows)
+
+    return agg_res

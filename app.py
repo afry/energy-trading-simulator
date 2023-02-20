@@ -8,10 +8,11 @@ from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app import app_constants, footer
 from tradingplatformpoc.app.app_functions import add_building_agent, add_grocery_store_agent, agent_inputs, \
-    add_pv_agent, add_storage_agent, construct_building_with_heat_pump_chart, construct_price_chart, \
+    add_pv_agent, add_storage_agent, aggregated_import_export_results_df, construct_building_with_heat_pump_chart, \
+    construct_price_chart, \
     construct_prices_df, construct_storage_level_chart, get_agent, get_price_df_when_local_price_inbetween, \
     get_viewable_df, results_dict_to_df, remove_all_building_agents, set_max_width
-from tradingplatformpoc.bid import Resource, Action
+from tradingplatformpoc.bid import Resource
 from tradingplatformpoc.simulation_runner import run_trading_simulations
 import json
 import logging
@@ -260,38 +261,9 @@ if __name__ == '__main__':
                      format(st.session_state.simulation_results.tax_paid))
             st.write("Total grid fees paid on internal trades: {:.2f} SEK".
                      format(st.session_state.simulation_results.grid_fees_paid_on_internal_trades))
-            st.write("Total electricity imported: {:.2f} kWh".
-                     format(sum([row.quantity_post_loss for _i, row in
-                                 st.session_state.simulation_results.all_trades.loc[
-                                     st.session_state.simulation_results.all_trades.by_external &
-                                     (st.session_state.simulation_results.all_trades.resource.values ==
-                                      Resource.ELECTRICITY) &
-                                     (st.session_state.simulation_results.all_trades.action.values ==
-                                      Action.SELL)].iterrows()])))
-            st.write("Total electricity exported: {:.2f} kWh".
-                     format(sum([row.quantity_post_loss for _i, row in
-                                 st.session_state.simulation_results.all_trades.loc[
-                                     st.session_state.simulation_results.all_trades.by_external &
-                                     (st.session_state.simulation_results.all_trades.resource.values ==
-                                      Resource.ELECTRICITY) &
-                                     (st.session_state.simulation_results.all_trades.action.values ==
-                                      Action.BUY)].iterrows()])))
-            st.write("Total heat imported: {:.2f} kWh".
-                     format(sum([row.quantity_post_loss for _i, row in
-                                 st.session_state.simulation_results.all_trades.loc[
-                                     st.session_state.simulation_results.all_trades.by_external &
-                                     (st.session_state.simulation_results.all_trades.resource.values ==
-                                      Resource.HEATING) &
-                                     (st.session_state.simulation_results.all_trades.action.values ==
-                                      Action.SELL)].iterrows()])))
-            st.write("Total heat exported: {:.2f} kWh".
-                     format(sum([row.quantity_post_loss for _i, row in
-                                 st.session_state.simulation_results.all_trades.loc[
-                                     st.session_state.simulation_results.all_trades.by_external &
-                                     (st.session_state.simulation_results.all_trades.resource.values ==
-                                      Resource.HEATING) &
-                                     (st.session_state.simulation_results.all_trades.action.values ==
-                                      Action.BUY)].iterrows()])))
+            with st.expander('Total imported and exported electricity and heating:'):
+                impexp = aggregated_import_export_results_df()
+                st.dataframe(impexp)
 
         if 'price_chart' in st.session_state:
             st.altair_chart(st.session_state.price_chart, use_container_width=True, theme=None)
