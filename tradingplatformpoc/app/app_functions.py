@@ -413,17 +413,22 @@ def get_total_import_export(resource, action):
                         == action)].iterrows()])
 
 
-def aggregated_import_export_results_df():
-
-    cols = ['electricity', 'heating']
-    rows = ['imported', 'exported']
+def aggregated_import_and_export_results_df():
+    cols = ['Electricity', 'Heating']
+    rows = ['Imported', 'Exported']
     electricity_imported = "{:.2f} kWh".format(get_total_import_export(Resource.ELECTRICITY, Action.SELL))
     electricity_exported = "{:.2f} kWh".format(get_total_import_export(Resource.ELECTRICITY, Action.BUY))
     heating_imported = "{:.2f} kWh".format(get_total_import_export(Resource.HEATING, Action.SELL))
     heating_exported = "{:.2f} kWh".format(get_total_import_export(Resource.HEATING, Action.BUY))
 
-    agg_res = pd.DataFrame([[electricity_imported, electricity_exported],
-                            [heating_imported, heating_exported]],
-                           columns=cols, index=rows)
+    return pd.DataFrame([[electricity_imported, electricity_exported],
+                         [heating_imported, heating_exported]],
+                        columns=cols, index=rows)
 
-    return agg_res
+
+def aggregated_taxes_and_fees_results_df():
+    return pd.DataFrame(index=["Taxes paid on internal trades", "Grid fees paid on internal trades"],
+                        columns=['Total'],
+                        data=["{:.2f} SEK".format(st.session_state.simulation_results.tax_paid),
+                              "{:.2f} SEK".format(st.session_state.simulation_results.grid_fees_paid_on_internal_trades)
+                              ])

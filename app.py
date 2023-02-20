@@ -8,8 +8,8 @@ from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app import app_constants, footer
 from tradingplatformpoc.app.app_functions import add_building_agent, add_grocery_store_agent, agent_inputs, \
-    add_pv_agent, add_storage_agent, aggregated_import_export_results_df, construct_building_with_heat_pump_chart, \
-    construct_price_chart, \
+    add_pv_agent, add_storage_agent, aggregated_import_and_export_results_df, aggregated_taxes_and_fees_results_df, \
+    construct_building_with_heat_pump_chart, construct_price_chart, \
     construct_prices_df, construct_storage_level_chart, get_agent, get_price_df_when_local_price_inbetween, \
     get_viewable_df, results_dict_to_df, remove_all_building_agents, set_max_width
 from tradingplatformpoc.bid import Resource
@@ -256,14 +256,15 @@ if __name__ == '__main__':
             st.success("Data loaded!")
 
             # TODO: Display all this neater, and put the code away somewhere better. Perhaps st.table or st.dataframe
-            st.write("Total taxes paid on internal trades: {:.2f} SEK "
-                     "(this includes taxes that the ElectricityGridAgent are to pay, on sales to the microgrid)".
-                     format(st.session_state.simulation_results.tax_paid))
-            st.write("Total grid fees paid on internal trades: {:.2f} SEK".
-                     format(st.session_state.simulation_results.grid_fees_paid_on_internal_trades))
+            with st.expander('Taxes and fees on internal trades:'):
+                tax_fee = aggregated_taxes_and_fees_results_df()
+                st.dataframe(tax_fee)
+                st.caption("Tax paid includes taxes that the ElectricityGridAgent "
+                           "are to pay, on sales to the microgrid.")
+
             with st.expander('Total imported and exported electricity and heating:'):
-                impexp = aggregated_import_export_results_df()
-                st.dataframe(impexp)
+                imp_exp = aggregated_import_and_export_results_df()
+                st.dataframe(imp_exp)
 
         if 'price_chart' in st.session_state:
             st.altair_chart(st.session_state.price_chart, use_container_width=True, theme=None)
