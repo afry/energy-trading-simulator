@@ -403,27 +403,58 @@ def set_max_width(width: str):
     """, unsafe_allow_html=True, )
 
 
-def get_total_import_export(resource, action):
-    return sum([row.quantity_post_loss for _i, row in
-                st.session_state.simulation_results.all_trades.loc[
-                    st.session_state.simulation_results.all_trades.by_external
-                    & (st.session_state.simulation_results.all_trades.resource.values
-                        == resource)
-                    & (st.session_state.simulation_results.all_trades.action.values
-                        == action)].iterrows()])
+def get_total_import_export(resource, action, mask=None):
+    conditions = (st.session_state.simulation_results.all_trades.by_external
+                  & (st.session_state.simulation_results.all_trades.resource.values == resource)
+                  & (st.session_state.simulation_results.all_trades.action.values == action))
+    if mask is not None:
+        conditions = (conditions & mask)
+    total = sum([row.quantity_post_loss for _i, row in
+                st.session_state.simulation_results.all_trades.loc[conditions].iterrows()])
+
+    return "{:.2f} kWh".format(total)
 
 
 def aggregated_import_and_export_results_df():
-    cols = ['Electricity', 'Heating']
-    rows = ['Imported', 'Exported']
-    electricity_imported = "{:.2f} kWh".format(get_total_import_export(Resource.ELECTRICITY, Action.SELL))
-    electricity_exported = "{:.2f} kWh".format(get_total_import_export(Resource.ELECTRICITY, Action.BUY))
-    heating_imported = "{:.2f} kWh".format(get_total_import_export(Resource.HEATING, Action.SELL))
-    heating_exported = "{:.2f} kWh".format(get_total_import_export(Resource.HEATING, Action.BUY))
+    rows = {'Electricity': Resource.ELECTRICITY, 'Heating': Resource.HEATING}
+    cols = {'Imported': Action.SELL, 'Exported': Action.BUY}
 
-    return pd.DataFrame([[electricity_imported, electricity_exported],
-                         [heating_imported, heating_exported]],
-                        columns=cols, index=rows)
+    res_dict = {}
+    for colname, action in cols.items():
+        subdict = {}
+        for rowname, resource in rows.items():
+            subdict[rowname] = get_total_import_export(resource, action)
+        res_dict[colname] = subdict
+
+    return pd.DataFrame.from_dict(res_dict)
+
+
+def aggregated_import_and_export_results_df_split_on_period():
+    rows = {'Electricity': Resource.ELECTRICITY, 'Heating': Resource.HEATING}
+    cols = {'Imported': Action.SELL, 'Exported': Action.BUY}
+
+    jan_feb_mask = st.session_state.simulation_results.all_trades.period.dt.month.isin([1, 2])
+
+    res_dict = {}
+    for colname, action in cols.items():
+        subdict = {}
+        for rowname, resource in rows.items():
+            janfeb = get_total_import_export(resource, action, jan_feb_mask)
+            mardec = get_total_import_export(resource, action, ~jan_feb_mask)
+            total = get_total_import_export(resource, action)
+            subdict[rowname] = {'Jan-Feb': janfeb, 'Mar-Dec': mardec, 'Total': total}
+        res_dict[colname] = subdict
+
+    unpacked = {}
+    for key in cols.keys():
+        tmp = pd.DataFrame.from_dict(res_dict)[key].dropna().apply(pd.Series)
+        header = [[key] * len(tmp.columns), list(tmp.columns)]
+        tmp.columns = header
+        unpacked[key] = tmp
+
+    df = pd.concat(list(unpacked.values()), axis=1)
+
+    return df
 
 
 def aggregated_taxes_and_fees_results_df():
