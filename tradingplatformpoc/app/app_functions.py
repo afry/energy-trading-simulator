@@ -5,8 +5,10 @@ from typing import Any, Dict, Iterable, List, Union
 import altair as alt
 
 import pandas as pd
+from pkg_resources import resource_filename
 
 import streamlit as st
+from scripts.extract_df_from_mock_datas_pickle_file import DATA_PATH
 
 from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.iagent import IAgent
@@ -14,6 +16,7 @@ from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.bid import Action, Resource
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
+from tradingplatformpoc.generate_mock_data import create_inputs_df
 from tradingplatformpoc.heat_pump import DEFAULT_COP
 from tradingplatformpoc.results.results_key import ResultsKey
 from tradingplatformpoc.results.simulation_results import SimulationResults
@@ -415,34 +418,49 @@ def get_total_import_export(resource, action, mask=None):
     return "{:.2f} kWh".format(total)
 
 
-def aggregated_import_and_export_results_df():
-    rows = {'Electricity': Resource.ELECTRICITY, 'Heating': Resource.HEATING}
-    cols = {'Imported': Action.SELL, 'Exported': Action.BUY}
-
-    res_dict = {}
-    for colname, action in cols.items():
-        subdict = {}
-        for rowname, resource in rows.items():
-            subdict[rowname] = get_total_import_export(resource, action)
-        res_dict[colname] = subdict
-
-    return pd.DataFrame.from_dict(res_dict)
+def aggregated_taxes_and_fees_results_df():
+    return pd.DataFrame(index=["Taxes paid on internal trades", "Grid fees paid on internal trades"],
+                        columns=['Total'],
+                        data=["{:.2f} SEK".format(st.session_state.simulation_results.tax_paid),
+                              "{:.2f} SEK".format(st.session_state.simulation_results.grid_fees_paid_on_internal_trades)
+                              ])
 
 
 def aggregated_import_and_export_results_df_split_on_period():
-    rows = {'Electricity': Resource.ELECTRICITY, 'Heating': Resource.HEATING}
-    cols = {'Imported': Action.SELL, 'Exported': Action.BUY}
 
     jan_feb_mask = st.session_state.simulation_results.all_trades.period.dt.month.isin([1, 2])
+
+    return aggregated_import_and_export_results_df_split_on_mask(jan_feb_mask, ['Jan-Feb', 'Mar-Dec'])
+
+
+def aggregated_import_and_export_results_df_split_on_temperature():
+    # Read in-data: Temperature and timestamps, TODO: simplify
+    df_inputs, df_irrd = create_inputs_df(resource_filename(DATA_PATH, 'temperature_vetelangden.csv'),
+                                          resource_filename(DATA_PATH, 'varberg_irradiation_W_m2_h.csv'),
+                                          resource_filename(DATA_PATH, 'vetelangden_slim.csv'))
+    
+    temperature_df = df_inputs.to_pandas()[['datetime', 'temperature']]
+    temperature_df['above_1_degree'] = temperature_df['temperature'] >= 1.0
+
+    period = st.session_state.simulation_results.all_trades.period
+    temp_mask = pd.DataFrame(period).rename(columns={'period': 'datetime'}).merge(temperature_df, on='datetime',
+                                                                                  how='left')['above_1_degree']
+    return aggregated_import_and_export_results_df_split_on_mask(temp_mask, ['Above', 'Below'])
+
+
+def aggregated_import_and_export_results_df_split_on_mask(mask, mask_colnames):
+
+    rows = {'Electricity': Resource.ELECTRICITY, 'Heating': Resource.HEATING}
+    cols = {'Imported': Action.SELL, 'Exported': Action.BUY}
 
     res_dict = {}
     for colname, action in cols.items():
         subdict = {}
         for rowname, resource in rows.items():
-            janfeb = get_total_import_export(resource, action, jan_feb_mask)
-            mardec = get_total_import_export(resource, action, ~jan_feb_mask)
+            w_mask = get_total_import_export(resource, action, mask)
+            w_compl_mask = get_total_import_export(resource, action, ~mask)
             total = get_total_import_export(resource, action)
-            subdict[rowname] = {'Jan-Feb': janfeb, 'Mar-Dec': mardec, 'Total': total}
+            subdict[rowname] = {mask_colnames[0]: w_mask, mask_colnames[1]: w_compl_mask, 'Total': total}
         res_dict[colname] = subdict
 
     unpacked = {}
@@ -457,9 +475,15 @@ def aggregated_import_and_export_results_df_split_on_period():
     return df
 
 
-def aggregated_taxes_and_fees_results_df():
-    return pd.DataFrame(index=["Taxes paid on internal trades", "Grid fees paid on internal trades"],
-                        columns=['Total'],
-                        data=["{:.2f} SEK".format(st.session_state.simulation_results.tax_paid),
-                              "{:.2f} SEK".format(st.session_state.simulation_results.grid_fees_paid_on_internal_trades)
-                              ])
+def aggregated_import_and_export_results_df():
+    rows = {'Electricity': Resource.ELECTRICITY, 'Heating': Resource.HEATING}
+    cols = {'Imported': Action.SELL, 'Exported': Action.BUY}
+
+    res_dict = {}
+    for colname, action in cols.items():
+        subdict = {}
+        for rowname, resource in rows.items():
+            subdict[rowname] = get_total_import_export(resource, action)
+        res_dict[colname] = subdict
+
+    return pd.DataFrame.from_dict(res_dict)
