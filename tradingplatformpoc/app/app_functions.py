@@ -5,10 +5,12 @@ from typing import Any, Dict, Iterable, List, Union
 import altair as alt
 
 import pandas as pd
+
 from pkg_resources import resource_filename
 
-import streamlit as st
 from scripts.extract_df_from_mock_datas_pickle_file import DATA_PATH
+
+import streamlit as st
 
 from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.iagent import IAgent
