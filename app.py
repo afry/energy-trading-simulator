@@ -10,7 +10,7 @@ from tradingplatformpoc.app import app_constants, footer
 from tradingplatformpoc.app.app_functions import add_building_agent, add_grocery_store_agent, agent_inputs, \
     add_pv_agent, add_storage_agent, aggregated_import_and_export_results_df, \
     aggregated_import_and_export_results_df_split_on_period, \
-    aggregated_import_and_export_results_df_split_on_temperature, \
+    aggregated_import_and_export_results_df_split_on_temperature, aggregated_local_production_df, \
     aggregated_taxes_and_fees_results_df, construct_building_with_heat_pump_chart, construct_price_chart, \
     construct_prices_df, construct_storage_level_chart, get_agent, get_price_df_when_local_price_inbetween, \
     get_viewable_df, results_dict_to_df, remove_all_building_agents, set_max_width
@@ -261,7 +261,7 @@ if __name__ == '__main__':
             with st.expander('Current configuration in JSON format:'):
                 st.json(body=json.dumps(st.session_state.simulation_results.config_data), expanded=False)
 
-            # TODO: Display all this neater, and put the code away somewhere better. Perhaps st.table or st.dataframe
+            # TODO: Does this take too much time?
             with st.expander('Taxes and fees on internal trades:'):
                 tax_fee = aggregated_taxes_and_fees_results_df()
                 st.dataframe(tax_fee)
@@ -280,6 +280,12 @@ if __name__ == '__main__':
                 imp_exp_temp = aggregated_import_and_export_results_df_split_on_temperature()
                 st.dataframe(imp_exp_temp)
                 st.caption("Split on temperature above or below 1 degree Celsius.")
+
+            with st.expander('Total of locally produced heating and electricity:'):
+                loc_prod = aggregated_local_production_df()
+                st.dataframe(loc_prod)
+                st.caption("Total amount of heating produced by local heat pumps "
+                           + "and total amount of locally produced electricity.")
 
         if 'price_chart' in st.session_state:
             st.altair_chart(st.session_state.price_chart, use_container_width=True, theme=None)

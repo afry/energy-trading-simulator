@@ -1,6 +1,6 @@
 import datetime
 from enum import Enum
-from typing import Any, Dict, Iterable, List, Union
+from typing import Any, Dict, Iterable, List, Optional, Union
 
 import altair as alt
 
@@ -408,7 +408,26 @@ def set_max_width(width: str):
     """, unsafe_allow_html=True, )
 
 
-def get_total_import_export(resource, action, mask=None):
+def aggregated_taxes_and_fees_results_df() -> pd.DataFrame:
+    """
+    @return: Dataframe displaying total taxes and fees extracted from simulation results.
+    """
+    return pd.DataFrame(index=["Taxes paid on internal trades", "Grid fees paid on internal trades"],
+                        columns=['Total'],
+                        data=["{:.2f} SEK".format(st.session_state.simulation_results.tax_paid),
+                              "{:.2f} SEK".format(st.session_state.simulation_results.grid_fees_paid_on_internal_trades)
+                              ])
+
+
+def get_total_import_export(resource: Resource, action: Action,
+                            mask: Optional[pd.DataFrame] = None) -> float:
+    """
+    Extract total amount of resource imported to or exported from local market.
+    @param resource: A member of Resource enum specifying which resource
+    @param action: A member of Action enum specifying which action
+    @param mask: Optional dataframe, if specified used to extract subset of trades
+    @return: Total quantity post loss as float
+    """
     conditions = (st.session_state.simulation_results.all_trades.by_external
                   & (st.session_state.simulation_results.all_trades.resource.values == resource)
                   & (st.session_state.simulation_results.all_trades.action.values == action))
@@ -417,40 +436,16 @@ def get_total_import_export(resource, action, mask=None):
     total = sum([row.quantity_post_loss for _i, row in
                 st.session_state.simulation_results.all_trades.loc[conditions].iterrows()])
 
-    return "{:.2f} kWh".format(total)
+    return total
 
 
-def aggregated_taxes_and_fees_results_df():
-    return pd.DataFrame(index=["Taxes paid on internal trades", "Grid fees paid on internal trades"],
-                        columns=['Total'],
-                        data=["{:.2f} SEK".format(st.session_state.simulation_results.tax_paid),
-                              "{:.2f} SEK".format(st.session_state.simulation_results.grid_fees_paid_on_internal_trades)
-                              ])
-
-
-def aggregated_import_and_export_results_df_split_on_period():
-
-    jan_feb_mask = st.session_state.simulation_results.all_trades.period.dt.month.isin([1, 2])
-
-    return aggregated_import_and_export_results_df_split_on_mask(jan_feb_mask, ['Jan-Feb', 'Mar-Dec'])
-
-
-def aggregated_import_and_export_results_df_split_on_temperature():
-    # Read in-data: Temperature and timestamps, TODO: simplify
-    df_inputs, df_irrd = create_inputs_df(resource_filename(DATA_PATH, 'temperature_vetelangden.csv'),
-                                          resource_filename(DATA_PATH, 'varberg_irradiation_W_m2_h.csv'),
-                                          resource_filename(DATA_PATH, 'vetelangden_slim.csv'))
-    
-    temperature_df = df_inputs.to_pandas()[['datetime', 'temperature']]
-    temperature_df['above_1_degree'] = temperature_df['temperature'] >= 1.0
-
-    period = st.session_state.simulation_results.all_trades.period
-    temp_mask = pd.DataFrame(period).rename(columns={'period': 'datetime'}).merge(temperature_df, on='datetime',
-                                                                                  how='left')['above_1_degree']
-    return aggregated_import_and_export_results_df_split_on_mask(temp_mask, ['Above', 'Below'])
-
-
-def aggregated_import_and_export_results_df_split_on_mask(mask, mask_colnames):
+def aggregated_import_and_export_results_df_split_on_mask(mask: pd.DataFrame, mask_colnames: List[str]) -> pd.DataFrame:
+    """
+    Display total import and export for electricity and heat, computed for specified subsets.
+    @param mask: Dataframe used to extract subset of trades
+    @param mask_colnames: List with strings to display as subset names
+    @return: Dataframe displaying total import and export of resources split by the mask
+    """
 
     rows = {'Electricity': Resource.ELECTRICITY, 'Heating': Resource.HEATING}
     cols = {'Imported': Action.SELL, 'Exported': Action.BUY}
@@ -459,9 +454,9 @@ def aggregated_import_and_export_results_df_split_on_mask(mask, mask_colnames):
     for colname, action in cols.items():
         subdict = {}
         for rowname, resource in rows.items():
-            w_mask = get_total_import_export(resource, action, mask)
-            w_compl_mask = get_total_import_export(resource, action, ~mask)
-            total = get_total_import_export(resource, action)
+            w_mask = "{:.2f} kWh".format(get_total_import_export(resource, action, mask))
+            w_compl_mask = "{:.2f} kWh".format(get_total_import_export(resource, action, ~mask))
+            total = "{:.2f} kWh".format(get_total_import_export(resource, action))
             subdict[rowname] = {mask_colnames[0]: w_mask, mask_colnames[1]: w_compl_mask, 'Total': total}
         res_dict[colname] = subdict
 
@@ -477,7 +472,40 @@ def aggregated_import_and_export_results_df_split_on_mask(mask, mask_colnames):
     return df
 
 
-def aggregated_import_and_export_results_df():
+def aggregated_import_and_export_results_df_split_on_period() -> pd.DataFrame:
+    """
+    Dataframe displaying total import and export of resources split for January and February against rest of the year.
+    """
+
+    jan_feb_mask = st.session_state.simulation_results.all_trades.period.dt.month.isin([1, 2])
+
+    return aggregated_import_and_export_results_df_split_on_mask(jan_feb_mask, ['Jan-Feb', 'Mar-Dec'])
+
+
+def aggregated_import_and_export_results_df_split_on_temperature() -> pd.DataFrame:
+    """
+    Dataframe displaying total import and export of resources split for when the temperature was above or below
+    1 degree Celsius.
+    """
+    # Read in-data: Temperature and timestamps, TODO: simplify
+    df_inputs, df_irrd = create_inputs_df(resource_filename(DATA_PATH, 'temperature_vetelangden.csv'),
+                                          resource_filename(DATA_PATH, 'varberg_irradiation_W_m2_h.csv'),
+                                          resource_filename(DATA_PATH, 'vetelangden_slim.csv'))
+    
+    temperature_df = df_inputs.to_pandas()[['datetime', 'temperature']]
+    temperature_df['above_1_degree'] = temperature_df['temperature'] >= 1.0
+
+    period = st.session_state.simulation_results.all_trades.period
+    temp_mask = pd.DataFrame(period).rename(columns={'period': 'datetime'}).merge(temperature_df, on='datetime',
+                                                                                  how='left')['above_1_degree']
+    return aggregated_import_and_export_results_df_split_on_mask(temp_mask, ['Above', 'Below'])
+
+
+def aggregated_import_and_export_results_df() -> pd.DataFrame:
+    """
+    Display total import and export for electricity and heat.
+    @return: Dataframe displaying total import and export of resources
+    """
     rows = {'Electricity': Resource.ELECTRICITY, 'Heating': Resource.HEATING}
     cols = {'Imported': Action.SELL, 'Exported': Action.BUY}
 
@@ -485,7 +513,30 @@ def aggregated_import_and_export_results_df():
     for colname, action in cols.items():
         subdict = {}
         for rowname, resource in rows.items():
-            subdict[rowname] = get_total_import_export(resource, action)
+            subdict[rowname] = "{:.2f} kWh".format(get_total_import_export(resource, action))
         res_dict[colname] = subdict
 
     return pd.DataFrame.from_dict(res_dict)
+
+
+def aggregated_local_production_df() -> pd.DataFrame:
+    """
+    Computing total amount of locally produced resources.
+    """
+
+    production_electricity_lst = []
+    usage_heating_lst = []
+    for agent in st.session_state.simulation_results.agents:
+        if isinstance(agent, BuildingAgent) or isinstance(agent, PVAgent):
+            production_electricity_lst.append(sum(agent.digital_twin.electricity_production))
+
+    for agent in st.session_state.simulation_results.agents:
+        if isinstance(agent, BuildingAgent):
+            usage_heating_lst.append(sum(agent.digital_twin.heating_usage.dropna()))  # Issue with NaNs
+
+    production_heating = (sum(usage_heating_lst) - get_total_import_export(Resource.HEATING, Action.BUY)
+                          + get_total_import_export(Resource.HEATING, Action.SELL))
+
+    return pd.DataFrame([["{:.2f} kWh".format(sum(production_electricity_lst))],
+                         ["{:.2f} kWh".format(production_heating)]],
+                        index=['Electricity', 'Heating'], columns=['Total'])
