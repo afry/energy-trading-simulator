@@ -13,7 +13,7 @@ from tradingplatformpoc.app.app_functions import add_building_agent, add_grocery
     aggregated_import_and_export_results_df_split_on_temperature, aggregated_local_production_df, \
     aggregated_taxes_and_fees_results_df, construct_building_with_heat_pump_chart, construct_price_chart, \
     construct_prices_df, construct_storage_level_chart, get_agent, get_price_df_when_local_price_inbetween, \
-    get_viewable_df, results_dict_to_df, remove_all_building_agents, set_max_width
+    results_by_agent_as_df_with_hightlight, get_viewable_df, remove_all_building_agents, set_max_width
 from tradingplatformpoc.bid import Resource
 from tradingplatformpoc.simulation_runner import run_trading_simulations
 import json
@@ -331,10 +331,9 @@ if __name__ == '__main__':
                     st.altair_chart(hp_chart, use_container_width=True, theme=None)
 
             st.subheader('Aggregated results')
-            # Table with things calculated in results_calculator
-            # TODO: Perhaps show all agents (one column for each), and highlight the column for agent_chosen
-            st.dataframe(data=results_dict_to_df(
-                st.session_state.simulation_results.results_by_agent[agent_chosen_guid]))
+
+            results_by_agent_df = results_by_agent_as_df_with_hightlight(agent_chosen_guid)
+            st.dataframe(results_by_agent_df)
 
         else:
             st.write('Run simulations and load data first!')
