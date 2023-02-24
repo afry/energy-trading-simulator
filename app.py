@@ -9,8 +9,7 @@ from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app import app_constants, footer
 from tradingplatformpoc.app.app_functions import add_building_agent, add_grocery_store_agent, agent_inputs, \
-    add_pv_agent, add_storage_agent, aggregated_import_and_export_results_df, \
-    aggregated_import_and_export_results_df_split_on_period, \
+    add_pv_agent, add_storage_agent, aggregated_import_and_export_results_df_split_on_period, \
     aggregated_import_and_export_results_df_split_on_temperature, aggregated_local_production_df, \
     aggregated_taxes_and_fees_results_df, construct_building_with_heat_pump_chart, construct_price_chart, \
     construct_prices_df, construct_storage_level_chart, get_agent, get_price_df_when_local_price_inbetween, \
@@ -268,19 +267,35 @@ if __name__ == '__main__':
                 st.dataframe(tax_fee)
                 st.caption("Tax paid includes taxes that the ElectricityGridAgent "
                            "are to pay, on sales to the microgrid.")
+                
+            # with st.expander('Total imported and exported electricity and heating, split by period:'):
+            #     imp_exp_period_dict = aggregated_import_and_export_results_df_split_on_period()
+            #     col1, col2 = st.columns(2)
+            #     col1.header('Imported')
+            #     col1.dataframe(imp_exp_period_dict['Imported'])
+            #     col2.header("Exported")
+            #     col2.dataframe(imp_exp_period_dict['Exported'])
+
+            # with st.expander('Total imported and exported electricity and heating, split by temperature:'):
+            #     imp_exp_temp_dict = aggregated_import_and_export_results_df_split_on_temperature()
+            #     col1, col2 = st.columns(2)
+            #     col1.header('Imported')
+            #     col1.dataframe(imp_exp_temp_dict['Imported'])
+            #     col2.header("Exported")
+            #     col2.dataframe(imp_exp_temp_dict['Exported'])
+            #     st.caption("Split on temperature above or below 1 degree Celsius.")
 
             with st.expander('Total imported and exported electricity and heating:'):
-                imp_exp = aggregated_import_and_export_results_df()
-                st.dataframe(imp_exp)
-                
-            with st.expander('Total imported and exported electricity and heating, split by period:'):
-                imp_exp_period = aggregated_import_and_export_results_df_split_on_period()
-                st.dataframe(imp_exp_period)
-
-            with st.expander('Total imported and exported electricity and heating, split by temperature:'):
-                imp_exp_temp = aggregated_import_and_export_results_df_split_on_temperature()
-                st.dataframe(imp_exp_temp)
-                st.caption("Split on temperature above or below 1 degree Celsius.")
+                imp_exp_period_dict = aggregated_import_and_export_results_df_split_on_period()
+                imp_exp_temp_dict = aggregated_import_and_export_results_df_split_on_temperature()
+                col1, col2 = st.columns(2)
+                col1.header('Imported')
+                col2.header("Exported")
+                col1.dataframe(imp_exp_period_dict['Imported'])
+                col2.dataframe(imp_exp_period_dict['Exported'])
+                col1.dataframe(imp_exp_temp_dict['Imported'])
+                col2.dataframe(imp_exp_temp_dict['Exported'])
+                st.caption("Split on period, or on temperature above or below 1 degree Celsius.")
 
             with st.expander('Total of locally produced heating and electricity:'):
                 loc_prod = aggregated_local_production_df()

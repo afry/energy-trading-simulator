@@ -437,12 +437,13 @@ def get_total_import_export(resource: Resource, action: Action,
     return st.session_state.simulation_results.all_trades.loc[conditions].quantity_post_loss.sum()
 
 
-def aggregated_import_and_export_results_df_split_on_mask(mask: pd.DataFrame, mask_colnames: List[str]) -> pd.DataFrame:
+def aggregated_import_and_export_results_df_split_on_mask(mask: pd.DataFrame,
+                                                          mask_colnames: List[str]) -> Dict[str, pd.DataFrame]:
     """
     Display total import and export for electricity and heat, computed for specified subsets.
     @param mask: Dataframe used to extract subset of trades
     @param mask_colnames: List with strings to display as subset names
-    @return: Dataframe displaying total import and export of resources split by the mask
+    @return: Dict of dataframes displaying total import and export of resources split by the mask
     """
 
     rows = {'Electricity': Resource.ELECTRICITY, 'Heating': Resource.HEATING}
@@ -456,23 +457,15 @@ def aggregated_import_and_export_results_df_split_on_mask(mask: pd.DataFrame, ma
             w_compl_mask = "{:.2f} kWh".format(get_total_import_export(resource, action, ~mask))
             total = "{:.2f} kWh".format(get_total_import_export(resource, action))
             subdict[rowname] = {mask_colnames[0]: w_mask, mask_colnames[1]: w_compl_mask, 'Total': total}
-        res_dict[colname] = subdict
+        res_dict[colname] = pd.DataFrame.from_dict(subdict, orient='index')
 
-    unpacked = {}
-    for key in cols.keys():
-        tmp = pd.DataFrame.from_dict(res_dict)[key].dropna().apply(pd.Series)
-        header = [[key] * len(tmp.columns), list(tmp.columns)]
-        tmp.columns = header
-        unpacked[key] = tmp
-
-    df = pd.concat(list(unpacked.values()), axis=1)
-
-    return df
+    return res_dict
 
 
-def aggregated_import_and_export_results_df_split_on_period() -> pd.DataFrame:
+def aggregated_import_and_export_results_df_split_on_period() -> Dict[str, pd.DataFrame]:
     """
-    Dataframe displaying total import and export of resources split for January and February against rest of the year.
+    Dict of dataframes displaying total import and export of resources split for January and
+    February against rest of the year.
     """
 
     jan_feb_mask = st.session_state.simulation_results.all_trades.period.dt.month.isin([1, 2])
@@ -480,10 +473,10 @@ def aggregated_import_and_export_results_df_split_on_period() -> pd.DataFrame:
     return aggregated_import_and_export_results_df_split_on_mask(jan_feb_mask, ['Jan-Feb', 'Mar-Dec'])
 
 
-def aggregated_import_and_export_results_df_split_on_temperature() -> pd.DataFrame:
+def aggregated_import_and_export_results_df_split_on_temperature() -> Dict[str, pd.DataFrame]:
     """
-    Dataframe displaying total import and export of resources split for when the temperature was above or below
-    1 degree Celsius.
+    Dict of dataframes displaying total import and export of resources split for when the temperature was above
+    or below 1 degree Celsius.
     """
     # Read in-data: Temperature and timestamps, TODO: simplify
     df_inputs, df_irrd = create_inputs_df(resource_filename(DATA_PATH, 'temperature_vetelangden.csv'),
