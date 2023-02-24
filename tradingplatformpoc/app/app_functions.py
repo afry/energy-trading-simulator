@@ -529,6 +529,8 @@ def aggregated_local_production_df() -> pd.DataFrame:
     for agent in st.session_state.simulation_results.agents:
         if isinstance(agent, BuildingAgent) or isinstance(agent, PVAgent):
             production_electricity_lst.append(sum(agent.digital_twin.electricity_production))
+    
+    production_electricity = sum(production_electricity_lst)
 
     for agent in st.session_state.simulation_results.agents:
         if isinstance(agent, BuildingAgent):
@@ -537,6 +539,5 @@ def aggregated_local_production_df() -> pd.DataFrame:
     production_heating = (sum(usage_heating_lst) - get_total_import_export(Resource.HEATING, Action.BUY)
                           + get_total_import_export(Resource.HEATING, Action.SELL))
 
-    return pd.DataFrame([["{:.2f} kWh".format(sum(production_electricity_lst))],
-                         ["{:.2f} kWh".format(production_heating)]],
-                        index=['Electricity', 'Heating'], columns=['Total'])
+    data = [["{:.2f} kWh".format(production_electricity)], ["{:.2f} kWh".format(production_heating)]]
+    return pd.DataFrame(data=data, index=['Electricity', 'Heating'], columns=['Total'])
