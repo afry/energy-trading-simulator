@@ -452,10 +452,13 @@ def aggregated_import_and_export_results_df_split_on_mask(mask: pd.DataFrame,
     res_dict = {}
     for colname, action in cols.items():
         subdict = {}
+        subdict['# trading periods'] = {mask_colnames[0]: "{:}".format(sum(mask)),
+                                        mask_colnames[1]: "{:}".format(sum(~mask)),
+                                        'Total': "{:}".format(len(mask))}
         for rowname, resource in rows.items():
-            w_mask = "{:.2f} kWh".format(get_total_import_export(resource, action, mask))
-            w_compl_mask = "{:.2f} kWh".format(get_total_import_export(resource, action, ~mask))
-            total = "{:.2f} kWh".format(get_total_import_export(resource, action))
+            w_mask = "{:.2f} MWh".format(get_total_import_export(resource, action, mask) / 10**3)
+            w_compl_mask = "{:.2f} MWh".format(get_total_import_export(resource, action, ~mask) / 10**3)
+            total = "{:.2f} MWh".format(get_total_import_export(resource, action) / 10**3)
             subdict[rowname] = {mask_colnames[0]: w_mask, mask_colnames[1]: w_compl_mask, 'Total': total}
         res_dict[colname] = pd.DataFrame.from_dict(subdict, orient='index')
 
@@ -530,5 +533,5 @@ def aggregated_local_production_df() -> pd.DataFrame:
     production_heating = (sum(usage_heating_lst) - get_total_import_export(Resource.HEATING, Action.BUY)
                           + get_total_import_export(Resource.HEATING, Action.SELL))
 
-    data = [["{:.2f} kWh".format(production_electricity)], ["{:.2f} kWh".format(production_heating)]]
+    data = [["{:.2f} MWh".format(production_electricity / 10**3)], ["{:.2f} MWh".format(production_heating / 10**3)]]
     return pd.DataFrame(data=data, index=['Electricity', 'Heating'], columns=['Total'])

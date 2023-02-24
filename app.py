@@ -258,32 +258,12 @@ if __name__ == '__main__':
 
             st.success("Data loaded!")
 
-            with st.expander('Current configuration in JSON format:'):
-                st.json(body=json.dumps(st.session_state.simulation_results.config_data), expanded=False)
-
             t_start = time.time()
             with st.expander('Taxes and fees on internal trades:'):
                 tax_fee = aggregated_taxes_and_fees_results_df()
                 st.dataframe(tax_fee)
                 st.caption("Tax paid includes taxes that the ElectricityGridAgent "
                            "are to pay, on sales to the microgrid.")
-                
-            # with st.expander('Total imported and exported electricity and heating, split by period:'):
-            #     imp_exp_period_dict = aggregated_import_and_export_results_df_split_on_period()
-            #     col1, col2 = st.columns(2)
-            #     col1.header('Imported')
-            #     col1.dataframe(imp_exp_period_dict['Imported'])
-            #     col2.header("Exported")
-            #     col2.dataframe(imp_exp_period_dict['Exported'])
-
-            # with st.expander('Total imported and exported electricity and heating, split by temperature:'):
-            #     imp_exp_temp_dict = aggregated_import_and_export_results_df_split_on_temperature()
-            #     col1, col2 = st.columns(2)
-            #     col1.header('Imported')
-            #     col1.dataframe(imp_exp_temp_dict['Imported'])
-            #     col2.header("Exported")
-            #     col2.dataframe(imp_exp_temp_dict['Exported'])
-            #     st.caption("Split on temperature above or below 1 degree Celsius.")
 
             with st.expander('Total imported and exported electricity and heating:'):
                 imp_exp_period_dict = aggregated_import_and_export_results_df_split_on_period()
@@ -293,9 +273,11 @@ if __name__ == '__main__':
                 col2.header("Exported")
                 col1.dataframe(imp_exp_period_dict['Imported'])
                 col2.dataframe(imp_exp_period_dict['Exported'])
+                st.caption("Split on period of year.")
+                col1, col2 = st.columns(2)
                 col1.dataframe(imp_exp_temp_dict['Imported'])
                 col2.dataframe(imp_exp_temp_dict['Exported'])
-                st.caption("Split on period, or on temperature above or below 1 degree Celsius.")
+                st.caption("Split on temperature above or below 1 degree Celsius.")
 
             with st.expander('Total of locally produced heating and electricity:'):
                 loc_prod = aggregated_local_production_df()
@@ -305,11 +287,15 @@ if __name__ == '__main__':
             t_end = time.time()
             logger.info('Time to display aggregated results: {} seconds'.format(t_end - t_start))
 
-        if 'price_chart' in st.session_state:
-            st.altair_chart(st.session_state.price_chart, use_container_width=True, theme=None)
-            with st.expander("Periods where local electricity price was between external retail and wholesale price:"):
-                st.dataframe(get_price_df_when_local_price_inbetween(st.session_state.combined_price_df,
-                                                                     Resource.ELECTRICITY))
+            if 'price_chart' in st.session_state:
+                st.altair_chart(st.session_state.price_chart, use_container_width=True, theme=None)
+                with st.expander("Periods where local electricity price was "
+                                 "between external retail and wholesale price:"):
+                    st.dataframe(get_price_df_when_local_price_inbetween(st.session_state.combined_price_df,
+                                                                         Resource.ELECTRICITY))
+
+            with st.expander('Current configuration in JSON format:'):
+                st.json(body=json.dumps(st.session_state.simulation_results.config_data), expanded=False)
 
     elif page_selected == app_constants.BIDS_PAGE:
         if 'simulation_results' in st.session_state:
