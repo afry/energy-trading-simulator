@@ -433,10 +433,8 @@ def get_total_import_export(resource: Resource, action: Action,
                   & (st.session_state.simulation_results.all_trades.action.values == action))
     if mask is not None:
         conditions = (conditions & mask)
-    total = sum([row.quantity_post_loss for _i, row in
-                st.session_state.simulation_results.all_trades.loc[conditions].iterrows()])
 
-    return total
+    return st.session_state.simulation_results.all_trades.loc[conditions].quantity_post_loss.sum()
 
 
 def aggregated_import_and_export_results_df_split_on_mask(mask: pd.DataFrame, mask_colnames: List[str]) -> pd.DataFrame:

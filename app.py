@@ -1,6 +1,7 @@
 import os
 import pickle
 from logging.handlers import TimedRotatingFileHandler
+import time
 
 from pkg_resources import resource_filename
 
@@ -261,7 +262,7 @@ if __name__ == '__main__':
             with st.expander('Current configuration in JSON format:'):
                 st.json(body=json.dumps(st.session_state.simulation_results.config_data), expanded=False)
 
-            # TODO: Does this take too much time?
+            t_start = time.time()
             with st.expander('Taxes and fees on internal trades:'):
                 tax_fee = aggregated_taxes_and_fees_results_df()
                 st.dataframe(tax_fee)
@@ -286,6 +287,8 @@ if __name__ == '__main__':
                 st.dataframe(loc_prod)
                 st.caption("Total amount of heating produced by local heat pumps "
                            + "and total amount of locally produced electricity.")
+            t_end = time.time()
+            logger.info('Time to display aggregated results: {} seconds'.format(t_end - t_start))
 
         if 'price_chart' in st.session_state:
             st.altair_chart(st.session_state.price_chart, use_container_width=True, theme=None)
