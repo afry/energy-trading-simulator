@@ -545,6 +545,6 @@ def results_by_agent_as_df_with_hightlight(agent_chosen_guid: str) -> pd.DataFra
         df.rename({0: key}, axis=1, inplace=True)
         lst.append(df)
     dfs = pd.concat(lst, axis=1)
-    # TODO: format floats
-    formatted_df = dfs.style.set_properties(subset=[agent_chosen_guid], **{'background-color': 'yellow'})
+    formatted_df = dfs.style.set_properties(subset=[agent_chosen_guid], **{'background-color': 'yellow'}).\
+        format('{:.2f}')
     return formatted_df
