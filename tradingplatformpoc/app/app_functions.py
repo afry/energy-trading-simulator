@@ -537,7 +537,7 @@ def aggregated_local_production_df() -> pd.DataFrame:
     return pd.DataFrame(data=data, index=['Electricity', 'Heating'], columns=['Total'])
 
 
-def results_by_agent_as_df_with_hightlight(agent_chosen_guid: str) -> pd.DataFrame:
+def results_by_agent_as_df_with_hightlight(agent_chosen_guid: str) -> pd.io.formats.style.Styler:
     res_by_agents = st.session_state.simulation_results.results_by_agent
     lst = []
     for key, val in res_by_agents.items():
