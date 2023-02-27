@@ -187,9 +187,8 @@ def results_dict_to_df(raw_dict: Dict[ResultsKey, float]) -> pd.DataFrame:
     """Converts the ResultsKey keys to strings, and then the dict to a pd.DataFrame since Streamlit likes that."""
     df = pd.DataFrame.from_dict({k.value: v for (k, v) in raw_dict.items()}, orient='index')
     df.rename({0: 'Value'}, axis=1, inplace=True)
-    # formatted_df = df.style.format({'Value': '{:.2f}'.format})
-    # return formatted_df
-    return df
+    formatted_df = df.style.format({'Value': '{:.2f}'.format})
+    return formatted_df
 
 
 def remove_agent(some_agent: Dict[str, Any]):
