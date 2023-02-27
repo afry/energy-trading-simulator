@@ -451,10 +451,9 @@ def aggregated_import_and_export_results_df_split_on_mask(mask: pd.DataFrame,
 
     res_dict = {}
     for colname, action in cols.items():
-        subdict = {}
-        subdict['# trading periods'] = {mask_colnames[0]: "{:}".format(sum(mask)),
-                                        mask_colnames[1]: "{:}".format(sum(~mask)),
-                                        'Total': "{:}".format(len(mask))}
+        subdict = {'# trading periods': {mask_colnames[0]: "{:}".format(sum(mask)),
+                                         mask_colnames[1]: "{:}".format(sum(~mask)),
+                                         'Total': "{:}".format(len(mask))}}
         for rowname, resource in rows.items():
             w_mask = "{:.2f} MWh".format(get_total_import_export(resource, action, mask) / 10**3)
             w_compl_mask = "{:.2f} MWh".format(get_total_import_export(resource, action, ~mask) / 10**3)
@@ -537,7 +536,7 @@ def aggregated_local_production_df() -> pd.DataFrame:
     return pd.DataFrame(data=data, index=['Electricity', 'Heating'], columns=['Total'])
 
 
-def results_by_agent_as_df_with_hightlight(agent_chosen_guid: str) -> pd.io.formats.style.Styler:
+def results_by_agent_as_df_with_highlight(agent_chosen_guid: str) -> pd.io.formats.style.Styler:
     res_by_agents = st.session_state.simulation_results.results_by_agent
     lst = []
     for key, val in res_by_agents.items():
@@ -545,6 +544,6 @@ def results_by_agent_as_df_with_hightlight(agent_chosen_guid: str) -> pd.io.form
         df.rename({0: key}, axis=1, inplace=True)
         lst.append(df)
     dfs = pd.concat(lst, axis=1)
-    formatted_df = dfs.style.set_properties(subset=[agent_chosen_guid], **{'background-color': 'yellow'}).\
+    formatted_df = dfs.style.set_properties(subset=[agent_chosen_guid], **{'background-color': 'lemonchiffon'}).\
         format('{:.2f}')
     return formatted_df

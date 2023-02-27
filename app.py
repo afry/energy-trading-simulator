@@ -13,7 +13,7 @@ from tradingplatformpoc.app.app_functions import add_building_agent, add_grocery
     aggregated_import_and_export_results_df_split_on_temperature, aggregated_local_production_df, \
     aggregated_taxes_and_fees_results_df, construct_building_with_heat_pump_chart, construct_price_chart, \
     construct_prices_df, construct_storage_level_chart, get_agent, get_price_df_when_local_price_inbetween, \
-    results_by_agent_as_df_with_hightlight, get_viewable_df, remove_all_building_agents, set_max_width
+    results_by_agent_as_df_with_highlight, get_viewable_df, remove_all_building_agents, set_max_width
 from tradingplatformpoc.bid import Resource
 from tradingplatformpoc.simulation_runner import run_trading_simulations
 import json
@@ -271,13 +271,14 @@ if __name__ == '__main__':
                 col1, col2 = st.columns(2)
                 col1.header('Imported')
                 col2.header("Exported")
+                st.caption("Split on period of year:")
+                col1, col2 = st.columns(2)
                 col1.dataframe(imp_exp_period_dict['Imported'])
                 col2.dataframe(imp_exp_period_dict['Exported'])
-                st.caption("Split on period of year.")
+                st.caption("Split on temperature above or below 1 degree Celsius:")
                 col1, col2 = st.columns(2)
                 col1.dataframe(imp_exp_temp_dict['Imported'])
                 col2.dataframe(imp_exp_temp_dict['Exported'])
-                st.caption("Split on temperature above or below 1 degree Celsius.")
 
             with st.expander('Total of locally produced heating and electricity:'):
                 loc_prod = aggregated_local_production_df()
@@ -285,7 +286,7 @@ if __name__ == '__main__':
                 st.caption("Total amount of heating produced by local heat pumps "
                            + "and total amount of locally produced electricity.")
             t_end = time.time()
-            logger.info('Time to display aggregated results: {} seconds'.format(t_end - t_start))
+            logger.info('Time to display aggregated results: {:.3f} seconds'.format(t_end - t_start))
 
             if 'price_chart' in st.session_state:
                 st.altair_chart(st.session_state.price_chart, use_container_width=True, theme=None)
@@ -295,7 +296,7 @@ if __name__ == '__main__':
                                                                          Resource.ELECTRICITY))
 
             with st.expander('Current configuration in JSON format:'):
-                st.json(body=json.dumps(st.session_state.simulation_results.config_data), expanded=False)
+                st.json(body=json.dumps(st.session_state.simulation_results.config_data))
 
     elif page_selected == app_constants.BIDS_PAGE:
         if 'simulation_results' in st.session_state:
@@ -332,8 +333,8 @@ if __name__ == '__main__':
 
             st.subheader('Aggregated results')
 
-            results_by_agent_df = results_by_agent_as_df_with_hightlight(agent_chosen_guid)
-            st.dataframe(results_by_agent_df)
+            results_by_agent_df = results_by_agent_as_df_with_highlight(agent_chosen_guid)
+            st.dataframe(results_by_agent_df, height=563)
 
         else:
             st.write('Run simulations and load data first!')
