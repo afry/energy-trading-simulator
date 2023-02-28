@@ -233,5 +233,6 @@
 		"ElectricityGridFeeInternal": 0.13,
 		"ExternalHeatingWholesalePriceFraction": 0.5,
 		"ExternalElectricityWholesalePriceOffset": 0.05
-	}
+	},
+	"MockDataConstants": {}
 }

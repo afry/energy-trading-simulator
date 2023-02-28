@@ -293,7 +293,7 @@ def get_generated_mock_data(config_data: dict, mock_datas_pickle_path: str) -> p
     with open(mock_datas_pickle_path, 'rb') as f:
         all_data_sets = pickle.load(f)
     building_agents, total_gross_floor_area = get_all_building_agents(config_data["Agents"])
-    mock_data_key = MockDataKey(frozenset(building_agents), config_data["AreaInfo"]["DefaultPVEfficiency"])
+    mock_data_key = MockDataKey(frozenset(building_agents), frozenset(config_data["MockDataConstants"]))
     if mock_data_key not in all_data_sets:
         logger.info("No mock data found for this configuration. Running mock data generation.")
         all_data_sets = generate_mock_data.run(config_data)
@@ -319,7 +319,8 @@ def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings
             elec_cons_series = buildings_mock_data[get_elec_cons_key(agent_name)]
             space_heat_cons_series = buildings_mock_data[get_space_heat_cons_key(agent_name)]
             hot_tap_water_cons_series = buildings_mock_data[get_hot_tap_water_cons_key(agent_name)]
-            pv_prod_series = buildings_mock_data[get_pv_prod_key(agent_name)]
+            pv_efficiency = get_if_exists_else(agent, 'PVEfficiency', data_store_entity.default_pv_efficiency)
+            pv_prod_series = calculate_solar_prod(data_store_entity.irradiation_data, agent['PVArea'], pv_efficiency)
             # We're not currently supporting different temperatures of heating, it's just "heating" as a very simplified
             # entity. Therefore we'll bunch them together here for now.
             total_heat_cons_series = space_heat_cons_series + hot_tap_water_cons_series
