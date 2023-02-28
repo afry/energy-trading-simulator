@@ -12,7 +12,8 @@ from tradingplatformpoc.app.app_functions import add_building_agent, add_grocery
     add_pv_agent, add_storage_agent, aggregated_import_and_export_results_df_split_on_period, \
     aggregated_import_and_export_results_df_split_on_temperature, aggregated_local_production_df, \
     aggregated_taxes_and_fees_results_df, construct_building_with_heat_pump_chart, construct_price_chart, \
-    construct_prices_df, construct_storage_level_chart, get_agent, get_price_df_when_local_price_inbetween, \
+    construct_prices_df, construct_storage_level_chart, construct_traded_amount_by_agent_chart, get_agent, \
+    get_price_df_when_local_price_inbetween, \
     results_by_agent_as_df_with_highlight, get_viewable_df, remove_all_building_agents, set_max_width
 from tradingplatformpoc.bid import Resource
 from tradingplatformpoc.simulation_runner import run_trading_simulations
@@ -310,6 +311,11 @@ if __name__ == '__main__':
                 st.dataframe(get_viewable_df(st.session_state.simulation_results.all_trades,
                                              key='source', value=agent_chosen_guid, want_index='period',
                                              cols_to_drop=['by_external']))
+                
+                trades_chart = construct_traded_amount_by_agent_chart(agent_chosen_guid,
+                                                                      st.session_state.simulation_results.all_trades)
+                st.altair_chart(trades_chart, use_container_width=True, theme=None)
+
             with st.expander('Extra costs'):
                 st.write('A negative cost means that the agent was owed money for the period, rather than owing the '
                          'money to someone else.')

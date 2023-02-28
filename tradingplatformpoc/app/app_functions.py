@@ -547,3 +547,41 @@ def results_by_agent_as_df_with_highlight(agent_chosen_guid: str) -> pd.io.forma
     formatted_df = dfs.style.set_properties(subset=[agent_chosen_guid], **{'background-color': 'lemonchiffon'}).\
         format('{:.2f}')
     return formatted_df
+
+
+def construct_traded_amount_by_agent_chart(agent_chosen_guid, full_df):
+    """
+    TODO
+    """
+
+    df = pd.DataFrame()
+    # Defining colors manually, so that for example heat consumption has the same color for every agent, even if for
+    # example electricity production doesn't exist for one of them.
+    domain = []
+    range_color = []
+
+    full_df = full_df.loc[full_df['source'] == agent_chosen_guid].drop(['by_external'], axis=1)
+
+    elec_buy = (full_df.resource.values == Resource.ELECTRICITY) & (full_df.action.values == Action.BUY)
+    if not full_df.loc[elec_buy].empty:
+        df = pd.concat((df, pd.DataFrame({'period': full_df.loc[elec_buy].period,
+                                          'value': full_df.loc[elec_buy].quantity_post_loss,
+                                          'variable': 'Amount of electricity bought'})))
+        domain.append('Amount of electricity bought')
+        range_color.append(app_constants.ALTAIR_BASE_COLORS[0])
+    heat_buy = (full_df.resource.values == Resource.HEATING) & (full_df.action.values == Action.BUY)
+    if not full_df.loc[heat_buy].empty:
+        df = pd.concat((df, pd.DataFrame({'period': full_df.loc[heat_buy].period,
+                                          'value': full_df.loc[heat_buy].quantity_post_loss,
+                                          'variable': 'Amount of heating bought'})))
+        domain.append('Amount of heating bought')
+        range_color.append(app_constants.ALTAIR_BASE_COLORS[2])
+
+    return alt.Chart(df).mark_line(). \
+        encode(x=alt.X('period:T', axis=alt.Axis(title='Period')),
+               y=alt.Y('value', axis=alt.Axis(title='Energy [kWh]')),
+               color=alt.Color('variable', scale=alt.Scale(domain=domain, range=range_color)),
+               tooltip=[alt.Tooltip(field='period', title='Period', type='temporal', format='%Y-%m-%d %H:%M'),
+                        alt.Tooltip(field='variable', title='Variable'),
+                        alt.Tooltip(field='value', title='Value')]). \
+        interactive(bind_y=False)
