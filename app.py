@@ -1,6 +1,7 @@
 import os
 import pickle
 from logging.handlers import TimedRotatingFileHandler
+import time
 
 from pkg_resources import resource_filename
 
@@ -8,9 +9,11 @@ from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app import app_constants, footer
 from tradingplatformpoc.app.app_functions import add_building_agent, add_grocery_store_agent, agent_inputs, \
-    add_pv_agent, add_storage_agent, construct_building_with_heat_pump_chart, construct_price_chart, \
+    add_pv_agent, add_storage_agent, aggregated_import_and_export_results_df_split_on_period, \
+    aggregated_import_and_export_results_df_split_on_temperature, aggregated_local_production_df, \
+    aggregated_taxes_and_fees_results_df, construct_building_with_heat_pump_chart, construct_price_chart, \
     construct_prices_df, construct_storage_level_chart, get_agent, get_price_df_when_local_price_inbetween, \
-    get_viewable_df, results_dict_to_df, remove_all_building_agents, set_max_width
+    results_by_agent_as_df_with_highlight, get_viewable_df, remove_all_building_agents, set_max_width
 from tradingplatformpoc.bid import Resource
 from tradingplatformpoc.simulation_runner import run_trading_simulations
 import json
@@ -244,6 +247,7 @@ if __name__ == '__main__':
 
         if load_button:
             load_button = False
+            
             logger.info("Constructing price graph")
             st.spinner("Constructing price graph")
 
@@ -254,17 +258,45 @@ if __name__ == '__main__':
 
             st.success("Data loaded!")
 
-            st.write("Total taxes paid on internal trades: {:.2f} SEK "
-                     "(this includes taxes that the ElectricityGridAgent are to pay, on sales to the microgrid)".
-                     format(st.session_state.simulation_results.tax_paid))
-            st.write("Total grid fees paid on internal trades: {:.2f} SEK".
-                     format(st.session_state.simulation_results.grid_fees_paid_on_internal_trades))
+            t_start = time.time()
+            with st.expander('Taxes and fees on internal trades:'):
+                tax_fee = aggregated_taxes_and_fees_results_df()
+                st.dataframe(tax_fee)
+                st.caption("Tax paid includes taxes that the ElectricityGridAgent "
+                           "are to pay, on sales to the microgrid.")
 
-        if 'price_chart' in st.session_state:
-            st.altair_chart(st.session_state.price_chart, use_container_width=True, theme=None)
-            with st.expander("Periods where local electricity price was between external retail and wholesale price:"):
-                st.dataframe(get_price_df_when_local_price_inbetween(st.session_state.combined_price_df,
-                                                                     Resource.ELECTRICITY))
+            with st.expander('Total imported and exported electricity and heating:'):
+                imp_exp_period_dict = aggregated_import_and_export_results_df_split_on_period()
+                imp_exp_temp_dict = aggregated_import_and_export_results_df_split_on_temperature()
+                col1, col2 = st.columns(2)
+                col1.header('Imported')
+                col2.header("Exported")
+                st.caption("Split on period of year:")
+                col1, col2 = st.columns(2)
+                col1.dataframe(imp_exp_period_dict['Imported'])
+                col2.dataframe(imp_exp_period_dict['Exported'])
+                st.caption("Split on temperature above or below 1 degree Celsius:")
+                col1, col2 = st.columns(2)
+                col1.dataframe(imp_exp_temp_dict['Imported'])
+                col2.dataframe(imp_exp_temp_dict['Exported'])
+
+            with st.expander('Total of locally produced heating and electricity:'):
+                loc_prod = aggregated_local_production_df()
+                st.dataframe(loc_prod)
+                st.caption("Total amount of heating produced by local heat pumps "
+                           + "and total amount of locally produced electricity.")
+            t_end = time.time()
+            logger.info('Time to display aggregated results: {:.3f} seconds'.format(t_end - t_start))
+
+            if 'price_chart' in st.session_state:
+                st.altair_chart(st.session_state.price_chart, use_container_width=True, theme=None)
+                with st.expander("Periods where local electricity price was "
+                                 "between external retail and wholesale price:"):
+                    st.dataframe(get_price_df_when_local_price_inbetween(st.session_state.combined_price_df,
+                                                                         Resource.ELECTRICITY))
+
+            with st.expander('Current configuration in JSON format:'):
+                st.json(body=json.dumps(st.session_state.simulation_results.config_data))
 
     elif page_selected == app_constants.BIDS_PAGE:
         if 'simulation_results' in st.session_state:
@@ -300,9 +332,9 @@ if __name__ == '__main__':
                     st.altair_chart(hp_chart, use_container_width=True, theme=None)
 
             st.subheader('Aggregated results')
-            # Table with things calculated in results_calculator
-            st.dataframe(data=results_dict_to_df(
-                st.session_state.simulation_results.results_by_agent[agent_chosen_guid]))
+
+            results_by_agent_df = results_by_agent_as_df_with_highlight(agent_chosen_guid)
+            st.dataframe(results_by_agent_df, height=563)
 
         else:
             st.write('Run simulations and load data first!')
