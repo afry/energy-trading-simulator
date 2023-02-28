@@ -451,9 +451,9 @@ def aggregated_import_and_export_results_df_split_on_mask(mask: pd.DataFrame,
 
     res_dict = {}
     for colname, action in cols.items():
-        subdict = {'# trading periods': {mask_colnames[0]: "{:}".format(sum(mask)),
-                                         mask_colnames[1]: "{:}".format(sum(~mask)),
-                                         'Total': "{:}".format(len(mask))}}
+        subdict = {'# trades': {mask_colnames[0]: "{:}".format(sum(mask)),
+                                mask_colnames[1]: "{:}".format(sum(~mask)),
+                                'Total': "{:}".format(len(mask))}}
         for rowname, resource in rows.items():
             w_mask = "{:.2f} MWh".format(get_total_import_export(resource, action, mask) / 10**3)
             w_compl_mask = "{:.2f} MWh".format(get_total_import_export(resource, action, ~mask) / 10**3)
