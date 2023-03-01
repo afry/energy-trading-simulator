@@ -5,7 +5,7 @@ import logging
 import os
 import pickle
 import time
-from typing import Any, Callable, Dict, Tuple, Union, List, Iterable
+from typing import Any, Callable, Dict, Iterable, Tuple, Union
 
 import numpy as np
 
