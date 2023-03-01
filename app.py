@@ -143,12 +143,12 @@ if __name__ == '__main__':
         st.session_state.config_data['AreaInfo']['ElectricityTaxInternal'] = area_form.number_input(
             'Electricity tax (internal):', min_value=0.0, format='%.3f',
             value=st.session_state.config_data['AreaInfo']['ElectricityTaxInternal'],
-            help=app_constants.ELEC_TAX_INTERNAL_HELP_TEXT)
+            help=app_constants.ELECTRICITY_TAX_INTERNAL_HELP_TEXT)
 
         st.session_state.config_data['AreaInfo']['ElectricityGridFeeInternal'] = area_form.number_input(
             'Electricity grid fee (internal):', min_value=0.0, format='%.3f',
             value=st.session_state.config_data['AreaInfo']['ElectricityGridFeeInternal'],
-            help=app_constants.ELEC_GRID_FEE_INTERNAL_HELP_TEXT)
+            help=app_constants.ELECTRICITY_GRID_FEE_INTERNAL_HELP_TEXT)
 
         st.session_state.config_data['AreaInfo']['ExternalHeatingWholesalePriceFraction'] = area_form.number_input(
             'External heating wholesale price fraction:', min_value=0.0, max_value=1.0,
