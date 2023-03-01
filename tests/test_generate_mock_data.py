@@ -14,7 +14,8 @@ import statsmodels.api as sm
 
 from tradingplatformpoc import generate_mock_data
 from tradingplatformpoc.generate_mock_data import DATA_PATH, KWH_SPACE_HEATING_PER_YEAR_M2_SCHOOL_DEFAULT, \
-    is_day_before_major_holiday_sweden, is_major_holiday_sweden, simulate_series, simulate_space_heating
+    all_parameters_match, is_day_before_major_holiday_sweden, is_major_holiday_sweden, simulate_series, \
+    simulate_space_heating
 from tradingplatformpoc.mock_data_generation_functions import get_school_heating_consumption_hourly_factor
 from tradingplatformpoc.trading_platform_utils import hourly_datetime_array_between
 
@@ -75,3 +76,21 @@ class Test(TestCase):
         values_pd = unscaled_simulated_values_for_area.to_pandas().value
         self.assertAlmostEqual(358.64245460289527, values_pd[:8766].sum())
         self.assertAlmostEqual(0.286418874824197, values_pd[0])
+
+    def test_all_parameters_match_true(self):
+        """When agents do not contain any commercial buildings, it shouldn't matter that commercial mock data generation
+        constants are different."""
+        agent_1 = {'Name': 'ResidentialBuildingAgentB1', 'FractionCommercial': 0.0}
+        agent_2 = agent_1.copy()
+        mock_data_constants_1 = {'CommercialElecKwhPerYearM2': 50}
+        mock_data_constants_2 = {'CommercialElecKwhPerYearM2': 60}
+        self.assertTrue(all_parameters_match(agent_1, agent_2, mock_data_constants_1, mock_data_constants_2))
+
+    def test_all_parameters_match_false(self):
+        """When agents do contain commercial buildings, it should matter that commercial mock data generation
+        constants are different."""
+        agent_1 = {'Name': 'ResidentialBuildingAgentB1', 'FractionCommercial': 0.1}
+        agent_2 = agent_1.copy()
+        mock_data_constants_1 = {'CommercialElecKwhPerYearM2': 50}
+        mock_data_constants_2 = {'CommercialElecKwhPerYearM2': 60}
+        self.assertFalse(all_parameters_match(agent_1, agent_2, mock_data_constants_1, mock_data_constants_2))
