@@ -201,8 +201,8 @@ def simulate_and_add_to_output_df(config_data: Dict[str, Any], agent: dict, df_i
                                                             df_inputs, school_elec_kwh_per_year_m2,
                                                             school_electricity_relative_error_std_dev,
                                                             get_school_heating_consumption_hourly_factor, n_rows)
-        school_space_heating_cons, school_hot_tap_water_cons = \
-            simulate_school_area_heating(config_data, school_gross_floor_area_m2, seed_school_heating, df_inputs, n_rows)
+        school_space_heating_cons, school_hot_tap_water_cons = simulate_school_area_heating(
+            config_data, school_gross_floor_area_m2, seed_school_heating, df_inputs, n_rows)
         logger.debug("Adding output for agent {}".format(agent['Name']))
 
         # Note: Here we join a normal DataFrame (output_per_actor) with LazyFrames

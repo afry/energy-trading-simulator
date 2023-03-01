@@ -1,4 +1,4 @@
-from tradingplatformpoc import data_store, trading_platform_utils, generate_mock_data
+from tradingplatformpoc import data_store, trading_platform_utils
 
 WHOLESALE_PRICE_STR = 'Wholesale price'
 RETAIL_PRICE_STR = 'Retail price'
@@ -133,12 +133,12 @@ KWH_HOT_TAP_WATER_PER_YEAR_M2_COMM_HELP_TEXT = "Number indicating the hot tap wa
                                                "'köpcentrum' 5 kWh/year/m2. Since these commercial areas will " \
                                                "likely be of mixed character, we split these numbers down the middle."
 COMM_HOT_TAP_WATER_REL_ERROR_STD_DEV_HELP_TEXT = "The standard deviation of simulated hot tap water consumption of " \
-                                            "commercial areas, in relative terms. For a given hour, an expected " \
-                                            "value will be calculated, and the simulated value will then be this " \
-                                            "expected value, multiplied with a factor normally distributed with a " \
-                                            "mean of 1 and a standard deviation of this value. Basically, the higher " \
-                                            "this value is, the more commercial hot tap water consumption will vary, " \
-                                            "hour-to-hour."
+                                                 "commercial areas, in relative terms. For a given hour, an expected " \
+                                                 "value will be calculated, and the simulated value will then be " \
+                                                 "this expected value, multiplied with a factor normally distributed " \
+                                                 "with a mean of 1 and a standard deviation of this value. " \
+                                                 "Basically, the higher this value is, the more commercial hot tap " \
+                                                 "water consumption will vary, hour-to-hour."
 KWH_ELECTRICITY_PER_YEAR_M2_SCHOOL_HELP_TEXT = "Number indicating the electricity consumption of school buildings, " \
                                                "in kWh per year and square meter. The default of 60 kWh/year/m2 " \
                                                "comes from Energimyndigheten's 2009 report 'Energin i skolan'."
@@ -155,12 +155,12 @@ KWH_HOT_TAP_WATER_PER_YEAR_M2_SCHOOL_HELP_TEXT = "Number indicating the hot tap 
                                                  "buildings, in kWh per year and square meter. The default of 7 " \
                                                  "kWh/year/m2 has been provided by BDAB."
 SCHOOL_HOT_TAP_WATER_REL_ERROR_STD_DEV_HELP_TEXT = "The standard deviation of simulated hot tap water consumption of " \
-                                              "school buildings, in relative terms. For a given hour, an expected " \
-                                              "value will be calculated, and the simulated value will then be this " \
-                                              "expected value, multiplied with a factor normally distributed with a " \
-                                              "mean of 1 and a standard deviation of this value. Basically, the " \
-                                              "higher this value is, the more school hot tap water consumption will " \
-                                              "vary, hour-to-hour."
+                                                   "school buildings, in relative terms. For a given hour, an " \
+                                                   "expected value will be calculated, and the simulated value " \
+                                                   "will then be this expected value, multiplied with a factor " \
+                                                   "normally distributed with a mean of 1 and a standard deviation " \
+                                                   "of this value. Basically, the higher this value is, the more " \
+                                                   "school hot tap water consumption will vary, hour-to-hour."
 # Long texts
 # CONFIG_GUIDELINES_MARKDOWN is kind of deprecated - now that we have input fields, descriptions on the JSON file is
 # kind of redundant since no one will presumably be constructing it by hand anyway.

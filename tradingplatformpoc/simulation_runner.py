@@ -22,7 +22,7 @@ from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
 from tradingplatformpoc.extra_cost import ExtraCost
 from tradingplatformpoc.mock_data_generation_functions import MockDataKey, get_all_building_agents, get_elec_cons_key, \
-    get_hot_tap_water_cons_key, get_pv_prod_key, get_space_heat_cons_key
+    get_hot_tap_water_cons_key, get_space_heat_cons_key
 from tradingplatformpoc.results import results_calculator
 from tradingplatformpoc.results.simulation_results import SimulationResults
 from tradingplatformpoc.trade import Trade, TradeMetadataKey
