@@ -5,7 +5,7 @@ import logging
 import os
 import pickle
 import time
-from typing import Any, Callable, Dict, Tuple, Union
+from typing import Any, Callable, Dict, Tuple, Union, List, Iterable
 
 import numpy as np
 
@@ -86,7 +86,7 @@ def run(config_data: Dict[str, Any]) -> Dict[MockDataKey, pl.DataFrame]:
     building_agents, total_gross_floor_area_residential = get_all_building_agents(config_data["Agents"])
     if 'MockDataConstants' not in config_data:
         config_data['MockDataConstants'] = {}
-    mock_data_key = MockDataKey(frozenset(building_agents), frozenset(config_data['MockDataConstants']))
+    mock_data_key = MockDataKey(frozenset(building_agents), frozenset(config_data['MockDataConstants'].items()))
 
     if mock_data_key in all_data_sets:
         logger.info('Already had mock data for the configuration described in %s, exiting generate_mock_data' %
@@ -141,7 +141,7 @@ def simulate_and_add_to_output_df(config_data: Dict[str, Any], agent: dict, df_i
     agent = dict(agent)  # "Unfreezing" the frozenset
     logger.debug('Starting work on \'{}\''.format(agent['Name']))
 
-    pre_existing_data = find_agent_in_other_data_sets(agent, all_data_sets)
+    pre_existing_data = find_agent_in_other_data_sets(agent, config_data['MockDataConstants'], all_data_sets)
     if len(pre_existing_data.columns) > 0:
         output_per_actor = output_per_actor.join(pre_existing_data, on='datetime', how='left')
 
@@ -616,8 +616,8 @@ def simulate_residential_total_heating(config_data: Dict[str, Any], df_inputs: p
     return space_heating_scaled, hot_tap_water_scaled
 
 
-def find_agent_in_other_data_sets(agent_dict: Dict[str, Any], all_data_sets: Dict[MockDataKey, pl.DataFrame]) -> \
-        pl.DataFrame:
+def find_agent_in_other_data_sets(agent_dict: Dict[str, Any], mock_data_constants: Dict[str, Any],
+                                  all_data_sets: Dict[MockDataKey, pl.DataFrame]) -> pl.DataFrame:
     """Introduced in RES-216 - looking through other data sets, if this agent was present there, we can re-use that,
     instead of running the generation step again. This saves time. If no usable data is found, the returned DataFrame
     will be empty."""
@@ -625,17 +625,12 @@ def find_agent_in_other_data_sets(agent_dict: Dict[str, Any], all_data_sets: Dic
     found_cons_data = False
     for mock_data_key, mock_data in all_data_sets.items():
         set_of_building_agents = mock_data_key.building_agents_frozen_set
-        # other_mock_data_constants = mock_data_key.mock_data_constants
+        other_mock_data_constants = dict(mock_data_key.mock_data_constants)
         for other_agent in set_of_building_agents:
             other_agent_dict = dict(other_agent)
-            # TODO: Check relevant fields of mock_data_constants?
 
-            if (not found_cons_data) and (agent_dict['Name'] == other_agent_dict['Name']) and \
-                    (agent_dict['GrossFloorArea'] == other_agent_dict['GrossFloorArea']) and \
-                    (get_if_exists_else(agent_dict, 'FractionCommercial', 0)
-                     == get_if_exists_else(other_agent_dict, 'FractionCommercial', 0)) and \
-                    (get_if_exists_else(agent_dict, 'FractionSchool', 0)
-                     == get_if_exists_else(other_agent_dict, 'FractionSchool', 0)):
+            if (not found_cons_data) and \
+                    all_parameters_match(agent_dict, other_agent_dict, mock_data_constants, other_mock_data_constants):
                 # All parameters relating to generating energy usage data are the same
                 logger.debug('For agent \'{}\' found energy consumption data to re-use'.format(agent_dict['Name']))
                 found_cons_data = True
@@ -647,6 +642,59 @@ def find_agent_in_other_data_sets(agent_dict: Dict[str, Any], all_data_sets: Dic
                     data_to_reuse = data_to_reuse.with_column(mock_data['datetime'])
                 data_to_reuse = pl.concat((data_to_reuse, cons_data), how='horizontal')
     return data_to_reuse
+
+
+def all_parameters_match(agent_dict: Dict[str, Any], other_agent_dict: Dict[str, Any],
+                         mock_data_constants: Dict[str, Any], other_mock_data_constants: Dict[str, Any]) -> bool:
+    """
+    Check if all parameters used for generating mock data for a given pair of agents are the same.
+    Looks at fields in the agent dictionaries themselves, but also the relevant mock data constants. If an agent has
+    no commercial areas, for example, then it doesn't matter that mock data constants relating to commercial areas are
+    different.
+    """
+    if agent_parameters_match(agent_dict, other_agent_dict):
+        relevant_mock_data_generation_constants_match: bool = True
+        if get_if_exists_else(agent_dict, 'FractionCommercial', 0) > 0 and \
+                not all_fields_match(mock_data_constants, other_mock_data_constants,
+                                     ['CommercialElecKwhPerYearM2',
+                                      'CommercialElecRelativeErrorStdDev',
+                                      'CommercialSpaceHeatKwhPerYearM2',
+                                      'CommercialHotTapWaterKwhPerYearM2',
+                                      'CommercialHotTapWaterRelativeErrorStdDev']):
+            relevant_mock_data_generation_constants_match = False
+
+        if get_if_exists_else(agent_dict, 'FractionSchool', 0) > 0 and \
+                not all_fields_match(mock_data_constants, other_mock_data_constants,
+                                     ['SchoolElecKwhPerYearM2',
+                                      'SchoolElecRelativeErrorStdDev',
+                                      'SchoolSpaceHeatKwhPerYearM2',
+                                      'SchoolHotTapWaterKwhPerYearM2',
+                                      'SchoolHotTapWaterRelativeErrorStdDev']):
+            relevant_mock_data_generation_constants_match = False
+
+        fraction_residential = 1 - get_if_exists_else(agent_dict, 'FractionCommercial', 0) - \
+            get_if_exists_else(agent_dict, 'FractionSchool', 0)
+        if fraction_residential > 0 and not all_fields_match(mock_data_constants, other_mock_data_constants,
+                                                             ['ResidentialElecKwhPerYearM2Atemp',
+                                                              'ResidentialSpaceHeatKwhPerYearM2',
+                                                              'ResidentialHotTapWaterKwhPerYearM2',
+                                                              'ResidentialHeatingRelativeErrorStdDev']):
+            relevant_mock_data_generation_constants_match = False
+
+        return relevant_mock_data_generation_constants_match
+    return False
+
+
+def agent_parameters_match(agent_dict: Dict[str, Any], other_agent_dict: Dict[str, Any]) -> bool:
+    fields_to_check = ['Name', 'GrossFloorArea', 'FractionCommercial', 'FractionSchool']
+    return all_fields_match(agent_dict, other_agent_dict, fields_to_check)
+
+
+def all_fields_match(dict_1: dict, dict_2: dict, keys_list: Iterable) -> bool:
+    for key in keys_list:
+        if get_if_exists_else(dict_1, key, 0) != get_if_exists_else(dict_2, key, 0):
+            return False
+    return True
 
 
 def calculate_seed_from_string(some_string: str) -> int:
