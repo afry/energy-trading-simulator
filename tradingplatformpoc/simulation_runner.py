@@ -293,7 +293,7 @@ def get_generated_mock_data(config_data: dict, mock_datas_pickle_path: str) -> p
     with open(mock_datas_pickle_path, 'rb') as f:
         all_data_sets = pickle.load(f)
     building_agents, total_gross_floor_area = get_all_building_agents(config_data["Agents"])
-    mock_data_key = MockDataKey(frozenset(building_agents), frozenset(config_data["MockDataConstants"]))
+    mock_data_key = MockDataKey(frozenset(building_agents), frozenset(config_data["MockDataConstants"].items()))
     if mock_data_key not in all_data_sets:
         logger.info("No mock data found for this configuration. Running mock data generation.")
         all_data_sets = generate_mock_data.run(config_data)
