@@ -227,12 +227,27 @@
 	"AreaInfo": {
 		"DefaultPVEfficiency": 0.165,
 		"HeatTransferLoss": 0.05,
-		"ElectricityTax": 0.36,
-		"ElectricityGridFee": 0.13,
-		"ElectricityTaxInternal": 0.36,
-		"ElectricityGridFeeInternal": 0.13,
+		"ElectricityTax": 0.392,
+		"ElectricityGridFee": 0.148,
+		"ElectricityTaxInternal": 0.392,
+		"ElectricityGridFeeInternal": 0.148,
 		"ExternalHeatingWholesalePriceFraction": 0.5,
 		"ExternalElectricityWholesalePriceOffset": 0.05
 	},
-	"MockDataConstants": {}
+	"MockDataConstants": {
+		"ResidentialElecKwhPerYearM2Atemp": 20,
+		"ResidentialSpaceHeatKwhPerYearM2": 25,
+		"ResidentialHotTapWaterKwhPerYearM2": 25,
+		"ResidentialHeatingRelativeErrorStdDev": 0.2,
+		"CommercialElecKwhPerYearM2": 118,
+		"CommercialElecRelativeErrorStdDev": 0.2,
+		"CommercialSpaceHeatKwhPerYearM2": 32,
+		"CommercialHotTapWaterKwhPerYearM2": 3.5,
+		"CommercialHotTapWaterRelativeErrorStdDev": 0.2,
+		"SchoolElecKwhPerYearM2": 60,
+		"SchoolElecRelativeErrorStdDev": 0.2,
+		"SchoolSpaceHeatKwhPerYearM2": 25,
+		"SchoolHotTapWaterKwhPerYearM2": 7,
+		"SchoolHotTapWaterRelativeErrorStdDev": 0.2
+	}
 }

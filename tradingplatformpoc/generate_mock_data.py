@@ -20,10 +20,9 @@ from statsmodels.regression.linear_model import RegressionResultsWrapper
 
 from tradingplatformpoc import commercial_heating_model
 from tradingplatformpoc.mock_data_generation_functions import MockDataKey, get_all_building_agents, \
-    get_commercial_electricity_consumption_hourly_factor, \
-    get_commercial_heating_consumption_hourly_factor, \
-    get_elec_cons_key, get_hot_tap_water_cons_key, get_pv_prod_key, \
-    get_school_heating_consumption_hourly_factor, get_space_heat_cons_key, load_existing_data_sets
+    get_commercial_electricity_consumption_hourly_factor, get_commercial_heating_consumption_hourly_factor, \
+    get_elec_cons_key, get_hot_tap_water_cons_key, get_school_heating_consumption_hourly_factor, \
+    get_space_heat_cons_key, load_existing_data_sets
 from tradingplatformpoc.trading_platform_utils import get_if_exists_else, nan_helper
 
 CONFIG_FILE = 'default_config.json'
@@ -33,33 +32,35 @@ DATA_PATH = 'tradingplatformpoc.data'
 MOCK_DATAS_PICKLE = resource_filename(DATA_PATH, 'mock_datas.pickle')
 
 KWH_PER_YEAR_M2_ATEMP_DEFAULT = 20  # According to Skanska: 20 kWh/year/m2 Atemp
-M2_PER_APARTMENT_DEFAULT = 70
-# Will use this to set random seed.
-RESIDENTIAL_HEATING_SEED_SUFFIX = "RH"
 EVERY_X_HOURS = 3  # Random noise will be piecewise linear, with knots every X hours
 RESIDENTIAL_HEATING_RELATIVE_ERROR_STD_DEV_DEFAULT = 0.2
 # For the following two, see https://doc.afdrift.se/display/RPJ/Expected+energy+use+for+different+buildings
 KWH_PER_YEAR_M2_RESIDENTIAL_SPACE_HEATING_DEFAULT = 25
 KWH_PER_YEAR_M2_RESIDENTIAL_HOT_TAP_WATER_DEFAULT = 25
+
 # Constants for the 'commercial' electricity bit:
-COMMERCIAL_ELECTRICITY_SEED_SUFFIX = "CE"
 COMM_ELEC_KWH_PER_YEAR_M2_DEFAULT = 118
 COMM_ELEC_REL_ERROR_STD_DEV_DEFAULT = 0.2
 # Constants for the 'commercial' heating bit:
-COMMERCIAL_HEATING_SEED_SUFFIX = "CH"
 # As per https://doc.afdrift.se/display/RPJ/Commercial+areas
 KWH_SPACE_HEATING_PER_YEAR_M2_COMMERCIAL_DEFAULT = 32
 KWH_HOT_TAP_WATER_PER_YEAR_M2_COMMERCIAL_DEFAULT = 3.5
 COMMERCIAL_HOT_TAP_WATER_RELATIVE_ERROR_STD_DEV_DEFAULT = 0.2
+
 # Constants for school
-SCHOOL_HEATING_SEED_SUFFIX = "SH"
-SCHOOL_ELECTRICITY_SEED_SUFFIX = "SE"
 KWH_ELECTRICITY_PER_YEAR_M2_SCHOOL_DEFAULT = 60
 SCHOOL_ELEC_REL_ERROR_STD_DEV_DEFAULT = 0.2
 SCHOOL_HOT_TAP_WATER_RELATIVE_ERROR_STD_DEV_DEFAULT = 0.2
 # For the following two, see https://doc.afdrift.se/display/RPJ/Expected+energy+use+for+different+buildings
 KWH_HOT_TAP_WATER_PER_YEAR_M2_SCHOOL_DEFAULT = 7
 KWH_SPACE_HEATING_PER_YEAR_M2_SCHOOL_DEFAULT = 25
+
+# Will use these to set random seed.
+RESIDENTIAL_HEATING_SEED_SUFFIX = "RH"
+COMMERCIAL_ELECTRICITY_SEED_SUFFIX = "CE"
+COMMERCIAL_HEATING_SEED_SUFFIX = "CH"
+SCHOOL_HEATING_SEED_SUFFIX = "SH"
+SCHOOL_ELECTRICITY_SEED_SUFFIX = "SE"
 
 """
 This script generates the following, for BuildingAgents:
@@ -69,7 +70,6 @@ This script generates the following, for BuildingAgents:
 *Commercial hot water consumption data
 *Residential space heating consumption data
 *Commercial space heating consumption data
-*Rooftop PV production data
 It stores such data in the MOCK_DATAS_PICKLE file, as a dictionary, where the set of BuildingAgents used to generate the
 data is the key, and a pl.DataFrame of generated data is the value. This way, simulation_runner can get the correct mock
 data set for the given config.
@@ -609,7 +609,7 @@ def simulate_residential_total_heating(config_data: Dict[str, Any], df_inputs: p
     space_heating_scaled = scale_energy_consumption(space_heating_unscaled, gross_floor_area_m2,
                                                     space_heating_per_year_per_m2, n_rows)
     hot_tap_water_per_year_per_m2 = get_if_exists_else(config_data['MockDataConstants'],
-                                                       'ResidentialSpaceHeatKwhPerYearM2',
+                                                       'ResidentialHotTapWaterKwhPerYearM2',
                                                        KWH_PER_YEAR_M2_RESIDENTIAL_HOT_TAP_WATER_DEFAULT)
     hot_tap_water_scaled = scale_energy_consumption(hot_tap_water_unscaled, gross_floor_area_m2,
                                                     hot_tap_water_per_year_per_m2, n_rows)
