@@ -64,7 +64,7 @@ COMMERCIAL_ELECTRICITY_CONSUMPTION_HOURLY_FACTOR = {
 @dataclass(frozen=True)
 class MockDataKey:
     building_agents_frozen_set: frozenset
-    default_pv_efficiency: float
+    mock_data_constants: frozenset
 
 
 def load_existing_data_sets(file_path: str) -> Dict[MockDataKey, pl.DataFrame]:
