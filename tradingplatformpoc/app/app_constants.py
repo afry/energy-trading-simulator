@@ -189,9 +189,9 @@ AREA_INFO_EXAMPLE = """
     "DefaultPVEfficiency": 0.165,
     "HeatTransferLoss": 0.05,
     "ElectricityTax": 0.392,
-    "ElectricityGridFee": 0.13,
-    "ElectricityTaxInternal": 0.2,
-    "ElectricityGridFeeInternal": 0.065,
+    "ElectricityGridFee": 0.148,
+    "ElectricityTaxInternal": 0.392,
+    "ElectricityGridFeeInternal": 0.148,
     "ExternalHeatingWholesalePriceFraction": 0.5,
     "ExternalElectricityWholesalePriceOffset": 0.05
 }
