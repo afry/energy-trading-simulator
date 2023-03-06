@@ -553,7 +553,7 @@ def construct_traded_amount_by_agent_chart(agent_chosen_guid: str,
                                            full_df: pd.DataFrame) -> alt.Chart:
     """
     Plot amount of electricity and heating sold and bought.
-    @param agent_chosen_guid: Name of chosen agen
+    @param agent_chosen_guid: Name of chosen agent
     @param full_df: All trades in simulation results
     @return: Altair chart with plot of sold and bought resources
     """
