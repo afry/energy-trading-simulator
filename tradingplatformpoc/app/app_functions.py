@@ -549,24 +549,27 @@ def results_by_agent_as_df_with_highlight(agent_chosen_guid: str) -> pd.io.forma
     return formatted_df
 
 
-def construct_traded_amount_by_agent_chart(agent_chosen_guid, full_df):
+def construct_traded_amount_by_agent_chart(agent_chosen_guid: str,
+                                           full_df: pd.DataFrame) -> alt.Chart:
     """
-    TODO
+    Plot amount of electricity and heating sold and bought.
+    @param agent_chosen_guid: Name of chosen agen
+    @param full_df: All trades in simulation results
+    @return: Altair chart with plot of sold and bought resources
     """
 
     df = pd.DataFrame()
-    # Defining colors manually, so that for example heat consumption has the same color for every agent, even if for
-    # example electricity production doesn't exist for one of them.
+
     domain = []
     range_color = []
-    plot_lst = [{'title': 'Amount of electricity bought', 'color_num': 0,
-                'resource': Resource.ELECTRICITY, 'action': Action.BUY},
-                {'title': 'Amount of electricity sold', 'color_num': 1,
-                'resource': Resource.ELECTRICITY, 'action': Action.SELL},
-                {'title': 'Amount of heating bought', 'color_num': 2,
-                'resource': Resource.HEATING, 'action': Action.BUY},
-                {'title': 'Amount of heating sold', 'color_num': 3,
-                'resource': Resource.HEATING, 'action': Action.SELL}]
+    plot_lst: List[dict] = [{'title': 'Amount of electricity bought', 'color_num': 0,
+                            'resource': Resource.ELECTRICITY, 'action': Action.BUY},
+                            {'title': 'Amount of electricity sold', 'color_num': 1,
+                            'resource': Resource.ELECTRICITY, 'action': Action.SELL},
+                            {'title': 'Amount of heating bought', 'color_num': 2,
+                            'resource': Resource.HEATING, 'action': Action.BUY},
+                            {'title': 'Amount of heating sold', 'color_num': 3,
+                            'resource': Resource.HEATING, 'action': Action.SELL}]
 
     full_df = full_df.loc[full_df['source'] == agent_chosen_guid].drop(['by_external'], axis=1)
 
