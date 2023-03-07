@@ -32,23 +32,26 @@ ELECTRICITY_WHOLESALE_PRICE_OFFSET_HELP_TEXT = "The price at which the microgrid
     "electricity to the external grid, will be set to the Nordpool spot price, plus this offset. The unit is SEK/kWh." \
     " For Varberg Energi, indications are that this will be in the 0-0.15 range. If not specified, will default " \
     "to " + str(data_store.DEFAULT_ELECTRICITY_WHOLESALE_PRICE_OFFSET)
-ELECTRICITY_TAX_HELP_TEXT = "The electricity tax in SEK/kWh. For 2022, this is 0.36, but here it can be set to any " \
-                            "(non-negative) number"
-ELECTRICITY_GRID_FEE_HELP_TEXT = "The electricity grid fee in SEK/kWh. The price at which electricity can be " \
+ELECTRICITY_TAX_HELP_TEXT = "The electricity tax in SEK/kWh, for trades not inside the local market. For 2022, this " \
+                            "is 0.392, but here it can be set to any (non-negative) number"
+ELECTRICITY_GRID_FEE_HELP_TEXT = "The electricity grid fee in SEK/kWh, for trades not inside the local market. The " \
+                                 "price at which electricity can be " \
                                  "imported into the microgrid will be set to the Nordpool spot price, plus the " \
                                  "electricity tax, plus this number. In reality it is quite complicated to calculate," \
                                  " since it depends on the average effect used for the three months with highest " \
                                  "consumption over the year, but here we approximate it with a flat SEK/kWh rate. " \
-                                 "For Varberg Energi in 2022 this approximation is roughly equal " \
-                                 "to 0.13, but here it can be set to any (non-negative) number"
+                                 "For Varberg Energi in 2023 this approximation is roughly equal " \
+                                 "to 0.148, but here it can be set to any (non-negative) number"
+ELECTRICITY_TAX_INTERNAL_HELP_TEXT = "The electricity tax in SEK/kWh, paid on internal trades in the local market. " \
+                                     "Should be between 0 and the 'external'/'normal' tax"
+ELECTRICITY_GRID_FEE_INTERNAL_HELP_TEXT = "The grid fee, in SEK/kWh, paid on internal trades in the local market. " \
+                                          "Should be between 0 and the 'external'/'normal' grid fee"
 HEATING_WHOLESALE_PRICE_FRACTION_HELP_TEXT = "The price at which the microgrid can export heat to the " \
     "external grid, will be set to the import (retail) price, multiplied by this factor. Should be less than 1. " \
     "In reality, the external grid may not want to buy any heat from the microgrid at all - this can be achieved by " \
     "setting this number to 0. If not specified, will default to " + \
     str(data_store.DEFAULT_HEATING_WHOLESALE_PRICE_FRACTION)
 CO2_PEN_RATE_HELP_TEXT = "Not yet implemented!"
-ELEC_GRID_FEE_INTERNAL_HELP_TEXT = "Currently set to 0. Possibility to change this is not yet implemented"
-ELEC_TAX_INTERNAL_HELP_TEXT = "Currently set to 0. Possibility to change this is not yet implemented"
 GROSS_FLOOR_AREA_HELP_TEXT = "Specified in square meters, used for calculating the energy demand"
 FRACTION_COMMERCIAL_HELP_TEXT = "A number from 0 to 1, specifying how large a " \
     "share of the area which should be treated as commercial buildings, as opposed to residential. " \
@@ -86,7 +89,79 @@ HEAT_PUMPS_HELP_TEXT = "Heat pumps allow the building agent to convert electrici
 HEAT_PUMP_COP_HELP_TEXT = "With this parameter, one can modify the relative Coefficient of Performance of the " \
     "agent's heat pumps. The default is 4.6, which is the tabulated value for a medium sized 'Thermia Mega 2020' " \
     "running on 3600 RPM, with a forward temperature of 35 degrees and a brine fluid temperature of 0 degrees Celsius"
+KWH_PER_YEAR_M2_ATEMP_HELP_TEXT = "Number indicating the electricity consumption of residential areas, in kWh per " \
+                                  "year and square meter. The default of 20 kWh/year/m2 'atemp' comes from a " \
+                                  "2017-2018 metering study made by Skanska, 'Hushållsel i nybyggda flerbostadshus'. " \
+                                  "'Atemp' refers to a specific surface area measurement from which energy-related " \
+                                  "metrics are calculated. Essentially, it's the surface area which experiences a " \
+                                  "temperature modulation by an energy source."
+KWH_PER_YEAR_M2_RES_SPACE_HEATING_HELP_TEXT = "Number indicating the space heating consumption of residential " \
+                                              "areas, in kWh per year and square meter. The default of 25 " \
+                                              "kWh/year/m2 has been provided by BDAB."
+KWH_PER_YEAR_M2_RES_HOT_TAP_WATER_HELP_TEXT = "Number indicating the hot tap water consumption of residential " \
+                                              "areas, in kWh per year and square meter. The default of 25 " \
+                                              "kWh/year/m2 has been provided by BDAB."
+RES_HEATING_REL_ERROR_STD_DEV_HELP_TEXT = "The standard deviation of simulated heating consumption of " \
+                                          "residential areas, in relative terms. For a given hour, an expected " \
+                                          "value will be calculated, and the simulated value will then be this " \
+                                          "expected value, multiplied with a factor normally distributed with a " \
+                                          "mean of 1 and a standard deviation of this value. Basically, the " \
+                                          "higher this value is, the more residential heating consumption will " \
+                                          "vary, hour-to-hour."
+COMM_ELEC_KWH_PER_YEAR_M2_HELP_TEXT = "Number indicating the electricity consumption of commercial areas, in kWh per " \
+                                      "year and square meter. The default of 118 kWh/year/m2 comes from " \
+                                      "Energimyndigheten's 2009 report 'Energianvändning i handelslokaler'. This " \
+                                      "number is given for 'non-grocery-related' trades premises."
+COMM_ELEC_REL_ERROR_STD_DEV_HELP_TEXT = "The standard deviation of simulated electricity consumption of commercial " \
+                                        "areas, in relative terms. For a given hour, an expected value will be " \
+                                        "calculated, and the simulated value will then be this expected value, " \
+                                        "multiplied with a factor normally distributed with a mean of 1 and a " \
+                                        "standard deviation of this value. Basically, the higher this value is, the " \
+                                        "more commercial electricity consumption will vary, hour-to-hour."
+KWH_SPACE_HEATING_PER_YEAR_M2_COMM_HELP_TEXT = "Number indicating the space heating consumption of commercial areas, " \
+                                               "in kWh per year and square meter. The default of 32 kWh/year/m2 has " \
+                                               "been derived from a combination of numbers provided by BDAB: For " \
+                                               "commercial office buildings, they quote 20 kWh/year/m2, and for " \
+                                               "'köpcentrum' 44 kWh/year/m2. Since these commercial areas will " \
+                                               "likely be of mixed character, we split these numbers down the middle."
+KWH_HOT_TAP_WATER_PER_YEAR_M2_COMM_HELP_TEXT = "Number indicating the hot tap water consumption of commercial areas, " \
+                                               "in kWh per year and square meter. The default of 3.5 kWh/year/m2 has " \
+                                               "been derived from a combination of numbers provided by BDAB: For " \
+                                               "commercial office buildings, they quote 2 kWh/year/m2, and for " \
+                                               "'köpcentrum' 5 kWh/year/m2. Since these commercial areas will " \
+                                               "likely be of mixed character, we split these numbers down the middle."
+COMM_HOT_TAP_WATER_REL_ERROR_STD_DEV_HELP_TEXT = "The standard deviation of simulated hot tap water consumption of " \
+                                                 "commercial areas, in relative terms. For a given hour, an expected " \
+                                                 "value will be calculated, and the simulated value will then be " \
+                                                 "this expected value, multiplied with a factor normally distributed " \
+                                                 "with a mean of 1 and a standard deviation of this value. " \
+                                                 "Basically, the higher this value is, the more commercial hot tap " \
+                                                 "water consumption will vary, hour-to-hour."
+KWH_ELECTRICITY_PER_YEAR_M2_SCHOOL_HELP_TEXT = "Number indicating the electricity consumption of school buildings, " \
+                                               "in kWh per year and square meter. The default of 60 kWh/year/m2 " \
+                                               "comes from Energimyndigheten's 2009 report 'Energin i skolan'."
+SCHOOL_ELEC_REL_ERROR_STD_DEV_HELP_TEXT = "The standard deviation of simulated electricity consumption of school " \
+                                          "areas, in relative terms. For a given hour, an expected value will be " \
+                                          "calculated, and the simulated value will then be this expected value, " \
+                                          "multiplied with a factor normally distributed with a mean of 1 and a " \
+                                          "standard deviation of this value. Basically, the higher this value is, " \
+                                          "the more school electricity consumption will vary, hour-to-hour."
+KWH_SPACE_HEATING_PER_YEAR_M2_SCHOOL_HELP_TEXT = "Number indicating the space heating consumption of school " \
+                                                 "buildings, in kWh per year and square meter. The default of 25 " \
+                                                 "kWh/year/m2 has been provided by BDAB."
+KWH_HOT_TAP_WATER_PER_YEAR_M2_SCHOOL_HELP_TEXT = "Number indicating the hot tap water consumption of school " \
+                                                 "buildings, in kWh per year and square meter. The default of 7 " \
+                                                 "kWh/year/m2 has been provided by BDAB."
+SCHOOL_HOT_TAP_WATER_REL_ERROR_STD_DEV_HELP_TEXT = "The standard deviation of simulated hot tap water consumption of " \
+                                                   "school buildings, in relative terms. For a given hour, an " \
+                                                   "expected value will be calculated, and the simulated value " \
+                                                   "will then be this expected value, multiplied with a factor " \
+                                                   "normally distributed with a mean of 1 and a standard deviation " \
+                                                   "of this value. Basically, the higher this value is, the more " \
+                                                   "school hot tap water consumption will vary, hour-to-hour."
 # Long texts
+# CONFIG_GUIDELINES_MARKDOWN is kind of deprecated - now that we have input fields, descriptions on the JSON file is
+# kind of redundant since no one will presumably be constructing it by hand anyway.
 CONFIG_GUIDELINES_MARKDOWN = "-  The configuration file should be in JSON format\n" \
     "-  To construct your own configuration file, you could copy the file below and modify it with " \
     "an editor of your choice\n" \
@@ -103,6 +178,8 @@ CONFIG_GUIDELINES_MARKDOWN = "-  The configuration file should be in JSON format
     "           -   'HeatTransferLoss': " + HEAT_TRANSFER_LOSS_HELP_TEXT + "\n" \
     "           -   'ElectricityTax': " + ELECTRICITY_TAX_HELP_TEXT + "\n" \
     "           -   'ElectricityGridFee': " + ELECTRICITY_GRID_FEE_HELP_TEXT + "\n" \
+    "           -   'ElectricityTaxInternal': " + ELECTRICITY_TAX_INTERNAL_HELP_TEXT + "\n" \
+    "           -   'ElectricityGridFeeInternal': " + ELECTRICITY_GRID_FEE_INTERNAL_HELP_TEXT + "\n" \
     "       -   Optional properties:\n" \
     "           -   'ExternalElectricityWholesalePriceOffset': " + ELECTRICITY_WHOLESALE_PRICE_OFFSET_HELP_TEXT + "\n" \
     "           -   'ExternalHeatingWholesalePriceFraction': " + HEATING_WHOLESALE_PRICE_FRACTION_HELP_TEXT + "\n" \
@@ -111,10 +188,50 @@ AREA_INFO_EXAMPLE = """
 {
     "DefaultPVEfficiency": 0.165,
     "HeatTransferLoss": 0.05,
-    "ElectricityTax": 0.36,
-    "ElectricityGridFee": 0.13,
+    "ElectricityTax": 0.392,
+    "ElectricityGridFee": 0.148,
+    "ElectricityTaxInternal": 0.392,
+    "ElectricityGridFeeInternal": 0.148,
     "ExternalHeatingWholesalePriceFraction": 0.5,
     "ExternalElectricityWholesalePriceOffset": 0.05
+}
+"""
+MOCK_DATA_CONSTANTS_MARKDOWN = "" \
+    "   -   'MockDataConstants'\n" \
+    "       -   Optional properties:\n" \
+    "           -   'ResidentialElecKwhPerYearM2Atemp': " + KWH_PER_YEAR_M2_ATEMP_HELP_TEXT + "\n" \
+    "           -   'ResidentialSpaceHeatKwhPerYearM2': " + KWH_PER_YEAR_M2_RES_SPACE_HEATING_HELP_TEXT + "\n" \
+    "           -   'ResidentialHotTapWaterKwhPerYearM2': " + KWH_PER_YEAR_M2_RES_HOT_TAP_WATER_HELP_TEXT + "\n" \
+    "           -   'ResidentialHeatingRelativeErrorStdDev': " + RES_HEATING_REL_ERROR_STD_DEV_HELP_TEXT + "\n" \
+    "           -   'CommercialElecKwhPerYearM2': " + COMM_ELEC_KWH_PER_YEAR_M2_HELP_TEXT + "\n" \
+    "           -   'CommercialElecRelativeErrorStdDev': " + COMM_ELEC_REL_ERROR_STD_DEV_HELP_TEXT + "\n" \
+    "           -   'CommercialSpaceHeatKwhPerYearM2': " + KWH_SPACE_HEATING_PER_YEAR_M2_COMM_HELP_TEXT + "\n" \
+    "           -   'CommercialHotTapWaterKwhPerYearM2': " + KWH_HOT_TAP_WATER_PER_YEAR_M2_COMM_HELP_TEXT + "\n" \
+    "           -   'CommercialHotTapWaterRelativeErrorStdDev': " + COMM_HOT_TAP_WATER_REL_ERROR_STD_DEV_HELP_TEXT + \
+                               "\n" \
+    "           -   'SchoolElecKwhPerYearM2': " + KWH_ELECTRICITY_PER_YEAR_M2_SCHOOL_HELP_TEXT + "\n" \
+    "           -   'SchoolElecRelativeErrorStdDev': " + SCHOOL_ELEC_REL_ERROR_STD_DEV_HELP_TEXT + "\n" \
+    "           -   'SchoolSpaceHeatKwhPerYearM2': " + KWH_SPACE_HEATING_PER_YEAR_M2_SCHOOL_HELP_TEXT + "\n" \
+    "           -   'SchoolHotTapWaterKwhPerYearM2': " + KWH_HOT_TAP_WATER_PER_YEAR_M2_SCHOOL_HELP_TEXT + "\n" \
+    "           -   'SchoolHotTapWaterRelativeErrorStdDev': " + SCHOOL_HOT_TAP_WATER_REL_ERROR_STD_DEV_HELP_TEXT + \
+                               "\n" \
+    "       -  MockDataConstants example:"
+MOCK_DATA_CONSTANTS_EXAMPLE = """
+{
+    "ResidentialElecKwhPerYearM2Atemp": 20,
+    "ResidentialSpaceHeatKwhPerYearM2": 25,
+    "ResidentialHotTapWaterKwhPerYearM2": 25,
+    "ResidentialHeatingRelativeErrorStdDev": 0.2,
+    "CommercialElecKwhPerYearM2": 118.0,
+    "CommercialElecRelativeErrorStdDev": 0.2,
+    "CommercialSpaceHeatKwhPerYearM2": 32,
+    "CommercialHotTapWaterKwhPerYearM2": 3.5,
+    "CommercialHotTapWaterRelativeErrorStdDev": 0.2,
+    "SchoolElecKwhPerYearM2": 60,
+    "SchoolElecRelativeErrorStdDev": 0.2,
+    "SchoolSpaceHeatKwhPerYearM2": 25,
+    "SchoolHotTapWaterKwhPerYearM2": 7,
+    "SchoolHotTapWaterRelativeErrorStdDev": 0.2
 }
 """
 BUILDING_AGENT_SPEC_MARKDOWN = "-  Required properties, in addition to 'Type' and 'Name':\n" \

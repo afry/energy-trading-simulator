@@ -1,6 +1,7 @@
 import os
 import pickle
 from logging.handlers import TimedRotatingFileHandler
+import time
 
 from pkg_resources import resource_filename
 
@@ -8,9 +9,12 @@ from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app import app_constants, footer
 from tradingplatformpoc.app.app_functions import add_building_agent, add_grocery_store_agent, agent_inputs, \
-    add_pv_agent, add_storage_agent, construct_building_with_heat_pump_chart, construct_price_chart, \
-    construct_prices_df, construct_storage_level_chart, get_agent, get_price_df_when_local_price_inbetween, \
-    get_viewable_df, results_dict_to_df, remove_all_building_agents, set_max_width
+    add_pv_agent, add_storage_agent, aggregated_import_and_export_results_df_split_on_period, \
+    aggregated_import_and_export_results_df_split_on_temperature, aggregated_local_production_df, \
+    aggregated_taxes_and_fees_results_df, construct_building_with_heat_pump_chart, construct_price_chart, \
+    construct_prices_df, construct_storage_level_chart, construct_traded_amount_by_agent_chart, get_agent, \
+    get_price_df_when_local_price_inbetween, \
+    results_by_agent_as_df_with_highlight, get_viewable_df, remove_all_building_agents, set_max_width
 from tradingplatformpoc.bid import Resource
 from tradingplatformpoc.simulation_runner import run_trading_simulations
 import json
@@ -108,8 +112,10 @@ if __name__ == '__main__':
         # Could perhaps save the config to a temporary file on-change of these? That way changes won't get lost
         st.write("Note: Refreshing, or closing and reopening this page, will lead to configuration changes being lost. "
                  "If you wish to save your changes for another session, use the 'Export to JSON'-button below.")
-        st.subheader("General area parameters:")
+
+        st.subheader("General area parameters:")  # ---------------
         area_form = st.form(key="AreaInfoForm")
+
         st.session_state.config_data['AreaInfo']['DefaultPVEfficiency'] = area_form.number_input(
             'Default PV efficiency:', min_value=0.01, max_value=0.99, format='%.3f',
             value=st.session_state.config_data['AreaInfo']['DefaultPVEfficiency'],
@@ -126,24 +132,24 @@ if __name__ == '__main__':
             help=app_constants.ELECTRICITY_WHOLESALE_PRICE_OFFSET_HELP_TEXT)
 
         st.session_state.config_data['AreaInfo']['ElectricityTax'] = area_form.number_input(
-            'Electricity tax:', min_value=0.0,
+            'Electricity tax:', min_value=0.0, format='%.3f',
             value=st.session_state.config_data['AreaInfo']['ElectricityTax'],
             help=app_constants.ELECTRICITY_TAX_HELP_TEXT)
 
         st.session_state.config_data['AreaInfo']['ElectricityGridFee'] = area_form.number_input(
-            'Electricity grid fee:', min_value=0.0,
+            'Electricity grid fee:', min_value=0.0, format='%.3f',
             value=st.session_state.config_data['AreaInfo']['ElectricityGridFee'],
             help=app_constants.ELECTRICITY_GRID_FEE_HELP_TEXT)
 
         st.session_state.config_data['AreaInfo']['ElectricityTaxInternal'] = area_form.number_input(
-            'Electricity tax (internal):', min_value=0.0,
+            'Electricity tax (internal):', min_value=0.0, format='%.3f',
             value=st.session_state.config_data['AreaInfo']['ElectricityTaxInternal'],
-            help=app_constants.ELEC_TAX_INTERNAL_HELP_TEXT)
+            help=app_constants.ELECTRICITY_TAX_INTERNAL_HELP_TEXT)
 
         st.session_state.config_data['AreaInfo']['ElectricityGridFeeInternal'] = area_form.number_input(
-            'Electricity grid fee (internal):', min_value=0.0,
+            'Electricity grid fee (internal):', min_value=0.0, format='%.3f',
             value=st.session_state.config_data['AreaInfo']['ElectricityGridFeeInternal'],
-            help=app_constants.ELEC_GRID_FEE_INTERNAL_HELP_TEXT)
+            help=app_constants.ELECTRICITY_GRID_FEE_INTERNAL_HELP_TEXT)
 
         st.session_state.config_data['AreaInfo']['ExternalHeatingWholesalePriceFraction'] = area_form.number_input(
             'External heating wholesale price fraction:', min_value=0.0, max_value=1.0,
@@ -155,7 +161,92 @@ if __name__ == '__main__':
 
         area_form.form_submit_button("Save area info")
 
-        # Start agents
+        st.subheader("Constants used for generating data for digital twins:")  # ---------------
+        mdc_form = st.form(key="MockDataConstantsForm")
+
+        st.session_state.config_data['MockDataConstants']['ResidentialElecKwhPerYearM2Atemp'] = mdc_form.number_input(
+            'Residential electricity kWh/year/m2:', min_value=1, max_value=100,
+            value=st.session_state.config_data['MockDataConstants']['ResidentialElecKwhPerYearM2Atemp'],
+            help=app_constants.KWH_PER_YEAR_M2_ATEMP_HELP_TEXT)
+
+        st.session_state.config_data['MockDataConstants']['ResidentialSpaceHeatKwhPerYearM2'] = mdc_form.number_input(
+            'Residential space heat kWh/year/m2:', min_value=1, max_value=100,
+            value=st.session_state.config_data['MockDataConstants']['ResidentialSpaceHeatKwhPerYearM2'],
+            help=app_constants.KWH_PER_YEAR_M2_RES_SPACE_HEATING_HELP_TEXT)
+
+        st.session_state.config_data['MockDataConstants']['ResidentialHotTapWaterKwhPerYearM2'] = mdc_form.number_input(
+            'Residential hot tap water kWh/year/m2:', min_value=1, max_value=100,
+            value=st.session_state.config_data['MockDataConstants']['ResidentialHotTapWaterKwhPerYearM2'],
+            help=app_constants.KWH_PER_YEAR_M2_RES_HOT_TAP_WATER_HELP_TEXT)
+
+        st.session_state.config_data['MockDataConstants']['ResidentialHeatingRelativeErrorStdDev'] = \
+            mdc_form.number_input('Residential hot tap water relative standard deviation:', min_value=0.0,
+                                  max_value=1.0,
+                                  value=st.session_state.config_data['MockDataConstants']
+                                  ['ResidentialHeatingRelativeErrorStdDev'],
+                                  help=app_constants.RES_HEATING_REL_ERROR_STD_DEV_HELP_TEXT)
+
+        st.session_state.config_data['MockDataConstants']['CommercialElecKwhPerYearM2'] = mdc_form.number_input(
+            'Commercial electricity kWh/year/m2:', min_value=1, max_value=200,
+            value=st.session_state.config_data['MockDataConstants']['CommercialElecKwhPerYearM2'],
+            help=app_constants.COMM_ELEC_KWH_PER_YEAR_M2_HELP_TEXT)
+
+        st.session_state.config_data['MockDataConstants']['CommercialElecRelativeErrorStdDev'] = \
+            mdc_form.number_input('Commercial electricity relative standard deviation:', min_value=0.0,
+                                  max_value=1.0,
+                                  value=st.session_state.config_data['MockDataConstants']
+                                  ['CommercialElecRelativeErrorStdDev'],
+                                  help=app_constants.COMM_ELEC_REL_ERROR_STD_DEV_HELP_TEXT)
+
+        st.session_state.config_data['MockDataConstants']['CommercialSpaceHeatKwhPerYearM2'] = mdc_form.number_input(
+            'Commercial space heat kWh/year/m2:', min_value=1, max_value=100,
+            value=st.session_state.config_data['MockDataConstants']['CommercialSpaceHeatKwhPerYearM2'],
+            help=app_constants.KWH_SPACE_HEATING_PER_YEAR_M2_COMM_HELP_TEXT)
+
+        st.session_state.config_data['MockDataConstants']['CommercialHotTapWaterKwhPerYearM2'] = mdc_form.number_input(
+            'Commercial hot tap water kWh/year/m2:', min_value=1.0, max_value=10.0, step=0.5,
+            value=st.session_state.config_data['MockDataConstants']['CommercialHotTapWaterKwhPerYearM2'],
+            help=app_constants.KWH_HOT_TAP_WATER_PER_YEAR_M2_COMM_HELP_TEXT)
+
+        st.session_state.config_data['MockDataConstants']['CommercialHotTapWaterRelativeErrorStdDev'] = \
+            mdc_form.number_input('Commercial hot tap water relative standard deviation:', min_value=0.0,
+                                  max_value=1.0,
+                                  value=st.session_state.config_data['MockDataConstants']
+                                  ['CommercialHotTapWaterRelativeErrorStdDev'],
+                                  help=app_constants.COMM_HOT_TAP_WATER_REL_ERROR_STD_DEV_HELP_TEXT)
+
+        st.session_state.config_data['MockDataConstants']['SchoolElecKwhPerYearM2'] = mdc_form.number_input(
+            'School electricity kWh/year/m2:', min_value=1, max_value=200,
+            value=st.session_state.config_data['MockDataConstants']['SchoolElecKwhPerYearM2'],
+            help=app_constants.KWH_ELECTRICITY_PER_YEAR_M2_SCHOOL_HELP_TEXT)
+
+        st.session_state.config_data['MockDataConstants']['SchoolElecRelativeErrorStdDev'] = \
+            mdc_form.number_input('School electricity relative standard deviation:', min_value=0.0,
+                                  max_value=1.0,
+                                  value=st.session_state.config_data['MockDataConstants']
+                                  ['SchoolElecRelativeErrorStdDev'],
+                                  help=app_constants.SCHOOL_ELEC_REL_ERROR_STD_DEV_HELP_TEXT)
+
+        st.session_state.config_data['MockDataConstants']['SchoolSpaceHeatKwhPerYearM2'] = mdc_form.number_input(
+            'School space heat kWh/year/m2:', min_value=1, max_value=100,
+            value=st.session_state.config_data['MockDataConstants']['SchoolSpaceHeatKwhPerYearM2'],
+            help=app_constants.KWH_SPACE_HEATING_PER_YEAR_M2_SCHOOL_HELP_TEXT)
+
+        st.session_state.config_data['MockDataConstants']['SchoolHotTapWaterKwhPerYearM2'] = mdc_form.number_input(
+            'School hot tap water kWh/year/m2:', min_value=1, max_value=100,
+            value=st.session_state.config_data['MockDataConstants']['SchoolHotTapWaterKwhPerYearM2'],
+            help=app_constants.KWH_HOT_TAP_WATER_PER_YEAR_M2_SCHOOL_HELP_TEXT)
+
+        st.session_state.config_data['MockDataConstants']['SchoolHotTapWaterRelativeErrorStdDev'] = \
+            mdc_form.number_input('School hot tap water relative standard deviation:', min_value=0.0,
+                                  max_value=1.0,
+                                  value=st.session_state.config_data['MockDataConstants']
+                                  ['SchoolHotTapWaterRelativeErrorStdDev'],
+                                  help=app_constants.SCHOOL_HOT_TAP_WATER_REL_ERROR_STD_DEV_HELP_TEXT)
+
+        mdc_form.form_submit_button("Save mock data generation constants")
+
+        # ------------------- Start agents -------------------
         col1, col2 = st.columns(2)
         with col1:
             st.subheader("Agents:")
@@ -195,6 +286,8 @@ if __name__ == '__main__':
         with st.expander("Guidelines on configuration file"):
             st.markdown(app_constants.CONFIG_GUIDELINES_MARKDOWN)
             st.json(app_constants.AREA_INFO_EXAMPLE)
+            st.markdown(app_constants.MOCK_DATA_CONSTANTS_MARKDOWN)
+            st.json(app_constants.MOCK_DATA_CONSTANTS_EXAMPLE)
         with st.expander("BuildingAgent specification"):
             st.markdown(app_constants.BUILDING_AGENT_SPEC_MARKDOWN)
             st.json(app_constants.BUILDING_AGENT_EXAMPLE)
@@ -244,6 +337,7 @@ if __name__ == '__main__':
 
         if load_button:
             load_button = False
+            
             logger.info("Constructing price graph")
             st.spinner("Constructing price graph")
 
@@ -254,17 +348,45 @@ if __name__ == '__main__':
 
             st.success("Data loaded!")
 
-            st.write("Total taxes paid on internal trades: {:.2f} SEK "
-                     "(this includes taxes that the ElectricityGridAgent are to pay, on sales to the microgrid)".
-                     format(st.session_state.simulation_results.tax_paid))
-            st.write("Total grid fees paid on internal trades: {:.2f} SEK".
-                     format(st.session_state.simulation_results.grid_fees_paid_on_internal_trades))
+            t_start = time.time()
+            with st.expander('Taxes and fees on internal trades:'):
+                tax_fee = aggregated_taxes_and_fees_results_df()
+                st.dataframe(tax_fee)
+                st.caption("Tax paid includes taxes that the ElectricityGridAgent "
+                           "are to pay, on sales to the microgrid.")
 
-        if 'price_chart' in st.session_state:
-            st.altair_chart(st.session_state.price_chart, use_container_width=True)
-            with st.expander("Periods where local electricity price was between external retail and wholesale price:"):
-                st.dataframe(get_price_df_when_local_price_inbetween(st.session_state.combined_price_df,
-                                                                     Resource.ELECTRICITY))
+            with st.expander('Total imported and exported electricity and heating:'):
+                imp_exp_period_dict = aggregated_import_and_export_results_df_split_on_period()
+                imp_exp_temp_dict = aggregated_import_and_export_results_df_split_on_temperature()
+                col1, col2 = st.columns(2)
+                col1.header('Imported')
+                col2.header("Exported")
+                st.caption("Split on period of year:")
+                col1, col2 = st.columns(2)
+                col1.dataframe(imp_exp_period_dict['Imported'])
+                col2.dataframe(imp_exp_period_dict['Exported'])
+                st.caption("Split on temperature above or below 1 degree Celsius:")
+                col1, col2 = st.columns(2)
+                col1.dataframe(imp_exp_temp_dict['Imported'])
+                col2.dataframe(imp_exp_temp_dict['Exported'])
+
+            with st.expander('Total of locally produced heating and electricity:'):
+                loc_prod = aggregated_local_production_df()
+                st.dataframe(loc_prod)
+                st.caption("Total amount of heating produced by local heat pumps "
+                           + "and total amount of locally produced electricity.")
+            t_end = time.time()
+            logger.info('Time to display aggregated results: {:.3f} seconds'.format(t_end - t_start))
+
+            if 'price_chart' in st.session_state:
+                st.altair_chart(st.session_state.price_chart, use_container_width=True, theme=None)
+                with st.expander("Periods where local electricity price was "
+                                 "between external retail and wholesale price:"):
+                    st.dataframe(get_price_df_when_local_price_inbetween(st.session_state.combined_price_df,
+                                                                         Resource.ELECTRICITY))
+
+            with st.expander('Current configuration in JSON format:'):
+                st.json(body=json.dumps(st.session_state.simulation_results.config_data))
 
     elif page_selected == app_constants.BIDS_PAGE:
         if 'simulation_results' in st.session_state:
@@ -278,6 +400,11 @@ if __name__ == '__main__':
                 st.dataframe(get_viewable_df(st.session_state.simulation_results.all_trades,
                                              key='source', value=agent_chosen_guid, want_index='period',
                                              cols_to_drop=['by_external']))
+                
+                trades_chart = construct_traded_amount_by_agent_chart(agent_chosen_guid,
+                                                                      st.session_state.simulation_results.all_trades)
+                st.altair_chart(trades_chart, use_container_width=True, theme=None)
+
             with st.expander('Extra costs'):
                 st.write('A negative cost means that the agent was owed money for the period, rather than owing the '
                          'money to someone else.')
@@ -290,19 +417,19 @@ if __name__ == '__main__':
                 with st.expander('Charging level over time for ' + agent_chosen_guid + ':'):
                     storage_chart = construct_storage_level_chart(
                         st.session_state.simulation_results.storage_levels_dict[agent_chosen_guid])
-                    st.altair_chart(storage_chart, use_container_width=True)
+                    st.altair_chart(storage_chart, use_container_width=True, theme=None)
 
             if isinstance(agent_chosen, BuildingAgent) or isinstance(agent_chosen, PVAgent):
                 # Any building agent with a StaticDigitalTwin
                 with st.expander('Energy production/consumption'):
                     hp_chart = construct_building_with_heat_pump_chart(agent_chosen, st.session_state.
                                                                        simulation_results.heat_pump_levels_dict)
-                    st.altair_chart(hp_chart, use_container_width=True)
+                    st.altair_chart(hp_chart, use_container_width=True, theme=None)
 
             st.subheader('Aggregated results')
-            # Table with things calculated in results_calculator
-            st.dataframe(data=results_dict_to_df(
-                st.session_state.simulation_results.results_by_agent[agent_chosen_guid]))
+
+            results_by_agent_df = results_by_agent_as_df_with_highlight(agent_chosen_guid)
+            st.dataframe(results_by_agent_df, height=563)
 
         else:
             st.write('Run simulations and load data first!')

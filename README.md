@@ -33,6 +33,14 @@ Install package as editable (command automatically searches for the setup.py fil
         
         pip install -e .
 
+## Model file for mock data generation
+Note that in order to generate mock data, one needs to have a .pickle-file located in
+data/models/household_electricity_model.pickle
+which contains a model used for predicting household electricity usage for a given hour. This file is too big to be
+included in git, so ask someone else who has worked on the project to send it to you.
+
+For more info on this model, see https://doc.afdrift.se/display/RPJ/Household+electricity+mock-up.
+
 ## Generate mock data
 * Verify that you have a json config file under the data folder specifying the area to be simulated.
 * Run the mock data generation script:
