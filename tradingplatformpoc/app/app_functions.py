@@ -576,11 +576,20 @@ def construct_traded_amount_by_agent_chart(agent_chosen_guid: str,
     for elem in plot_lst:
         mask = (full_df.resource.values == elem['resource']) & (full_df.action.values == elem['action'])
         if not full_df.loc[mask].empty:
+            
             df = pd.concat((df, pd.DataFrame({'period': full_df.loc[mask].period,
                                               'value': full_df.loc[mask].quantity_post_loss,
                                               'variable': elem['title']})))
+
             domain.append(elem['title'])
             range_color.append(app_constants.ALTAIR_BASE_COLORS[elem['color_num']])
+
+    for elem in plot_lst:
+        # Adding zeros for missing timestamps
+        missing_timestamps = pd.unique(df.loc[~df.period.isin(df[df.variable == elem['title']].period)].period)
+        df = pd.concat((df, pd.DataFrame({'period': missing_timestamps,
+                                          'value': 0.0,
+                                          'variable': elem['title']})))
 
     return alt.Chart(df).mark_line(). \
         encode(x=alt.X('period:T', axis=alt.Axis(title='Period')),
