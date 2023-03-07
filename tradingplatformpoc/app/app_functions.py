@@ -92,14 +92,7 @@ def construct_static_digital_twin_chart(digital_twin: StaticDigitalTwin, should_
     if should_add_hp_to_legend:
         domain.append('Heat pump workload')
         range_color.append(app_constants.HEAT_PUMP_CHART_COLOR)
-    return alt.Chart(df).mark_line(). \
-        encode(x=alt.X('period:T', axis=alt.Axis(title='Period')),
-               y=alt.Y('value', axis=alt.Axis(title='Energy [kWh]')),
-               color=alt.Color('variable', scale=alt.Scale(domain=domain, range=range_color)),
-               tooltip=[alt.Tooltip(field='period', title='Period', type='temporal', format='%Y-%m-%d %H:%M'),
-                        alt.Tooltip(field='variable', title='Variable'),
-                        alt.Tooltip(field='value', title='Value')]). \
-        interactive(bind_y=False)
+    return altair_period_chart(df, domain, range_color)
 
 
 def construct_building_with_heat_pump_chart(agent_chosen: Union[BuildingAgent, PVAgent],
@@ -547,3 +540,60 @@ def results_by_agent_as_df_with_highlight(agent_chosen_guid: str) -> pd.io.forma
     formatted_df = dfs.style.set_properties(subset=[agent_chosen_guid], **{'background-color': 'lemonchiffon'}).\
         format('{:.2f}')
     return formatted_df
+
+
+def construct_traded_amount_by_agent_chart(agent_chosen_guid: str,
+                                           full_df: pd.DataFrame) -> alt.Chart:
+    """
+    Plot amount of electricity and heating sold and bought.
+    @param agent_chosen_guid: Name of chosen agent
+    @param full_df: All trades in simulation results
+    @return: Altair chart with plot of sold and bought resources
+    """
+
+    df = pd.DataFrame()
+
+    domain = []
+    range_color = []
+    plot_lst: List[dict] = [{'title': 'Amount of electricity bought', 'color_num': 0,
+                            'resource': Resource.ELECTRICITY, 'action': Action.BUY},
+                            {'title': 'Amount of electricity sold', 'color_num': 1,
+                            'resource': Resource.ELECTRICITY, 'action': Action.SELL},
+                            {'title': 'Amount of heating bought', 'color_num': 2,
+                            'resource': Resource.HEATING, 'action': Action.BUY},
+                            {'title': 'Amount of heating sold', 'color_num': 3,
+                            'resource': Resource.HEATING, 'action': Action.SELL}]
+
+    full_df = full_df.loc[full_df['source'] == agent_chosen_guid].drop(['by_external'], axis=1)
+
+    for elem in plot_lst:
+        mask = (full_df.resource.values == elem['resource']) & (full_df.action.values == elem['action'])
+        if not full_df.loc[mask].empty:
+            
+            df = pd.concat((df, pd.DataFrame({'period': full_df.loc[mask].period,
+                                              'value': full_df.loc[mask].quantity_post_loss,
+                                              'variable': elem['title']})))
+
+            domain.append(elem['title'])
+            range_color.append(app_constants.ALTAIR_BASE_COLORS[elem['color_num']])
+
+    for elem in plot_lst:
+        # Adding zeros for missing timestamps
+        missing_timestamps = pd.unique(df.loc[~df.period.isin(df[df.variable == elem['title']].period)].period)
+        df = pd.concat((df, pd.DataFrame({'period': missing_timestamps,
+                                          'value': 0.0,
+                                          'variable': elem['title']})))
+
+    return altair_period_chart(df, domain, range_color)
+
+
+def altair_period_chart(df: pd.DataFrame, domain: List[str], range_color: List[str]) -> alt.Chart:
+    """Altair chart for one or more variables over period."""
+    return alt.Chart(df).mark_line(). \
+        encode(x=alt.X('period:T', axis=alt.Axis(title='Period')),
+               y=alt.Y('value', axis=alt.Axis(title='Energy [kWh]')),
+               color=alt.Color('variable', scale=alt.Scale(domain=domain, range=range_color)),
+               tooltip=[alt.Tooltip(field='period', title='Period', type='temporal', format='%Y-%m-%d %H:%M'),
+                        alt.Tooltip(field='variable', title='Variable'),
+                        alt.Tooltip(field='value', title='Value')]). \
+        interactive(bind_y=False)
