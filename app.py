@@ -12,8 +12,8 @@ from tradingplatformpoc.app.app_functions import add_building_agent, add_grocery
     add_pv_agent, add_storage_agent, aggregated_import_and_export_results_df_split_on_period, \
     aggregated_import_and_export_results_df_split_on_temperature, aggregated_local_production_df, \
     aggregated_taxes_and_fees_results_df, construct_building_with_heat_pump_chart, construct_price_chart, \
-    construct_prices_df, construct_storage_level_chart, construct_traded_amount_by_agent_chart, get_agent, \
-    get_price_df_when_local_price_inbetween, \
+    construct_prices_df, construct_storage_level_chart, construct_traded_amount_by_agent_chart, \
+    display_df_and_make_downloadable, get_agent, get_price_df_when_local_price_inbetween, \
     results_by_agent_as_df_with_highlight, get_viewable_df, remove_all_building_agents, set_max_width
 from tradingplatformpoc.bid import Resource
 from tradingplatformpoc.simulation_runner import run_trading_simulations
@@ -382,8 +382,9 @@ if __name__ == '__main__':
                 st.altair_chart(st.session_state.price_chart, use_container_width=True, theme=None)
                 with st.expander("Periods where local electricity price was "
                                  "between external retail and wholesale price:"):
-                    st.dataframe(get_price_df_when_local_price_inbetween(st.session_state.combined_price_df,
-                                                                         Resource.ELECTRICITY))
+                    price_df = get_price_df_when_local_price_inbetween(st.session_state.combined_price_df,
+                                                                       Resource.ELECTRICITY)
+                    display_df_and_make_downloadable(price_df, "price_when_local_price_inbetween")
 
             with st.expander('Current configuration in JSON format:'):
                 st.json(body=json.dumps(st.session_state.simulation_results.config_data))
@@ -393,14 +394,17 @@ if __name__ == '__main__':
             agent_ids = [x.guid for x in st.session_state.simulation_results.agents]
             agent_chosen_guid = st.selectbox(label='Choose agent', options=agent_ids)
             with st.expander('Bids'):
-                st.dataframe(get_viewable_df(st.session_state.simulation_results.all_bids,
-                                             key='source', value=agent_chosen_guid, want_index='period',
-                                             cols_to_drop=['by_external']))
+                bids_df = get_viewable_df(st.session_state.simulation_results.all_bids,
+                                          key='source', value=agent_chosen_guid, want_index='period',
+                                          cols_to_drop=['by_external'])
+                display_df_and_make_downloadable(bids_df, "all_bids_for_agent_" + agent_chosen_guid)
+
             with st.expander('Trades'):
-                st.dataframe(get_viewable_df(st.session_state.simulation_results.all_trades,
-                                             key='source', value=agent_chosen_guid, want_index='period',
-                                             cols_to_drop=['by_external']))
-                
+                trades_df = get_viewable_df(st.session_state.simulation_results.all_trades,
+                                            key='source', value=agent_chosen_guid, want_index='period',
+                                            cols_to_drop=['by_external'])
+                display_df_and_make_downloadable(trades_df, "all_trades_for_agent" + agent_chosen_guid)
+                                
                 trades_chart = construct_traded_amount_by_agent_chart(agent_chosen_guid,
                                                                       st.session_state.simulation_results.all_trades)
                 st.altair_chart(trades_chart, use_container_width=True, theme=None)
@@ -408,8 +412,9 @@ if __name__ == '__main__':
             with st.expander('Extra costs'):
                 st.write('A negative cost means that the agent was owed money for the period, rather than owing the '
                          'money to someone else.')
-                st.dataframe(get_viewable_df(st.session_state.simulation_results.all_extra_costs,
-                                             key='agent', value=agent_chosen_guid, want_index='period'))
+                extra_costs_df = get_viewable_df(st.session_state.simulation_results.all_extra_costs,
+                                                 key='agent', value=agent_chosen_guid, want_index='period')
+                display_df_and_make_downloadable(extra_costs_df, "extra_costs_for_agent" + agent_chosen_guid)
 
             agent_chosen = get_agent(st.session_state.simulation_results.agents, agent_chosen_guid)
 
@@ -428,8 +433,9 @@ if __name__ == '__main__':
 
             st.subheader('Aggregated results')
 
-            results_by_agent_df = results_by_agent_as_df_with_highlight(agent_chosen_guid)
-            st.dataframe(results_by_agent_df, height=563)
+            results_by_agent_df, results_by_agent_df_styled = results_by_agent_as_df_with_highlight(agent_chosen_guid)
+            display_df_and_make_downloadable(results_by_agent_df, "results_by_agent_all_agents",
+                                             df_styled=results_by_agent_df_styled, height=563)
 
         else:
             st.write('Run simulations and load data first!')

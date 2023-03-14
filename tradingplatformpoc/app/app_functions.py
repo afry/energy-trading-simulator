@@ -539,7 +539,7 @@ def results_by_agent_as_df_with_highlight(agent_chosen_guid: str) -> pd.io.forma
     dfs = pd.concat(lst, axis=1)
     formatted_df = dfs.style.set_properties(subset=[agent_chosen_guid], **{'background-color': 'lemonchiffon'}).\
         format('{:.2f}')
-    return formatted_df
+    return dfs, formatted_df
 
 
 def construct_traded_amount_by_agent_chart(agent_chosen_guid: str,
@@ -597,3 +597,23 @@ def altair_period_chart(df: pd.DataFrame, domain: List[str], range_color: List[s
                         alt.Tooltip(field='variable', title='Variable'),
                         alt.Tooltip(field='value', title='Value')]). \
         interactive(bind_y=False)
+
+
+@st.cache_data
+def convert_df_to_csv(df: pd.DataFrame, include_index: bool = False) -> bytes:
+    return df.to_csv(index=include_index).encode('utf-8')
+
+
+def display_df_and_make_downloadable(df: pd.DataFrame,
+                                     file_name: str,
+                                     df_styled: Optional[pd.io.formats.style.Styler] = None,
+                                     height: Optional[int] = None):
+    if df_styled is not None:
+        st.dataframe(df_styled, height=height)
+    else:
+        st.dataframe(df, height=height)
+    csv = convert_df_to_csv(df, include_index=True)
+    st.download_button(label='Download as csv',
+                       data=csv,
+                       file_name=file_name + ".csv",
+                       mime="text/csv")
