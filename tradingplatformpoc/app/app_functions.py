@@ -1,4 +1,5 @@
 import datetime
+import os
 from enum import Enum
 from typing import Any, Dict, Iterable, List, Optional, Union
 
@@ -600,8 +601,36 @@ def altair_period_chart(df: pd.DataFrame, domain: List[str], range_color: List[s
 
 
 @st.cache_data
-def convert_df_to_csv(df: pd.DataFrame, include_index: bool = False) -> bytes:
+def convert_df_to_csv(df: pd.DataFrame, include_index: bool = False):
     return df.to_csv(index=include_index).encode('utf-8')
+
+
+def download_df_as_csv_button(df: pd.DataFrame, file_name: str, include_index: bool = False):
+    csv = convert_df_to_csv(df, include_index=include_index)
+    st.download_button(label='Download as csv',
+                       data=csv,
+                       file_name=file_name + ".csv")
+
+
+def download_df_as_xlsx_button(input_df: pd.DataFrame, file_name: str):
+    df = input_df.copy().reset_index()
+
+    for col in df.select_dtypes(include=['datetime64[ns, UTC]']).columns:
+        df[col] = df[col].dt.tz_convert(None)
+
+    path = "files/excel/"
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+    with pd.ExcelWriter(os.path.join(path, file_name + ".xlsx")) as writer:
+        df.to_excel(writer)
+
+    with open(os.path.join(path, file_name + ".xlsx"), "rb") as file:
+        st.download_button(label='Download as xlsx',
+                           data=file,
+                           file_name=file_name + ".xlsx")
+        
+    # TODO: Delete files somewhere appropriate
 
 
 def display_df_and_make_downloadable(df: pd.DataFrame,
@@ -612,8 +641,15 @@ def display_df_and_make_downloadable(df: pd.DataFrame,
         st.dataframe(df_styled, height=height)
     else:
         st.dataframe(df, height=height)
-    csv = convert_df_to_csv(df, include_index=True)
-    st.download_button(label='Download as csv',
-                       data=csv,
-                       file_name=file_name + ".csv",
-                       mime="text/csv")
+    
+    col1, col2, col3 = st.columns([1, 1, 4])
+
+    # CSV
+    with col1:
+        download_df_as_csv_button(df, file_name, include_index=True)
+    
+    # XLSX
+    with col2:
+        download_df_as_xlsx_button(df, file_name)
+
+    
