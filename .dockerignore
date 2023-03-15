@@ -60,6 +60,9 @@ results
 notebooks
 **.ipynb
 
+# Scripts
+scripts
+
 # Tests
 tests
 e2e-tests
