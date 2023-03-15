@@ -60,6 +60,7 @@ if string_to_log_later is not None:
 
 if __name__ == '__main__':
 
+    # TODO: Fix so that page title is dispalyed instead of 'app' in sidebar
     st.set_page_config(page_title="Trading platform POC", layout="wide")
 
     st.write(

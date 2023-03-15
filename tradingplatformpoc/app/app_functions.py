@@ -1,5 +1,6 @@
 import datetime
 import io
+import pickle
 from enum import Enum
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
@@ -646,4 +647,8 @@ def display_df_and_make_downloadable(df: pd.DataFrame,
     with col2:
         download_df_as_xlsx_button(df, file_name)
 
-    
+
+@st.cache_data()
+def load_results(uploaded_results_file):
+    st.session_state.uploaded_results_file = uploaded_results_file
+    st.session_state.simulation_results = pickle.load(uploaded_results_file)
