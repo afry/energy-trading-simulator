@@ -1,7 +1,7 @@
 import datetime
 import io
 from enum import Enum
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import altair as alt
 
@@ -530,7 +530,7 @@ def aggregated_local_production_df() -> pd.DataFrame:
     return pd.DataFrame(data=data, index=['Electricity', 'Heating'], columns=['Total'])
 
 
-def results_by_agent_as_df_with_highlight(agent_chosen_guid: str) -> pd.io.formats.style.Styler:
+def results_by_agent_as_df_with_highlight(agent_chosen_guid: str) -> Tuple[pd.DataFrame, pd.io.formats.style.Styler]:
     res_by_agents = st.session_state.simulation_results.results_by_agent
     lst = []
     for key, val in res_by_agents.items():
