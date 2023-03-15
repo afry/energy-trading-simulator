@@ -600,7 +600,7 @@ def altair_period_chart(df: pd.DataFrame, domain: List[str], range_color: List[s
         interactive(bind_y=False)
 
 
-@st.cache_data
+@st.cache_data(ttl=3600)
 def convert_df_to_csv(df: pd.DataFrame, include_index: bool = False):
     return df.to_csv(index=include_index).encode('utf-8')
 
