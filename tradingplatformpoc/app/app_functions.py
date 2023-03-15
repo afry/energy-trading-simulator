@@ -1,5 +1,5 @@
 import datetime
-import os
+import io
 from enum import Enum
 from typing import Any, Dict, Iterable, List, Optional, Union
 
@@ -618,19 +618,13 @@ def download_df_as_xlsx_button(input_df: pd.DataFrame, file_name: str):
     for col in df.select_dtypes(include=['datetime64[ns, UTC]']).columns:
         df[col] = df[col].dt.tz_convert(None)
 
-    path = "files/excel/"
-    if not os.path.exists(path):
-        os.makedirs(path)
+    buffer = io.BytesIO()
+    with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False)
 
-    with pd.ExcelWriter(os.path.join(path, file_name + ".xlsx")) as writer:
-        df.to_excel(writer)
-
-    with open(os.path.join(path, file_name + ".xlsx"), "rb") as file:
-        st.download_button(label='Download as xlsx',
-                           data=file,
-                           file_name=file_name + ".xlsx")
-        
-    # TODO: Delete files somewhere appropriate
+    st.download_button(label='Download as xlsx',
+                       data=buffer,
+                       file_name=file_name + ".xlsx")
 
 
 def display_df_and_make_downloadable(df: pd.DataFrame,
