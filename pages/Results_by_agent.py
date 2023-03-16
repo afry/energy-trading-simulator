@@ -1,4 +1,5 @@
 import streamlit as st
+from st_pages import add_indentation
 from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app import footer
@@ -6,6 +7,7 @@ from tradingplatformpoc.app.app_functions import construct_building_with_heat_pu
     construct_storage_level_chart, construct_traded_amount_by_agent_chart, display_df_and_make_downloadable, \
     get_agent, get_viewable_df, results_by_agent_as_df_with_highlight
 
+add_indentation()
 
 if 'simulation_results' in st.session_state:
     agent_ids = [x.guid for x in st.session_state.simulation_results.agents]

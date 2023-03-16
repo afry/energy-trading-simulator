@@ -10,6 +10,7 @@ import logging
 import sys
 
 import streamlit as st
+from st_pages import show_pages_from_config, add_indentation
 
 # Note: To debug a streamlit script, see https://stackoverflow.com/a/60172283
 
@@ -61,11 +62,16 @@ if string_to_log_later is not None:
 if __name__ == '__main__':
 
     # TODO: Fix so that page title is dispalyed instead of 'app' in sidebar
-    st.set_page_config(page_title="Trading platform POC", layout="wide")
+    # st.set_page_config(page_title="Trading platform POC", layout="wide")
+    st.set_page_config(layout="wide")
+
+    add_indentation()
+    show_pages_from_config()
 
     st.write(
         """
-        # Prototype data presentation app for energy microgrid trading platform
+        # Trading platform POC
+        ## Prototype data presentation app for energy microgrid trading platform
 
         Here, you can upload, select and run simulations, and evaluate the results with tables and graphs.
         """

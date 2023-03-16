@@ -1,0 +1,19 @@
+[[pages]]
+path = "app.py"
+name = "Start"
+
+[[pages]]
+path = "pages/Setup_simulation.py"
+name = "Setup simulation"
+
+[[pages]]
+path = "pages/Load_data.py"
+name = "Load data"
+
+[[pages]]
+path = "pages/General_results.py"
+name = "General results"
+
+[[pages]]
+path = "pages/Results_by_agent.py"
+name = "Results by agent"

@@ -7,11 +7,13 @@ from tradingplatformpoc.app.app_functions import add_building_agent, add_grocery
     add_storage_agent, agent_inputs, remove_all_building_agents, set_max_width
 
 import streamlit as st
+from st_pages import add_indentation
 
 from tradingplatformpoc.simulation_runner import run_trading_simulations
 
 logger = logging.getLogger(__name__)
 
+add_indentation()
 
 set_max_width('1000px')  # This tab looks a bit daft when it is too wide, so limiting it here.
 
