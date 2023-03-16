@@ -382,9 +382,8 @@ if __name__ == '__main__':
                 st.altair_chart(st.session_state.price_chart, use_container_width=True, theme=None)
                 with st.expander("Periods where local electricity price was "
                                  "between external retail and wholesale price:"):
-                    price_df = get_price_df_when_local_price_inbetween(st.session_state.combined_price_df,
-                                                                       Resource.ELECTRICITY)
-                    display_df_and_make_downloadable(price_df, "price_when_local_price_inbetween")
+                    st.dataframe(get_price_df_when_local_price_inbetween(st.session_state.combined_price_df,
+                                                                         Resource.ELECTRICITY))
 
             with st.expander('Current configuration in JSON format:'):
                 st.json(body=json.dumps(st.session_state.simulation_results.config_data))
