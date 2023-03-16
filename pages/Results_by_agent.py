@@ -5,7 +5,7 @@ from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app import footer
 from tradingplatformpoc.app.app_functions import construct_building_with_heat_pump_chart, \
     construct_storage_level_chart, construct_traded_amount_by_agent_chart, display_df_and_make_downloadable, \
-    get_agent, get_viewable_df, results_by_agent_as_df_with_highlight
+    get_agent, get_viewable_df, results_by_agent_as_df, results_by_agent_as_df_with_highlight
 
 add_indentation()
 
@@ -52,7 +52,8 @@ if 'simulation_results' in st.session_state:
 
     st.subheader('Aggregated results')
 
-    results_by_agent_df, results_by_agent_df_styled = results_by_agent_as_df_with_highlight(agent_chosen_guid)
+    results_by_agent_df = results_by_agent_as_df()
+    results_by_agent_df_styled = results_by_agent_as_df_with_highlight(results_by_agent_df, agent_chosen_guid)
     display_df_and_make_downloadable(results_by_agent_df, "results_by_agent_all_agents",
                                      df_styled=results_by_agent_df_styled, height=563)
 
