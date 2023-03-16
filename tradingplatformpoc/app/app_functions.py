@@ -650,5 +650,4 @@ def display_df_and_make_downloadable(df: pd.DataFrame,
 
 @st.cache_data()
 def load_results(uploaded_results_file):
-    st.session_state.uploaded_results_file = uploaded_results_file
     st.session_state.simulation_results = pickle.load(uploaded_results_file)
