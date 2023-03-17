@@ -1,5 +1,4 @@
 import datetime
-import io
 from enum import Enum
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
@@ -612,21 +611,6 @@ def download_df_as_csv_button(df: pd.DataFrame, file_name: str, include_index: b
                        file_name=file_name + ".csv")
 
 
-def download_df_as_xlsx_button(input_df: pd.DataFrame, file_name: str):
-    df = input_df.copy().reset_index()
-
-    for col in df.select_dtypes(include=['datetime64[ns, UTC]']).columns:
-        df[col] = df[col].dt.tz_convert(None)
-
-    buffer = io.BytesIO()
-    with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
-        df.to_excel(writer, index=False)
-
-    st.download_button(label='Download as xlsx',
-                       data=buffer,
-                       file_name=file_name + ".xlsx")
-
-
 def display_df_and_make_downloadable(df: pd.DataFrame,
                                      file_name: str,
                                      df_styled: Optional[pd.io.formats.style.Styler] = None,
@@ -636,14 +620,10 @@ def display_df_and_make_downloadable(df: pd.DataFrame,
     else:
         st.dataframe(df, height=height)
     
-    col1, col2, col3 = st.columns([1, 1, 4])
+    col1, col2 = st.columns([1, 5])
 
     # CSV
     with col1:
         download_df_as_csv_button(df, file_name, include_index=True)
     
-    # XLSX
-    with col2:
-        download_df_as_xlsx_button(df, file_name)
-
     
