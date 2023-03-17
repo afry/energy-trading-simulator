@@ -34,6 +34,7 @@ trades.csv
 extra_costs.csv
 storages.csv
 scripts/agent_elec_cons.csv
+agent_elec_cons.csv
 /results/config_used.json
 /results/simulation_results.pickle
 
