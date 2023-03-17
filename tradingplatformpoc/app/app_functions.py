@@ -619,11 +619,7 @@ def display_df_and_make_downloadable(df: pd.DataFrame,
         st.dataframe(df_styled, height=height)
     else:
         st.dataframe(df, height=height)
-    
-    col1, col2 = st.columns([1, 5])
 
-    # CSV
-    with col1:
-        download_df_as_csv_button(df, file_name, include_index=True)
+    download_df_as_csv_button(df, file_name, include_index=True)
     
     
