@@ -22,7 +22,7 @@ if load_button:
     if uploaded_results_file is not None:
         load_results(uploaded_results_file)
         st.success("Data loaded!")
-    elif ('uploaded_results_file' in st.session_state):
+    elif 'uploaded_results_file' in st.session_state:
         st.info(" ".join(["Data already loaded from", st.session_state.uploaded_results_file.name]))
 elif ('uploaded_results_file' in st.session_state) and ('simulation_results' in st.session_state):
     if uploaded_results_file is None:

@@ -10,8 +10,11 @@ from tradingplatformpoc.app.app_functions import construct_building_with_heat_pu
 add_indentation()
 
 if 'simulation_results' in st.session_state:
+
     agent_ids = [x.guid for x in st.session_state.simulation_results.agents]
-    agent_chosen_guid = st.selectbox(label='Choose agent', options=agent_ids)
+    agent_chosen_guid = st.sidebar.selectbox('Choose agent:', agent_ids)
+    st.write("Showing results for: " + agent_chosen_guid)
+
     with st.expander('Bids'):
         bids_df = get_viewable_df(st.session_state.simulation_results.all_bids,
                                   key='source', value=agent_chosen_guid, want_index='period',

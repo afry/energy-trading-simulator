@@ -3,17 +3,17 @@ path = "app.py"
 name = "Start"
 
 [[pages]]
-path = "pages/Setup_simulation.py"
+path = "pages/setup_simulation.py"
 name = "Setup simulation"
 
 [[pages]]
-path = "pages/Load_data.py"
+path = "pages/load_data.py"
 name = "Load data"
 
 [[pages]]
-path = "pages/General_results.py"
+path = "pages/general_results.py"
 name = "General results"
 
 [[pages]]
-path = "pages/Results_by_agent.py"
+path = "pages/results_by_agent.py"
 name = "Results by agent"
