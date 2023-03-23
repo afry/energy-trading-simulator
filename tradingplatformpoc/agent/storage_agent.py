@@ -74,13 +74,15 @@ class StorageAgent(IAgent):
         if buy_quantity >= LOWEST_BID_QUANTITY:
             bids.append(self.construct_elec_bid(action=Action.BUY,
                                                 quantity=buy_quantity,
-                                                price=self.calculate_buy_price(prices_last_n_hours)))
+                                                price=self.calculate_buy_price(prices_last_n_hours),
+                                                co2_intensity=None))
 
         sell_quantity = self.calculate_sell_quantity()
         if sell_quantity >= LOWEST_BID_QUANTITY:
             bids.append(self.construct_elec_bid(action=Action.SELL,
                                                 quantity=sell_quantity,
-                                                price=self.calculate_sell_price(prices_last_n_hours)))
+                                                price=self.calculate_sell_price(prices_last_n_hours),
+                                                co2_intensity=0.0))
         return bids
 
     def get_clearing_prices_for_resource(self, clearing_prices_hist: Dict[datetime.datetime, Dict[Resource, float]]) \

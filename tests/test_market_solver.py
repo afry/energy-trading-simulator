@@ -29,7 +29,7 @@ class TestMarketSolver(TestCase):
 
     def test_resolve_bids_1(self):
         """Test the clearing price calculation in a very simple example with one seller and one buyer."""
-        bids = [GrossBid(Action.SELL, Resource.ELECTRICITY, 100, 1, "Seller1", False),
+        bids = [GrossBid(Action.SELL, Resource.ELECTRICITY, 100, 1, "Seller1", False, 0.0),
                 GrossBid(Action.BUY, Resource.ELECTRICITY, 100, 1.5, "Buyer1", False)]
         net_bids = net_bids_from_gross_bids(bids, self.data_store_entity)
         # Someone willing to sell 100 kWh at 1 SEK/kWh,
@@ -44,7 +44,7 @@ class TestMarketSolver(TestCase):
 
     def test_resolve_bids_2(self):
         """Test the clearing price calculation when there are no accepted bids."""
-        bids = [GrossBid(Action.SELL, Resource.ELECTRICITY, 100, 1, "Seller1", False),
+        bids = [GrossBid(Action.SELL, Resource.ELECTRICITY, 100, 1, "Seller1", False, 0.0),
                 GrossBid(Action.BUY, Resource.ELECTRICITY, 100, 0.5, "Buyer1", False)]
         net_bids = net_bids_from_gross_bids(bids, self.data_store_entity)
         # Someone willing to sell 100 kWh at 1 SEK/kWh,
@@ -60,9 +60,9 @@ class TestMarketSolver(TestCase):
     def test_resolve_bids_3(self):
         """Test the clearing price calculation when there are 4 different bids, one of them from an external grid."""
         external_gross_price = 10
-        bids = [GrossBid(Action.SELL, Resource.ELECTRICITY, 100, 0, "Seller1", False),
-                GrossBid(Action.SELL, Resource.ELECTRICITY, 100, 1.5, "Seller2", False),
-                GrossBid(Action.SELL, Resource.ELECTRICITY, 10000, external_gross_price, "Grid", True),
+        bids = [GrossBid(Action.SELL, Resource.ELECTRICITY, 100, 0, "Seller1", False, 0.0),
+                GrossBid(Action.SELL, Resource.ELECTRICITY, 100, 1.5, "Seller2", False, 0.0),
+                GrossBid(Action.SELL, Resource.ELECTRICITY, 10000, external_gross_price, "Grid", True, 0.0),
                 GrossBid(Action.BUY, Resource.ELECTRICITY, 300, math.inf, "Buyer1", False)]
         net_bids = net_bids_from_gross_bids(bids, self.data_store_entity)
         # Someone willing to sell 100 kWh at 0 SEK/kWh,
@@ -80,9 +80,9 @@ class TestMarketSolver(TestCase):
     def test_resolve_bids_4(self):
         """Test the clearing price calculation when there are 4 different bids, and the locally produced energy covers
         the demand."""
-        bids = [GrossBid(Action.SELL, Resource.ELECTRICITY, 10000, 2, "Grid", True),
-                GrossBid(Action.SELL, Resource.ELECTRICITY, 100, 0.75, "Seller1", False),
-                GrossBid(Action.SELL, Resource.ELECTRICITY, 100, 1, "Seller2", False),
+        bids = [GrossBid(Action.SELL, Resource.ELECTRICITY, 10000, 2, "Grid", True, 0.0),
+                GrossBid(Action.SELL, Resource.ELECTRICITY, 100, 0.75, "Seller1", False, 0.0),
+                GrossBid(Action.SELL, Resource.ELECTRICITY, 100, 1, "Seller2", False, 0.0),
                 GrossBid(Action.BUY, Resource.ELECTRICITY, 200, math.inf, "Buyer1", False)]
         net_bids = net_bids_from_gross_bids(bids, self.data_store_entity)
         # Top bid being typical for external grid
@@ -105,7 +105,7 @@ class TestMarketSolver(TestCase):
         Test that no bids are deemed 'accepted' and that the clearing price is np.nan when there isn't enough energy to
         satisfy the local demand.
         """
-        bids = [GrossBid(Action.SELL, Resource.ELECTRICITY, 100, 0.75, "Seller1", False),
+        bids = [GrossBid(Action.SELL, Resource.ELECTRICITY, 100, 0.75, "Seller1", False, 0.0),
                 GrossBid(Action.BUY, Resource.ELECTRICITY, 200, math.inf, "Buyer1", False)]
         net_bids = net_bids_from_gross_bids(bids, self.data_store_entity)
         clearing_prices, bids_with_acceptance_status = resolve_bids(SOME_DATETIME, net_bids)
@@ -116,8 +116,8 @@ class TestMarketSolver(TestCase):
 
     def test_resolve_bids_with_no_inf_buy(self):
         """Test the clearing price calculation when there are no buy-bids with Inf asking price."""
-        bids = [GrossBid(Action.SELL, Resource.ELECTRICITY, 100, 1, "Seller1", False),
-                GrossBid(Action.SELL, Resource.ELECTRICITY, 100, 1.25, "Seller2", False),
+        bids = [GrossBid(Action.SELL, Resource.ELECTRICITY, 100, 1, "Seller1", False, 0.0),
+                GrossBid(Action.SELL, Resource.ELECTRICITY, 100, 1.25, "Seller2", False, 0.0),
                 GrossBid(Action.BUY, Resource.ELECTRICITY, 200, 1.5, "Buyer1", False)]
         net_bids = net_bids_from_gross_bids(bids, self.data_store_entity)
         # Someone willing to sell 100 kWh at 1 SEK/kWh,
@@ -140,10 +140,10 @@ class TestMarketSolver(TestCase):
     def test_resolve_bids_with_local_surplus(self):
         """Test that the clearing price is calculated correctly when there is a local surplus."""
         bids = [GrossBid(Action.BUY, Resource.ELECTRICITY, 192.76354849517332, math.inf, 'BuildingAgent', False),
-                GrossBid(Action.SELL, Resource.ELECTRICITY, 100, 0.46069, 'BatteryStorageAgent', False),
-                GrossBid(Action.SELL, Resource.ELECTRICITY, 275.3113968, 0.46069, 'PVAgent', False),
+                GrossBid(Action.SELL, Resource.ELECTRICITY, 100, 0.46069, 'BatteryStorageAgent', False, 0.0),
+                GrossBid(Action.SELL, Resource.ELECTRICITY, 275.3113968, 0.46069, 'PVAgent', False, 0.0),
                 GrossBid(Action.BUY, Resource.ELECTRICITY, 100.8875027389364, math.inf, 'GroceryStoreAgent', False),
-                GrossBid(Action.SELL, Resource.ELECTRICITY, 10000, 0.89069, 'ElectricityGridAgent', True)]
+                GrossBid(Action.SELL, Resource.ELECTRICITY, 10000, 0.89069, 'ElectricityGridAgent', True, 0.0)]
         net_bids = net_bids_from_gross_bids(bids, self.data_store_entity)
         # Local surplus
         # Clearing price should be 0.46069 SEK/kWh
@@ -162,8 +162,9 @@ class TestMarketSolver(TestCase):
         shouldn't break anything for other resources."""
         external_gross_price = 0.8
         bids = [GrossBid(Action.BUY, Resource.ELECTRICITY, 200, math.inf, 'BuildingAgent', False),
-                GrossBid(Action.SELL, Resource.ELECTRICITY, 10000, external_gross_price, 'ElectricityGridAgent', True),
-                GrossBid(Action.SELL, Resource.HEATING, 10000, 2.0, 'HeatingGridAgent', True)]
+                GrossBid(Action.SELL, Resource.ELECTRICITY, 10000, external_gross_price,
+                         'ElectricityGridAgent', True, 0.0),
+                GrossBid(Action.SELL, Resource.HEATING, 10000, 2.0, 'HeatingGridAgent', True, 0.0)]
         net_bids = net_bids_from_gross_bids(bids, self.data_store_entity)
         # Local surplus
         # Clearing price for electricity should be 0.8 SEK/kWh, for heating np.nan
@@ -183,9 +184,10 @@ class TestMarketSolver(TestCase):
         """Test that clearing prices are calculated correctly for two resources."""
         external_gross_price = 0.8
         bids = [GrossBid(Action.BUY, Resource.ELECTRICITY, 200, math.inf, 'BuildingAgent', False),
-                GrossBid(Action.SELL, Resource.ELECTRICITY, 10000, external_gross_price, 'ElectricityGridAgent', True),
+                GrossBid(Action.SELL, Resource.ELECTRICITY, 10000, external_gross_price,
+                         'ElectricityGridAgent', True, 0.0),
                 GrossBid(Action.BUY, Resource.HEATING, 400, math.inf, 'BuildingAgent', False),
-                GrossBid(Action.SELL, Resource.HEATING, 10000, 2.0, 'HeatingGridAgent', True)]
+                GrossBid(Action.SELL, Resource.HEATING, 10000, 2.0, 'HeatingGridAgent', True, 0.0)]
         net_bids = net_bids_from_gross_bids(bids, self.data_store_entity)
         clearing_prices, bids_with_acceptance_status = resolve_bids(SOME_DATETIME, net_bids)
         self.assertEqual(len(ALL_IMPLEMENTED_RESOURCES), len(clearing_prices))
@@ -205,9 +207,9 @@ class TestMarketSolver(TestCase):
         """The introduction of BUY-bids with price less than Inf, should never increase the local clearing price."""
         retail_price = 1.0
         wholesale_price = 0.5
-        bids = [GrossBid(Action.SELL, Resource.ELECTRICITY, 100, retail_price, "Grid", True),
+        bids = [GrossBid(Action.SELL, Resource.ELECTRICITY, 100, retail_price, "Grid", True, 0.0),
                 GrossBid(Action.BUY, Resource.ELECTRICITY, 4, math.inf, "Buyer", False),
-                GrossBid(Action.SELL, Resource.ELECTRICITY, 5, wholesale_price, "Seller", False)]
+                GrossBid(Action.SELL, Resource.ELECTRICITY, 5, wholesale_price, "Seller", False, 0.0)]
         net_bids = net_bids_from_gross_bids(bids, self.data_store_entity)
         # Clearing price should be wholesale_price, since local supply > local demand
         clearing_prices, bids_with_acceptance_status = resolve_bids(SOME_DATETIME, net_bids)
@@ -216,11 +218,11 @@ class TestMarketSolver(TestCase):
         # Now add in a storage agent
         storage_buy_price = 0.8
         storage_sell_price = 0.9
-        bids = [GrossBid(Action.SELL, Resource.ELECTRICITY, 10000, retail_price, "Grid", True),
+        bids = [GrossBid(Action.SELL, Resource.ELECTRICITY, 10000, retail_price, "Grid", True, 0.0),
                 GrossBid(Action.BUY, Resource.ELECTRICITY, 4, math.inf, "Buyer", False),
-                GrossBid(Action.SELL, Resource.ELECTRICITY, 5, wholesale_price, "Seller", False),
+                GrossBid(Action.SELL, Resource.ELECTRICITY, 5, wholesale_price, "Seller", False, 0.0),
                 GrossBid(Action.BUY, Resource.ELECTRICITY, 2, storage_buy_price, "Storage", False),
-                GrossBid(Action.SELL, Resource.ELECTRICITY, 2, storage_sell_price, "Storage", False)]
+                GrossBid(Action.SELL, Resource.ELECTRICITY, 2, storage_sell_price, "Storage", False, 0.0)]
         net_bids = net_bids_from_gross_bids(bids, self.data_store_entity)
         # The storage agent wanting to buy at 0.8 should be ignored, since we have a lower price which satisfies all
         # demand which has asking price = Inf
@@ -236,11 +238,11 @@ class TestMarketSolver(TestCase):
         wholesale_price = 0.5
         storage_buy_price = 0.8
         storage_sell_price = 0.9
-        bids = [GrossBid(Action.SELL, Resource.ELECTRICITY, 10000, retail_price, "Grid", True),
+        bids = [GrossBid(Action.SELL, Resource.ELECTRICITY, 10000, retail_price, "Grid", True, 0.0),
                 GrossBid(Action.BUY, Resource.ELECTRICITY, 4, math.inf, "Buyer", False),
-                GrossBid(Action.SELL, Resource.ELECTRICITY, 5, wholesale_price, "Seller", False),
+                GrossBid(Action.SELL, Resource.ELECTRICITY, 5, wholesale_price, "Seller", False, 0.0),
                 GrossBid(Action.BUY, Resource.ELECTRICITY, 2, storage_buy_price, "Storage", False),
-                GrossBid(Action.SELL, Resource.ELECTRICITY, 2, storage_sell_price, "Storage", False)]
+                GrossBid(Action.SELL, Resource.ELECTRICITY, 2, storage_sell_price, "Storage", False, 0.0)]
         net_bids = net_bids_from_gross_bids(bids, self.data_store_entity)
         # The storage agent wanting to buy at 0.8 should be ignored, since we have a lower price which satisfies all
         # demand which has asking price = Inf
@@ -255,9 +257,9 @@ class TestMarketSolver(TestCase):
     def test_partial_acceptance_same_price(self):
         """If multiple bids have the same price, we may require them all to be partially accepted"""
         local_sell_price = 1.5
-        bids = [GrossBid(Action.SELL, Resource.ELECTRICITY, 200, local_sell_price, "Seller1", False),
-                GrossBid(Action.SELL, Resource.ELECTRICITY, 200, local_sell_price, "Seller2", False),
-                GrossBid(Action.SELL, Resource.ELECTRICITY, 10000, 10, "Grid", True),
+        bids = [GrossBid(Action.SELL, Resource.ELECTRICITY, 200, local_sell_price, "Seller1", False, 0.0),
+                GrossBid(Action.SELL, Resource.ELECTRICITY, 200, local_sell_price, "Seller2", False, 0.0),
+                GrossBid(Action.SELL, Resource.ELECTRICITY, 10000, 10, "Grid", True, 0.0),
                 GrossBid(Action.BUY, Resource.ELECTRICITY, 300, math.inf, "Buyer1", False)]
         net_bids = net_bids_from_gross_bids(bids, self.data_store_entity)
 

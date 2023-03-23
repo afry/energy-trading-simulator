@@ -1,7 +1,7 @@
 import datetime
 import logging
 from enum import Enum
-from typing import Iterable
+from typing import Iterable, Optional
 
 
 class Action(Enum):
@@ -35,6 +35,7 @@ class GrossBid:
         resource: Electricity
         quantity: Amount in kWh
         price: The _gross_ price in SEK/kWh
+        co2_intensity: An estimate of gram CO2-equivalents per kWh (of quantity to be sold)
         source: String specifying which entity created the bid (used for debugging)
         by_external: True if bid is made by an external grid agent, False otherwise. Needed for example when calculating
             extra cost distribution in balance_manager
@@ -45,9 +46,10 @@ class GrossBid:
     price: float
     source: str
     by_external: bool
+    co2_intensity: Optional[float]
 
-    def __init__(self, action: Action, resource: Resource, quantity: float, price: float, source: str,
-                 by_external: bool):
+    def __init__(self, action: Action, resource: Resource, quantity: float, price: float,
+                 source: str, by_external: bool, co2_intensity: Optional[float] = None):
         if quantity <= 0:
             logger.warning("Creating bid with quantity {}! Source was '{}'".format(quantity, source))
         self.action = action
@@ -56,18 +58,28 @@ class GrossBid:
         self.price = price
         self.source = source
         self.by_external = by_external
+        self.co2_intensity = self._validate_co2_intensity(co2_intensity, action)
+
+    def _validate_co2_intensity(self, co2_intensity: Optional[float], action: Action) -> Optional[float]:
+        if (action == Action.BUY) and (co2_intensity is not None):
+            raise ValueError("Current action is BUY, so CO2 intensity should be "
+                             "None, but found {}.".format(co2_intensity))
+        if (action == Action.SELL) and ((co2_intensity is None) or (co2_intensity < 0)):
+            raise ValueError("Current action is SELL, so CO2 intensity should be "
+                             "non-negative float, but found {}.".format(co2_intensity))
+        return co2_intensity
 
 
 class NetBid(GrossBid):
 
     def __init__(self, action: Action, resource: Resource, quantity: float, price: float, source: str,
-                 by_external: bool):
-        super().__init__(action, resource, quantity, price, source, by_external)
+                 by_external: bool, co2_intensity: Optional[float]):
+        super().__init__(action, resource, quantity, price, source, by_external, co2_intensity)
 
     @staticmethod
     def from_gross_bid(gross_bid: GrossBid, net_price: float):
         return NetBid(gross_bid.action, gross_bid.resource, gross_bid.quantity, net_price, gross_bid.source,
-                      gross_bid.by_external)
+                      gross_bid.by_external, gross_bid.co2_intensity)
 
 
 class NetBidWithAcceptanceStatus(NetBid):
@@ -77,24 +89,25 @@ class NetBidWithAcceptanceStatus(NetBid):
     accepted_quantity: float
 
     def __init__(self, action: Action, resource: Resource, quantity: float, price: float, source: str,
-                 by_external: bool, accepted_quantity: float):
-        super().__init__(action, resource, quantity, price, source, by_external)
+                 by_external: bool, co2_intensity: Optional[float], accepted_quantity: float):
+        super().__init__(action, resource, quantity, price, source, by_external, co2_intensity)
         self.accepted_quantity = accepted_quantity
 
     @staticmethod
     def from_bid(bid: NetBid, accepted_quantity: float):
         return NetBidWithAcceptanceStatus(bid.action, bid.resource, bid.quantity, bid.price, bid.source,
-                                          bid.by_external, accepted_quantity)
+                                          bid.by_external, bid.co2_intensity, accepted_quantity)
 
     def to_string_with_period(self, period: datetime.datetime) -> str:
-        return "{},{},{},{},{},{},{},{}".format(period,
-                                                self.source,
-                                                self.by_external,
-                                                action_string(self.action),
-                                                resource_string(self.resource),
-                                                self.quantity,
-                                                self.price,
-                                                self.accepted_quantity)
+        return "{},{},{},{},{},{},{},{},{}".format(period,
+                                                   self.source,
+                                                   self.by_external,
+                                                   action_string(self.action),
+                                                   resource_string(self.resource),
+                                                   self.quantity,
+                                                   self.price,
+                                                   self.co2_intensity,
+                                                   self.accepted_quantity)
 
     def to_dict_with_period(self, period: datetime.datetime) -> dict:
         """Same function name as the one in Trade, so that the same method can be reused."""
@@ -105,6 +118,7 @@ class NetBidWithAcceptanceStatus(NetBid):
                 'resource': self.resource,
                 'quantity': self.quantity,
                 'price': self.price,
+                'co2_intensity': self.co2_intensity,
                 'accepted_quantity': self.accepted_quantity}
 
 

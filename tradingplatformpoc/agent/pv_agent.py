@@ -24,7 +24,7 @@ class PVAgent(IAgent):
         prognosis = self.make_prognosis(period, Resource.ELECTRICITY)
         if prognosis > 0:
             return [self.construct_elec_bid(Action.SELL, prognosis,
-                                            self.get_external_grid_buy_price(period, Resource.ELECTRICITY))]
+                                            self.get_external_grid_buy_price(period, Resource.ELECTRICITY), 0.0)]
         else:
             return []
 

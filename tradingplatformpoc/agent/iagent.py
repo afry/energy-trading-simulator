@@ -1,6 +1,6 @@
 import datetime
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -47,13 +47,14 @@ class IAgent(ABC):
         """
         pass
 
-    def construct_elec_bid(self, action: Action, quantity: float, price: float) -> GrossBid:
-        return GrossBid(action, Resource.ELECTRICITY, quantity, price, self.guid, False)
+    def construct_elec_bid(self, action: Action, quantity: float, price: float,
+                           co2_intensity: Optional[float]) -> GrossBid:
+        return GrossBid(action, Resource.ELECTRICITY, quantity, price, self.guid, False, co2_intensity)
 
-    def construct_sell_heat_bid(self, quantity: float, price: float) -> GrossBid:
+    def construct_sell_heat_bid(self, quantity: float, price: float, co2_intensity: float) -> GrossBid:
         # Heat transfer loss added
         quantity_after_loss = quantity * (1 - self.data_store.heat_transfer_loss_per_side)
-        return GrossBid(Action.SELL, Resource.HEATING, quantity_after_loss, price, self.guid, False)
+        return GrossBid(Action.SELL, Resource.HEATING, quantity_after_loss, price, self.guid, False, co2_intensity)
 
     def construct_buy_heat_bid(self, quantity_needed: float, price: float) -> GrossBid:
         # The heat transfer loss needs to be accounted for
