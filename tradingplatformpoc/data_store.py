@@ -278,6 +278,19 @@ def read_solar_irradiation(irradiation_csv_path: str):
     return irradiation_series
 
 
+def read_outdoor_temperature(temperature_csv_path: str) -> pd.DataFrame:
+    df_temp = pd.read_csv(temperature_csv_path, names=['datetime', 'temperature'],
+                          delimiter=';', header=0)
+    df_temp['datetime'] = pd.to_datetime(df_temp['datetime'])
+    # The input is in local time, with NA for the times that "don't exist" due to daylight savings time
+    df_temp['datetime'] = df_temp['datetime'].dt.tz_localize('Europe/Stockholm', nonexistent='NaT', ambiguous='NaT')
+    # Now, remove the rows where datetime is NaT (the values there are NA anyway)
+    df_temp = df_temp.loc[~df_temp['datetime'].isnull()]
+    # Finally, convert to UTC
+    df_temp['datetime'] = df_temp['datetime'].dt.tz_convert('UTC')
+    return df_temp
+
+
 def read_electricitymap_csv(electricitymap_csv_path: str) -> pd.Series:
     """
     Reads the electricity map CSV file. Returns a pd.Series with the marginal carbon intensity.
@@ -297,3 +310,11 @@ def handle_no_consumption_when_calculating_heating_price(period):
     logger.warning("Tried to calculate exact external heating price, in SEK/kWh, for {:%B %Y}, but had no "
                    "consumption for this month, so returned np.nan.".format(period))
     return np.nan
+
+
+def calculate_brine_temp_c(outdoor_temp_c: pd.Series) -> pd.Series:
+    """
+    Brine temp: ca -1 degrees at outdoor temp -20 degrees,
+    and brine temp: ca 6 degrees at outdoor temp +20 degrees
+    """
+    return 7 / 40 * outdoor_temp_c + 5 / 2
