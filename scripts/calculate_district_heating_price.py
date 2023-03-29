@@ -61,7 +61,7 @@ trades = pd.read_csv(PATH_TO_TRADES_CSV, index_col=0)
 all_heating_use = trades.loc[(trades.action == Action.BUY.name)
                              & (trades.resource == Resource.HEATING.name)
                              & (trades.agent == 'ResidentialBuildingAgentBC1')].copy()
-all_heating_use.index = pd.to_datetime(all_heating_use.index)
+all_heating_use.index = pd.to_datetime(all_heating_use.index)  # TODO: UTC?
 all_heating_use['month'] = all_heating_use.index.month
 all_heating_use['day_of_month'] = all_heating_use.index.day
 
