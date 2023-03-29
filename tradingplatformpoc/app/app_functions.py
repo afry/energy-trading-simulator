@@ -146,7 +146,7 @@ def construct_prices_df(simulation_results: SimulationResults) -> pd.DataFrame:
     nordpool_data = nordpool_data.to_frame().reset_index()
     nordpool_data['Resource'] = Resource.ELECTRICITY
     nordpool_data.rename({'datetime': 'period'}, axis=1, inplace=True)
-    nordpool_data['period'] = pd.to_datetime(nordpool_data['period'])  # TODO: UTC?
+    nordpool_data['period'] = pd.to_datetime(nordpool_data['period'])
     retail_df = nordpool_data.copy()
     gross_prices = data_store_entity.get_electricity_gross_retail_price_from_nordpool_price(retail_df['value'])
     retail_df['value'] = data_store_entity.get_electricity_net_external_price(gross_prices)
