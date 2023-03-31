@@ -413,7 +413,16 @@ def config_data_json_screening(config_data: dict):
     assert all([agent['Type'] in ['BuildingAgent', 'StorageAgent', 'PVAgent', 'GridAgent', 'GroceryStoreAgent']
                 for agent in config_data['Agents']])
 
-    # TODO: Check each individual agent for correct keys and values in ranges
+    # Check params for correct keys and values in ranges
+    for info_type in ['AreaInfo', 'MockDataConstants']:
+        for key, val in config_data[info_type].items():
+            assert key in app_constants.config_dict[info_type].keys()
+            if "min_value" in app_constants.config_dict[info_type][key].keys():
+                assert val >= app_constants.config_dict[info_type][key]["min_value"], "Specified {} is ".format(key) +\
+                    "less than min value."
+            if "max_value" in app_constants.config_dict[info_type][key].keys():
+                assert val <= app_constants.config_dict[info_type][key]["max_value"], "Specified {} is ".format(key) +\
+                    "greater than max value."
 
 
 def set_max_width(width: str):
