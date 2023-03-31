@@ -386,6 +386,28 @@ def get_agent(all_agents: Iterable[IAgent], agent_chosen_guid: str) -> IAgent:
     return [x for x in all_agents if x.guid == agent_chosen_guid][0]
 
 
+def config_data_json_screening(config_data: dict):
+    """Check that config json contains reasonable inputs."""
+    # Make sure agents are provided as list
+    assert 'Agents' in config_data
+    assert isinstance(config_data['Agents'], list)
+    
+    if 'AreaInfo' in config_data:
+        assert isinstance(config_data['AreaInfo'], dict)
+    if 'MockDataConstants' in config_data:
+        assert isinstance(config_data['MockDataConstants'], dict)
+
+    # Make sure no unrecognized keys are passed
+    assert all([key in ['Agents', 'AreaInfo', 'MockDataConstants'] for key in config_data.keys()])
+
+    # Make sure no unrecognized agents are passed
+    assert all([all([x in agent.keys() for x in ['Type', 'Name']]) for agent in config_data['Agents']])
+    assert all([agent['Type'] in ['BuildingAgent', 'StorageAgent', 'PVAgent', 'GridAgent', 'GroceryStoreAgent']
+                for agent in config_data['Agents']])
+
+    # TODO: Check each individual agent for correct keys and values in ranges
+
+
 def set_max_width(width: str):
     """
     Sets the max width of the page. The input can be specified either in pixels (i.e. "500px") or as a percentage (i.e.

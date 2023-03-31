@@ -11,8 +11,8 @@ from tradingplatformpoc.app import app_constants, footer
 from tradingplatformpoc.app.app_functions import add_building_agent, add_grocery_store_agent, agent_inputs, \
     add_pv_agent, add_storage_agent, aggregated_import_and_export_results_df_split_on_period, \
     aggregated_import_and_export_results_df_split_on_temperature, aggregated_local_production_df, \
-    aggregated_taxes_and_fees_results_df, construct_building_with_heat_pump_chart, construct_price_chart, \
-    construct_prices_df, construct_storage_level_chart, construct_traded_amount_by_agent_chart, \
+    aggregated_taxes_and_fees_results_df, config_data_json_screening, construct_building_with_heat_pump_chart, \
+    construct_price_chart, construct_prices_df, construct_storage_level_chart, construct_traded_amount_by_agent_chart, \
     display_df_and_make_downloadable, get_agent, get_price_df_when_local_price_inbetween, \
     results_by_agent_as_df_with_highlight, get_viewable_df, remove_all_building_agents, set_max_width
 from tradingplatformpoc.bid import Resource
@@ -310,6 +310,8 @@ if __name__ == '__main__':
             st.session_state.uploaded_file = uploaded_file
             logger.info("Reading uploaded config file")
             st.session_state.config_data = json.load(st.session_state.uploaded_file)
+            # TODO: Check content of json file
+            config_data_json_screening(st.session_state.config_data)
 
         if run_sim:
             run_sim = False
