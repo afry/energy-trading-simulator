@@ -386,6 +386,14 @@ def get_agent(all_agents: Iterable[IAgent], agent_chosen_guid: str) -> IAgent:
     return [x for x in all_agents if x.guid == agent_chosen_guid][0]
 
 
+def add_params_to_form(form, info_type: str):
+    for key, val in app_constants.config_dict[info_type].items():
+        params = {k: v for k, v in val.items() if k != 'display'}
+        st.session_state.config_data[info_type][key] = form.number_input(
+            val['display'], **params,
+            value=st.session_state.config_data[info_type][key])
+
+
 def config_data_json_screening(config_data: dict):
     """Check that config json contains reasonable inputs."""
     # Make sure agents are provided as list
