@@ -1,4 +1,4 @@
-from tradingplatformpoc import data_store, trading_platform_utils
+from tradingplatformpoc import data_store, heat_pump, trading_platform_utils
 
 WHOLESALE_PRICE_STR = 'Wholesale price'
 RETAIL_PRICE_STR = 'Retail price'
@@ -324,7 +324,7 @@ GROCERY_STORE_AGENT_EXAMPLE = """
 }
 """
 
-config_dict = {
+param_spec_dict = {
     "AreaInfo": {
         "DefaultPVEfficiency": {
             "display": "Default PV efficiency:",
@@ -464,5 +464,167 @@ config_dict = {
             "help": SCHOOL_HOT_TAP_WATER_REL_ERROR_STD_DEV_HELP_TEXT
         }
     
+    }
+}
+
+agent_specs_dict = {
+    "BuildingAgent": {
+        "GrossFloorArea": {
+            "display": "Gross floor area (sqm)",
+            "min_value": 0.0,
+            "step": 10.0,
+            "help": GROSS_FLOOR_AREA_HELP_TEXT,
+            "type": float
+        },
+        "FractionCommercial": {
+            "display": "Fraction commercial",
+            "min_value": 0.0,
+            "max_value": 1.0,
+            "help": FRACTION_COMMERCIAL_HELP_TEXT,
+            "default_value": 0.0,
+            "type": float
+        },
+        "FractionSchool": {
+            "display": "Fraction school",
+            "min_value": 0.0,
+            "max_value": 1.0,
+            "help": FRACTION_SCHOOL_HELP_TEXT,
+            "default_value": 0.0,
+            "type": float
+        },
+        "PVArea": {
+            "display": "PV area (sqm)",
+            "min_value": 0.0,
+            "step": 10.0,
+            "format": '%.1f',
+            "help": PV_AREA_HELP_TEXT,
+            "default_value": 0.0,
+            "type": float
+        },
+        "PVEfficiency": {
+            "display": "PV efficiency",
+            "min_value": 0.01,
+            "max_value": 0.99,
+            "format": '%.1f',
+            "help": PV_EFFICIENCY_HELP_TEXT,
+            "type": float
+        },
+        "NumberHeatPumps": {
+            "display": "Heat pumps",
+            "min_value": 0,
+            "step": 1,
+            "help": HEAT_PUMPS_HELP_TEXT,
+            "default_value": 0,
+            "type": int
+        },
+        "COP": {
+            "display": "COP",
+            "min_value": 2.0,
+            "step": 0.1,
+            "help": HEAT_PUMP_COP_HELP_TEXT,
+            "default_value": heat_pump.DEFAULT_COP,
+            "type": float,
+            "disabled_cond": {'NumberHeatPumps': 0}
+        }
+    },
+    "StorageAgent": {
+        "Capacity": {
+            "display": "Capacity",
+            "min_value": 0.0,
+            "step": 1.0,
+            "help": CAPACITY_HELP_TEXT,
+            "type": float
+        },
+        "ChargeRate": {
+            "display": "Charge rate",
+            "min_value": 0.01,
+            "max_value": 10.0,
+            "help": CHARGE_RATE_HELP_TEXT,
+            "type": float
+        },
+        "RoundTripEfficiency": {
+            "display": "Round-trip efficiency",
+            "min_value": 0.01,
+            "max_value": 1.0,
+            "help": ROUND_TRIP_EFFICIENCY_HELP_TEXT,
+            "type": float
+        },
+        "NHoursBack": {
+            "display": "\'N hours back\'",
+            "min_value": 1,
+            "max_value": 8760,
+            "help": N_HOURS_BACK_HELP_TEXT,
+            "type": int
+        },
+        "BuyPricePercentile": {
+            "display": "\'Buy-price percentile\'",
+            "min_value": 0.0,
+            "max_value": 100.0,
+            "step": 1.0,
+            "help": BUY_PERC_HELP_TEXT,
+            "type": float
+        },
+        "SellPricePercentile": {
+            "display": "\'Sell-price percentile\'",
+            "min_value": 0.0,
+            "max_value": 100.0,
+            "step": 1.0,
+            "help": SELL_PERC_HELP_TEXT,
+            "type": float
+        },
+        "DischargeRate": {
+            "display": "Discharge rate",
+            "min_value": 0.01,
+            "max_value": 10.0,
+            "help": DISCHARGE_RATE_HELP_TEXT,
+            "type": float
+        }
+    },
+    "GridAgent": {
+        "TransferRate": {
+            "display": "Transfer rate",
+            "min_value": 0.0,
+            "step": 10.0,
+            "help": TRANSFER_RATE_HELP_TEXT,
+            "type": float
+        }
+    },
+    "PVAgent": {
+        "PVArea": {
+            "display": "PV area (sqm)",
+            "min_value": 0.0,
+            "step": 10.0,
+            "format": '%.1f',
+            "help": PV_AREA_HELP_TEXT,
+            "default_value": 0.0,
+            "type": float
+        },
+        "PVEfficiency": {
+            "display": "PV efficiency",
+            "min_value": 0.01,
+            "max_value": 0.99,
+            "format": '%.1f',
+            "help": PV_EFFICIENCY_HELP_TEXT,
+            "type": float
+        }
+    },
+    "GroceryStoreAgent": {
+        "PVArea": {
+            "display": "PV area (sqm)",
+            "min_value": 0.0,
+            "step": 10.0,
+            "format": '%.1f',
+            "help": PV_AREA_HELP_TEXT,
+            "default_value": 0.0,
+            "type": float
+        },
+        "PVEfficiency": {
+            "display": "PV efficiency",
+            "min_value": 0.01,
+            "max_value": 0.99,
+            "format": '%.1f',
+            "help": PV_EFFICIENCY_HELP_TEXT,
+            "type": float
+        }
     }
 }

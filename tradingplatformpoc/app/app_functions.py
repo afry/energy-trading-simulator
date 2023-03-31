@@ -17,7 +17,6 @@ from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.bid import Action, Resource
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.generate_mock_data import create_inputs_df
-from tradingplatformpoc.heat_pump import DEFAULT_COP
 from tradingplatformpoc.results.results_key import ResultsKey
 from tradingplatformpoc.results.simulation_results import SimulationResults
 from tradingplatformpoc.trading_platform_utils import ALL_AGENT_TYPES, ALL_IMPLEMENTED_RESOURCES_STR, get_if_exists_else
@@ -272,113 +271,36 @@ def agent_inputs(agent):
     agent['Type'] = form.selectbox('Type', options=ALL_AGENT_TYPES,
                                    key='TypeSelectBox' + agent['Name'],
                                    index=ALL_AGENT_TYPES.index(agent['Type']))
-    if agent['Type'] == 'BuildingAgent':
-        agent['GrossFloorArea'] = form.number_input(
-            'Gross floor area (sqm)', min_value=0.0, step=10.0,
-            value=float(agent['GrossFloorArea']),
-            help=app_constants.GROSS_FLOOR_AREA_HELP_TEXT,
-            key='GrossFloorArea' + agent['Name']
-        )
-        agent['FractionCommercial'] = form.number_input(
-            'Fraction commercial', min_value=0.0, max_value=1.0,
-            value=get_if_exists_else(agent, 'FractionCommercial', 0.0),
-            help=app_constants.FRACTION_COMMERCIAL_HELP_TEXT,
-            key='FractionCommercial' + agent['Name']
-        )
-        agent['FractionSchool'] = form.number_input(
-            'Fraction school', min_value=0.0, max_value=1.0,
-            value=get_if_exists_else(agent, 'FractionSchool', 0.0),
-            help=app_constants.FRACTION_SCHOOL_HELP_TEXT,
-            key='FractionSchool' + agent['Name']
-        )
+
+    for key, val in app_constants.agent_specs_dict[agent['Type']].items():
+        params = {k: v for k, v in val.items() if k not in ['display', 'default_value', 'type', 'disabled_cond']}
+        if 'disabled_cond' in val.keys():
+            for k, v in val['disabled_cond'].items():
+                params['disabled'] = (agent[k] == v)
+        if key == "PVEfficiency":
+            val['default_value'] = st.session_state.config_data['AreaInfo']['DefaultPVEfficiency']
+        elif key == "DischargeRate":
+            val['default_value'] = agent['ChargeRate']
+        if 'default_value' in val.keys():
+            value = get_if_exists_else(agent, key, val['default_value'])
+        else:
+            value = agent[key]
+        if 'type' in val.keys():
+            value = val['type'](value)
+
+        agent[key] = form.number_input(val["display"], **params, value=value,
+                                       key=key + agent['Name'])
+
     if agent['Type'] in ['StorageAgent', 'GridAgent']:
         agent['Resource'] = form.selectbox('Resource', options=ALL_IMPLEMENTED_RESOURCES_STR,
                                            key='ResourceSelectBox' + agent['Name'],
                                            index=ALL_IMPLEMENTED_RESOURCES_STR.index(agent['Resource']))
-    if agent['Type'] == 'StorageAgent':
-        agent['Capacity'] = form.number_input(
-            'Capacity', min_value=0.0, step=1.0,
-            value=float(agent['Capacity']),
-            help=app_constants.CAPACITY_HELP_TEXT,
-            key='Capacity' + agent['Name']
-        )
-        agent['ChargeRate'] = form.number_input(
-            'Charge rate', min_value=0.01, max_value=10.0,
-            value=float(agent['ChargeRate']),
-            help=app_constants.CHARGE_RATE_HELP_TEXT,
-            key='ChargeRate' + agent['Name']
-        )
-        agent['RoundTripEfficiency'] = form.number_input(
-            'Round-trip efficiency', min_value=0.01, max_value=1.0,
-            value=float(agent['RoundTripEfficiency']),
-            help=app_constants.ROUND_TRIP_EFFICIENCY_HELP_TEXT,
-            key='RoundTripEfficiency' + agent['Name']
-        )
-        agent['NHoursBack'] = int(form.number_input(
-            '\'N hours back\'', min_value=1, max_value=8760,
-            value=int(agent['NHoursBack']),
-            help=app_constants.N_HOURS_BACK_HELP_TEXT,
-            key='NHoursBack' + agent['Name']
-        ))
-        agent['BuyPricePercentile'] = form.number_input(
-            '\'Buy-price percentile\'', min_value=0.0, max_value=100.0, step=1.0,
-            value=float(agent['BuyPricePercentile']),
-            help=app_constants.BUY_PERC_HELP_TEXT,
-            key='BuyPricePercentile' + agent['Name']
-        )
-        agent['SellPricePercentile'] = form.number_input(
-            '\'Sell-price percentile\'', min_value=0.0, max_value=100.0, step=1.0,
-            value=float(agent['SellPricePercentile']),
-            help=app_constants.SELL_PERC_HELP_TEXT,
-            key='SellPricePercentile' + agent['Name']
-        )
-        agent['DischargeRate'] = form.number_input(
-            'Discharge rate', min_value=0.01, max_value=10.0,
-            value=float(get_if_exists_else(agent, 'DischargeRate', agent['ChargeRate'])),
-            help=app_constants.DISCHARGE_RATE_HELP_TEXT,
-            key='DischargeRate' + agent['Name']
-        )
-    if agent['Type'] in ['BuildingAgent', 'PVAgent', 'GroceryStoreAgent']:
-        agent['PVArea'] = form.number_input(
-            'PV area (sqm)', min_value=0.0, format='%.1f', step=10.0,
-            value=float(get_if_exists_else(agent, 'PVArea', 0.0)),
-            help=app_constants.PV_AREA_HELP_TEXT,
-            key='PVArea' + agent['Name']
-        )
-        agent['PVEfficiency'] = form.number_input(
-            'PV efficiency', min_value=0.01, max_value=0.99, format='%.3f',
-            value=get_if_exists_else(agent, 'PVEfficiency',
-                                     st.session_state.config_data['AreaInfo']['DefaultPVEfficiency']),
-            help=app_constants.PV_EFFICIENCY_HELP_TEXT,
-            key='PVEfficiency' + agent['Name']
-        )
-    if agent['Type'] == 'BuildingAgent':
-        agent['NumberHeatPumps'] = form.number_input(
-            'Heat pumps', min_value=0, step=1,
-            value=int(get_if_exists_else(agent, 'NumberHeatPumps', 0)),
-            help=app_constants.HEAT_PUMPS_HELP_TEXT,
-            key='NumberHeatPumps' + agent['Name']
-        )
-        agent['COP'] = form.number_input(
-            'COP', min_value=2.0, step=0.1,
-            value=float(get_if_exists_else(agent, 'COP', DEFAULT_COP)),
-            help=app_constants.HEAT_PUMP_COP_HELP_TEXT,
-            key='COP' + agent['Name'],
-            disabled=(agent['NumberHeatPumps'] == 0)
-        )
-    if agent['Type'] == 'GridAgent':
-        agent['TransferRate'] = form.number_input(
-            'Transfer rate', min_value=0.0, step=10.0,
-            value=float(agent['TransferRate']),
-            help=app_constants.TRANSFER_RATE_HELP_TEXT,
-            key='TransferRate' + agent['Name']
-        )
-    else:
-        col1, col2 = st.columns(2)
-        with col1:
-            st.button('Remove agent', key='RemoveButton' + agent['Name'], on_click=remove_agent, args=(agent,))
-        with col2:
-            st.button('Duplicate agent', key='DuplicateButton' + agent['Name'], on_click=duplicate_agent, args=(agent,))
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.button('Remove agent', key='RemoveButton' + agent['Name'], on_click=remove_agent, args=(agent,))
+    with col2:
+        st.button('Duplicate agent', key='DuplicateButton' + agent['Name'], on_click=duplicate_agent, args=(agent,))
     form.form_submit_button('Save agent')
 
 
@@ -387,7 +309,7 @@ def get_agent(all_agents: Iterable[IAgent], agent_chosen_guid: str) -> IAgent:
 
 
 def add_params_to_form(form, info_type: str):
-    for key, val in app_constants.config_dict[info_type].items():
+    for key, val in app_constants.param_spec_dict[info_type].items():
         params = {k: v for k, v in val.items() if k != 'display'}
         st.session_state.config_data[info_type][key] = form.number_input(
             val['display'], **params,
@@ -416,13 +338,13 @@ def config_data_json_screening(config_data: dict):
     # Check params for correct keys and values in ranges
     for info_type in ['AreaInfo', 'MockDataConstants']:
         for key, val in config_data[info_type].items():
-            assert key in app_constants.config_dict[info_type].keys()
-            if "min_value" in app_constants.config_dict[info_type][key].keys():
-                assert val >= app_constants.config_dict[info_type][key]["min_value"], "Specified {} is ".format(key) +\
-                    "less than min value."
-            if "max_value" in app_constants.config_dict[info_type][key].keys():
-                assert val <= app_constants.config_dict[info_type][key]["max_value"], "Specified {} is ".format(key) +\
-                    "greater than max value."
+            assert key in app_constants.param_spec_dict[info_type].keys()
+            if "min_value" in app_constants.param_spec_dict[info_type][key].keys():
+                assert val >= app_constants.param_spec_dict[info_type][key]["min_value"], "Specified {}".format(key) +\
+                    ": {} < {}.".format(val, app_constants.param_spec_dict[info_type][key]["min_value"])
+            if "max_value" in app_constants.param_spec_dict[info_type][key].keys():
+                assert val <= app_constants.param_spec_dict[info_type][key]["max_value"], "Specified {}".format(key) +\
+                    ": {} > {}.".format(val, app_constants.param_spec_dict[info_type][key]["max_value"])
 
 
 def set_max_width(width: str):
