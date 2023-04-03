@@ -316,35 +316,107 @@ def add_params_to_form(form, info_type: str):
             value=st.session_state.config_data[info_type][key])
 
 
-def config_data_json_screening(config_data: dict):
+def config_data_json_screening(config_data: dict) -> Optional[str]:
     """Check that config json contains reasonable inputs."""
-    # Make sure agents are provided as list
-    assert 'Agents' in config_data
-    assert isinstance(config_data['Agents'], list)
+
+    str1 = config_data_json_keys(config_data)
+    if str1 is not None:
+        return str1
+    str2 = config_data_param_screening(config_data)
+    if str2 is not None:
+        return str2
+    str3 = config_data_agent_screening(config_data)
+    if str3 is not None:
+        return str3
+    return None
+
+
+def config_data_json_keys(config_data: dict) -> Optional[str]:
+    # Make sure no unrecognized keys are passed
+    unreq = [key for key in config_data.keys() if key not in ['Agents', 'AreaInfo', 'MockDataConstants']]
+    if len(unreq) > 0:
+        return 'Unrecognized key/keys: [\'{}\'] in uploaded config.'.format(', '.join(unreq))
     
     if 'AreaInfo' in config_data:
-        assert isinstance(config_data['AreaInfo'], dict)
+        if not isinstance(config_data['AreaInfo'], dict):
+            return '\'AreaInfo\'should be provided as a dict.'
+
     if 'MockDataConstants' in config_data:
-        assert isinstance(config_data['MockDataConstants'], dict)
+        if not isinstance(config_data['MockDataConstants'], dict):
+            return '\'MockDataConstants\' should be provided as a dict.'
+        
+    # Make sure agents are provided as list
+    if 'Agents' not in config_data:
+        return 'No agents are provided!'
 
-    # Make sure no unrecognized keys are passed
-    assert all([key in ['Agents', 'AreaInfo', 'MockDataConstants'] for key in config_data.keys()])
+    if not isinstance(config_data['Agents'], list):
+        return '\'Agents\' values should be provided as a list.'
 
-    # Make sure no unrecognized agents are passed
-    assert all([all([x in agent.keys() for x in ['Type', 'Name']]) for agent in config_data['Agents']])
-    assert all([agent['Type'] in ['BuildingAgent', 'StorageAgent', 'PVAgent', 'GridAgent', 'GroceryStoreAgent']
-                for agent in config_data['Agents']])
+    if len(config_data['Agents']) == 0:
+        return 'No agents are provided!'
+
+    return None
+
+
+def config_data_param_screening(config_data: dict) -> Optional[str]:
+    """Check that config json contains reasonable parameters."""
 
     # Check params for correct keys and values in ranges
     for info_type in ['AreaInfo', 'MockDataConstants']:
         for key, val in config_data[info_type].items():
-            assert key in app_constants.param_spec_dict[info_type].keys()
-            if "min_value" in app_constants.param_spec_dict[info_type][key].keys():
-                assert val >= app_constants.param_spec_dict[info_type][key]["min_value"], "Specified {}".format(key) +\
-                    ": {} < {}.".format(val, app_constants.param_spec_dict[info_type][key]["min_value"])
-            if "max_value" in app_constants.param_spec_dict[info_type][key].keys():
-                assert val <= app_constants.param_spec_dict[info_type][key]["max_value"], "Specified {}".format(key) +\
-                    ": {} > {}.".format(val, app_constants.param_spec_dict[info_type][key]["max_value"])
+            if key in app_constants.param_spec_dict[info_type].keys():
+
+                if "min_value" in app_constants.param_spec_dict[info_type][key].keys():
+                    if val < app_constants.param_spec_dict[info_type][key]["min_value"]:
+                        return "Specified {}: {} < {}.".format(key, val, app_constants.param_spec_dict[
+                            info_type][key]["min_value"])
+                if "max_value" in app_constants.param_spec_dict[info_type][key].keys():
+                    if val > app_constants.param_spec_dict[info_type][key]["max_value"]:
+                        return "Specified {}: {} > {}.".format(key, val, app_constants.param_spec_dict[
+                            info_type][key]["max_value"])
+    return None
+
+
+def config_data_agent_screening(config_data: dict) -> Optional[str]:
+    """Check that config json contains reasonable agents."""
+
+    # Make sure no agents are passed without name or type
+    for agent in config_data['Agents']:
+        if 'Type' not in agent.keys():
+            return 'Agent {} provided without \'Type\'.'.format(agent['Name'])
+        if 'Name' not in agent.keys():
+            return 'Agent {} provided without \'Name\'.'.format(agent['Name'])
+
+    # Make sure no agents are passed with unknown type
+    for agent in config_data['Agents']:
+        if agent['Type'] not in ['BuildingAgent', 'StorageAgent', 'PVAgent', 'GridAgent', 'GroceryStoreAgent']:
+            return 'Agent {} provided with unrecognized \'Type\' {}'.format(agent['Name'], agent['Type'])
+    
+    # Check agents for correct keys and values in ranges
+    for agent in config_data['Agents']:
+        items = {k: v for k, v in agent.items() if k not in ['Type', 'Name', 'Resource']}
+        for key, val in items.items():
+
+            if key not in app_constants.agent_specs_dict[agent['Type']].keys():
+                return "Specified {} not in availible input params for agent {}".format(key, agent['Type'])
+            
+            if "min_value" in app_constants.agent_specs_dict[agent['Type']][key].keys():
+                if val < app_constants.agent_specs_dict[agent['Type']][key]["min_value"]:
+                    return "Specified {}: {} < {}.".format(key, val, app_constants.agent_specs_dict[
+                        agent['Type']][key]["min_value"])
+                
+            if "max_value" in app_constants.agent_specs_dict[agent['Type']][key].keys():
+                if val > app_constants.agent_specs_dict[agent['Type']][key]["max_value"]:
+                    return "Specified {}: {} > {}.".format(key, val, app_constants.agent_specs_dict[
+                        agent['Type']][key]["max_value"])
+
+        if agent['Type'] in ['StorageAgent', 'GridAgent']:
+            if 'Resource' not in agent.keys():
+                return "No specified resource for agent {}.".format(agent['Name'])
+
+            if not agent['Resource'] in ALL_IMPLEMENTED_RESOURCES_STR:
+                return "Resource {} is not in availible for agent {}.".format(agent['Resource'], agent['Name'])
+    return None
 
 
 def set_max_width(width: str):

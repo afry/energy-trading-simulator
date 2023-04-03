@@ -189,8 +189,14 @@ if __name__ == '__main__':
             st.session_state.uploaded_file = uploaded_file
             logger.info("Reading uploaded config file")
             st.session_state.config_data = json.load(st.session_state.uploaded_file)
-            # TODO: Check content of json file
-            config_data_json_screening(st.session_state.config_data)
+
+            try:
+                check_message = config_data_json_screening(st.session_state.config_data)
+                if check_message is not None:
+                    st.error(check_message)
+                    raise ValueError("Bad parameters in config json.")
+            except ValueError:
+                st.stop()
 
         if run_sim:
             run_sim = False
