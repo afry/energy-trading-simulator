@@ -9,8 +9,6 @@ import pandas as pd
 
 from pkg_resources import resource_filename
 
-from scripts.extract_df_from_mock_datas_pickle_file import DATA_PATH
-
 import streamlit as st
 
 from tradingplatformpoc.agent.building_agent import BuildingAgent
@@ -476,9 +474,9 @@ def aggregated_import_and_export_results_df_split_on_temperature() -> Dict[str, 
     or below 1 degree Celsius.
     """
     # Read in-data: Temperature and timestamps, TODO: simplify
-    df_inputs, df_irrd = create_inputs_df(resource_filename(DATA_PATH, 'temperature_vetelangden.csv'),
-                                          resource_filename(DATA_PATH, 'varberg_irradiation_W_m2_h.csv'),
-                                          resource_filename(DATA_PATH, 'vetelangden_slim.csv'))
+    df_inputs, df_irrd = create_inputs_df(resource_filename(app_constants.DATA_PATH, 'temperature_vetelangden.csv'),
+                                          resource_filename(app_constants.DATA_PATH, 'varberg_irradiation_W_m2_h.csv'),
+                                          resource_filename(app_constants.DATA_PATH, 'vetelangden_slim.csv'))
     
     temperature_df = df_inputs.to_pandas()[['datetime', 'temperature']]
     temperature_df['above_1_degree'] = temperature_df['temperature'] >= 1.0
@@ -626,12 +624,8 @@ def display_df_and_make_downloadable(df: pd.DataFrame,
         st.dataframe(df_styled, height=height)
     else:
         st.dataframe(df, height=height)
-    
-    col1, col2, col3 = st.columns([1, 1, 4])
 
-    # CSV
-    with col1:
-        download_df_as_csv_button(df, file_name, include_index=True)
+    download_df_as_csv_button(df, file_name, include_index=True)
     
 
 @st.cache_data()
