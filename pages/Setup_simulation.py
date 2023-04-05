@@ -188,6 +188,7 @@ if option_choosen == options[0]:
     with col2:
         st.button("Remove all BuildingAgents", on_click=remove_all_building_agents)
 
+    # TODO: Maybe organize agents in columns based on type, for readability
     for agent in st.session_state.config_data['Agents'][:]:
         # Annoyingly, this expander's name doesn't update right away when the agent's name is changed
         with st.expander(agent['Name']):
