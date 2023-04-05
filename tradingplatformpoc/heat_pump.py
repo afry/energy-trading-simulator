@@ -1,6 +1,6 @@
 import logging
 from collections import OrderedDict
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 import numpy as np
 
@@ -87,6 +87,22 @@ class HeatPump:
                                                                coeff_of_perf=coeff_of_perf)
 
         return ordered_dict
+    
+    @staticmethod
+    def calculate_for_all_workloads_for_all_brine_temps(brine_temps: List[float],
+                                                        forward_temp_c: float = DEFAULT_FORWARD_TEMP,
+                                                        coeff_of_perf: float = DEFAULT_COP) -> \
+            Dict[float, OrderedDict]:
+        """
+        Returns an ordered dictionary where workload are keys, in increasing order. The values are pairs of floats, the
+        first one being electricity needed, and the second one heating produced.
+        """
+        dct = {}
+        for brine_temp_c in brine_temps:
+            dct[brine_temp_c] = HeatPump.calculate_for_all_workloads(forward_temp_c, brine_temp_c,
+                                                                     coeff_of_perf=coeff_of_perf)
+
+        return dct
 
 
 class ValueOutOfRangeError(Exception):

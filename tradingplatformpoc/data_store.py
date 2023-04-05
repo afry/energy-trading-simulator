@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 class DataStore:
     nordpool_data: pd.Series
     irradiation_data: pd.Series
+    temperature_data: pd.Series
     all_external_heating_sells: pd.Series
     grid_carbon_intensity: pd.Series
     elec_tax: float  # SEK/kWh
@@ -33,7 +34,7 @@ class DataStore:
     elec_grid_fee_internal: float  # SEK/kWh
 
     def __init__(self, config_area_info: dict, nordpool_data: pd.Series, irradiation_data: pd.Series,
-                 grid_carbon_intensity: pd.Series):
+                 temperature_data: pd.Series, grid_carbon_intensity: pd.Series):
         self.default_pv_efficiency = config_area_info["DefaultPVEfficiency"]
         self.heating_wholesale_price_fraction = get_if_exists_else(config_area_info,
                                                                    'ExternalHeatingWholesalePriceFraction',
@@ -49,6 +50,7 @@ class DataStore:
 
         self.nordpool_data = nordpool_data
         self.irradiation_data = irradiation_data
+        self.temperature_data = temperature_data
         self.all_external_heating_sells = pd.Series(dtype=float)
         self.all_external_heating_sells.index = pd.to_datetime(self.all_external_heating_sells.index, utc=True)
         self.grid_carbon_intensity = grid_carbon_intensity
@@ -57,14 +59,17 @@ class DataStore:
     def from_csv_files(config_area_info: dict, data_path: str = "tradingplatformpoc.data",
                        external_price_file: str = "nordpool_area_grid_el_price.csv",
                        irradiation_file: str = "varberg_irradiation_W_m2_h.csv",
+                       temperature_file: str = "temperature_vetelangden.csv",
                        electricitymap_file: str = "electricity_co2equivalents_year2019.csv"):
 
         external_price_csv_path = resource_filename(data_path, external_price_file)
         irradiation_csv_path = resource_filename(data_path, irradiation_file)
+        temperature_csv_path = resource_filename(data_path, temperature_file)
         electricitymap_csv_path = resource_filename(data_path, electricitymap_file)
 
         return DataStore(config_area_info, read_nordpool_data(external_price_csv_path),
                          read_solar_irradiation(irradiation_csv_path),
+                         read_outdoor_temperature(temperature_csv_path),
                          read_electricitymap_csv(electricitymap_csv_path))
 
     def get_nordpool_price_for_period(self, period: datetime.datetime):
@@ -278,7 +283,7 @@ def read_solar_irradiation(irradiation_csv_path: str):
     return irradiation_series
 
 
-def read_outdoor_temperature(temperature_csv_path: str) -> pd.DataFrame:
+def read_outdoor_temperature(temperature_csv_path: str) -> pd.Series:
     df_temp = pd.read_csv(temperature_csv_path, names=['datetime', 'temperature'],
                           delimiter=';', header=0)
     df_temp['datetime'] = pd.to_datetime(df_temp['datetime'])
@@ -288,7 +293,12 @@ def read_outdoor_temperature(temperature_csv_path: str) -> pd.DataFrame:
     df_temp = df_temp.loc[~df_temp['datetime'].isnull()]
     # Finally, convert to UTC
     df_temp['datetime'] = df_temp['datetime'].dt.tz_convert('UTC')
-    return df_temp
+
+    # Set index
+    df_temp = df_temp.set_index('datetime')
+    # Convert to Series
+    series_temp = df_temp['temperature'].squeeze()
+    return series_temp
 
 
 def read_electricitymap_csv(electricitymap_csv_path: str) -> pd.Series:
@@ -318,3 +328,12 @@ def calculate_brine_temp_c(outdoor_temp_c: pd.Series) -> pd.Series:
     and brine temp: ca 6 degrees at outdoor temp +20 degrees
     """
     return 7 / 40 * outdoor_temp_c + 5 / 2
+
+
+def create_set_of_outdoor_brine_temps_pairs(outdoor_temp_c: pd.Series) -> pd.DataFrame:
+    """Create a dataframe with a set of outdoor temperature, brine temperature pairs to use for workload calculations"""
+
+    disc_temps = pd.DataFrame(outdoor_temp_c.quantile(np.linspace(0.0, 1.0, 21)).rename('outdoor_temp_c'))
+    disc_temps['brine_temp_c'] = calculate_brine_temp_c(disc_temps['outdoor_temp_c'])
+
+    return disc_temps

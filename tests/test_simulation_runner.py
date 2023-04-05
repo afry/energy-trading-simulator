@@ -22,7 +22,7 @@ class Test(TestCase):
     mock_datas_file_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
     fake_config = {'Agents': []}
     empty_data_store = DataStore(utility_test_objects.AREA_INFO, pd.Series(dtype=float), pd.Series(dtype=float),
-                                 pd.Series(dtype=float))
+                                 pd.Series(dtype=float), pd.Series(dtype=float))
 
     def test_initialize_agents(self):
         energy_data_csv_path = resource_filename("tradingplatformpoc.data", "full_mock_energy_data.csv")

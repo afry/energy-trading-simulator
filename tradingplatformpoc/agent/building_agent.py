@@ -10,9 +10,9 @@ from tradingplatformpoc import trading_platform_utils
 from tradingplatformpoc.agent.iagent import IAgent, get_price_and_market_to_use_when_buying, \
     get_price_and_market_to_use_when_selling
 from tradingplatformpoc.bid import Action, GrossBid, NetBidWithAcceptanceStatus, Resource
-from tradingplatformpoc.data_store import DataStore
+from tradingplatformpoc.data_store import DataStore, create_set_of_outdoor_brine_temps_pairs
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
-from tradingplatformpoc.heat_pump import HeatPump
+from tradingplatformpoc.heat_pump import DEFAULT_BRINE_TEMP, HeatPump
 from tradingplatformpoc.trade import Trade, TradeMetadataKey
 from tradingplatformpoc.trading_platform_utils import minus_n_hours
 
@@ -23,7 +23,7 @@ class BuildingAgent(IAgent):
 
     digital_twin: StaticDigitalTwin
     n_heat_pumps: int
-    workloads_data: OrderedDict[int, Tuple[float, float]]  # Keys should be strictly increasing
+    workloads_data: Dict[float, OrderedDict[int, Tuple[float, float]]]  # Keys should be strictly increasing
     allow_sell_heat: bool
 
     def __init__(self, data_store: DataStore, digital_twin: StaticDigitalTwin, nbr_heat_pumps: int = 0,
@@ -31,7 +31,11 @@ class BuildingAgent(IAgent):
         super().__init__(guid, data_store)
         self.digital_twin = digital_twin
         self.n_heat_pumps = nbr_heat_pumps
-        self.workloads_data = construct_workloads_data(coeff_of_perf, nbr_heat_pumps)
+        self.outdoor_temperatures = self.data_store.temperature_data
+        self.temperature_pairs = create_set_of_outdoor_brine_temps_pairs(self.outdoor_temperatures)
+        self.workloads_data = construct_workloads_data(list(self.temperature_pairs['brine_temp_c'])
+                                                       + [DEFAULT_BRINE_TEMP],
+                                                       coeff_of_perf, nbr_heat_pumps)
         self.allow_sell_heat = False
 
     def make_bids(self, period: datetime.datetime, clearing_prices_historical: Union[Dict[datetime.datetime, Dict[
@@ -73,11 +77,19 @@ class BuildingAgent(IAgent):
         heat_net_consumption_pred = self.make_prognosis(period, Resource.HEATING)
         elec_clearing_price = clearing_prices[Resource.ELECTRICITY]
         heat_clearing_price = clearing_prices[Resource.HEATING]
+
+        # TODO find brine temp that matches the closest temperature to temp
+        temp = self.outdoor_temperatures.loc[period]
+        closest_row = self.temperature_pairs.iloc[(self.temperature_pairs['outdoor_temp_c'] - temp).abs().argsort()[:1]]
+        brine_temp_c = closest_row['brine_temp_c'].iloc[0]
+
         # Re-calculate optimal workload, now that prices are known
-        workload_to_use = self.calculate_optimal_workload(elec_net_consumption_pred, heat_net_consumption_pred,
-                                                          elec_clearing_price, heat_clearing_price)
-        elec_needed_for_1_heat_pump = self.workloads_data[workload_to_use][0]
-        heat_output_for_1_heat_pump = self.workloads_data[workload_to_use][1]
+        workload_to_use = self.calculate_optimal_workload(brine_temp_c, elec_net_consumption_pred,
+                                                          heat_net_consumption_pred, elec_clearing_price,
+                                                          heat_clearing_price)
+
+        elec_needed_for_1_heat_pump = self.workloads_data[brine_temp_c][workload_to_use][0]
+        heat_output_for_1_heat_pump = self.workloads_data[brine_temp_c][workload_to_use][1]
 
         # Now, the trading period "happens", some resources are consumed, some produced...
         elec_usage = self.get_actual_usage(period, Resource.ELECTRICITY)
@@ -129,12 +141,17 @@ class BuildingAgent(IAgent):
         Note that if the agent doesn't have any heat pumps, this method will still work.
         """
 
+        temp = self.outdoor_temperatures.loc[period]
+        closest_row = self.temperature_pairs.iloc[(self.temperature_pairs['outdoor_temp_c'] - temp).abs().argsort()[:1]]
+        brine_temp_c = closest_row['brine_temp_c'].iloc[0]
+
         heat_net_consumption = self.make_prognosis(period, Resource.HEATING)
         elec_net_consumption = self.make_prognosis(period, Resource.ELECTRICITY)  # Negative means net production
-        workload_to_use = self.calculate_optimal_workload(elec_net_consumption, heat_net_consumption, pred_elec_price,
-                                                          pred_heat_price)
-        elec_needed_for_1_heat_pump = self.workloads_data[workload_to_use][0]
-        heat_output_for_1_heat_pump = self.workloads_data[workload_to_use][1]
+        workload_to_use = self.calculate_optimal_workload(brine_temp_c, elec_net_consumption, heat_net_consumption,
+                                                          pred_elec_price, pred_heat_price)
+
+        elec_needed_for_1_heat_pump = self.workloads_data[brine_temp_c][workload_to_use][0]
+        heat_output_for_1_heat_pump = self.workloads_data[brine_temp_c][workload_to_use][1]
 
         # Now we have decided what workload to use. Next, construct bids
         bids = []
@@ -157,7 +174,7 @@ class BuildingAgent(IAgent):
             bids.append(self.construct_sell_heat_bid(-heat_net_consumption_incl_pump, pred_heat_price))
         return bids
 
-    def calculate_optimal_workload(self, elec_net_consumption: float, heat_net_consumption: float,
+    def calculate_optimal_workload(self, brine_temp_c: float, elec_net_consumption: float, heat_net_consumption: float,
                                    pred_elec_price: float, pred_heat_price: float) -> int:
         """
         Calculates the optimal workload to run the agent's heat pumps. "Optimal" is the workload which leads to the
@@ -171,7 +188,7 @@ class BuildingAgent(IAgent):
         min_cost = 1e10  # Big placeholder number
         prev_cost = 1e10  # Big placeholder number
         workload_to_use = 0
-        for workload, (elec, heat) in self.workloads_data.items():
+        for workload, (elec, heat) in self.workloads_data[brine_temp_c].items():
 
             elec_net_consumption_incl_pump = elec_net_consumption + elec * self.n_heat_pumps
             heat_net_consumption_incl_pump = heat_net_consumption - heat * self.n_heat_pumps
@@ -203,17 +220,19 @@ class BuildingAgent(IAgent):
         return workload_to_use
 
 
-def construct_workloads_data(coeff_of_perf: Optional[float], n_heat_pumps: int) -> \
-        OrderedDict[int, Tuple[float, float]]:
+def construct_workloads_data(brine_temps_lst: List[float], coeff_of_perf: Optional[float], n_heat_pumps: int) -> \
+        Dict[float, OrderedDict]:
     """
-    Will construct a pd.DataFrame with three columns: workload, input, and output.
-    If there are no heat pumps (n_heat_pumps = 0), the returned data frame will have only one row, which corresponds
-    to not running a heat pump at all.
+    Will construct a dict with brine temperatures as keys, and ordered dicts as values, in which workload is key,
+    and input, output are the values.
+    If there are no heat pumps (n_heat_pumps = 0), the returned ordered dicts in the dict will have only one row,
+    which corresponds to not running a heat pump at all.
     """
     if n_heat_pumps == 0:
         ordered_dict = OrderedDict()
         ordered_dict[0] = (0.0, 0.0)
-        return ordered_dict
+        dct = {brine_temp_c: ordered_dict for brine_temp_c in brine_temps_lst}
+        return dct
     if coeff_of_perf is None:
-        return HeatPump.calculate_for_all_workloads()
-    return HeatPump.calculate_for_all_workloads(coeff_of_perf=coeff_of_perf)
+        return HeatPump.calculate_for_all_workloads_for_all_brine_temps(brine_temps_lst)
+    return HeatPump.calculate_for_all_workloads_for_all_brine_temps(brine_temps_lst, coeff_of_perf=coeff_of_perf)
