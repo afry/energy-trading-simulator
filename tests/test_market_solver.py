@@ -25,7 +25,7 @@ class TestMarketSolver(TestCase):
     data_store_entity = data_store.DataStore(config_area_info=utility_test_objects.AREA_INFO,
                                              nordpool_data=ONES_SERIES * CONSTANT_NORDPOOL_PRICE,
                                              irradiation_data=ONES_SERIES,
-                                             temperature_data=pd.Series([]),
+                                             temperature_data=ONES_SERIES,
                                              grid_carbon_intensity=ONES_SERIES)
 
     def test_resolve_bids_1(self):

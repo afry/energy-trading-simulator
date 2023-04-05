@@ -78,7 +78,7 @@ class BuildingAgent(IAgent):
         elec_clearing_price = clearing_prices[Resource.ELECTRICITY]
         heat_clearing_price = clearing_prices[Resource.HEATING]
 
-        # TODO find brine temp that matches the closest temperature to temp
+        # Find brine temp for the closest outdoor temperature
         temp = self.outdoor_temperatures.loc[period]
         closest_row = self.temperature_pairs.iloc[(self.temperature_pairs['outdoor_temp_c'] - temp).abs().argsort()[:1]]
         brine_temp_c = closest_row['brine_temp_c'].iloc[0]
@@ -141,6 +141,7 @@ class BuildingAgent(IAgent):
         Note that if the agent doesn't have any heat pumps, this method will still work.
         """
 
+        # Find brine temp for the closest outdoor temperature
         temp = self.outdoor_temperatures.loc[period]
         closest_row = self.temperature_pairs.iloc[(self.temperature_pairs['outdoor_temp_c'] - temp).abs().argsort()[:1]]
         brine_temp_c = closest_row['brine_temp_c'].iloc[0]
