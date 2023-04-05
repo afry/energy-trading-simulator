@@ -1,5 +1,6 @@
-import bz2file as bz2
 import pickle
+
+import bz2file as bz2
 
 
 def bz2_compressed_pickle(title, data):
