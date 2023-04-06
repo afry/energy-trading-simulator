@@ -633,7 +633,7 @@ def load_results(uploaded_results_file):
     st.session_state.simulation_results = pickle.load(uploaded_results_file)
 
 
-def agent_diff(default: dict, new: dict) -> Tuple[List[str], List[str], Dict[str, dict]]:
+def agent_diff(default: dict, new: dict):
     agents_in_default = [agent['Name'] for agent in default['Agents']]
     agents_in_new = [agent['Name'] for agent in new['Agents']]
 
