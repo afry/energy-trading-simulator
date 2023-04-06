@@ -5,7 +5,6 @@ from pkg_resources import resource_filename
 
 from tradingplatformpoc.app import footer
 
-import json
 import logging
 import sys
 
@@ -51,9 +50,6 @@ logger = logging.getLogger(__name__)
 
 # --- Define path to mock data and results
 MOCK_DATA_PATH = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
-config_filename = resource_filename("tradingplatformpoc.data", "default_config.json")
-with open(config_filename, "r") as jsonfile:
-    DEFAULT_CONFIG = json.load(jsonfile)
 
 if string_to_log_later is not None:
     logger.info(string_to_log_later)

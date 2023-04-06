@@ -1,10 +1,12 @@
 import json
 import logging
 import pickle
-from app import DEFAULT_CONFIG, MOCK_DATA_PATH
+
+from pkg_resources import resource_filename
+from app import MOCK_DATA_PATH
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.app.app_functions import add_building_agent, add_grocery_store_agent, add_pv_agent,\
-    add_storage_agent, agent_inputs, remove_all_building_agents, set_max_width
+    add_storage_agent, agent_inputs, display_diff_in_config, remove_all_building_agents, set_max_width
 
 import streamlit as st
 from st_pages import add_indentation
@@ -16,6 +18,10 @@ logger = logging.getLogger(__name__)
 add_indentation()
 
 set_max_width('1000px')  # This tab looks a bit daft when it is too wide, so limiting it here.
+
+config_filename = resource_filename("tradingplatformpoc.data", "default_config.json")
+with open(config_filename, "r") as jsonfile:
+    DEFAULT_CONFIG = json.load(jsonfile)
 
 run_sim = st.button("Click here to run simulation")
 progress_bar = st.progress(0.0)
@@ -225,8 +231,14 @@ if option_choosen == options[1]:
         logger.info("Reading uploaded config file")
         st.session_state.config_data = json.load(st.session_state.uploaded_file)
 
-st.subheader("Current configuration in JSON format:")
-st.json(st.session_state.config_data)
+st.subheader("Configuration")
+coljson, coltext = st.columns(2)
+with coljson:
+    st.markdown('**Current configuration in JSON format:**')
+    st.json(st.session_state.config_data)
+with coltext:
+    display_diff_in_config(DEFAULT_CONFIG, st.session_state.config_data)
+
 with st.expander("Guidelines on configuration file"):
     st.markdown(app_constants.CONFIG_GUIDELINES_MARKDOWN)
     st.json(app_constants.AREA_INFO_EXAMPLE)
