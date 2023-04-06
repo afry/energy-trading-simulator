@@ -10,9 +10,8 @@ from pkg_resources import resource_filename
 
 import polars as pl
 
-import statsmodels.api as sm
-
 from tradingplatformpoc import generate_mock_data
+from tradingplatformpoc.compress import bz2_decompress_pickle
 from tradingplatformpoc.generate_mock_data import DATA_PATH, KWH_SPACE_HEATING_PER_YEAR_M2_SCHOOL_DEFAULT, \
     all_parameters_match, is_day_before_major_holiday_sweden, is_major_holiday_sweden, simulate_series, \
     simulate_space_heating
@@ -56,7 +55,7 @@ class Test(TestCase):
         """
         Test residential electricity generation.
         """
-        model = sm.load(resource_filename(DATA_PATH, 'models/household_electricity_model.pickle'))
+        model = bz2_decompress_pickle(resource_filename(DATA_PATH, 'models/household_electricity_model.pbz2'))
         random_seed = 10
         rng = np.random.default_rng(random_seed)
         datetimes = hourly_datetime_array_between(datetime(2019, 12, 31, 23, tzinfo=timezone.utc),
