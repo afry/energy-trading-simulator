@@ -1,7 +1,7 @@
 import datetime
-from enum import Enum
 import json
 import os
+from enum import Enum
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import altair as alt

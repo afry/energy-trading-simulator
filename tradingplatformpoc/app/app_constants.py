@@ -1,4 +1,5 @@
 from pkg_resources import resource_filename
+
 from tradingplatformpoc import data_store, trading_platform_utils
 
 WHOLESALE_PRICE_STR = 'Wholesale price'
