@@ -13,8 +13,9 @@ from tradingplatformpoc.app.app_functions import add_building_agent, add_grocery
     aggregated_import_and_export_results_df_split_on_temperature, aggregated_local_production_df, \
     aggregated_taxes_and_fees_results_df, construct_building_with_heat_pump_chart, construct_price_chart, \
     construct_prices_df, construct_storage_level_chart, construct_traded_amount_by_agent_chart, \
-    display_df_and_make_downloadable, get_agent, get_price_df_when_local_price_inbetween, \
-    results_by_agent_as_df_with_highlight, get_viewable_df, remove_all_building_agents, set_max_width
+    display_df_and_make_downloadable, fill_with_default_params, get_agent, get_config, \
+    get_price_df_when_local_price_inbetween, read_config, results_by_agent_as_df_with_highlight, \
+    get_viewable_df, remove_all_building_agents, set_config, set_max_width
 from tradingplatformpoc.bid import Resource
 from tradingplatformpoc.simulation_runner import run_trading_simulations
 import json
@@ -62,9 +63,7 @@ logger = logging.getLogger(__name__)
 
 # --- Define path to mock data and results
 mock_datas_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
-config_filename = resource_filename("tradingplatformpoc.data", "default_config.json")
-with open(config_filename, "r") as jsonfile:
-    default_config = json.load(jsonfile)
+
 
 if string_to_log_later is not None:
     logger.info(string_to_log_later)
@@ -104,9 +103,10 @@ if __name__ == '__main__':
             results_download_button.download_button(label="Download simulation results", data=b'placeholder',
                                                     disabled=True)
 
-        if ("config_data" not in st.session_state.keys()) or (st.session_state.config_data is None):
-            logger.debug("Using default configuration")
-            st.session_state.config_data = default_config
+        reset_config_button = st.button("Reset configuration",
+                                        help="Click here to reset configuration to default values and agents.")
+        current_config = get_config(reset_config_button)
+        st.session_state.config_data = current_config
 
         # --------------------- Start config specification for dummies ------------------------
         # Could perhaps save the config to a temporary file on-change of these? That way changes won't get lost
@@ -118,65 +118,66 @@ if __name__ == '__main__':
 
         st.session_state.config_data['AreaInfo']['DefaultPVEfficiency'] = area_form.number_input(
             'Default PV efficiency:', min_value=0.01, max_value=0.99, format='%.3f',
-            value=st.session_state.config_data['AreaInfo']['DefaultPVEfficiency'],
+            value=current_config['AreaInfo']['DefaultPVEfficiency'],
             help=app_constants.DEFAULT_PV_EFFICIENCY_HELP_TEXT)
 
         st.session_state.config_data['AreaInfo']['HeatTransferLoss'] = area_form.number_input(
             'Heat transfer loss:', min_value=0.0, max_value=0.99, format='%.3f',
-            value=st.session_state.config_data['AreaInfo']['HeatTransferLoss'],
+            value=current_config['AreaInfo']['HeatTransferLoss'],
             help=app_constants.HEAT_TRANSFER_LOSS_HELP_TEXT)
 
         st.session_state.config_data['AreaInfo']['ExternalElectricityWholesalePriceOffset'] = area_form.number_input(
             'External electricity wholesale price offset:', min_value=-1.0, max_value=1.0,
-            value=st.session_state.config_data['AreaInfo']['ExternalElectricityWholesalePriceOffset'],
+            value=current_config['AreaInfo']['ExternalElectricityWholesalePriceOffset'],
             help=app_constants.ELECTRICITY_WHOLESALE_PRICE_OFFSET_HELP_TEXT)
 
         st.session_state.config_data['AreaInfo']['ElectricityTax'] = area_form.number_input(
             'Electricity tax:', min_value=0.0, format='%.3f',
-            value=st.session_state.config_data['AreaInfo']['ElectricityTax'],
+            value=current_config['AreaInfo']['ElectricityTax'],
             help=app_constants.ELECTRICITY_TAX_HELP_TEXT)
 
         st.session_state.config_data['AreaInfo']['ElectricityGridFee'] = area_form.number_input(
             'Electricity grid fee:', min_value=0.0, format='%.3f',
-            value=st.session_state.config_data['AreaInfo']['ElectricityGridFee'],
+            value=current_config['AreaInfo']['ElectricityGridFee'],
             help=app_constants.ELECTRICITY_GRID_FEE_HELP_TEXT)
 
         st.session_state.config_data['AreaInfo']['ElectricityTaxInternal'] = area_form.number_input(
             'Electricity tax (internal):', min_value=0.0, format='%.3f',
-            value=st.session_state.config_data['AreaInfo']['ElectricityTaxInternal'],
+            value=current_config['AreaInfo']['ElectricityTaxInternal'],
             help=app_constants.ELECTRICITY_TAX_INTERNAL_HELP_TEXT)
 
         st.session_state.config_data['AreaInfo']['ElectricityGridFeeInternal'] = area_form.number_input(
             'Electricity grid fee (internal):', min_value=0.0, format='%.3f',
-            value=st.session_state.config_data['AreaInfo']['ElectricityGridFeeInternal'],
+            value=current_config['AreaInfo']['ElectricityGridFeeInternal'],
             help=app_constants.ELECTRICITY_GRID_FEE_INTERNAL_HELP_TEXT)
 
         st.session_state.config_data['AreaInfo']['ExternalHeatingWholesalePriceFraction'] = area_form.number_input(
             'External heating wholesale price fraction:', min_value=0.0, max_value=1.0,
-            value=st.session_state.config_data['AreaInfo']['ExternalHeatingWholesalePriceFraction'],
+            value=current_config['AreaInfo']['ExternalHeatingWholesalePriceFraction'],
             help=app_constants.HEATING_WHOLESALE_PRICE_FRACTION_HELP_TEXT)
 
         _dummy1 = area_form.number_input(
             'CO2 penalization rate:', value=0.0, help=app_constants.CO2_PEN_RATE_HELP_TEXT, disabled=True)
 
-        area_form.form_submit_button("Save area info")
+        area_form.form_submit_button("Save area info", on_click=set_config,
+                                     kwargs={'config': st.session_state.config_data})
 
         st.subheader("Constants used for generating data for digital twins:")  # ---------------
         mdc_form = st.form(key="MockDataConstantsForm")
 
         st.session_state.config_data['MockDataConstants']['ResidentialElecKwhPerYearM2Atemp'] = mdc_form.number_input(
             'Residential electricity kWh/year/m2:', min_value=1, max_value=100,
-            value=st.session_state.config_data['MockDataConstants']['ResidentialElecKwhPerYearM2Atemp'],
+            value=current_config['MockDataConstants']['ResidentialElecKwhPerYearM2Atemp'],
             help=app_constants.KWH_PER_YEAR_M2_ATEMP_HELP_TEXT)
 
         st.session_state.config_data['MockDataConstants']['ResidentialSpaceHeatKwhPerYearM2'] = mdc_form.number_input(
             'Residential space heat kWh/year/m2:', min_value=1, max_value=100,
-            value=st.session_state.config_data['MockDataConstants']['ResidentialSpaceHeatKwhPerYearM2'],
+            value=current_config['MockDataConstants']['ResidentialSpaceHeatKwhPerYearM2'],
             help=app_constants.KWH_PER_YEAR_M2_RES_SPACE_HEATING_HELP_TEXT)
 
         st.session_state.config_data['MockDataConstants']['ResidentialHotTapWaterKwhPerYearM2'] = mdc_form.number_input(
             'Residential hot tap water kWh/year/m2:', min_value=1, max_value=100,
-            value=st.session_state.config_data['MockDataConstants']['ResidentialHotTapWaterKwhPerYearM2'],
+            value=current_config['MockDataConstants']['ResidentialHotTapWaterKwhPerYearM2'],
             help=app_constants.KWH_PER_YEAR_M2_RES_HOT_TAP_WATER_HELP_TEXT)
 
         st.session_state.config_data['MockDataConstants']['ResidentialHeatingRelativeErrorStdDev'] = \
@@ -188,63 +189,64 @@ if __name__ == '__main__':
 
         st.session_state.config_data['MockDataConstants']['CommercialElecKwhPerYearM2'] = mdc_form.number_input(
             'Commercial electricity kWh/year/m2:', min_value=1, max_value=200,
-            value=st.session_state.config_data['MockDataConstants']['CommercialElecKwhPerYearM2'],
+            value=current_config['MockDataConstants']['CommercialElecKwhPerYearM2'],
             help=app_constants.COMM_ELEC_KWH_PER_YEAR_M2_HELP_TEXT)
 
         st.session_state.config_data['MockDataConstants']['CommercialElecRelativeErrorStdDev'] = \
             mdc_form.number_input('Commercial electricity relative standard deviation:', min_value=0.0,
                                   max_value=1.0,
-                                  value=st.session_state.config_data['MockDataConstants']
+                                  value=current_config['MockDataConstants']
                                   ['CommercialElecRelativeErrorStdDev'],
                                   help=app_constants.COMM_ELEC_REL_ERROR_STD_DEV_HELP_TEXT)
 
         st.session_state.config_data['MockDataConstants']['CommercialSpaceHeatKwhPerYearM2'] = mdc_form.number_input(
             'Commercial space heat kWh/year/m2:', min_value=1, max_value=100,
-            value=st.session_state.config_data['MockDataConstants']['CommercialSpaceHeatKwhPerYearM2'],
+            value=current_config['MockDataConstants']['CommercialSpaceHeatKwhPerYearM2'],
             help=app_constants.KWH_SPACE_HEATING_PER_YEAR_M2_COMM_HELP_TEXT)
 
         st.session_state.config_data['MockDataConstants']['CommercialHotTapWaterKwhPerYearM2'] = mdc_form.number_input(
             'Commercial hot tap water kWh/year/m2:', min_value=1.0, max_value=10.0, step=0.5,
-            value=st.session_state.config_data['MockDataConstants']['CommercialHotTapWaterKwhPerYearM2'],
+            value=current_config['MockDataConstants']['CommercialHotTapWaterKwhPerYearM2'],
             help=app_constants.KWH_HOT_TAP_WATER_PER_YEAR_M2_COMM_HELP_TEXT)
 
         st.session_state.config_data['MockDataConstants']['CommercialHotTapWaterRelativeErrorStdDev'] = \
             mdc_form.number_input('Commercial hot tap water relative standard deviation:', min_value=0.0,
                                   max_value=1.0,
-                                  value=st.session_state.config_data['MockDataConstants']
+                                  value=current_config['MockDataConstants']
                                   ['CommercialHotTapWaterRelativeErrorStdDev'],
                                   help=app_constants.COMM_HOT_TAP_WATER_REL_ERROR_STD_DEV_HELP_TEXT)
 
         st.session_state.config_data['MockDataConstants']['SchoolElecKwhPerYearM2'] = mdc_form.number_input(
             'School electricity kWh/year/m2:', min_value=1, max_value=200,
-            value=st.session_state.config_data['MockDataConstants']['SchoolElecKwhPerYearM2'],
+            value=current_config['MockDataConstants']['SchoolElecKwhPerYearM2'],
             help=app_constants.KWH_ELECTRICITY_PER_YEAR_M2_SCHOOL_HELP_TEXT)
 
         st.session_state.config_data['MockDataConstants']['SchoolElecRelativeErrorStdDev'] = \
             mdc_form.number_input('School electricity relative standard deviation:', min_value=0.0,
                                   max_value=1.0,
-                                  value=st.session_state.config_data['MockDataConstants']
+                                  value=current_config['MockDataConstants']
                                   ['SchoolElecRelativeErrorStdDev'],
                                   help=app_constants.SCHOOL_ELEC_REL_ERROR_STD_DEV_HELP_TEXT)
 
         st.session_state.config_data['MockDataConstants']['SchoolSpaceHeatKwhPerYearM2'] = mdc_form.number_input(
             'School space heat kWh/year/m2:', min_value=1, max_value=100,
-            value=st.session_state.config_data['MockDataConstants']['SchoolSpaceHeatKwhPerYearM2'],
+            value=current_config['MockDataConstants']['SchoolSpaceHeatKwhPerYearM2'],
             help=app_constants.KWH_SPACE_HEATING_PER_YEAR_M2_SCHOOL_HELP_TEXT)
 
         st.session_state.config_data['MockDataConstants']['SchoolHotTapWaterKwhPerYearM2'] = mdc_form.number_input(
             'School hot tap water kWh/year/m2:', min_value=1, max_value=100,
-            value=st.session_state.config_data['MockDataConstants']['SchoolHotTapWaterKwhPerYearM2'],
+            value=current_config['MockDataConstants']['SchoolHotTapWaterKwhPerYearM2'],
             help=app_constants.KWH_HOT_TAP_WATER_PER_YEAR_M2_SCHOOL_HELP_TEXT)
 
         st.session_state.config_data['MockDataConstants']['SchoolHotTapWaterRelativeErrorStdDev'] = \
             mdc_form.number_input('School hot tap water relative standard deviation:', min_value=0.0,
                                   max_value=1.0,
-                                  value=st.session_state.config_data['MockDataConstants']
+                                  value=current_config['MockDataConstants']
                                   ['SchoolHotTapWaterRelativeErrorStdDev'],
                                   help=app_constants.SCHOOL_HOT_TAP_WATER_REL_ERROR_STD_DEV_HELP_TEXT)
 
-        mdc_form.form_submit_button("Save mock data generation constants")
+        mdc_form.form_submit_button("Save mock data generation constants", on_click=set_config,
+                                    kwargs={'config': st.session_state.config_data})
 
         # ------------------- Start agents -------------------
         col1, col2 = st.columns(2)
@@ -272,17 +274,23 @@ if __name__ == '__main__':
         st.write("Click below to download the current experiment configuration to a JSON-file, which you can later "
                  "upload to re-use this configuration without having to do over any changes you have made so far.")
         # Button to export config to a JSON file
-        st.download_button(label="Export to JSON", data=json.dumps(st.session_state.config_data),
+        st.download_button(label="Export to JSON", data=json.dumps(st.session_state.config_data),  # Does this work?
                            file_name="trading-platform-poc-config.json",
                            mime="text/json")
 
         # --------------------- End config specification for dummies ------------------------
 
-        st.subheader("Current configuration in JSON format:")
-        st.json(st.session_state.config_data)
         uploaded_file = st.file_uploader(label="Upload configuration", type="json",
                                          help="Expand the sections below for information on how the configuration file "
                                               "should look")
+        if uploaded_file is not None:
+            st.session_state.uploaded_file = uploaded_file
+            logger.info("Reading uploaded config file")
+            config_content = json.load(st.session_state.uploaded_file)
+            config_content = fill_with_default_params(config_content)
+            set_config(config_content)
+            st.info("Using configuration from uploaded file.")
+
         with st.expander("Guidelines on configuration file"):
             st.markdown(app_constants.CONFIG_GUIDELINES_MARKDOWN)
             st.json(app_constants.AREA_INFO_EXAMPLE)
@@ -304,12 +312,9 @@ if __name__ == '__main__':
             st.markdown(app_constants.GROCERY_STORE_AGENT_SPEC_MARKDOWN)
             st.json(app_constants.GROCERY_STORE_AGENT_EXAMPLE)
 
-        # Want to ensure that if a user uploads a file, moves to another tab in the UI, and then back here, the file
-        # hasn't disappeared
-        if uploaded_file is not None:
-            st.session_state.uploaded_file = uploaded_file
-            logger.info("Reading uploaded config file")
-            st.session_state.config_data = json.load(st.session_state.uploaded_file)
+        # Display JSON
+        st.subheader("Current configuration in JSON format:")
+        st.json(read_config())
 
         if run_sim:
             run_sim = False

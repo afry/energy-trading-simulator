@@ -1,5 +1,7 @@
 import datetime
 from enum import Enum
+import json
+import os
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import altair as alt
@@ -182,8 +184,53 @@ def results_dict_to_df(raw_dict: Dict[ResultsKey, float]) -> pd.DataFrame:
     return formatted_df
 
 
+def reset_config():
+    with open(app_constants.DEFAULT_CONFIG_FILENAME, "r") as jsonfile:
+        config = json.load(jsonfile)
+    with open(app_constants.CURRENT_CONFIG_FILENAME, 'w') as f:
+        json.dump(config, f)
+    # TODO: Should the uploaded file be dropped if config is reset?
+
+
+def set_config(config: dict):
+    with open(app_constants.CURRENT_CONFIG_FILENAME, 'w') as f:
+        json.dump(config, f)
+
+
+def read_config(name: str = 'current') -> dict:
+    file_dict = {'current': app_constants.CURRENT_CONFIG_FILENAME,
+                 'default': app_constants.DEFAULT_CONFIG_FILENAME}
+
+    with open(file_dict[name], "r") as jsonfile:
+        config = json.load(jsonfile)
+    return config
+
+
+def get_config(reset: bool) -> dict:
+    if not os.path.exists(app_constants.CURRENT_CONFIG_FILENAME):
+        reset_config()
+        st.info("Reading default configuration.")
+    elif reset:
+        reset = False
+        reset_config()
+        st.info("Reading default configuration.")
+    config = read_config()
+    return config
+
+
+def fill_with_default_params(new_config: dict) -> dict:
+    default_config = read_config(name='default')
+    for param_type in ['AreaInfo', 'MockDataConstants']:
+        params_only_in_default = dict((k, v) for k, v in default_config[param_type].items()
+                                      if k not in set(new_config[param_type].keys()))
+        for k, v in params_only_in_default.items():
+            new_config[param_type][k] = v
+    return new_config
+
+
 def remove_agent(some_agent: Dict[str, Any]):
     st.session_state.config_data['Agents'].remove(some_agent)
+    set_config(st.session_state.config_data)
 
 
 def duplicate_agent(some_agent: Dict[str, Any]):
@@ -202,11 +249,13 @@ def duplicate_agent(some_agent: Dict[str, Any]):
         else:
             n_copies_existing += 1
     st.session_state.config_data['Agents'].append(new_agent)
+    set_config(st.session_state.config_data)
 
 
 def remove_all_building_agents():
     st.session_state.config_data['Agents'] = [agent for agent in st.session_state.config_data['Agents']
                                               if agent['Type'] != 'BuildingAgent']
+    set_config(st.session_state.config_data)
 
 
 def add_agent(new_agent: Dict[str, Any]):
@@ -221,6 +270,7 @@ def add_agent(new_agent: Dict[str, Any]):
         st.session_state.agents_added += 1
     new_agent["Name"] = "NewAgent" + str(st.session_state.agents_added)
     st.session_state.config_data['Agents'].append(new_agent)
+    set_config(st.session_state.config_data)
 
 
 def add_building_agent():
@@ -228,6 +278,7 @@ def add_building_agent():
         "Type": "BuildingAgent",
         "GrossFloorArea": 1000.0
     })
+    set_config(st.session_state.config_data)
 
 
 def add_storage_agent():
@@ -241,6 +292,7 @@ def add_storage_agent():
         "BuyPricePercentile": 20,
         "SellPricePercentile": 80
     })
+    set_config(st.session_state.config_data)
 
 
 def add_pv_agent():
@@ -248,6 +300,7 @@ def add_pv_agent():
         "Type": "PVAgent",
         "PVArea": 100
     })
+    set_config(st.session_state.config_data)
 
 
 def add_grocery_store_agent():
@@ -255,6 +308,7 @@ def add_grocery_store_agent():
         "Type": "GroceryStoreAgent",
         "PVArea": 320
     })
+    set_config(st.session_state.config_data)
 
 
 def add_grid_agent():
@@ -263,6 +317,7 @@ def add_grid_agent():
         "Resource": "ELECTRICITY",
         "TransferRate": 10000
     })
+    set_config(st.session_state.config_data)
 
 
 def agent_inputs(agent):
@@ -379,7 +434,7 @@ def agent_inputs(agent):
             st.button('Remove agent', key='RemoveButton' + agent['Name'], on_click=remove_agent, args=(agent,))
         with col2:
             st.button('Duplicate agent', key='DuplicateButton' + agent['Name'], on_click=duplicate_agent, args=(agent,))
-    form.form_submit_button('Save agent')
+    form.form_submit_button('Save agent', on_click=set_config, kwargs={'config': st.session_state.config_data})
 
 
 def get_agent(all_agents: Iterable[IAgent], agent_chosen_guid: str) -> IAgent:
