@@ -364,7 +364,7 @@ def config_data_param_screening(config_data: dict) -> Optional[str]:
     """Check that config json contains reasonable parameters."""
 
     # Check params for correct keys and values in ranges
-    for info_type in ['AreaInfo', 'MockDataConstants']:
+    for info_type in [c for c in ['AreaInfo', 'MockDataConstants'] if c in config_data]:
         for key, val in config_data[info_type].items():
             if key in app_constants.param_spec_dict[info_type].keys():
 
@@ -376,6 +376,8 @@ def config_data_param_screening(config_data: dict) -> Optional[str]:
                     if val > app_constants.param_spec_dict[info_type][key]["max_value"]:
                         return "Specified {}: {} > {}.".format(key, val, app_constants.param_spec_dict[
                             info_type][key]["max_value"])
+            else:
+                return "Parameter {} is not a valid parameter.".format(key)
     return None
 
 
@@ -387,7 +389,7 @@ def config_data_agent_screening(config_data: dict) -> Optional[str]:
         if 'Type' not in agent.keys():
             return 'Agent {} provided without \'Type\'.'.format(agent['Name'])
         if 'Name' not in agent.keys():
-            return 'Agent {} provided without \'Name\'.'.format(agent['Name'])
+            return 'Agent of type {} provided without \'Name\'.'.format(agent['Type'])
 
     # Make sure no agents are passed with unknown type
     for agent in config_data['Agents']:
