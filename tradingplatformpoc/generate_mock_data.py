@@ -15,10 +15,10 @@ from pkg_resources import resource_filename
 
 import polars as pl
 
-import statsmodels.api as sm
 from statsmodels.regression.linear_model import RegressionResultsWrapper
 
 from tradingplatformpoc import commercial_heating_model
+from tradingplatformpoc.compress import bz2_decompress_pickle
 from tradingplatformpoc.mock_data_generation_functions import MockDataKey, get_all_building_agents, \
     get_commercial_electricity_consumption_hourly_factor, get_commercial_heating_consumption_hourly_factor, \
     get_elec_cons_key, get_hot_tap_water_cons_key, get_school_heating_consumption_hourly_factor, \
@@ -95,7 +95,7 @@ def run(config_data: Dict[str, Any]) -> Dict[MockDataKey, pl.DataFrame]:
         # So we have established that we need to generate new mock data.
         logger.debug('Beginning mock data generation')
         # Load model
-        model = sm.load(resource_filename(DATA_PATH, 'models/household_electricity_model.pickle'))
+        model = bz2_decompress_pickle(resource_filename(DATA_PATH, 'models/household_electricity_model.pbz2'))
         logger.debug('Model loaded')
 
         # Read in-data: Temperature and timestamps
