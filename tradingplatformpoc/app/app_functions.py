@@ -209,11 +209,13 @@ def read_config(name: str = 'current') -> dict:
 def get_config(reset: bool) -> dict:
     if not os.path.exists(app_constants.CURRENT_CONFIG_FILENAME):
         reset_config()
-        st.info("Reading default configuration.")
+        st.markdown("**Current configuration: :blue[DEFAULT]**")
     elif reset:
         reset = False
         reset_config()
-        st.info("Reading default configuration.")
+        st.markdown("**Current configuration: :blue[DEFAULT]**")
+    else:
+        st.markdown("**Current configuration: :blue[LAST SAVED]**")
     config = read_config()
     return config
 

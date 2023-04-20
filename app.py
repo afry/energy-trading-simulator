@@ -92,7 +92,7 @@ if __name__ == '__main__':
 
         run_sim = st.button("Click here to run simulation")
         progress_bar = st.progress(0.0)
-        progress_text = st.info("")
+        progress_text = st.info("")  # TODO: Only display if the simulation is running?
         results_download_button = st.empty()
         if "simulation_results" in st.session_state:
             results_download_button.download_button(label="Download simulation results",
@@ -103,15 +103,20 @@ if __name__ == '__main__':
             results_download_button.download_button(label="Download simulation results", data=b'placeholder',
                                                     disabled=True)
 
-        reset_config_button = st.button("Reset configuration",
-                                        help="Click here to reset configuration to default values and agents.")
-        current_config = get_config(reset_config_button)
-        st.session_state.config_data = current_config
-
         # --------------------- Start config specification for dummies ------------------------
-        # Could perhaps save the config to a temporary file on-change of these? That way changes won't get lost
-        st.write("Note: Refreshing, or closing and reopening this page, will lead to configuration changes being lost. "
-                 "If you wish to save your changes for another session, use the 'Export to JSON'-button below.")
+        st.markdown('---')
+        col_config, col_reset = st.columns([4, 1])
+        with col_reset:
+            reset_config_button = st.button("Reset configuration",
+                                            help="Click here to DELETE custom configuration and reset configuration"
+                                            " to default values and agents.")
+        with col_config:
+            # Saving the config to file on-change. That way changes won't get lost
+            current_config = get_config(reset_config_button)
+            st.session_state.config_data = current_config
+        st.markdown(':exclamation: If you wish to save your configuration for '
+                    'another session, use the **Export to JSON**-button below.')
+        st.markdown('---')
 
         st.subheader("General area parameters:")  # ---------------
         area_form = st.form(key="AreaInfoForm")
