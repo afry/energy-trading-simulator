@@ -3,7 +3,7 @@ import json
 import os
 import pickle
 from enum import Enum
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import altair as alt
 
@@ -192,6 +192,11 @@ def set_config(config: dict):
         json.dump(config, f)
 
 
+def set_config_to_sess_state():
+    """Writes session state config to current configuration file."""
+    set_config(st.session_state.config_data)
+
+
 def read_config(name: str = 'current') -> dict:
     """Reads and returns specified config from file."""
     file_dict = {'current': app_constants.CURRENT_CONFIG_FILENAME,
@@ -242,7 +247,7 @@ def fill_with_default_params(new_config: dict) -> dict:
 # ---------------------------------------- Agent functions ------------------------------------
 def remove_agent(some_agent: Dict[str, Any]):
     st.session_state.config_data['Agents'].remove(some_agent)
-    set_config(st.session_state.config_data)
+    set_config_to_sess_state()
 
 
 def duplicate_agent(some_agent: Dict[str, Any]):
@@ -251,7 +256,8 @@ def duplicate_agent(some_agent: Dict[str, Any]):
     it to the session_state list of agents.
     """
     new_agent = some_agent.copy()
-    all_agent_names = [agent['Name'] for agent in st.session_state.config_data['Agents']]
+    current_config = read_config()
+    all_agent_names = [agent['Name'] for agent in current_config['Agents']]
     n_copies_existing = 1
     while n_copies_existing:
         new_name = new_agent['Name'] + " copy " + str(n_copies_existing)
@@ -261,13 +267,13 @@ def duplicate_agent(some_agent: Dict[str, Any]):
         else:
             n_copies_existing += 1
     st.session_state.config_data['Agents'].append(new_agent)
-    set_config(st.session_state.config_data)
+    set_config_to_sess_state()
 
 
 def remove_all_building_agents():
     st.session_state.config_data['Agents'] = [agent for agent in st.session_state.config_data['Agents']
                                               if agent['Type'] != 'BuildingAgent']
-    set_config(st.session_state.config_data)
+    set_config_to_sess_state()
 
 
 def add_agent(new_agent: Dict[str, Any]):
@@ -282,7 +288,7 @@ def add_agent(new_agent: Dict[str, Any]):
         st.session_state.agents_added += 1
     new_agent["Name"] = "NewAgent" + str(st.session_state.agents_added)
     st.session_state.config_data['Agents'].append(new_agent)
-    set_config(st.session_state.config_data)
+    set_config_to_sess_state()
 
 
 def add_building_agent():
@@ -290,7 +296,7 @@ def add_building_agent():
         "Type": "BuildingAgent",
         "GrossFloorArea": 1000.0
     })
-    set_config(st.session_state.config_data)
+    set_config_to_sess_state()
 
 
 def add_storage_agent():
@@ -304,7 +310,7 @@ def add_storage_agent():
         "BuyPricePercentile": 20,
         "SellPricePercentile": 80
     })
-    set_config(st.session_state.config_data)
+    set_config_to_sess_state()
 
 
 def add_pv_agent():
@@ -312,7 +318,7 @@ def add_pv_agent():
         "Type": "PVAgent",
         "PVArea": 100
     })
-    set_config(st.session_state.config_data)
+    set_config_to_sess_state()
 
 
 def add_grocery_store_agent():
@@ -320,7 +326,7 @@ def add_grocery_store_agent():
         "Type": "GroceryStoreAgent",
         "PVArea": 320
     })
-    set_config(st.session_state.config_data)
+    set_config_to_sess_state()
 
 
 def add_grid_agent():
@@ -329,7 +335,7 @@ def add_grid_agent():
         "Resource": "ELECTRICITY",
         "TransferRate": 10000
     })
-    set_config(st.session_state.config_data)
+    set_config_to_sess_state()
 
 
 def agent_inputs(agent):
@@ -370,7 +376,10 @@ def agent_inputs(agent):
         st.button('Remove agent', key='RemoveButton' + agent['Name'], on_click=remove_agent, args=(agent,))
     with col2:
         st.button('Duplicate agent', key='DuplicateButton' + agent['Name'], on_click=duplicate_agent, args=(agent,))
-    form.form_submit_button('Save agent', on_click=set_config, kwargs={'config': st.session_state.config_data})
+    submit = form.form_submit_button('Save agent')
+    if submit:
+        submit = False
+        set_config_to_sess_state()
 
 
 def get_agent(all_agents: Iterable[IAgent], agent_chosen_guid: str) -> IAgent:
@@ -739,3 +748,64 @@ def display_df_and_make_downloadable(df: pd.DataFrame,
 @st.cache_data()
 def load_results(uploaded_results_file):
     st.session_state.simulation_results = pickle.load(uploaded_results_file)
+
+
+def agent_diff(default: dict, new: dict):
+    agents_in_default = [agent['Name'] for agent in default['Agents']]
+    agents_in_new = [agent['Name'] for agent in new['Agents']]
+
+    agents_same = [x for x in agents_in_new if x in set(agents_in_default)]
+    agents_only_in_default = [x for x in agents_in_default if x not in set(agents_same)]
+    agents_only_in_new = [x for x in agents_in_new if x not in set(agents_same)]
+
+    param_diff = {}
+    for agent_name in agents_same:
+        agent_default = [agent for agent in default['Agents'] if agent['Name'] == agent_name][0]
+        agent_new = [agent for agent in new['Agents'] if agent['Name'] == agent_name][0]
+        diff = set(agent_default.items()) - set(agent_new.items())
+        if len(diff) > 0:
+            param_diff[agent_name] = list(diff)
+
+    return agents_only_in_default, agents_only_in_new, param_diff
+
+
+def param_diff(default: dict, new: dict) -> Tuple[List[Tuple], List[Tuple]]:
+    changed_area_info_params = list(set(default['AreaInfo'].items()) - set(new['AreaInfo'].items()))
+    changed_mock_data_params = list(set(default['MockDataConstants'].items()) - set(new['MockDataConstants'].items()))
+    return changed_area_info_params, changed_mock_data_params
+
+
+def display_diff_in_config(default: dict, new: dict):
+
+    str_to_disp = []
+
+    old_agents, new_agents, changes_to_agents = agent_diff(default.copy(), new.copy())
+
+    if len(old_agents) > 0:
+        str_to_disp.append('**Removed agents:** ')
+        str_to_disp.append(', '.join(old_agents))
+    if len(new_agents) > 0:
+        str_to_disp.append('**Added agents:** ')
+        str_to_disp.append(', '.join(new_agents))
+    if len(changes_to_agents.keys()) > 0:
+        str_to_disp.append('**Changes to existing agents:**')
+        for name, params in changes_to_agents.items():
+            str_to_disp.append('\t' + name + ':')
+            for param in params:
+                str_to_disp.append('\t\t' + param[0] + ': ' + str(param[1]))
+
+    changes_to_area_info_params, changes_to_mock_data_params = param_diff(default.copy(), new.copy())
+
+    if len(changes_to_area_info_params) > 0:
+        str_to_disp.append('**Changes to area info parameters:**')
+        for param in changes_to_area_info_params:
+            str_to_disp.append('\t\t' + param[0] + ': ' + str(param[1]))
+
+    if len(changes_to_mock_data_params) > 0:
+        str_to_disp.append('**Changes to mock data parameters:**')
+        for param in changes_to_mock_data_params:
+            str_to_disp.append('\t\t' + param[0] + ': ' + str(param[1]))
+
+    if len(str_to_disp) > 1:
+        for s in str_to_disp:
+            st.markdown(s)
