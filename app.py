@@ -1,27 +1,16 @@
 import os
-import pickle
 from logging.handlers import TimedRotatingFileHandler
-import time
 
 from pkg_resources import resource_filename
 
-from tradingplatformpoc.agent.building_agent import BuildingAgent
-from tradingplatformpoc.agent.pv_agent import PVAgent
-from tradingplatformpoc.app import app_constants, footer
-from tradingplatformpoc.app.app_functions import add_building_agent, add_grocery_store_agent, add_params_to_form, \
-    agent_inputs, add_pv_agent, add_storage_agent, aggregated_import_and_export_results_df_split_on_period, \
-    aggregated_import_and_export_results_df_split_on_temperature, aggregated_local_production_df, \
-    aggregated_taxes_and_fees_results_df, config_data_json_screening, construct_building_with_heat_pump_chart, \
-    construct_price_chart, construct_prices_df, construct_storage_level_chart, construct_traded_amount_by_agent_chart, \
-    display_df_and_make_downloadable, get_agent, get_price_df_when_local_price_inbetween, \
-    results_by_agent_as_df_with_highlight, get_viewable_df, remove_all_building_agents, set_max_width
-from tradingplatformpoc.bid import Resource
-from tradingplatformpoc.simulation_runner import run_trading_simulations
+from tradingplatformpoc.app import footer
+
 import json
 import logging
 import sys
 
 import streamlit as st
+from st_pages import show_pages_from_config, add_indentation
 
 # Note: To debug a streamlit script, see https://stackoverflow.com/a/60172283
 
@@ -61,10 +50,10 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # --- Define path to mock data and results
-mock_datas_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
+MOCK_DATA_PATH = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
 config_filename = resource_filename("tradingplatformpoc.data", "default_config.json")
 with open(config_filename, "r") as jsonfile:
-    default_config = json.load(jsonfile)
+    DEFAULT_CONFIG = json.load(jsonfile)
 
 if string_to_log_later is not None:
     logger.info(string_to_log_later)
@@ -72,258 +61,20 @@ if string_to_log_later is not None:
 
 if __name__ == '__main__':
 
-    st.set_page_config(page_title="Trading platform POC", layout="wide")
+    # TODO: Fix so that page title is dispalyed instead of 'app' in sidebar
+    # st.set_page_config(page_title="Trading platform POC", layout="wide")
+    st.set_page_config(layout="wide")
 
-    st.sidebar.write("""
-    # Navigation
-    """)
+    add_indentation()
+    show_pages_from_config()
 
-    page_selected = st.sidebar.radio(app_constants.SELECT_PAGE_RADIO_LABEL, app_constants.ALL_PAGES)
+    st.write(
+        """
+        # Trading platform POC
+        ## Prototype data presentation app for energy microgrid trading platform
 
-    if page_selected == app_constants.START_PAGE:
-        st.write(
-            """
-            # Prototype data presentation app for energy microgrid trading platform
-
-            Here, you can upload, select and run simulations, and evaluate the results with tables and graphs.
-            """
-        )
-    elif page_selected == app_constants.SETUP_PAGE:
-        set_max_width('1000px')  # This tab looks a bit daft when it is too wide, so limiting it here.
-
-        run_sim = st.button("Click here to run simulation")
-        progress_bar = st.progress(0.0)
-        progress_text = st.info("")
-        results_download_button = st.empty()
-        if "simulation_results" in st.session_state:
-            results_download_button.download_button(label="Download simulation results",
-                                                    data=pickle.dumps(st.session_state.simulation_results),
-                                                    file_name="simulation_results.pickle",
-                                                    mime='application/octet-stream')
-        else:
-            results_download_button.download_button(label="Download simulation results", data=b'placeholder',
-                                                    disabled=True)
-
-        if ("config_data" not in st.session_state.keys()) or (st.session_state.config_data is None):
-            logger.debug("Using default configuration")
-            st.session_state.config_data = default_config
-
-        # --------------------- Start config specification for dummies ------------------------
-        # Could perhaps save the config to a temporary file on-change of these? That way changes won't get lost
-        st.write("Note: Refreshing, or closing and reopening this page, will lead to configuration changes being lost. "
-                 "If you wish to save your changes for another session, use the 'Export to JSON'-button below.")
-
-        st.subheader("General area parameters:")  # ---------------
-        area_form = st.form(key="AreaInfoForm")
-        add_params_to_form(area_form, 'AreaInfo')
-        _dummy1 = area_form.number_input(
-            'CO2 penalization rate:', value=0.0, help=app_constants.CO2_PEN_RATE_HELP_TEXT, disabled=True)
-        area_form.form_submit_button("Save area info")
-
-        st.subheader("Constants used for generating data for digital twins:")  # ---------------
-        mdc_form = st.form(key="MockDataConstantsForm")
-        add_params_to_form(mdc_form, 'MockDataConstants')
-        mdc_form.form_submit_button("Save mock data generation constants")
-
-        # ------------------- Start agents -------------------
-        col1, col2 = st.columns(2)
-        with col1:
-            st.subheader("Agents:")
-        with col2:
-            st.button("Remove all BuildingAgents", on_click=remove_all_building_agents)
-
-        for agent in st.session_state.config_data['Agents'][:]:
-            # Annoyingly, this expander's name doesn't update right away when the agent's name is changed
-            with st.expander(agent['Name']):
-                agent_inputs(agent)
-        # Buttons to add agents
-        col1, col2 = st.columns(2)
-
-        # Annoyingly, these buttons have different sizes depending on the amount of text in them.
-        # Can use CSS to customize buttons but that then applies to all buttons on the page, so will leave as is
-        with col1:
-            add_building_agent_button = st.button("Add BuildingAgent", on_click=add_building_agent)
-            add_grocery_store_agent_button = st.button("Add GroceryStoreAgent", on_click=add_grocery_store_agent)
-        with col2:
-            add_storage_agent_button = st.button("Add StorageAgent", on_click=add_storage_agent)
-            add_pv_agent_button = st.button("Add PVAgent", on_click=add_pv_agent)
-
-        st.write("Click below to download the current experiment configuration to a JSON-file, which you can later "
-                 "upload to re-use this configuration without having to do over any changes you have made so far.")
-        # Button to export config to a JSON file
-        st.download_button(label="Export to JSON", data=json.dumps(st.session_state.config_data),
-                           file_name="trading-platform-poc-config.json",
-                           mime="text/json")
-
-        # --------------------- End config specification for dummies ------------------------
-
-        st.subheader("Current configuration in JSON format:")
-        st.json(st.session_state.config_data)
-        uploaded_file = st.file_uploader(label="Upload configuration", type="json",
-                                         help="Expand the sections below for information on how the configuration file "
-                                              "should look")
-        with st.expander("Guidelines on configuration file"):
-            st.markdown(app_constants.CONFIG_GUIDELINES_MARKDOWN)
-            st.json(app_constants.AREA_INFO_EXAMPLE)
-            st.markdown(app_constants.MOCK_DATA_CONSTANTS_MARKDOWN)
-            st.json(app_constants.MOCK_DATA_CONSTANTS_EXAMPLE)
-        with st.expander("BuildingAgent specification"):
-            st.markdown(app_constants.BUILDING_AGENT_SPEC_MARKDOWN)
-            st.json(app_constants.BUILDING_AGENT_EXAMPLE)
-        with st.expander("StorageAgent specification"):
-            st.markdown(app_constants.STORAGE_AGENT_SPEC_MARKDOWN)
-            st.json(app_constants.STORAGE_AGENT_EXAMPLE)
-        with st.expander("GridAgent specification"):
-            st.markdown(app_constants.GRID_AGENT_SPEC_MARKDOWN)
-            st.json(app_constants.GRID_AGENT_EXAMPLE)
-        with st.expander("PVAgent specification"):
-            st.markdown(app_constants.PV_AGENT_SPEC_MARKDOWN)
-            st.json(app_constants.PV_AGENT_EXAMPLE)
-        with st.expander("GroceryStoreAgent specification"):
-            st.markdown(app_constants.GROCERY_STORE_AGENT_SPEC_MARKDOWN)
-            st.json(app_constants.GROCERY_STORE_AGENT_EXAMPLE)
-
-        # Want to ensure that if a user uploads a file, moves to another tab in the UI, and then back here, the file
-        # hasn't disappeared
-        if uploaded_file is not None:
-            st.session_state.uploaded_file = uploaded_file
-            logger.info("Reading uploaded config file")
-            st.session_state.config_data = json.load(st.session_state.uploaded_file)
-
-            try:
-                check_message = config_data_json_screening(st.session_state.config_data)
-                if check_message is not None:
-                    st.error(check_message)
-                    raise ValueError("Bad parameters in config json.")
-            except ValueError:
-                st.stop()
-
-        if run_sim:
-            run_sim = False
-            logger.info("Running simulation")
-            st.spinner("Running simulation")
-            simulation_results = run_trading_simulations(st.session_state.config_data, mock_datas_path, progress_bar,
-                                                         progress_text)
-            st.session_state.simulation_results = simulation_results
-            logger.info("Simulation finished!")
-            progress_text.success('Simulation finished!')
-            results_download_button.download_button(label="Download simulation results",
-                                                    data=pickle.dumps(simulation_results),
-                                                    file_name="simulation_results.pickle",
-                                                    mime='application/octet-stream')
-
-    elif page_selected == app_constants.LOAD_PAGE:
-
-        uploaded_results_file = st.file_uploader(label="Upload results", type="pickle", help="Some help-text")
-        if uploaded_results_file is not None:
-            st.session_state.uploaded_results_file = uploaded_results_file
-            logger.info("Reading uploaded results file")
-            st.session_state.simulation_results = pickle.load(uploaded_results_file)
-
-        load_button = st.button("Click here to load data", disabled='simulation_results' not in st.session_state)
-
-        if load_button:
-            load_button = False
-            
-            logger.info("Constructing price graph")
-            st.spinner("Constructing price graph")
-
-            st.session_state.combined_price_df = construct_prices_df(st.session_state.simulation_results)
-            price_chart = construct_price_chart(st.session_state.combined_price_df, Resource.ELECTRICITY)
-
-            st.session_state.price_chart = price_chart
-
-            st.success("Data loaded!")
-
-            t_start = time.time()
-            with st.expander('Taxes and fees on internal trades:'):
-                tax_fee = aggregated_taxes_and_fees_results_df()
-                st.dataframe(tax_fee)
-                st.caption("Tax paid includes taxes that the ElectricityGridAgent "
-                           "are to pay, on sales to the microgrid.")
-
-            with st.expander('Total imported and exported electricity and heating:'):
-                imp_exp_period_dict = aggregated_import_and_export_results_df_split_on_period()
-                imp_exp_temp_dict = aggregated_import_and_export_results_df_split_on_temperature()
-                col1, col2 = st.columns(2)
-                col1.header('Imported')
-                col2.header("Exported")
-                st.caption("Split on period of year:")
-                col1, col2 = st.columns(2)
-                col1.dataframe(imp_exp_period_dict['Imported'])
-                col2.dataframe(imp_exp_period_dict['Exported'])
-                st.caption("Split on temperature above or below 1 degree Celsius:")
-                col1, col2 = st.columns(2)
-                col1.dataframe(imp_exp_temp_dict['Imported'])
-                col2.dataframe(imp_exp_temp_dict['Exported'])
-
-            with st.expander('Total of locally produced heating and electricity:'):
-                loc_prod = aggregated_local_production_df()
-                st.dataframe(loc_prod)
-                st.caption("Total amount of heating produced by local heat pumps "
-                           + "and total amount of locally produced electricity.")
-            t_end = time.time()
-            logger.info('Time to display aggregated results: {:.3f} seconds'.format(t_end - t_start))
-
-            if 'price_chart' in st.session_state:
-                st.altair_chart(st.session_state.price_chart, use_container_width=True, theme=None)
-                with st.expander("Periods where local electricity price was "
-                                 "between external retail and wholesale price:"):
-                    st.dataframe(get_price_df_when_local_price_inbetween(st.session_state.combined_price_df,
-                                                                         Resource.ELECTRICITY))
-
-            with st.expander('Current configuration in JSON format:'):
-                st.json(body=json.dumps(st.session_state.simulation_results.config_data))
-
-    elif page_selected == app_constants.BIDS_PAGE:
-        if 'simulation_results' in st.session_state:
-            agent_ids = [x.guid for x in st.session_state.simulation_results.agents]
-            agent_chosen_guid = st.selectbox(label='Choose agent', options=agent_ids)
-            with st.expander('Bids'):
-                bids_df = get_viewable_df(st.session_state.simulation_results.all_bids,
-                                          key='source', value=agent_chosen_guid, want_index='period',
-                                          cols_to_drop=['by_external'])
-                display_df_and_make_downloadable(bids_df, "all_bids_for_agent_" + agent_chosen_guid)
-
-            with st.expander('Trades'):
-                trades_df = get_viewable_df(st.session_state.simulation_results.all_trades,
-                                            key='source', value=agent_chosen_guid, want_index='period',
-                                            cols_to_drop=['by_external'])
-                display_df_and_make_downloadable(trades_df, "all_trades_for_agent" + agent_chosen_guid)
-                                
-                trades_chart = construct_traded_amount_by_agent_chart(agent_chosen_guid,
-                                                                      st.session_state.simulation_results.all_trades)
-                st.altair_chart(trades_chart, use_container_width=True, theme=None)
-
-            with st.expander('Extra costs'):
-                st.write('A negative cost means that the agent was owed money for the period, rather than owing the '
-                         'money to someone else.')
-                extra_costs_df = get_viewable_df(st.session_state.simulation_results.all_extra_costs,
-                                                 key='agent', value=agent_chosen_guid, want_index='period')
-                display_df_and_make_downloadable(extra_costs_df, "extra_costs_for_agent" + agent_chosen_guid)
-
-            agent_chosen = get_agent(st.session_state.simulation_results.agents, agent_chosen_guid)
-
-            if agent_chosen_guid in st.session_state.simulation_results.storage_levels_dict:
-                with st.expander('Charging level over time for ' + agent_chosen_guid + ':'):
-                    storage_chart = construct_storage_level_chart(
-                        st.session_state.simulation_results.storage_levels_dict[agent_chosen_guid])
-                    st.altair_chart(storage_chart, use_container_width=True, theme=None)
-
-            if isinstance(agent_chosen, BuildingAgent) or isinstance(agent_chosen, PVAgent):
-                # Any building agent with a StaticDigitalTwin
-                with st.expander('Energy production/consumption'):
-                    hp_chart = construct_building_with_heat_pump_chart(agent_chosen, st.session_state.
-                                                                       simulation_results.heat_pump_levels_dict)
-                    st.altair_chart(hp_chart, use_container_width=True, theme=None)
-
-            st.subheader('Aggregated results')
-
-            results_by_agent_df, results_by_agent_df_styled = results_by_agent_as_df_with_highlight(agent_chosen_guid)
-            display_df_and_make_downloadable(results_by_agent_df, "results_by_agent_all_agents",
-                                             df_styled=results_by_agent_df_styled, height=563)
-
-        else:
-            st.write('Run simulations and load data first!')
+        Here, you can upload, select and run simulations, and evaluate the results with tables and graphs.
+        """
+    )
 
     st.write(footer.html, unsafe_allow_html=True)

@@ -1,6 +1,7 @@
 import datetime
+import pickle
 from enum import Enum
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Union
 
 import altair as alt
 
@@ -156,6 +157,7 @@ def construct_prices_df(simulation_results: SimulationResults) -> pd.DataFrame:
     return pd.concat([clearing_prices_df, retail_df, wholesale_df])
 
 
+@st.cache_data
 def get_viewable_df(full_df: pd.DataFrame, key: str, value: Any, want_index: str,
                     cols_to_drop: Union[None, List[str]] = None) -> pd.DataFrame:
     """
@@ -564,7 +566,8 @@ def aggregated_local_production_df() -> pd.DataFrame:
     return pd.DataFrame(data=data, index=['Electricity', 'Heating'], columns=['Total'])
 
 
-def results_by_agent_as_df_with_highlight(agent_chosen_guid: str) -> Tuple[pd.DataFrame, pd.io.formats.style.Styler]:
+@st.cache_data
+def results_by_agent_as_df() -> pd.DataFrame:
     res_by_agents = st.session_state.simulation_results.results_by_agent
     lst = []
     for key, val in res_by_agents.items():
@@ -572,9 +575,13 @@ def results_by_agent_as_df_with_highlight(agent_chosen_guid: str) -> Tuple[pd.Da
         df.rename({0: key}, axis=1, inplace=True)
         lst.append(df)
     dfs = pd.concat(lst, axis=1)
-    formatted_df = dfs.style.set_properties(subset=[agent_chosen_guid], **{'background-color': 'lemonchiffon'}).\
+    return dfs
+
+
+def results_by_agent_as_df_with_highlight(df: pd.DataFrame, agent_chosen_guid: str) -> pd.io.formats.style.Styler:
+    formatted_df = df.style.set_properties(subset=[agent_chosen_guid], **{'background-color': 'lemonchiffon'}).\
         format('{:.2f}')
-    return dfs, formatted_df
+    return formatted_df
 
 
 def construct_traded_amount_by_agent_chart(agent_chosen_guid: str,
@@ -657,4 +664,7 @@ def display_df_and_make_downloadable(df: pd.DataFrame,
 
     download_df_as_csv_button(df, file_name, include_index=True)
     
-    
+
+@st.cache_data()
+def load_results(uploaded_results_file):
+    st.session_state.simulation_results = pickle.load(uploaded_results_file)
