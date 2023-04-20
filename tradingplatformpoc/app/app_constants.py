@@ -1,3 +1,5 @@
+from pkg_resources import resource_filename
+
 from tradingplatformpoc import data_store, heat_pump, trading_platform_utils
 
 WHOLESALE_PRICE_STR = 'Wholesale price'
@@ -323,6 +325,10 @@ GROCERY_STORE_AGENT_EXAMPLE = """
     "PVEfficiency": 0.18
 }
 """
+
+DEFAULT_CONFIG_FILENAME = resource_filename("tradingplatformpoc.data", "default_config.json")
+CURRENT_CONFIG_FILENAME = resource_filename("tradingplatformpoc.data", "current_config.json")
+MOCK_DATA_PATH = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
 
 param_spec_dict = {
     "AreaInfo": {

@@ -1,4 +1,6 @@
 import datetime
+import json
+import os
 import pickle
 from enum import Enum
 from typing import Any, Dict, Iterable, List, Optional, Union
@@ -183,8 +185,64 @@ def results_dict_to_df(raw_dict: Dict[ResultsKey, float]) -> pd.DataFrame:
     return formatted_df
 
 
+# -------------------------------------- Config functions -------------------------------------
+def set_config(config: dict):
+    """Writes config to current configuration file."""
+    with open(app_constants.CURRENT_CONFIG_FILENAME, 'w') as f:
+        json.dump(config, f)
+
+
+def read_config(name: str = 'current') -> dict:
+    """Reads and returns specified config from file."""
+    file_dict = {'current': app_constants.CURRENT_CONFIG_FILENAME,
+                 'default': app_constants.DEFAULT_CONFIG_FILENAME}
+
+    with open(file_dict[name], "r") as jsonfile:
+        config = json.load(jsonfile)
+    return config
+
+
+def reset_config():
+    """Reads default configuration from file and writes to current configuration file."""
+    config = read_config(name='default')
+    set_config(config)
+    # TODO: Should the uploaded file be dropped if config is reset, or on startup?
+
+
+def get_config(reset: bool) -> dict:
+    """
+    If no current config file exists or the reset button is clicked, reset.
+    Return current config.
+    """
+    if not os.path.exists(app_constants.CURRENT_CONFIG_FILENAME):
+        reset_config()
+        st.markdown("**Current configuration: :blue[DEFAULT]**")
+    elif reset:
+        reset = False
+        reset_config()
+        st.markdown("**Current configuration: :blue[DEFAULT]**")
+    else:
+        st.markdown("**Current configuration: :blue[LAST SAVED]**")
+    config = read_config()
+    return config
+
+
+def fill_with_default_params(new_config: dict) -> dict:
+    """If not all parameters are specified in uploaded config, use default for the unspecified ones."""
+    default_config = read_config(name='default')
+    for param_type in ['AreaInfo', 'MockDataConstants']:
+        params_only_in_default = dict((k, v) for k, v in default_config[param_type].items()
+                                      if k not in set(new_config[param_type].keys()))
+        for k, v in params_only_in_default.items():
+            new_config[param_type][k] = v
+    return new_config
+# ------------------------------------- End config functions ----------------------------------
+
+
+# ---------------------------------------- Agent functions ------------------------------------
 def remove_agent(some_agent: Dict[str, Any]):
     st.session_state.config_data['Agents'].remove(some_agent)
+    set_config(st.session_state.config_data)
 
 
 def duplicate_agent(some_agent: Dict[str, Any]):
@@ -203,11 +261,13 @@ def duplicate_agent(some_agent: Dict[str, Any]):
         else:
             n_copies_existing += 1
     st.session_state.config_data['Agents'].append(new_agent)
+    set_config(st.session_state.config_data)
 
 
 def remove_all_building_agents():
     st.session_state.config_data['Agents'] = [agent for agent in st.session_state.config_data['Agents']
                                               if agent['Type'] != 'BuildingAgent']
+    set_config(st.session_state.config_data)
 
 
 def add_agent(new_agent: Dict[str, Any]):
@@ -222,6 +282,7 @@ def add_agent(new_agent: Dict[str, Any]):
         st.session_state.agents_added += 1
     new_agent["Name"] = "NewAgent" + str(st.session_state.agents_added)
     st.session_state.config_data['Agents'].append(new_agent)
+    set_config(st.session_state.config_data)
 
 
 def add_building_agent():
@@ -229,6 +290,7 @@ def add_building_agent():
         "Type": "BuildingAgent",
         "GrossFloorArea": 1000.0
     })
+    set_config(st.session_state.config_data)
 
 
 def add_storage_agent():
@@ -242,6 +304,7 @@ def add_storage_agent():
         "BuyPricePercentile": 20,
         "SellPricePercentile": 80
     })
+    set_config(st.session_state.config_data)
 
 
 def add_pv_agent():
@@ -249,6 +312,7 @@ def add_pv_agent():
         "Type": "PVAgent",
         "PVArea": 100
     })
+    set_config(st.session_state.config_data)
 
 
 def add_grocery_store_agent():
@@ -256,6 +320,7 @@ def add_grocery_store_agent():
         "Type": "GroceryStoreAgent",
         "PVArea": 320
     })
+    set_config(st.session_state.config_data)
 
 
 def add_grid_agent():
@@ -264,10 +329,12 @@ def add_grid_agent():
         "Resource": "ELECTRICITY",
         "TransferRate": 10000
     })
+    set_config(st.session_state.config_data)
 
 
 def agent_inputs(agent):
     """Contains input fields needed to define an agent."""
+    current_config = read_config()
     form = st.form(key="Form" + agent['Name'])
     agent['Name'] = form.text_input('Name', key='NameField' + agent['Name'], value=agent['Name'])
     agent['Type'] = form.selectbox('Type', options=ALL_AGENT_TYPES,
@@ -280,7 +347,7 @@ def agent_inputs(agent):
             for k, v in val['disabled_cond'].items():
                 params['disabled'] = (agent[k] == v)
         if key == "PVEfficiency":
-            val['default_value'] = st.session_state.config_data['AreaInfo']['DefaultPVEfficiency']
+            val['default_value'] = current_config['AreaInfo']['DefaultPVEfficiency']
         elif key == "DischargeRate":
             val['default_value'] = agent['ChargeRate']
         if 'default_value' in val.keys():
@@ -303,22 +370,25 @@ def agent_inputs(agent):
         st.button('Remove agent', key='RemoveButton' + agent['Name'], on_click=remove_agent, args=(agent,))
     with col2:
         st.button('Duplicate agent', key='DuplicateButton' + agent['Name'], on_click=duplicate_agent, args=(agent,))
-    form.form_submit_button('Save agent')
+    form.form_submit_button('Save agent', on_click=set_config, kwargs={'config': st.session_state.config_data})
 
 
 def get_agent(all_agents: Iterable[IAgent], agent_chosen_guid: str) -> IAgent:
     return [x for x in all_agents if x.guid == agent_chosen_guid][0]
+# -------------------------------------- End agent functions ----------------------------------
 
 
 def add_params_to_form(form, info_type: str):
     """Populate parameter forms."""
+    current_config = read_config()
     for key, val in app_constants.param_spec_dict[info_type].items():
         params = {k: v for k, v in val.items() if k != 'display'}
         st.session_state.config_data[info_type][key] = form.number_input(
             val['display'], **params,
-            value=st.session_state.config_data[info_type][key])
+            value=current_config[info_type][key])
 
 
+# ---------------------------------------- Config screening -----------------------------------
 def config_data_json_screening(config_data: dict) -> Optional[str]:
     """Check that config json contains reasonable inputs."""
 
@@ -423,6 +493,7 @@ def config_data_agent_screening(config_data: dict) -> Optional[str]:
             if not agent['Resource'] in ALL_IMPLEMENTED_RESOURCES_STR:
                 return "Resource {} is not in availible for agent {}.".format(agent['Resource'], agent['Name'])
     return None
+# ------------------------------------- End config screening ----------------------------------
 
 
 def set_max_width(width: str):

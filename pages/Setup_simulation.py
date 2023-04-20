@@ -1,10 +1,11 @@
 import json
 import logging
 import pickle
-from app import DEFAULT_CONFIG, MOCK_DATA_PATH
+
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.app.app_functions import add_building_agent, add_grocery_store_agent, add_params_to_form, \
-    add_pv_agent, add_storage_agent, agent_inputs, config_data_json_screening, remove_all_building_agents, set_max_width
+    add_pv_agent, add_storage_agent, agent_inputs, config_data_json_screening, fill_with_default_params, get_config,\
+    read_config, remove_all_building_agents, set_config, set_max_width
 
 import streamlit as st
 from st_pages import add_indentation
@@ -30,26 +31,32 @@ else:
     results_download_button.download_button(label="Download simulation results", data=b'placeholder',
                                             disabled=True)
 
-if ("config_data" not in st.session_state.keys()) or (st.session_state.config_data is None):
-    logger.debug("Using default configuration")
-    st.session_state.config_data = DEFAULT_CONFIG
-
-# --------------------- Start config specification for dummies ------------------------
-# Could perhaps save the config to a temporary file on-change of these? That way changes won't get lost
-st.write("Note: Refreshing, or closing and reopening this page, will lead to configuration changes being lost. "
-         "If you wish to save your changes for another session, use the 'Export to JSON'-button below.")
+st.markdown('---')
+col_config, col_reset = st.columns([4, 1])
+with col_reset:
+    reset_config_button = st.button("Reset configuration",
+                                    help="Click here to DELETE custom configuration and reset configuration"
+                                    " to default values and agents.")
+with col_config:
+    # Saving the config to file on-change. That way changes won't get lost
+    current_config = get_config(reset_config_button)
+    st.session_state.config_data = current_config
+st.markdown(':exclamation: If you wish to save your configuration for '
+            'another session, use the **Export to JSON**-button below.')
+st.markdown('---')
 
 st.subheader("General area parameters:")  # ---------------
 area_form = st.form(key="AreaInfoForm")
 add_params_to_form(area_form, 'AreaInfo')
 _dummy1 = area_form.number_input(
     'CO2 penalization rate:', value=0.0, help=app_constants.CO2_PEN_RATE_HELP_TEXT, disabled=True)
-area_form.form_submit_button("Save area info")
+area_form.form_submit_button("Save area info", on_click=set_config, kwargs={'config': st.session_state.config_data})
 
 st.subheader("Constants used for generating data for digital twins:")  # ---------------
 mdc_form = st.form(key="MockDataConstantsForm")
 add_params_to_form(mdc_form, 'MockDataConstants')
-mdc_form.form_submit_button("Save mock data generation constants")
+mdc_form.form_submit_button("Save mock data generation constants", on_click=set_config,
+                            kwargs={'config': st.session_state.config_data})
 
 # ------------------- Start agents -------------------
 col1, col2 = st.columns(2)
@@ -83,11 +90,28 @@ st.download_button(label="Export to JSON", data=json.dumps(st.session_state.conf
 
 # --------------------- End config specification for dummies ------------------------
 
-st.subheader("Current configuration in JSON format:")
-st.json(st.session_state.config_data)
 uploaded_file = st.file_uploader(label="Upload configuration", type="json",
                                  help="Expand the sections below for information on how the configuration file "
                                       "should look")
+
+# Want to ensure that if a user uploads a file, moves to another tab in the UI, and then back here, the file
+# hasn't disappeared
+if uploaded_file is not None:
+    st.session_state.uploaded_file = uploaded_file
+    logger.info("Reading uploaded config file")
+    uploaded_config = json.load(uploaded_file)
+    try:
+        check_message = config_data_json_screening(uploaded_config)
+        if check_message is not None:
+            st.error(check_message)
+            st.error("Configuration from file not accepted.")
+            raise ValueError("Bad parameters in config json.")
+    except ValueError:
+        st.stop()
+    uploaded_config = fill_with_default_params(uploaded_config)
+    set_config(uploaded_config)
+    st.info("Using configuration from uploaded file.")
+
 with st.expander("Guidelines on configuration file"):
     st.markdown(app_constants.CONFIG_GUIDELINES_MARKDOWN)
     st.json(app_constants.AREA_INFO_EXAMPLE)
@@ -109,30 +133,16 @@ with st.expander("GroceryStoreAgent specification"):
     st.markdown(app_constants.GROCERY_STORE_AGENT_SPEC_MARKDOWN)
     st.json(app_constants.GROCERY_STORE_AGENT_EXAMPLE)
 
-# Want to ensure that if a user uploads a file, moves to another tab in the UI, and then back here, the file
-# hasn't disappeared
-if uploaded_file is not None:
-    st.session_state.uploaded_file = uploaded_file
-    logger.info("Reading uploaded config file")
-    uploaded_config = json.load(uploaded_file)
-    try:
-        check_message = config_data_json_screening(uploaded_config)
-        if check_message is not None:
-            st.error(check_message)
-            st.error("Configuration from file not accepted.")
-            raise ValueError("Bad parameters in config json.")
-    except ValueError:
-        st.stop()
-    
-    st.session_state.config_data = uploaded_config
-
+# Display JSON
+st.subheader("Current configuration in JSON format:")
+st.json(read_config())
 
 if run_sim:
     run_sim = False
     logger.info("Running simulation")
     st.spinner("Running simulation")
-    simulation_results = run_trading_simulations(st.session_state.config_data, MOCK_DATA_PATH, progress_bar,
-                                                 progress_text)
+    simulation_results = run_trading_simulations(st.session_state.config_data, app_constants.MOCK_DATA_PATH,
+                                                 progress_bar, progress_text)
     st.session_state.simulation_results = simulation_results
     logger.info("Simulation finished!")
     progress_text.success('Simulation finished!')

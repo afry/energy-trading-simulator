@@ -68,5 +68,8 @@ wheels/
 # Model files
 tradingplatformpoc/data/models/*.pickle
 
+# Custom config file
+tradingplatformpoc/data/current_config.json
+
 # Notebook checkpoints
 */.ipynb_checkpoints/*
