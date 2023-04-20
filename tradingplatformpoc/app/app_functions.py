@@ -660,7 +660,7 @@ def param_diff(default: dict, new: dict) -> Tuple[List[Tuple], List[Tuple]]:
 
 def display_diff_in_config(default: dict, new: dict):
 
-    str_to_disp = ['**Configuration changes from default:**']
+    str_to_disp = []
 
     old_agents, new_agents, changes_to_agents = agent_diff(default.copy(), new.copy())
 

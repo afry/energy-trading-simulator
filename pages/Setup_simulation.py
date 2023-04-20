@@ -35,6 +35,7 @@ if "simulation_results" in st.session_state:
 else:
     results_download_button.download_button(label="Download simulation results", data=b'placeholder',
                                             disabled=True)
+st.markdown('---')
 
 if ("config_data" not in st.session_state.keys()) or (st.session_state.config_data is None):
     logger.debug("Using default configuration")
@@ -50,7 +51,7 @@ if option_choosen == options[0]:
     st.write("Note: Refreshing, or closing and reopening this page, will lead to configuration changes being lost. "
              "If you wish to save your changes for another session, use the 'Export to JSON'-button below.")
     
-    area_info_col, mock_data_constants_col = st.columns(2)
+    area_info_col, mock_data_constants_col = st.columns(2, gap="large")
 
     with area_info_col:
         st.markdown("**General area parameters:**")  # ---------------
@@ -231,13 +232,15 @@ if option_choosen == options[1]:
         logger.info("Reading uploaded config file")
         st.session_state.config_data = json.load(st.session_state.uploaded_file)
 
-st.subheader("Configuration")
+st.markdown('---')
 coljson, coltext = st.columns(2)
 with coljson:
-    st.markdown('**Current configuration in JSON format:**')
-    st.json(st.session_state.config_data)
+    with st.expander('Current configuration in JSON format'):
+        st.json(st.session_state.config_data, expanded=True)
 with coltext:
-    display_diff_in_config(DEFAULT_CONFIG, st.session_state.config_data)
+    with st.expander('Configuration changes from default'):
+        display_diff_in_config(DEFAULT_CONFIG, st.session_state.config_data)
+st.markdown('---')
 
 with st.expander("Guidelines on configuration file"):
     st.markdown(app_constants.CONFIG_GUIDELINES_MARKDOWN)
