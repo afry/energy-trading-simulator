@@ -184,20 +184,15 @@ def results_dict_to_df(raw_dict: Dict[ResultsKey, float]) -> pd.DataFrame:
     return formatted_df
 
 
-def reset_config():
-    with open(app_constants.DEFAULT_CONFIG_FILENAME, "r") as jsonfile:
-        config = json.load(jsonfile)
-    with open(app_constants.CURRENT_CONFIG_FILENAME, 'w') as f:
-        json.dump(config, f)
-    # TODO: Should the uploaded file be dropped if config is reset?
-
-
+# -------------------------------------- Config functions -------------------------------------
 def set_config(config: dict):
+    """Writes config to current configuration file."""
     with open(app_constants.CURRENT_CONFIG_FILENAME, 'w') as f:
         json.dump(config, f)
 
 
 def read_config(name: str = 'current') -> dict:
+    """Reads and returns specified config from file."""
     file_dict = {'current': app_constants.CURRENT_CONFIG_FILENAME,
                  'default': app_constants.DEFAULT_CONFIG_FILENAME}
 
@@ -206,7 +201,18 @@ def read_config(name: str = 'current') -> dict:
     return config
 
 
+def reset_config():
+    """Reads default configuration from file and writes to current configuration file."""
+    config = read_config(name='default')
+    set_config(config)
+    # TODO: Should the uploaded file be dropped if config is reset, or on startup?
+
+
 def get_config(reset: bool) -> dict:
+    """
+    If no current config file exists or the reset button is clicked, reset.
+    Return current config.
+    """
     if not os.path.exists(app_constants.CURRENT_CONFIG_FILENAME):
         reset_config()
         st.markdown("**Current configuration: :blue[DEFAULT]**")
@@ -221,6 +227,7 @@ def get_config(reset: bool) -> dict:
 
 
 def fill_with_default_params(new_config: dict) -> dict:
+    """If not all parameters are specified in uploaded config, use default for the unspecified ones."""
     default_config = read_config(name='default')
     for param_type in ['AreaInfo', 'MockDataConstants']:
         params_only_in_default = dict((k, v) for k, v in default_config[param_type].items()
@@ -228,8 +235,10 @@ def fill_with_default_params(new_config: dict) -> dict:
         for k, v in params_only_in_default.items():
             new_config[param_type][k] = v
     return new_config
+# ------------------------------------- End config functions ----------------------------------
 
 
+# ---------------------------------------- Agent functions ------------------------------------
 def remove_agent(some_agent: Dict[str, Any]):
     st.session_state.config_data['Agents'].remove(some_agent)
     set_config(st.session_state.config_data)
@@ -441,6 +450,7 @@ def agent_inputs(agent):
 
 def get_agent(all_agents: Iterable[IAgent], agent_chosen_guid: str) -> IAgent:
     return [x for x in all_agents if x.guid == agent_chosen_guid][0]
+# -------------------------------------- End agent functions ----------------------------------
 
 
 def set_max_width(width: str):

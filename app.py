@@ -87,6 +87,7 @@ if __name__ == '__main__':
             Here, you can upload, select and run simulations, and evaluate the results with tables and graphs.
             """
         )
+
     elif page_selected == app_constants.SETUP_PAGE:
         set_max_width('1000px')  # This tab looks a bit daft when it is too wide, so limiting it here.
 
