@@ -88,14 +88,18 @@ if option_choosen == options[0]:
     # Buttons to add agents
     col1, col2 = st.columns(2)
 
-    # Annoyingly, these buttons have different sizes depending on the amount of text in them.
-    # Can use CSS to customize buttons but that then applies to all buttons on the page, so will leave as is
-    with col1:
-        add_building_agent_button = st.button("Add BuildingAgent", on_click=add_building_agent)
-        add_grocery_store_agent_button = st.button("Add GroceryStoreAgent", on_click=add_grocery_store_agent)
-    with col2:
-        add_storage_agent_button = st.button("Add StorageAgent", on_click=add_storage_agent)
-        add_pv_agent_button = st.button("Add PVAgent", on_click=add_pv_agent)
+    # Add new agents
+    add_agent = ['', 'BuildingAgent', 'GroceryStoreAgent', 'StorageAgent', 'PVAgent']
+    agent_to_add = st.selectbox('Add new agent of type...', add_agent)
+    if agent_to_add == 'BuildingAgent':
+        add_building_agent()
+    elif agent_to_add == 'GroceryStoreAgent':
+        add_grocery_store_agent()
+    elif agent_to_add == 'StorageAgent':
+        add_storage_agent()
+    elif agent_to_add == 'PVAgent':
+        add_pv_agent()
+    agent_to_add = ''
 
     st.write("Click below to download the current experiment configuration to a JSON-file, which you can later "
              "upload to re-use this configuration without having to do over any changes you have made so far.")

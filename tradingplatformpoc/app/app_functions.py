@@ -282,6 +282,8 @@ def add_agent(new_agent: Dict[str, Any]):
     session startup (again using session_state) and names the new agent accordingly: The first will be named
     'NewAgent1', the second 'NewAgent2' etc.
     """
+    # TODO: There seems to be an issue with this, where session state doesn't know
+    # number of agents added with the sane name
     if 'agents_added' not in st.session_state:
         st.session_state.agents_added = 1
     else:
@@ -464,6 +466,8 @@ def config_data_param_screening(config_data: dict) -> Optional[str]:
 
 def config_data_agent_screening(config_data: dict) -> Optional[str]:
     """Check that config json contains reasonable agents."""
+
+    # TODO: Ensure all essential agents exists, and of the right amount
 
     # Make sure no agents are passed without name or type
     for agent in config_data['Agents']:
