@@ -309,6 +309,7 @@ def get_agent(all_agents: Iterable[IAgent], agent_chosen_guid: str) -> IAgent:
 
 
 def add_params_to_form(form, info_type: str):
+    """Populate parameter forms."""
     for key, val in app_constants.param_spec_dict[info_type].items():
         params = {k: v for k, v in val.items() if k != 'display'}
         st.session_state.config_data[info_type][key] = form.number_input(
@@ -319,7 +320,7 @@ def add_params_to_form(form, info_type: str):
 def config_data_json_screening(config_data: dict) -> Optional[str]:
     """Check that config json contains reasonable inputs."""
 
-    str1 = config_data_json_keys(config_data)
+    str1 = config_data_keys_screening(config_data)
     if str1 is not None:
         return str1
     str2 = config_data_param_screening(config_data)
@@ -331,7 +332,8 @@ def config_data_json_screening(config_data: dict) -> Optional[str]:
     return None
 
 
-def config_data_json_keys(config_data: dict) -> Optional[str]:
+def config_data_keys_screening(config_data: dict) -> Optional[str]:
+    """Check that config is structured as expected."""
     # Make sure no unrecognized keys are passed
     unreq = [key for key in config_data.keys() if key not in ['Agents', 'AreaInfo', 'MockDataConstants']]
     if len(unreq) > 0:
