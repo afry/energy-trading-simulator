@@ -502,7 +502,8 @@ agent_specs_dict = {
             "min_value": 0.0,
             "step": 10.0,
             "help": GROSS_FLOOR_AREA_HELP_TEXT,
-            "type": float
+            "type": float,
+            "required": True
         },
         "FractionCommercial": {
             "display": "Fraction commercial",
@@ -510,7 +511,8 @@ agent_specs_dict = {
             "max_value": 1.0,
             "help": FRACTION_COMMERCIAL_HELP_TEXT,
             "default_value": 0.0,
-            "type": float
+            "type": float,
+            "required": False
         },
         "FractionSchool": {
             "display": "Fraction school",
@@ -518,7 +520,8 @@ agent_specs_dict = {
             "max_value": 1.0,
             "help": FRACTION_SCHOOL_HELP_TEXT,
             "default_value": 0.0,
-            "type": float
+            "type": float,
+            "required": False
         },
         "PVArea": {
             "display": "PV area (sqm)",
@@ -527,7 +530,8 @@ agent_specs_dict = {
             "format": '%.1f',
             "help": PV_AREA_HELP_TEXT,
             "default_value": 0.0,
-            "type": float
+            "type": float,
+            "required": False
         },
         "PVEfficiency": {
             "display": "PV efficiency",
@@ -535,7 +539,8 @@ agent_specs_dict = {
             "max_value": 0.99,
             "format": '%.1f',
             "help": PV_EFFICIENCY_HELP_TEXT,
-            "type": float
+            "type": float,
+            "required": False
         },
         "NumberHeatPumps": {
             "display": "Heat pumps",
@@ -543,7 +548,8 @@ agent_specs_dict = {
             "step": 1,
             "help": HEAT_PUMPS_HELP_TEXT,
             "default_value": 0,
-            "type": int
+            "type": int,
+            "required": False
         },
         "COP": {
             "display": "COP",
@@ -552,7 +558,8 @@ agent_specs_dict = {
             "help": HEAT_PUMP_COP_HELP_TEXT,
             "default_value": heat_pump.DEFAULT_COP,
             "type": float,
-            "disabled_cond": {'NumberHeatPumps': 0}
+            "disabled_cond": {'NumberHeatPumps': 0},
+            "required": False
         }
     },
     "StorageAgent": {
@@ -561,28 +568,32 @@ agent_specs_dict = {
             "min_value": 0.0,
             "step": 1.0,
             "help": CAPACITY_HELP_TEXT,
-            "type": float
+            "type": float,
+            "required": True
         },
         "ChargeRate": {
             "display": "Charge rate",
             "min_value": 0.01,
             "max_value": 10.0,
             "help": CHARGE_RATE_HELP_TEXT,
-            "type": float
+            "type": float,
+            "required": True
         },
         "RoundTripEfficiency": {
             "display": "Round-trip efficiency",
             "min_value": 0.01,
             "max_value": 1.0,
             "help": ROUND_TRIP_EFFICIENCY_HELP_TEXT,
-            "type": float
+            "type": float,
+            "required": True
         },
         "NHoursBack": {
             "display": "\'N hours back\'",
             "min_value": 1,
             "max_value": 8760,
             "help": N_HOURS_BACK_HELP_TEXT,
-            "type": int
+            "type": int,
+            "required": True
         },
         "BuyPricePercentile": {
             "display": "\'Buy-price percentile\'",
@@ -590,7 +601,8 @@ agent_specs_dict = {
             "max_value": 100.0,
             "step": 1.0,
             "help": BUY_PERC_HELP_TEXT,
-            "type": float
+            "type": float,
+            "required": True
         },
         "SellPricePercentile": {
             "display": "\'Sell-price percentile\'",
@@ -598,14 +610,16 @@ agent_specs_dict = {
             "max_value": 100.0,
             "step": 1.0,
             "help": SELL_PERC_HELP_TEXT,
-            "type": float
+            "type": float,
+            "required": True
         },
         "DischargeRate": {
             "display": "Discharge rate",
             "min_value": 0.01,
             "max_value": 10.0,
             "help": DISCHARGE_RATE_HELP_TEXT,
-            "type": float
+            "type": float,
+            "required": False
         }
     },
     "GridAgent": {
@@ -614,7 +628,8 @@ agent_specs_dict = {
             "min_value": 0.0,
             "step": 10.0,
             "help": TRANSFER_RATE_HELP_TEXT,
-            "type": float
+            "type": float,
+            "required": True
         }
     },
     "PVAgent": {
@@ -625,7 +640,8 @@ agent_specs_dict = {
             "format": '%.1f',
             "help": PV_AREA_HELP_TEXT,
             "default_value": 0.0,
-            "type": float
+            "type": float,
+            "required": True
         },
         "PVEfficiency": {
             "display": "PV efficiency",
@@ -633,7 +649,8 @@ agent_specs_dict = {
             "max_value": 0.99,
             "format": '%.1f',
             "help": PV_EFFICIENCY_HELP_TEXT,
-            "type": float
+            "type": float,
+            "required": False
         }
     },
     "GroceryStoreAgent": {
@@ -644,7 +661,8 @@ agent_specs_dict = {
             "format": '%.1f',
             "help": PV_AREA_HELP_TEXT,
             "default_value": 0.0,
-            "type": float
+            "type": float,
+            "required": False
         },
         "PVEfficiency": {
             "display": "PV efficiency",
@@ -652,7 +670,8 @@ agent_specs_dict = {
             "max_value": 0.99,
             "format": '%.1f',
             "help": PV_EFFICIENCY_HELP_TEXT,
-            "type": float
+            "type": float,
+            "required": False
         }
     }
 }

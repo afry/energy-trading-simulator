@@ -350,7 +350,8 @@ def agent_inputs(agent):
                                    index=ALL_AGENT_TYPES.index(agent['Type']))
 
     for key, val in app_constants.agent_specs_dict[agent['Type']].items():
-        params = {k: v for k, v in val.items() if k not in ['display', 'default_value', 'type', 'disabled_cond']}
+        params = {k: v for k, v in val.items() if k not in
+                  ['display', 'default_value', 'type', 'disabled_cond', 'required']}
         if 'disabled_cond' in val.keys():
             for k, v in val['disabled_cond'].items():
                 params['disabled'] = (agent[k] == v)
@@ -508,6 +509,11 @@ def config_data_agent_screening(config_data: dict) -> Optional[str]:
 
             if not agent['Resource'] in ALL_IMPLEMENTED_RESOURCES_STR:
                 return "Resource {} is not in availible for agent {}.".format(agent['Resource'], agent['Name'])
+            
+        for key in [key for key, val in app_constants.agent_specs_dict[agent['Type']].items() if val['required']]:
+            if key not in items.keys():
+                return "Missing parameter {} for agent {}.".format(key, agent['Name'])
+
     return None
 # ------------------------------------- End config screening ----------------------------------
 
