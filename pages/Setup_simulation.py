@@ -84,32 +84,52 @@ if option_choosen == options[0]:
 
     # ------------------- Start agents -------------------
     with st.expander("Agents"):
-        st.markdown('To change agent parameters, first select the agent name from the drop down list, '
-                    'then fill out the following form. **Save** changes by clicking on the save button '
-                    'at the bottom. Changes can be verified against the configuration under the '
-                    '*Current configuration in JSON format*-expander.')
+        modify_agents_tab, add_agents_tab = st.tabs(["Modify existing agents",
+                                                     "Add new agents"])
+        with modify_agents_tab:
+            st.markdown('To change agent parameters, first select the agent name from the drop down list, '
+                        'then fill out the following form. **Save** changes by clicking on the save button '
+                        'at the bottom. Changes can be verified against the configuration under the '
+                        '*Current configuration in JSON format*-expander.')
+            current_agents = st.session_state.config_data['Agents'][:]
+            current_agent_names = [agent['Name'] for agent in current_agents]
+            choosen_agent_name = st.selectbox('Choose an agent to modify:', current_agent_names)
+            choosen_agent_ind = current_agent_names.index(choosen_agent_name)
+            agent = current_agents[choosen_agent_ind]
+            agent_inputs(agent)
 
-        current_agents = st.session_state.config_data['Agents'][:]
-        current_agent_names = [agent['Name'] for agent in current_agents]
-        choosen_agent_name = st.selectbox('Choose an agent to modify:', current_agent_names)
-        choosen_agent_ind = current_agent_names.index(choosen_agent_name)
-        agent = current_agents[choosen_agent_ind]
-        agent_inputs(agent)
+            st.button("Remove all BuildingAgents", on_click=remove_all_building_agents)
 
-        st.markdown('---')
+        with add_agents_tab:
+            st.markdown('To add new agents, select the appropriate agent type from the drop down list, '
+                        'and click on **Create agent** to submit. The parameters of the new '
+                        'agent can be modified in the *Modify existing agents*-tab.')
+            add_new_agent_form = st.form(key="AddAgentOfTypeForm")
+            agent_type_options = ['BuildingAgent', 'GroceryStoreAgent', 'StorageAgent', 'PVAgent']
+            choosen_agent_type = add_new_agent_form.selectbox('Add new agent of type:', options=agent_type_options)
+            submit = add_new_agent_form.form_submit_button('Create agent')
+            if submit:
+                submit = False
+                if choosen_agent_type == 'BuildingAgent':
+                    add_building_agent()
+                elif choosen_agent_type == 'GroceryStoreAgent':
+                    add_grocery_store_agent()
+                elif choosen_agent_type == 'StorageAgent':
+                    add_storage_agent()
+                elif choosen_agent_type == 'PVAgent':
+                    add_pv_agent()
+                st.success("New " + choosen_agent_type + " created!")
 
-        # Buttons to add agents
-        col1, col2 = st.columns(2)
-        # Annoyingly, these buttons have different sizes depending on the amount of text in them.
-        # Can use CSS to customize buttons but that then applies to all buttons on the page, so will leave as is
-        with col1:
-            add_building_agent_button = st.button("Add BuildingAgent", on_click=add_building_agent)
-            add_grocery_store_agent_button = st.button("Add GroceryStoreAgent", on_click=add_grocery_store_agent)
-        with col2:
-            add_storage_agent_button = st.button("Add StorageAgent", on_click=add_storage_agent)
-            add_pv_agent_button = st.button("Add PVAgent", on_click=add_pv_agent)
+            # col1, col2 = st.columns(2)
+            # # Annoyingly, these buttons have different sizes depending on the amount of text in them.
+            # # Can use CSS to customize buttons but that then applies to all buttons on the page, so will leave as is
+            # with col1:
+            #     add_building_agent_button = st.button("Add BuildingAgent", on_click=add_building_agent)
+            #     add_grocery_store_agent_button = st.button("Add GroceryStoreAgent", on_click=add_grocery_store_agent)
+            # with col2:
+            #     add_storage_agent_button = st.button("Add StorageAgent", on_click=add_storage_agent)
+            #     add_pv_agent_button = st.button("Add PVAgent", on_click=add_pv_agent)
 
-        st.button("Remove all BuildingAgents", on_click=remove_all_building_agents)
     # --------------------- End config specification for dummies ------------------------
 
 if option_choosen == options[1]:
