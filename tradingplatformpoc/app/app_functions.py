@@ -439,6 +439,10 @@ def config_data_keys_screening(config_data: dict) -> Optional[str]:
     if len(config_data['Agents']) == 0:
         return 'No agents are provided!'
 
+    # TODO: Ensure all essential agents exists, and of the right amount
+    if 'GridAgent' not in [agent['Type'] for agent in config_data['Agents']]:
+        return 'No GridAgent provided!'
+
     return None
 
 
@@ -465,8 +469,6 @@ def config_data_param_screening(config_data: dict) -> Optional[str]:
 
 def config_data_agent_screening(config_data: dict) -> Optional[str]:
     """Check that config json contains reasonable agents."""
-
-    # TODO: Ensure all essential agents exists, and of the right amount
 
     # Make sure no agents are passed without name or type
     for agent in config_data['Agents']:
