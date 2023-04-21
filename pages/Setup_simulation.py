@@ -32,6 +32,9 @@ else:
     results_download_button.download_button(label="Download simulation results", data=b'placeholder',
                                             disabled=True)
 
+options = ['...input parameters through UI.', '...upload configuration file.']
+option_choosen = st.sidebar.selectbox('I want to...', options)
+
 st.markdown('---')
 config_container = st.container()
 with config_container:
@@ -39,7 +42,7 @@ with config_container:
     with col_reset:
         reset_config_button = st.button("Reset configuration",
                                         help="Click here to DELETE custom configuration and reset configuration"
-                                        " to default values and agents.")
+                                        " to default values and agents.", disabled=(option_choosen == options[1]))
     with col_config:
         # Saving the config to file on-change. That way changes won't get lost
         current_config = get_config(reset_config_button)
@@ -47,9 +50,6 @@ with config_container:
     # st.markdown('*If you wish to save your configuration for '
     #             'another session, use the **Export to JSON**-button below.*')
     # st.markdown('---')
-
-options = ['...input parameters through UI.', '...upload configuration file.']
-option_choosen = st.sidebar.selectbox('I want to...', options)
 
 st.markdown("**Change configuration**")
 if option_choosen == options[0]:
