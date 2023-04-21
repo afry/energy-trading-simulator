@@ -337,50 +337,58 @@ param_spec_dict = {
             "min_value": 0.01,
             "max_value": 0.99,
             "format": "%.3f",
-            "help": DEFAULT_PV_EFFICIENCY_HELP_TEXT
+            "help": DEFAULT_PV_EFFICIENCY_HELP_TEXT,
+            "required": True
         },
         "HeatTransferLoss": {
             "display": "Heat transfer loss:",
             "min_value": 0.0,
             "max_value": 0.99,
             "format": "%.3f",
-            "help": HEAT_TRANSFER_LOSS_HELP_TEXT
+            "help": HEAT_TRANSFER_LOSS_HELP_TEXT,
+            "required": True
         },
         "ExternalElectricityWholesalePriceOffset": {
             "display": "External electricity wholesale price offset:",
             "min_value": -1.0,
             "max_value": 1.0,
-            "help": ELECTRICITY_WHOLESALE_PRICE_OFFSET_HELP_TEXT
+            "help": ELECTRICITY_WHOLESALE_PRICE_OFFSET_HELP_TEXT,
+            "required": False
         },
         "ElectricityTax": {
             "display": "Electricity tax:",
             "min_value": 0.0,
             "format": "%.3f",
-            "help": ELECTRICITY_TAX_HELP_TEXT
+            "help": ELECTRICITY_TAX_HELP_TEXT,
+            "required": True
         },
         "ElectricityGridFee": {
             "display": "Electricity grid fee:",
             "min_value": 0.0,
             "format": "%.3f",
-            "help": ELECTRICITY_GRID_FEE_HELP_TEXT
+            "help": ELECTRICITY_GRID_FEE_HELP_TEXT,
+            "required": True
         },
         "ElectricityTaxInternal": {
             "display": "Electricity tax (internal):",
             "min_value": 0.0,
             "format": "%.3f",
-            "help": ELECTRICITY_TAX_INTERNAL_HELP_TEXT
+            "help": ELECTRICITY_TAX_INTERNAL_HELP_TEXT,
+            "required": True
         },
         "ElectricityGridFeeInternal": {
             "display": "Electricity grid fee (internal):",
             "min_value": 0.0,
             "format": "%.3f",
-            "help": ELECTRICITY_GRID_FEE_INTERNAL_HELP_TEXT
+            "help": ELECTRICITY_GRID_FEE_INTERNAL_HELP_TEXT,
+            "required": True
         },
         "ExternalHeatingWholesalePriceFraction": {
             "display": "External heating wholesale price fraction:",
             "min_value": 0.0,
             "max_value": 1.0,
-            "help": HEATING_WHOLESALE_PRICE_FRACTION_HELP_TEXT
+            "help": HEATING_WHOLESALE_PRICE_FRACTION_HELP_TEXT,
+            "required": False
         }
     },
     "MockDataConstants": {
@@ -388,86 +396,100 @@ param_spec_dict = {
             "display": "Residential electricity kWh/year/m2:",
             "min_value": 1,
             "max_value": 100,
-            "help": KWH_PER_YEAR_M2_ATEMP_HELP_TEXT
+            "help": KWH_PER_YEAR_M2_ATEMP_HELP_TEXT,
+            "required": False
         },
         "ResidentialSpaceHeatKwhPerYearM2": {
             "display": "Residential space heat kWh/year/m2:",
             "min_value": 1,
             "max_value": 100,
-            "help": KWH_PER_YEAR_M2_RES_SPACE_HEATING_HELP_TEXT
+            "help": KWH_PER_YEAR_M2_RES_SPACE_HEATING_HELP_TEXT,
+            "required": False
         },
         "ResidentialHotTapWaterKwhPerYearM2": {
             "display": "Residential hot tap water kWh/year/m2:",
             "min_value": 1,
             "max_value": 100,
-            "help": KWH_PER_YEAR_M2_RES_HOT_TAP_WATER_HELP_TEXT
+            "help": KWH_PER_YEAR_M2_RES_HOT_TAP_WATER_HELP_TEXT,
+            "required": False
         },
         "ResidentialHeatingRelativeErrorStdDev": {
             "display": "Residential hot tap water relative standard deviation:",
             "min_value": 0.0,
             "max_value": 1.0,
-            "help": RES_HEATING_REL_ERROR_STD_DEV_HELP_TEXT
+            "help": RES_HEATING_REL_ERROR_STD_DEV_HELP_TEXT,
+            "required": False
         },
         "CommercialElecKwhPerYearM2": {
             "display": "Commercial electricity kWh/year/m2:",
             "min_value": 1,
             "max_value": 200,
-            "help": COMM_ELEC_KWH_PER_YEAR_M2_HELP_TEXT
+            "help": COMM_ELEC_KWH_PER_YEAR_M2_HELP_TEXT,
+            "required": False
         },
         "CommercialElecRelativeErrorStdDev": {
             "display": "Commercial electricity relative standard deviation:",
             "min_value": 0.0,
             "max_value": 1.0,
-            "help": COMM_ELEC_REL_ERROR_STD_DEV_HELP_TEXT
+            "help": COMM_ELEC_REL_ERROR_STD_DEV_HELP_TEXT,
+            "required": False
         },
         "CommercialSpaceHeatKwhPerYearM2": {
             "display": "Commercial space heat kWh/year/m2:",
             "min_value": 1,
             "max_value": 100,
-            "help": KWH_SPACE_HEATING_PER_YEAR_M2_COMM_HELP_TEXT
+            "help": KWH_SPACE_HEATING_PER_YEAR_M2_COMM_HELP_TEXT,
+            "required": False
         },
         "CommercialHotTapWaterKwhPerYearM2": {
             "display": "Commercial hot tap water kWh/year/m2:",
             "min_value": 1.0,
             "max_value": 10.0,
             "step": 0.5,
-            "help": KWH_HOT_TAP_WATER_PER_YEAR_M2_COMM_HELP_TEXT
+            "help": KWH_HOT_TAP_WATER_PER_YEAR_M2_COMM_HELP_TEXT,
+            "required": False
         },
         "CommercialHotTapWaterRelativeErrorStdDev": {
             "display": "Commercial hot tap water relative standard deviation:",
             "min_value": 0.0,
             "max_value": 1.0,
-            "help": COMM_HOT_TAP_WATER_REL_ERROR_STD_DEV_HELP_TEXT
+            "help": COMM_HOT_TAP_WATER_REL_ERROR_STD_DEV_HELP_TEXT,
+            "required": False
         },
         "SchoolElecKwhPerYearM2": {
             "display": "School electricity kWh/year/m2:",
             "min_value": 1,
             "max_value": 200,
-            "help": KWH_ELECTRICITY_PER_YEAR_M2_SCHOOL_HELP_TEXT
+            "help": KWH_ELECTRICITY_PER_YEAR_M2_SCHOOL_HELP_TEXT,
+            "required": False
         },
         "SchoolElecRelativeErrorStdDev": {
             "display": "School electricity relative standard deviation:",
             "min_value": 0.0,
             "max_value": 1.0,
-            "help": SCHOOL_ELEC_REL_ERROR_STD_DEV_HELP_TEXT
+            "help": SCHOOL_ELEC_REL_ERROR_STD_DEV_HELP_TEXT,
+            "required": False
         },
         "SchoolSpaceHeatKwhPerYearM2": {
             "display": "School space heat kWh/year/m2:",
             "min_value": 1,
             "max_value": 100,
-            "help": KWH_SPACE_HEATING_PER_YEAR_M2_SCHOOL_HELP_TEXT
+            "help": KWH_SPACE_HEATING_PER_YEAR_M2_SCHOOL_HELP_TEXT,
+            "required": False
         },
         "SchoolHotTapWaterKwhPerYearM2": {
             "display": "School hot tap water kWh/year/m2:",
             "min_value": 1,
             "max_value": 100,
-            "help": KWH_HOT_TAP_WATER_PER_YEAR_M2_SCHOOL_HELP_TEXT
+            "help": KWH_HOT_TAP_WATER_PER_YEAR_M2_SCHOOL_HELP_TEXT,
+            "required": False
         },
         "SchoolHotTapWaterRelativeErrorStdDev": {
             "display": "School hot tap water relative standard deviation:",
             "min_value": 0.0,
             "max_value": 1.0,
-            "help": SCHOOL_HOT_TAP_WATER_REL_ERROR_STD_DEV_HELP_TEXT
+            "help": SCHOOL_HOT_TAP_WATER_REL_ERROR_STD_DEV_HELP_TEXT,
+            "required": False
         }
     
     }

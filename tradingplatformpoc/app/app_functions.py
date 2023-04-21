@@ -394,7 +394,7 @@ def add_params_to_form(form, info_type: str):
     """Populate parameter forms."""
     current_config = read_config()
     for key, val in app_constants.param_spec_dict[info_type].items():
-        params = {k: v for k, v in val.items() if k != 'display'}
+        params = {k: v for k, v in val.items() if k not in ['display', 'required']}
         st.session_state.config_data[info_type][key] = form.number_input(
             val['display'], **params,
             value=current_config[info_type][key])
