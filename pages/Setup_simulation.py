@@ -42,19 +42,24 @@ with col_config:
     # Saving the config to file on-change. That way changes won't get lost
     current_config = get_config(reset_config_button)
     st.session_state.config_data = current_config
-st.markdown(':exclamation: If you wish to save your configuration for '
-            'another session, use the **Export to JSON**-button below.')
+st.markdown('*If you wish to save your configuration for '
+            'another session, use the **Export to JSON**-button below.*')
 st.markdown('---')
 
 options = ['...input parameters through UI.', '...upload configuration file.']
 option_choosen = st.sidebar.selectbox('I want to...', options)
 
 if option_choosen == options[0]:
+    st.subheader("General parameters:")
+    st.markdown('Change parameter values by filling out the following forms. **Save** '
+                'changes by clicking on respective save button. Changes can be '
+                'verified against the configuration in the *Current configuration in JSON format*-tab.')
 
-    area_info_col, mock_data_constants_col = st.columns(2, gap="large")
+    area_info_tab, mock_data_constants_tab = st.tabs(["General area parameters",
+                                                      "Data simulation parameters for digital twin"])
 
-    with area_info_col:
-        st.markdown("**General area parameters:**")  # ---------------
+    with area_info_tab:
+        # st.markdown("**General area parameters:**")  # ---------------
         area_form = st.form(key="AreaInfoForm")
         add_params_to_form(area_form, 'AreaInfo')
         _dummy1 = area_form.number_input(
@@ -64,8 +69,8 @@ if option_choosen == options[0]:
             submit_area_form = False
             set_config_to_sess_state()
 
-    with mock_data_constants_col:
-        st.markdown("**Data simulation parameters for digital twin:**")  # ---------------
+    with mock_data_constants_tab:
+        # st.markdown("**Data simulation parameters for digital twin:**")  # ---------------
         mdc_form = st.form(key="MockDataConstantsForm")
         add_params_to_form(mdc_form, 'MockDataConstants')
         submit_mdc_form = mdc_form.form_submit_button("Save mock data generation constants")
@@ -88,19 +93,16 @@ if option_choosen == options[0]:
     # Buttons to add agents
     col1, col2 = st.columns(2)
 
-    # Add new agents
-    add_agent = ['', 'BuildingAgent', 'GroceryStoreAgent', 'StorageAgent', 'PVAgent']
-    agent_to_add = st.selectbox('Add new agent of type...', add_agent)
-    if agent_to_add == 'BuildingAgent':
-        add_building_agent()
-    elif agent_to_add == 'GroceryStoreAgent':
-        add_grocery_store_agent()
-    elif agent_to_add == 'StorageAgent':
-        add_storage_agent()
-    elif agent_to_add == 'PVAgent':
-        add_pv_agent()
-    agent_to_add = ''
+    # Annoyingly, these buttons have different sizes depending on the amount of text in them.
+    # Can use CSS to customize buttons but that then applies to all buttons on the page, so will leave as is
+    with col1:
+        add_building_agent_button = st.button("Add BuildingAgent", on_click=add_building_agent)
+        add_grocery_store_agent_button = st.button("Add GroceryStoreAgent", on_click=add_grocery_store_agent)
+    with col2:
+        add_storage_agent_button = st.button("Add StorageAgent", on_click=add_storage_agent)
+        add_pv_agent_button = st.button("Add PVAgent", on_click=add_pv_agent)
 
+    st.markdown('---')
     st.write("Click below to download the current experiment configuration to a JSON-file, which you can later "
              "upload to re-use this configuration without having to do over any changes you have made so far.")
     # Button to export config to a JSON file
