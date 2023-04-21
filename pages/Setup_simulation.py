@@ -50,60 +50,68 @@ options = ['...input parameters through UI.', '...upload configuration file.']
 option_choosen = st.sidebar.selectbox('I want to...', options)
 
 if option_choosen == options[0]:
-    st.subheader("General parameters:")
-    st.markdown('Change parameter values by filling out the following forms. **Save** '
-                'changes by clicking on respective save button. Changes can be '
-                'verified against the configuration in the *Current configuration in JSON format*-tab.')
+    st.subheader("Change configuration")
+    with st.expander("General parameters"):
+        st.markdown('Change parameter values by filling out the following forms. **Save** '
+                    'changes by clicking on respective save button. Changes can be '
+                    'verified against the configuration under the '
+                    '*Current configuration in JSON format*-expander.')
 
-    area_info_tab, mock_data_constants_tab = st.tabs(["General area parameters",
-                                                      "Data simulation parameters for digital twin"])
+        area_info_tab, mock_data_constants_tab = st.tabs(["General area parameters",
+                                                          "Data simulation parameters for digital twin"])
 
-    with area_info_tab:
-        # st.markdown("**General area parameters:**")  # ---------------
-        area_form = st.form(key="AreaInfoForm")
-        add_params_to_form(area_form, 'AreaInfo')
-        _dummy1 = area_form.number_input(
-            'CO2 penalization rate:', value=0.0, help=app_constants.CO2_PEN_RATE_HELP_TEXT, disabled=True)
-        submit_area_form = area_form.form_submit_button("Save area info")
-        if submit_area_form:
-            submit_area_form = False
-            set_config_to_sess_state()
+        with area_info_tab:
+            # st.markdown("**General area parameters:**")  # ---------------
+            area_form = st.form(key="AreaInfoForm")
+            add_params_to_form(area_form, 'AreaInfo')
+            _dummy1 = area_form.number_input(
+                'CO2 penalization rate:', value=0.0, help=app_constants.CO2_PEN_RATE_HELP_TEXT, disabled=True)
+            submit_area_form = area_form.form_submit_button("Save area info")
+            if submit_area_form:
+                submit_area_form = False
+                set_config_to_sess_state()
 
-    with mock_data_constants_tab:
-        # st.markdown("**Data simulation parameters for digital twin:**")  # ---------------
-        mdc_form = st.form(key="MockDataConstantsForm")
-        add_params_to_form(mdc_form, 'MockDataConstants')
-        submit_mdc_form = mdc_form.form_submit_button("Save mock data generation constants")
-        if submit_mdc_form:
-            submit_mdc_form = False
-            set_config_to_sess_state()
+        with mock_data_constants_tab:
+            # st.markdown("**Data simulation parameters for digital twin:**")  # ---------------
+            mdc_form = st.form(key="MockDataConstantsForm")
+            add_params_to_form(mdc_form, 'MockDataConstants')
+            submit_mdc_form = mdc_form.form_submit_button("Save mock data generation constants")
+            if submit_mdc_form:
+                submit_mdc_form = False
+                set_config_to_sess_state()
 
     # ------------------- Start agents -------------------
-    col1, col2 = st.columns([2, 1])
-    with col1:
-        st.subheader("Agents:")
-    with col2:
+    with st.expander("Agents"):
+        st.markdown('To change agent parameters, first select the agent name from the drop down list, '
+                    'then fill out the following form. **Save** changes by clicking on the save button '
+                    'at the bottom. Changes can be verified against the configuration under the '
+                    '*Current configuration in JSON format*-expander.')
+
+        current_agents = st.session_state.config_data['Agents'][:]
+        current_agent_names = [agent['Name'] for agent in current_agents]
+        choosen_agent_name = st.selectbox('Choose an agent to modify:', current_agent_names)
+        choosen_agent_ind = current_agent_names.index(choosen_agent_name)
+        agent = current_agents[choosen_agent_ind]
+        agent_inputs(agent)
+
+        st.markdown('---')
+
+        # Buttons to add agents
+        col1, col2 = st.columns(2)
+        # Annoyingly, these buttons have different sizes depending on the amount of text in them.
+        # Can use CSS to customize buttons but that then applies to all buttons on the page, so will leave as is
+        with col1:
+            add_building_agent_button = st.button("Add BuildingAgent", on_click=add_building_agent)
+            add_grocery_store_agent_button = st.button("Add GroceryStoreAgent", on_click=add_grocery_store_agent)
+        with col2:
+            add_storage_agent_button = st.button("Add StorageAgent", on_click=add_storage_agent)
+            add_pv_agent_button = st.button("Add PVAgent", on_click=add_pv_agent)
+
         st.button("Remove all BuildingAgents", on_click=remove_all_building_agents)
 
-    # TODO: Maybe organize agents in columns based on type, for readability
-    for agent in st.session_state.config_data['Agents'][:]:
-        # Annoyingly, this expander's name doesn't update right away when the agent's name is changed
-        with st.expander(agent['Name']):
-            agent_inputs(agent)
-    # Buttons to add agents
-    col1, col2 = st.columns(2)
-
-    # Annoyingly, these buttons have different sizes depending on the amount of text in them.
-    # Can use CSS to customize buttons but that then applies to all buttons on the page, so will leave as is
-    with col1:
-        add_building_agent_button = st.button("Add BuildingAgent", on_click=add_building_agent)
-        add_grocery_store_agent_button = st.button("Add GroceryStoreAgent", on_click=add_grocery_store_agent)
-    with col2:
-        add_storage_agent_button = st.button("Add StorageAgent", on_click=add_storage_agent)
-        add_pv_agent_button = st.button("Add PVAgent", on_click=add_pv_agent)
-
     st.markdown('---')
-    st.write("Click below to download the current experiment configuration to a JSON-file, which you can later "
+    st.subheader("Export configuration")
+    st.write("Click button below to download the current experiment configuration to a JSON-file, which you can later "
              "upload to re-use this configuration without having to do over any changes you have made so far.")
     # Button to export config to a JSON file
     st.download_button(label="Export to JSON", data=json.dumps(read_config()),
@@ -135,6 +143,7 @@ if option_choosen == options[1]:
         st.info("Using configuration from uploaded file.")
 
 st.markdown('---')
+st.subheader("View configuration")
 coljson, coltext = st.columns([2, 1])
 with coljson:
     with st.expander('Current configuration in JSON format'):
@@ -144,6 +153,7 @@ with coltext:
         display_diff_in_config(read_config(name='default'), read_config())
 st.markdown('---')
 
+st.subheader("Guides")
 with st.expander("Guidelines on configuration file"):
     st.markdown(app_constants.CONFIG_GUIDELINES_MARKDOWN)
     st.json(app_constants.AREA_INFO_EXAMPLE)
