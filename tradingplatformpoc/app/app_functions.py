@@ -277,17 +277,18 @@ def remove_all_building_agents():
 
 def add_agent(new_agent: Dict[str, Any]):
     """
-    Adds the argument agent to the session_state list of agents. Keeps track of how many agents have been added since
-    session startup (again using session_state) and names the new agent accordingly: The first will be named
-    'NewAgent1', the second 'NewAgent2' etc.
+    Adding new agent to agents.
+    Keeps track of how many agents have been added with the same prefix and names the new agent accordingly:
+    The first will be named 'New[insert agent type]1', the second 'New[insert agent type]2' etc.
     """
-    # TODO: There seems to be an issue with this, where session state doesn't know
-    # number of agents added with the sane name
-    if 'agents_added' not in st.session_state:
-        st.session_state.agents_added = 1
-    else:
-        st.session_state.agents_added += 1
-    new_agent["Name"] = "NewAgent" + str(st.session_state.agents_added)
+
+    # To keep track of if the success text should be displayed
+    st.session_state.agents_added = True
+
+    current_config = read_config()
+    name_str = "New" + new_agent['Type']
+    number_of_existing_new_agents = len([agent for agent in current_config['Agents'] if name_str in agent['Name']])
+    new_agent["Name"] = name_str + str(number_of_existing_new_agents + 1)
     st.session_state.config_data['Agents'].append(new_agent)
     set_config_to_sess_state()
 
@@ -381,6 +382,7 @@ def agent_inputs(agent):
     if submit:
         submit = False
         set_config_to_sess_state()
+        st.experimental_rerun()
 
 
 def get_agent(all_agents: Iterable[IAgent], agent_chosen_guid: str) -> IAgent:
@@ -814,3 +816,5 @@ def display_diff_in_config(default: dict, new: dict):
     if len(str_to_disp) > 1:
         for s in str_to_disp:
             st.markdown(s)
+
+    return len(new_agents) > 0

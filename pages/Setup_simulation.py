@@ -86,12 +86,12 @@ if option_choosen == options[0]:
     with st.expander("Agents"):
         modify_agents_tab, add_agents_tab = st.tabs(["Modify existing agents",
                                                      "Add new agents"])
+        current_agents = st.session_state.config_data['Agents'][:]
         with modify_agents_tab:
             st.markdown('To change agent parameters, first select the agent name from the drop down list, '
                         'then fill out the following form. **Save** changes by clicking on the save button '
                         'at the bottom. Changes can be verified against the configuration under the '
                         '*Current configuration in JSON format*-expander.')
-            current_agents = st.session_state.config_data['Agents'][:]
             current_agent_names = [agent['Name'] for agent in current_agents]
             choosen_agent_name = st.selectbox('Choose an agent to modify:', current_agent_names)
             choosen_agent_ind = current_agent_names.index(choosen_agent_name)
@@ -118,19 +118,10 @@ if option_choosen == options[0]:
                     add_storage_agent()
                 elif choosen_agent_type == 'PVAgent':
                     add_pv_agent()
-                st.success("New " + choosen_agent_type + " created!")
-
-            # col1, col2 = st.columns(2)
-            # # Annoyingly, these buttons have different sizes depending on the amount of text in them.
-            # # Can use CSS to customize buttons but that then applies to all buttons on the page, so will leave as is
-            # with col1:
-            #     add_building_agent_button = st.button("Add BuildingAgent", on_click=add_building_agent)
-            #     add_grocery_store_agent_button = st.button("Add GroceryStoreAgent", on_click=add_grocery_store_agent)
-            # with col2:
-            #     add_storage_agent_button = st.button("Add StorageAgent", on_click=add_storage_agent)
-            #     add_pv_agent_button = st.button("Add PVAgent", on_click=add_pv_agent)
-
-    # --------------------- End config specification for dummies ------------------------
+                st.experimental_rerun()
+            if 'agents_added' in st.session_state.keys() and st.session_state.agents_added:
+                st.success("Last new agent added: '" + current_agents[-1]["Name"] + "'")
+        # --------------------- End config specification for dummies ------------------------
 
 if option_choosen == options[1]:
     uploaded_file = st.file_uploader(label="Upload configuration", type="json",
