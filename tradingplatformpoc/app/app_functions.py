@@ -211,7 +211,6 @@ def reset_config():
     """Reads default configuration from file and writes to current configuration file."""
     config = read_config(name='default')
     set_config(config)
-    # TODO: Should the uploaded file be dropped if config is reset, or on startup?
 
 
 def get_config(reset: bool) -> dict:
