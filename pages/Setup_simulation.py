@@ -33,24 +33,26 @@ else:
                                             disabled=True)
 
 st.markdown('---')
-col_config, col_reset = st.columns([4, 1])
-with col_reset:
-    reset_config_button = st.button("Reset configuration",
-                                    help="Click here to DELETE custom configuration and reset configuration"
-                                    " to default values and agents.")
-with col_config:
-    # Saving the config to file on-change. That way changes won't get lost
-    current_config = get_config(reset_config_button)
-    st.session_state.config_data = current_config
-st.markdown('*If you wish to save your configuration for '
-            'another session, use the **Export to JSON**-button below.*')
-st.markdown('---')
+config_container = st.container()
+with config_container:
+    col_config, col_reset = st.columns([4, 1])
+    with col_reset:
+        reset_config_button = st.button("Reset configuration",
+                                        help="Click here to DELETE custom configuration and reset configuration"
+                                        " to default values and agents.")
+    with col_config:
+        # Saving the config to file on-change. That way changes won't get lost
+        current_config = get_config(reset_config_button)
+        st.session_state.config_data = current_config
+    # st.markdown('*If you wish to save your configuration for '
+    #             'another session, use the **Export to JSON**-button below.*')
+    # st.markdown('---')
 
 options = ['...input parameters through UI.', '...upload configuration file.']
 option_choosen = st.sidebar.selectbox('I want to...', options)
 
+st.markdown("**Change configuration**")
 if option_choosen == options[0]:
-    st.subheader("Change configuration")
     with st.expander("General parameters"):
         st.markdown('Change parameter values by filling out the following forms. **Save** '
                     'changes by clicking on respective save button. Changes can be '
@@ -108,16 +110,6 @@ if option_choosen == options[0]:
             add_pv_agent_button = st.button("Add PVAgent", on_click=add_pv_agent)
 
         st.button("Remove all BuildingAgents", on_click=remove_all_building_agents)
-
-    st.markdown('---')
-    st.subheader("Export configuration")
-    st.write("Click button below to download the current experiment configuration to a JSON-file, which you can later "
-             "upload to re-use this configuration without having to do over any changes you have made so far.")
-    # Button to export config to a JSON file
-    st.download_button(label="Export to JSON", data=json.dumps(read_config()),
-                       file_name="trading-platform-poc-config.json",
-                       mime="text/json")
-
     # --------------------- End config specification for dummies ------------------------
 
 if option_choosen == options[1]:
@@ -143,17 +135,24 @@ if option_choosen == options[1]:
         st.info("Using configuration from uploaded file.")
 
 st.markdown('---')
-st.subheader("View configuration")
-coljson, coltext = st.columns([2, 1])
-with coljson:
-    with st.expander('Current configuration in JSON format'):
-        st.json(read_config(), expanded=True)
-with coltext:
-    with st.expander('Configuration changes from default'):
-        display_diff_in_config(read_config(name='default'), read_config())
-st.markdown('---')
+with config_container:
+    coljson, coltext = st.columns([2, 1])
+    with coljson:
+        with st.expander('Current configuration in JSON format'):
+            st.json(read_config(), expanded=True)
+    with coltext:
+        with st.expander('Configuration changes from default'):
+            display_diff_in_config(read_config(name='default'), read_config())
 
-st.subheader("Guides")
+    st.write("Click button below to download the current experiment configuration to a JSON-file, which you can later "
+             "upload to re-use this configuration without having to do over any changes you have made so far.")
+    # Button to export config to a JSON file
+    st.download_button(label="Export to JSON", data=json.dumps(read_config()),
+                       file_name="trading-platform-poc-config.json",
+                       mime="text/json")
+    st.markdown('---')
+
+st.markdown("**Guides**")
 with st.expander("Guidelines on configuration file"):
     st.markdown(app_constants.CONFIG_GUIDELINES_MARKDOWN)
     st.json(app_constants.AREA_INFO_EXAMPLE)
