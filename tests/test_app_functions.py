@@ -28,27 +28,33 @@ class TestAppFunctions(TestCase):
         self.assertIsNone(config_data_param_screening({'AreaInfo': {'DefaultPVEfficiency': 0.165}}))
 
     def test_config_data_agent_screening(self):
-        mock_agent = {"Type": "StorageAgent", "Name": "BatteryStorageAgent1", "Resource": "ELECTRICITY"}
+        mock_agent = {"Type": "GridAgent", "Name": "ElectricityGridAgent", "Resource": "ELECTRICITY"}
 
         self.assertIsNone(config_data_agent_screening({'Agents': [mock_agent]}))
 
-        self.assertIsNotNone(config_data_agent_screening({'Agents': [{"Name": "BatteryStorageAgent1",
+        self.assertIsNotNone(config_data_agent_screening({'Agents': [{"Name": "ElectricityGridAgent",
                                                                       "Resource": "ELECTRICITY"}]}))
         
+        self.assertIsNotNone(config_data_agent_screening({'Agents': [{"Type": "GridAgent",
+                                                                      "Resource": "ELECTRICITY"}]}))
         self.assertIsNotNone(config_data_agent_screening({'Agents': [{"Type": "StorageAgent",
+                                                                      "Name": "StorageAgent1",
                                                                       "Resource": "ELECTRICITY"}]}))
         self.assertIsNotNone(config_data_agent_screening({'Agents': [{"Type": "ThisIsNotAValidAgentType",
-                                                                      "Name": "BatteryStorageAgent1",
+                                                                      "Name": "ThisIsNotAValidAgent",
+                                                                      "Resource": "ELECTRICITY"},
+                                                                     {"Type": "GridAgent",
+                                                                      "Name": "ElectricityGridAgent",
                                                                       "Resource": "ELECTRICITY"}]}))
         
-        self.assertIsNotNone(config_data_agent_screening({'Agents': [{"Type": "StorageAgent",
-                                                                      "Name": "BatteryStorageAgent1"}]}))
-        self.assertIsNotNone(config_data_agent_screening({'Agents': [{"Type": "StorageAgent",
-                                                                      "Name": "BatteryStorageAgent1",
+        self.assertIsNotNone(config_data_agent_screening({'Agents': [{"Type": "GridAgent",
+                                                                      "Name": "ElectricityGridAgent"}]}))
+        self.assertIsNotNone(config_data_agent_screening({'Agents': [{"Type": "GridAgent",
+                                                                      "Name": "ElectricityGridAgent",
                                                                       "Resource": "ThisIsNotAValidResource"}]}))
 
         self.assertIsNotNone(config_data_agent_screening({'Agents': [{**mock_agent,
                                                                       **{'ThisIsNotAValidAgentParameter': 0.0}}]}))
-        # Capacity of Storage Agent min value: 0.0
-        self.assertIsNotNone(config_data_agent_screening({'Agents': [{**mock_agent, **{'Capacity': -0.1}}]}))
-        self.assertIsNone(config_data_agent_screening({'Agents': [{**mock_agent, **{'Capacity': 0.1}}]}))
+        # TransferRate of Storage Agent min value: 0.0
+        self.assertIsNotNone(config_data_agent_screening({'Agents': [{**mock_agent, **{'TransferRate': -0.1}}]}))
+        self.assertIsNone(config_data_agent_screening({'Agents': [{**mock_agent, **{'TransferRate': 0.1}}]}))

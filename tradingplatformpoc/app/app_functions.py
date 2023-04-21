@@ -439,10 +439,6 @@ def config_data_keys_screening(config_data: dict) -> Optional[str]:
     if len(config_data['Agents']) == 0:
         return 'No agents are provided!'
 
-    # TODO: Ensure all essential agents exists, and of the right amount
-    if 'GridAgent' not in [agent['Type'] for agent in config_data['Agents']]:
-        return 'No GridAgent provided!'
-
     return None
 
 
@@ -481,6 +477,10 @@ def config_data_agent_screening(config_data: dict) -> Optional[str]:
     for agent in config_data['Agents']:
         if agent['Type'] not in ['BuildingAgent', 'StorageAgent', 'PVAgent', 'GridAgent', 'GroceryStoreAgent']:
             return 'Agent {} provided with unrecognized \'Type\' {}'.format(agent['Name'], agent['Type'])
+        
+    # TODO: Ensure all essential agents exists, and of the right amount
+    if 'GridAgent' not in [agent['Type'] for agent in config_data['Agents']]:
+        return 'No GridAgent provided!'
     
     # Check agents for correct keys and values in ranges
     for agent in config_data['Agents']:
