@@ -481,7 +481,7 @@ def config_data_agent_screening(config_data: dict) -> Optional[str]:
         if agent['Type'] not in ['BuildingAgent', 'StorageAgent', 'PVAgent', 'GridAgent', 'GroceryStoreAgent']:
             return 'Agent {} provided with unrecognized \'Type\' {}'.format(agent['Name'], agent['Type'])
         
-    # TODO: Ensure all essential agents exists, and of the right amount
+    # TODO: Ensure all essential agents exists, and of the right amount. Which?
     if 'GridAgent' not in [agent['Type'] for agent in config_data['Agents']]:
         return 'No GridAgent provided!'
     

@@ -1,3 +1,4 @@
+import json
 import logging
 
 import streamlit as st
@@ -24,10 +25,17 @@ if load_button:
         st.success("Data loaded!")
     elif 'uploaded_results_file' in st.session_state:
         st.info(" ".join(["Data already loaded from", st.session_state.uploaded_results_file.name]))
+
+    with st.expander('Simulation configuration used, in JSON format:'):
+        st.json(body=json.dumps(st.session_state.simulation_results.config_data))
+
 elif ('uploaded_results_file' in st.session_state) and ('simulation_results' in st.session_state):
     if uploaded_results_file is None:
         st.success(" ".join(["Currently using data loaded from:", st.session_state.uploaded_results_file.name]))
     else:
         st.info("To replace previously loaded results with results from file, press load button.")
+
+    with st.expander('Simulation configuration used, in JSON format:'):
+        st.json(body=json.dumps(st.session_state.simulation_results.config_data))
 
 st.write(footer.html, unsafe_allow_html=True)

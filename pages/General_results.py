@@ -1,4 +1,3 @@
-import json
 import logging
 import time
 import streamlit as st
@@ -61,9 +60,6 @@ if 'simulation_results' in st.session_state:
                          "between external retail and wholesale price:"):
             st.dataframe(get_price_df_when_local_price_inbetween(st.session_state.combined_price_df,
                                                                  Resource.ELECTRICITY))
-
-    with st.expander('Current configuration in JSON format:'):
-        st.json(body=json.dumps(st.session_state.simulation_results.config_data))
 else:
     st.write('Run simulations and load data first!')
 
