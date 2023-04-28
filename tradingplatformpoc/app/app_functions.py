@@ -777,7 +777,8 @@ def agent_diff(default: dict, new: dict):
         agent_new = [agent for agent in new['Agents'] if agent['Name'] == agent_name][0]
         diff = set(agent_default.items()) - set(agent_new.items())
         if len(diff) > 0:
-            param_diff[agent_name] = list(diff)
+            param_diff[agent_name] = dict((key, {'default': agent_default[key],
+                                                 'new': agent_new[key]}) for key in dict(diff).keys())
 
     return agents_only_in_default, agents_only_in_new, param_diff
 
@@ -801,23 +802,25 @@ def display_diff_in_config(default: dict, new: dict):
         str_to_disp.append('**Added agents:** ')
         str_to_disp.append(', '.join(new_agents))
     if len(changes_to_agents.keys()) > 0:
-        str_to_disp.append('**Changes to existing agents:**')
+        str_to_disp.append('**Changes to default agents:**')
         for name, params in changes_to_agents.items():
-            str_to_disp.append('\t' + name + ':')
-            for param in params:
-                str_to_disp.append('\t\t' + param[0] + ': ' + str(param[1]))
+            str_agent_change = name + ': ' + '*'
+            for key, vals in params.items():
+                str_agent_change += (key + ': ' + str(vals['default']) + ' &rarr; '
+                                     + str(vals['new']) + ', ')
+            str_to_disp.append(str_agent_change[:-2] + '*')
 
     changes_to_area_info_params, changes_to_mock_data_params = param_diff(default.copy(), new.copy())
 
     if len(changes_to_area_info_params) > 0:
         str_to_disp.append('**Changes to area info parameters:**')
         for param in changes_to_area_info_params:
-            str_to_disp.append('\t\t' + param[0] + ': ' + str(param[1]))
+            str_to_disp.append(param[0] + ': ' + str(param[1]))
 
     if len(changes_to_mock_data_params) > 0:
         str_to_disp.append('**Changes to mock data parameters:**')
         for param in changes_to_mock_data_params:
-            str_to_disp.append('\t\t' + param[0] + ': ' + str(param[1]))
+            str_to_disp.append(param[0] + ': ' + str(param[1]))
 
     if len(str_to_disp) > 1:
         for s in str_to_disp:
