@@ -348,6 +348,11 @@ def agent_inputs(agent):
     agent['Type'] = form.selectbox('Type', options=ALL_AGENT_TYPES,
                                    key='TypeSelectBox' + agent['Name'],
                                    index=ALL_AGENT_TYPES.index(agent['Type']))
+    
+    if agent['Type'] in ['StorageAgent', 'GridAgent']:
+        agent['Resource'] = form.selectbox('Resource', options=ALL_IMPLEMENTED_RESOURCES_STR,
+                                           key='ResourceSelectBox' + agent['Name'],
+                                           index=ALL_IMPLEMENTED_RESOURCES_STR.index(agent['Resource']))
 
     for key, val in app_constants.agent_specs_dict[agent['Type']].items():
         params = {k: v for k, v in val.items() if k not in
@@ -368,11 +373,6 @@ def agent_inputs(agent):
 
         agent[key] = form.number_input(val["display"], **params, value=value,
                                        key=key + agent['Name'])
-
-    if agent['Type'] in ['StorageAgent', 'GridAgent']:
-        agent['Resource'] = form.selectbox('Resource', options=ALL_IMPLEMENTED_RESOURCES_STR,
-                                           key='ResourceSelectBox' + agent['Name'],
-                                           index=ALL_IMPLEMENTED_RESOURCES_STR.index(agent['Resource']))
 
     col1, col2 = st.columns(2)
     with col1:
@@ -758,7 +758,7 @@ def display_df_and_make_downloadable(df: pd.DataFrame,
     download_df_as_csv_button(df, file_name, include_index=True)
     
 
-@st.cache_data()
+# @st.cache_data()
 def load_results(uploaded_results_file):
     st.session_state.simulation_results = pickle.load(uploaded_results_file)
 
