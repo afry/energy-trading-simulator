@@ -159,7 +159,7 @@ def construct_prices_df(simulation_results: SimulationResults) -> pd.DataFrame:
     return pd.concat([clearing_prices_df, retail_df, wholesale_df])
 
 
-@st.cache_data
+# @st.cache_data
 def get_viewable_df(full_df: pd.DataFrame, key: str, value: Any, want_index: str,
                     cols_to_drop: Union[None, List[str]] = None) -> pd.DataFrame:
     """
@@ -659,7 +659,7 @@ def aggregated_local_production_df() -> pd.DataFrame:
     return pd.DataFrame(data=data, index=['Electricity', 'Heating'], columns=['Total'])
 
 
-@st.cache_data
+# @st.cache_data
 def results_by_agent_as_df() -> pd.DataFrame:
     res_by_agents = st.session_state.simulation_results.results_by_agent
     lst = []
@@ -734,7 +734,7 @@ def altair_period_chart(df: pd.DataFrame, domain: List[str], range_color: List[s
         interactive(bind_y=False)
 
 
-@st.cache_data(ttl=3600)
+# @st.cache_data(ttl=3600)
 def convert_df_to_csv(df: pd.DataFrame, include_index: bool = False):
     return df.to_csv(index=include_index).encode('utf-8')
 
