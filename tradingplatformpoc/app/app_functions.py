@@ -349,10 +349,15 @@ def agent_inputs(agent):
                                    key='TypeSelectBox' + agent['Name'],
                                    index=ALL_AGENT_TYPES.index(agent['Type']))
     
-    if agent['Type'] in ['StorageAgent', 'GridAgent']:
+    if agent['Type'] == 'GridAgent':
         agent['Resource'] = form.selectbox('Resource', options=ALL_IMPLEMENTED_RESOURCES_STR,
                                            key='ResourceSelectBox' + agent['Name'],
                                            index=ALL_IMPLEMENTED_RESOURCES_STR.index(agent['Resource']))
+    elif agent['Type'] == 'StorageAgent':
+        # TODO: options should be ALL_IMPLEMENTED_RESOURCES_STR when HEATING is implemented for StorageAgent
+        agent['Resource'] = form.selectbox('Resource', options=['ELECTRICITY'],
+                                           key='ResourceSelectBox' + agent['Name'],
+                                           index=['ELECTRICITY'].index(agent['Resource']))
 
     for key, val in app_constants.agent_specs_dict[agent['Type']].items():
         params = {k: v for k, v in val.items() if k not in
@@ -509,6 +514,11 @@ def config_data_agent_screening(config_data: dict) -> Optional[str]:
 
             if not agent['Resource'] in ALL_IMPLEMENTED_RESOURCES_STR:
                 return "Resource {} is not in availible for agent {}.".format(agent['Resource'], agent['Name'])
+            
+            # TODO: This can be removed when heating is implemented for StorageAgent
+            if agent['Type'] == 'StorageAgent':
+                if not agent['Resource'] == 'ELECTRICITY':
+                    return "Resource {} is not yet availible for agent {}.".format(agent['Resource'], agent['Name'])
             
         for key in [key for key, val in app_constants.agent_specs_dict[agent['Type']].items() if val['required']]:
             if key not in items.keys():
