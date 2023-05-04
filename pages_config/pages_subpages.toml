@@ -11,6 +11,11 @@ path = "pages/load_data.py"
 name = "Load data"
 
 [[pages]]
+name = ""
+icon = ""
+is_section = true
+
+[[pages]]
 path = "pages/general_results.py"
 name = "General results"
 

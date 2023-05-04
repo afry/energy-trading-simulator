@@ -1,7 +1,7 @@
 import logging
 import time
 import streamlit as st
-from st_pages import add_indentation
+from st_pages import show_pages_from_config, add_indentation
 from tradingplatformpoc.app import footer
 
 from tradingplatformpoc.app.app_functions import aggregated_import_and_export_results_df_split_on_period, \
@@ -12,6 +12,7 @@ from tradingplatformpoc.bid import Resource
 
 logger = logging.getLogger(__name__)
 
+show_pages_from_config("pages_config/pages_subpages.toml")
 add_indentation()
 
 if 'simulation_results' in st.session_state:

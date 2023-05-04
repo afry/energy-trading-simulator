@@ -73,3 +73,6 @@ tradingplatformpoc/data/current_config.json
 
 # Notebook checkpoints
 */.ipynb_checkpoints/*
+
+# Simulation pickles
+simulations/

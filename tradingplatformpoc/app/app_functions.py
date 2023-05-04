@@ -381,9 +381,11 @@ def agent_inputs(agent):
 
     col1, col2 = st.columns(2)
     with col1:
-        st.button('Remove agent', key='RemoveButton' + agent['Name'], on_click=remove_agent, args=(agent,))
+        st.button('Remove agent', key='RemoveButton' + agent['Name'], on_click=remove_agent, args=(agent,),
+                  use_container_width=True)
     with col2:
-        st.button('Duplicate agent', key='DuplicateButton' + agent['Name'], on_click=duplicate_agent, args=(agent,))
+        st.button('Duplicate agent', key='DuplicateButton' + agent['Name'], on_click=duplicate_agent, args=(agent,),
+                  use_container_width=True)
     submit = form.form_submit_button('Save agent')
     if submit:
         submit = False

@@ -2,13 +2,15 @@ import json
 import logging
 
 import streamlit as st
-from st_pages import add_indentation
+from st_pages import show_pages_from_config, add_indentation
+
 from tradingplatformpoc.app import footer
 
 from tradingplatformpoc.app.app_functions import load_results
 
 logger = logging.getLogger(__name__)
 
+show_pages_from_config("pages_config/pages_subpages.toml")
 add_indentation()
 
 uploaded_results_file = st.file_uploader(label="Upload results", type="pickle", help="Some help-text")

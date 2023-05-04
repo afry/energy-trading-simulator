@@ -9,12 +9,13 @@ from tradingplatformpoc.app.app_functions import add_building_agent, add_grocery
     set_config_to_sess_state, set_max_width
 
 import streamlit as st
-from st_pages import add_indentation
+from st_pages import show_pages_from_config, add_indentation
 
 from tradingplatformpoc.simulation_runner import run_trading_simulations
 
 logger = logging.getLogger(__name__)
 
+show_pages_from_config("pages_config/pages.toml")
 add_indentation()
 
 set_max_width('1000px')  # This tab looks a bit daft when it is too wide, so limiting it here.
@@ -98,7 +99,7 @@ if option_choosen == options[0]:
             agent = current_agents[choosen_agent_ind]
             agent_inputs(agent)
 
-            st.button("Remove all BuildingAgents", on_click=remove_all_building_agents)
+            st.button("Remove all BuildingAgents", on_click=remove_all_building_agents, use_container_width=True)
 
         with add_agents_tab:
             st.markdown('To add new agents, select the appropriate agent type from the drop down list, '

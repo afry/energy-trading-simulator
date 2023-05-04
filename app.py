@@ -57,8 +57,8 @@ if __name__ == '__main__':
     # st.set_page_config(page_title="Trading platform POC", layout="wide")
     st.set_page_config(layout="wide")
 
+    show_pages_from_config("pages_config/pages.toml")
     add_indentation()
-    show_pages_from_config()
 
     st.write(
         """
