@@ -7,8 +7,8 @@ path = "pages/setup_simulation.py"
 name = "Setup simulation"
 
 [[pages]]
-path = "pages/load_data.py"
-name = "Load data"
+path = "pages/load_results.py"
+name = "Load results"
 
 [[pages]]
 name = ""

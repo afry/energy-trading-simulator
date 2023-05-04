@@ -53,8 +53,6 @@ if string_to_log_later is not None:
 
 if __name__ == '__main__':
 
-    # TODO: Fix so that page title is dispalyed instead of 'app' in sidebar
-    # st.set_page_config(page_title="Trading platform POC", layout="wide")
     st.set_page_config(layout="wide")
 
     show_pages_from_config("pages_config/pages.toml")
@@ -65,7 +63,10 @@ if __name__ == '__main__':
         # Trading platform POC
         ## Prototype data presentation app for energy microgrid trading platform
 
-        Here, you can upload, select and run simulations, and evaluate the results with tables and graphs.
+        **Navigate** by using the sidebar menu to either
+        - *Setup simulation*: Run simulation for custom configuration.
+        - *Load results*: View uploaded simulation results.
+
         """
     )
 
