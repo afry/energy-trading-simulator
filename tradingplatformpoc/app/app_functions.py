@@ -486,30 +486,9 @@ def config_data_agent_screening(config_data: dict) -> Optional[str]:
     # Make sure no agents are passed with unknown type
     for agent in config_data['Agents']:
         if agent['Type'] not in ['BuildingAgent', 'StorageAgent', 'PVAgent', 'GridAgent', 'GroceryStoreAgent']:
-            return 'Agent {} provided with unrecognized \'Type\' {}'.format(agent['Name'], agent['Type'])
+            return 'Agent {} provided with unrecognized \'Type\' {}.'.format(agent['Name'], agent['Type'])
         
-    # TODO: Ensure all essential agents exists, and of the right amount. Which?
-    if 'GridAgent' not in [agent['Type'] for agent in config_data['Agents']]:
-        return 'No GridAgent provided!'
-    
-    # Check agents for correct keys and values in ranges
-    for agent in config_data['Agents']:
-        items = {k: v for k, v in agent.items() if k not in ['Type', 'Name', 'Resource']}
-        for key, val in items.items():
-
-            if key not in app_constants.agent_specs_dict[agent['Type']].keys():
-                return "Specified {} not in availible input params for agent {}".format(key, agent['Type'])
-            
-            if "min_value" in app_constants.agent_specs_dict[agent['Type']][key].keys():
-                if val < app_constants.agent_specs_dict[agent['Type']][key]["min_value"]:
-                    return "Specified {}: {} < {}.".format(key, val, app_constants.agent_specs_dict[
-                        agent['Type']][key]["min_value"])
-                
-            if "max_value" in app_constants.agent_specs_dict[agent['Type']][key].keys():
-                if val > app_constants.agent_specs_dict[agent['Type']][key]["max_value"]:
-                    return "Specified {}: {} > {}.".format(key, val, app_constants.agent_specs_dict[
-                        agent['Type']][key]["max_value"])
-
+        # Check if resource is valid
         if agent['Type'] in ['StorageAgent', 'GridAgent']:
             if 'Resource' not in agent.keys():
                 return "No specified resource for agent {}.".format(agent['Name'])
@@ -521,6 +500,40 @@ def config_data_agent_screening(config_data: dict) -> Optional[str]:
             if agent['Type'] == 'StorageAgent':
                 if not agent['Resource'] == 'ELECTRICITY':
                     return "Resource {} is not yet availible for agent {}.".format(agent['Resource'], agent['Name'])
+        
+    # Ensure all essential agents exists, and of the right amount.
+    # Needs exactly two GridAgents, one for each resource
+    if 'GridAgent' not in [agent['Type'] for agent in config_data['Agents']]:
+        return 'No GridAgent provided!'
+    for resource in ALL_IMPLEMENTED_RESOURCES_STR:
+        if resource not in [agent['Resource'] for agent in config_data['Agents'] if agent['Type'] == 'GridAgent']:
+            return 'No GridAgent with resource: {} provided!'.format(resource)
+    if (len([agent['Resource'] for agent in config_data['Agents'] if agent['Type'] == 'GridAgent'])
+       > len(ALL_IMPLEMENTED_RESOURCES_STR)):
+        return 'Too many GridAgents provided, should be one for each resource!'
+    # Needs at least one other agent
+    if len([agent for agent in config_data['Agents'] if agent['Type'] != 'GridAgent']) == 0:
+        return 'No non-GridAgents provided, needs at least one other agent!'
+    # TODO: Should we allow for having no BuildingAgents?
+    
+    # Check agents for correct keys and values in ranges
+    for agent in config_data['Agents']:
+        items = {k: v for k, v in agent.items() if k not in ['Type', 'Name', 'Resource']}
+        for key, val in items.items():
+
+            if key not in app_constants.agent_specs_dict[agent['Type']].keys():
+                return ("Specified {} not in availible "
+                        "input params for agent {} of type {}.".format(key, agent['Name'], agent['Type']))
+            
+            if "min_value" in app_constants.agent_specs_dict[agent['Type']][key].keys():
+                if val < app_constants.agent_specs_dict[agent['Type']][key]["min_value"]:
+                    return "Specified {}: {} < {}.".format(key, val, app_constants.agent_specs_dict[
+                        agent['Type']][key]["min_value"])
+                
+            if "max_value" in app_constants.agent_specs_dict[agent['Type']][key].keys():
+                if val > app_constants.agent_specs_dict[agent['Type']][key]["max_value"]:
+                    return "Specified {}: {} > {}.".format(key, val, app_constants.agent_specs_dict[
+                        agent['Type']][key]["max_value"])
             
         for key in [key for key, val in app_constants.agent_specs_dict[agent['Type']].items() if val['required']]:
             if key not in items.keys():
