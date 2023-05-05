@@ -1,4 +1,6 @@
-from tradingplatformpoc import data_store, trading_platform_utils
+from pkg_resources import resource_filename
+
+from tradingplatformpoc import data_store, heat_pump, trading_platform_utils
 
 WHOLESALE_PRICE_STR = 'Wholesale price'
 RETAIL_PRICE_STR = 'Retail price'
@@ -323,3 +325,353 @@ GROCERY_STORE_AGENT_EXAMPLE = """
     "PVEfficiency": 0.18
 }
 """
+
+DEFAULT_CONFIG_FILENAME = resource_filename("tradingplatformpoc.data", "default_config.json")
+CURRENT_CONFIG_FILENAME = resource_filename("tradingplatformpoc.data", "current_config.json")
+MOCK_DATA_PATH = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
+
+param_spec_dict = {
+    "AreaInfo": {
+        "DefaultPVEfficiency": {
+            "display": "Default PV efficiency:",
+            "min_value": 0.01,
+            "max_value": 0.99,
+            "format": "%.3f",
+            "help": DEFAULT_PV_EFFICIENCY_HELP_TEXT,
+            "required": True
+        },
+        "HeatTransferLoss": {
+            "display": "Heat transfer loss:",
+            "min_value": 0.0,
+            "max_value": 0.99,
+            "format": "%.3f",
+            "help": HEAT_TRANSFER_LOSS_HELP_TEXT,
+            "required": True
+        },
+        "ExternalElectricityWholesalePriceOffset": {
+            "display": "External electricity wholesale price offset:",
+            "min_value": -1.0,
+            "max_value": 1.0,
+            "help": ELECTRICITY_WHOLESALE_PRICE_OFFSET_HELP_TEXT,
+            "required": False
+        },
+        "ElectricityTax": {
+            "display": "Electricity tax:",
+            "min_value": 0.0,
+            "format": "%.3f",
+            "help": ELECTRICITY_TAX_HELP_TEXT,
+            "required": True
+        },
+        "ElectricityGridFee": {
+            "display": "Electricity grid fee:",
+            "min_value": 0.0,
+            "format": "%.3f",
+            "help": ELECTRICITY_GRID_FEE_HELP_TEXT,
+            "required": True
+        },
+        "ElectricityTaxInternal": {
+            "display": "Electricity tax (internal):",
+            "min_value": 0.0,
+            "format": "%.3f",
+            "help": ELECTRICITY_TAX_INTERNAL_HELP_TEXT,
+            "required": True
+        },
+        "ElectricityGridFeeInternal": {
+            "display": "Electricity grid fee (internal):",
+            "min_value": 0.0,
+            "format": "%.3f",
+            "help": ELECTRICITY_GRID_FEE_INTERNAL_HELP_TEXT,
+            "required": True
+        },
+        "ExternalHeatingWholesalePriceFraction": {
+            "display": "External heating wholesale price fraction:",
+            "min_value": 0.0,
+            "max_value": 1.0,
+            "help": HEATING_WHOLESALE_PRICE_FRACTION_HELP_TEXT,
+            "required": False
+        }
+    },
+    "MockDataConstants": {
+        "ResidentialElecKwhPerYearM2Atemp": {
+            "display": "Residential electricity kWh/year/m2:",
+            "min_value": 1,
+            "max_value": 100,
+            "help": KWH_PER_YEAR_M2_ATEMP_HELP_TEXT,
+            "required": False
+        },
+        "ResidentialSpaceHeatKwhPerYearM2": {
+            "display": "Residential space heat kWh/year/m2:",
+            "min_value": 1,
+            "max_value": 100,
+            "help": KWH_PER_YEAR_M2_RES_SPACE_HEATING_HELP_TEXT,
+            "required": False
+        },
+        "ResidentialHotTapWaterKwhPerYearM2": {
+            "display": "Residential hot tap water kWh/year/m2:",
+            "min_value": 1,
+            "max_value": 100,
+            "help": KWH_PER_YEAR_M2_RES_HOT_TAP_WATER_HELP_TEXT,
+            "required": False
+        },
+        "ResidentialHeatingRelativeErrorStdDev": {
+            "display": "Residential hot tap water relative standard deviation:",
+            "min_value": 0.0,
+            "max_value": 1.0,
+            "help": RES_HEATING_REL_ERROR_STD_DEV_HELP_TEXT,
+            "required": False
+        },
+        "CommercialElecKwhPerYearM2": {
+            "display": "Commercial electricity kWh/year/m2:",
+            "min_value": 1,
+            "max_value": 200,
+            "help": COMM_ELEC_KWH_PER_YEAR_M2_HELP_TEXT,
+            "required": False
+        },
+        "CommercialElecRelativeErrorStdDev": {
+            "display": "Commercial electricity relative standard deviation:",
+            "min_value": 0.0,
+            "max_value": 1.0,
+            "help": COMM_ELEC_REL_ERROR_STD_DEV_HELP_TEXT,
+            "required": False
+        },
+        "CommercialSpaceHeatKwhPerYearM2": {
+            "display": "Commercial space heat kWh/year/m2:",
+            "min_value": 1,
+            "max_value": 100,
+            "help": KWH_SPACE_HEATING_PER_YEAR_M2_COMM_HELP_TEXT,
+            "required": False
+        },
+        "CommercialHotTapWaterKwhPerYearM2": {
+            "display": "Commercial hot tap water kWh/year/m2:",
+            "min_value": 1.0,
+            "max_value": 10.0,
+            "step": 0.5,
+            "help": KWH_HOT_TAP_WATER_PER_YEAR_M2_COMM_HELP_TEXT,
+            "required": False
+        },
+        "CommercialHotTapWaterRelativeErrorStdDev": {
+            "display": "Commercial hot tap water relative standard deviation:",
+            "min_value": 0.0,
+            "max_value": 1.0,
+            "help": COMM_HOT_TAP_WATER_REL_ERROR_STD_DEV_HELP_TEXT,
+            "required": False
+        },
+        "SchoolElecKwhPerYearM2": {
+            "display": "School electricity kWh/year/m2:",
+            "min_value": 1,
+            "max_value": 200,
+            "help": KWH_ELECTRICITY_PER_YEAR_M2_SCHOOL_HELP_TEXT,
+            "required": False
+        },
+        "SchoolElecRelativeErrorStdDev": {
+            "display": "School electricity relative standard deviation:",
+            "min_value": 0.0,
+            "max_value": 1.0,
+            "help": SCHOOL_ELEC_REL_ERROR_STD_DEV_HELP_TEXT,
+            "required": False
+        },
+        "SchoolSpaceHeatKwhPerYearM2": {
+            "display": "School space heat kWh/year/m2:",
+            "min_value": 1,
+            "max_value": 100,
+            "help": KWH_SPACE_HEATING_PER_YEAR_M2_SCHOOL_HELP_TEXT,
+            "required": False
+        },
+        "SchoolHotTapWaterKwhPerYearM2": {
+            "display": "School hot tap water kWh/year/m2:",
+            "min_value": 1,
+            "max_value": 100,
+            "help": KWH_HOT_TAP_WATER_PER_YEAR_M2_SCHOOL_HELP_TEXT,
+            "required": False
+        },
+        "SchoolHotTapWaterRelativeErrorStdDev": {
+            "display": "School hot tap water relative standard deviation:",
+            "min_value": 0.0,
+            "max_value": 1.0,
+            "help": SCHOOL_HOT_TAP_WATER_REL_ERROR_STD_DEV_HELP_TEXT,
+            "required": False
+        }
+    
+    }
+}
+
+agent_specs_dict = {
+    "BuildingAgent": {
+        "GrossFloorArea": {
+            "display": "Gross floor area (sqm)",
+            "min_value": 0.0,
+            "step": 10.0,
+            "help": GROSS_FLOOR_AREA_HELP_TEXT,
+            "type": float,
+            "required": True
+        },
+        "FractionCommercial": {
+            "display": "Fraction commercial",
+            "min_value": 0.0,
+            "max_value": 1.0,
+            "help": FRACTION_COMMERCIAL_HELP_TEXT,
+            "default_value": 0.0,
+            "type": float,
+            "required": False
+        },
+        "FractionSchool": {
+            "display": "Fraction school",
+            "min_value": 0.0,
+            "max_value": 1.0,
+            "help": FRACTION_SCHOOL_HELP_TEXT,
+            "default_value": 0.0,
+            "type": float,
+            "required": False
+        },
+        "PVArea": {
+            "display": "PV area (sqm)",
+            "min_value": 0.0,
+            "step": 10.0,
+            "format": '%.1f',
+            "help": PV_AREA_HELP_TEXT,
+            "default_value": 0.0,
+            "type": float,
+            "required": False
+        },
+        "PVEfficiency": {
+            "display": "PV efficiency",
+            "min_value": 0.01,
+            "max_value": 0.99,
+            "format": '%.1f',
+            "help": PV_EFFICIENCY_HELP_TEXT,
+            "type": float,
+            "required": False
+        },
+        "NumberHeatPumps": {
+            "display": "Heat pumps",
+            "min_value": 0,
+            "step": 1,
+            "help": HEAT_PUMPS_HELP_TEXT,
+            "default_value": 0,
+            "type": int,
+            "required": False
+        },
+        "COP": {
+            "display": "COP",
+            "min_value": 2.0,
+            "step": 0.1,
+            "help": HEAT_PUMP_COP_HELP_TEXT,
+            "default_value": heat_pump.DEFAULT_COP,
+            "type": float,
+            "disabled_cond": {'NumberHeatPumps': 0},
+            "required": False
+        }
+    },
+    "StorageAgent": {
+        "Capacity": {
+            "display": "Capacity",
+            "min_value": 0.0,
+            "step": 1.0,
+            "help": CAPACITY_HELP_TEXT,
+            "type": float,
+            "required": True
+        },
+        "ChargeRate": {
+            "display": "Charge rate",
+            "min_value": 0.01,
+            "max_value": 10.0,
+            "help": CHARGE_RATE_HELP_TEXT,
+            "type": float,
+            "required": True
+        },
+        "RoundTripEfficiency": {
+            "display": "Round-trip efficiency",
+            "min_value": 0.01,
+            "max_value": 1.0,
+            "help": ROUND_TRIP_EFFICIENCY_HELP_TEXT,
+            "type": float,
+            "required": True
+        },
+        "NHoursBack": {
+            "display": "\'N hours back\'",
+            "min_value": 1,
+            "max_value": 8760,
+            "help": N_HOURS_BACK_HELP_TEXT,
+            "type": int,
+            "required": True
+        },
+        "BuyPricePercentile": {
+            "display": "\'Buy-price percentile\'",
+            "min_value": 0.0,
+            "max_value": 100.0,
+            "step": 1.0,
+            "help": BUY_PERC_HELP_TEXT,
+            "type": float,
+            "required": True
+        },
+        "SellPricePercentile": {
+            "display": "\'Sell-price percentile\'",
+            "min_value": 0.0,
+            "max_value": 100.0,
+            "step": 1.0,
+            "help": SELL_PERC_HELP_TEXT,
+            "type": float,
+            "required": True
+        },
+        "DischargeRate": {
+            "display": "Discharge rate",
+            "min_value": 0.01,
+            "max_value": 10.0,
+            "help": DISCHARGE_RATE_HELP_TEXT,
+            "type": float,
+            "required": False
+        }
+    },
+    "GridAgent": {
+        "TransferRate": {
+            "display": "Transfer rate",
+            "min_value": 0.0,
+            "step": 10.0,
+            "help": TRANSFER_RATE_HELP_TEXT,
+            "type": float,
+            "required": True
+        }
+    },
+    "PVAgent": {
+        "PVArea": {
+            "display": "PV area (sqm)",
+            "min_value": 0.0,
+            "step": 10.0,
+            "format": '%.1f',
+            "help": PV_AREA_HELP_TEXT,
+            "default_value": 0.0,
+            "type": float,
+            "required": True
+        },
+        "PVEfficiency": {
+            "display": "PV efficiency",
+            "min_value": 0.01,
+            "max_value": 0.99,
+            "format": '%.1f',
+            "help": PV_EFFICIENCY_HELP_TEXT,
+            "type": float,
+            "required": False
+        }
+    },
+    "GroceryStoreAgent": {
+        "PVArea": {
+            "display": "PV area (sqm)",
+            "min_value": 0.0,
+            "step": 10.0,
+            "format": '%.1f',
+            "help": PV_AREA_HELP_TEXT,
+            "default_value": 0.0,
+            "type": float,
+            "required": False
+        },
+        "PVEfficiency": {
+            "display": "PV efficiency",
+            "min_value": 0.01,
+            "max_value": 0.99,
+            "format": '%.1f',
+            "help": PV_EFFICIENCY_HELP_TEXT,
+            "type": float,
+            "required": False
+        }
+    }
+}

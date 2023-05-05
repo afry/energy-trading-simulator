@@ -1,4 +1,7 @@
 import datetime
+import json
+import os
+import pickle
 from enum import Enum
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
@@ -17,7 +20,6 @@ from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.bid import Action, Resource
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.generate_mock_data import create_inputs_df
-from tradingplatformpoc.heat_pump import DEFAULT_COP
 from tradingplatformpoc.results.results_key import ResultsKey
 from tradingplatformpoc.results.simulation_results import SimulationResults
 from tradingplatformpoc.trading_platform_utils import ALL_AGENT_TYPES, ALL_IMPLEMENTED_RESOURCES_STR, get_if_exists_else
@@ -157,6 +159,7 @@ def construct_prices_df(simulation_results: SimulationResults) -> pd.DataFrame:
     return pd.concat([clearing_prices_df, retail_df, wholesale_df])
 
 
+# @st.cache_data
 def get_viewable_df(full_df: pd.DataFrame, key: str, value: Any, want_index: str,
                     cols_to_drop: Union[None, List[str]] = None) -> pd.DataFrame:
     """
@@ -182,8 +185,68 @@ def results_dict_to_df(raw_dict: Dict[ResultsKey, float]) -> pd.DataFrame:
     return formatted_df
 
 
+# -------------------------------------- Config functions -------------------------------------
+def set_config(config: dict):
+    """Writes config to current configuration file."""
+    with open(app_constants.CURRENT_CONFIG_FILENAME, 'w') as f:
+        json.dump(config, f)
+
+
+def set_config_to_sess_state():
+    """Writes session state config to current configuration file."""
+    set_config(st.session_state.config_data)
+
+
+def read_config(name: str = 'current') -> dict:
+    """Reads and returns specified config from file."""
+    file_dict = {'current': app_constants.CURRENT_CONFIG_FILENAME,
+                 'default': app_constants.DEFAULT_CONFIG_FILENAME}
+
+    with open(file_dict[name], "r") as jsonfile:
+        config = json.load(jsonfile)
+    return config
+
+
+def reset_config():
+    """Reads default configuration from file and writes to current configuration file."""
+    config = read_config(name='default')
+    set_config(config)
+
+
+def get_config(reset: bool) -> dict:
+    """
+    If no current config file exists or the reset button is clicked, reset.
+    Return current config.
+    """
+    if not os.path.exists(app_constants.CURRENT_CONFIG_FILENAME):
+        reset_config()
+        st.markdown("**Current configuration: :blue[DEFAULT]**")
+    elif reset:
+        reset = False
+        reset_config()
+        st.markdown("**Current configuration: :blue[DEFAULT]**")
+    else:
+        st.markdown("**Current configuration: :blue[LAST SAVED]**")
+    config = read_config()
+    return config
+
+
+def fill_with_default_params(new_config: dict) -> dict:
+    """If not all parameters are specified in uploaded config, use default for the unspecified ones."""
+    default_config = read_config(name='default')
+    for param_type in ['AreaInfo', 'MockDataConstants']:
+        params_only_in_default = dict((k, v) for k, v in default_config[param_type].items()
+                                      if k not in set(new_config[param_type].keys()))
+        for k, v in params_only_in_default.items():
+            new_config[param_type][k] = v
+    return new_config
+# ------------------------------------- End config functions ----------------------------------
+
+
+# ---------------------------------------- Agent functions ------------------------------------
 def remove_agent(some_agent: Dict[str, Any]):
     st.session_state.config_data['Agents'].remove(some_agent)
+    set_config_to_sess_state()
 
 
 def duplicate_agent(some_agent: Dict[str, Any]):
@@ -192,7 +255,8 @@ def duplicate_agent(some_agent: Dict[str, Any]):
     it to the session_state list of agents.
     """
     new_agent = some_agent.copy()
-    all_agent_names = [agent['Name'] for agent in st.session_state.config_data['Agents']]
+    current_config = read_config()
+    all_agent_names = [agent['Name'] for agent in current_config['Agents']]
     n_copies_existing = 1
     while n_copies_existing:
         new_name = new_agent['Name'] + " copy " + str(n_copies_existing)
@@ -202,25 +266,31 @@ def duplicate_agent(some_agent: Dict[str, Any]):
         else:
             n_copies_existing += 1
     st.session_state.config_data['Agents'].append(new_agent)
+    set_config_to_sess_state()
 
 
 def remove_all_building_agents():
     st.session_state.config_data['Agents'] = [agent for agent in st.session_state.config_data['Agents']
                                               if agent['Type'] != 'BuildingAgent']
+    set_config_to_sess_state()
 
 
 def add_agent(new_agent: Dict[str, Any]):
     """
-    Adds the argument agent to the session_state list of agents. Keeps track of how many agents have been added since
-    session startup (again using session_state) and names the new agent accordingly: The first will be named
-    'NewAgent1', the second 'NewAgent2' etc.
+    Adding new agent to agents.
+    Keeps track of how many agents have been added with the same prefix and names the new agent accordingly:
+    The first will be named 'New[insert agent type]1', the second 'New[insert agent type]2' etc.
     """
-    if 'agents_added' not in st.session_state:
-        st.session_state.agents_added = 1
-    else:
-        st.session_state.agents_added += 1
-    new_agent["Name"] = "NewAgent" + str(st.session_state.agents_added)
+
+    # To keep track of if the success text should be displayed
+    st.session_state.agents_added = True
+
+    current_config = read_config()
+    name_str = "New" + new_agent['Type']
+    number_of_existing_new_agents = len([agent for agent in current_config['Agents'] if name_str in agent['Name']])
+    new_agent["Name"] = name_str + str(number_of_existing_new_agents + 1)
     st.session_state.config_data['Agents'].append(new_agent)
+    set_config_to_sess_state()
 
 
 def add_building_agent():
@@ -228,6 +298,7 @@ def add_building_agent():
         "Type": "BuildingAgent",
         "GrossFloorArea": 1000.0
     })
+    set_config_to_sess_state()
 
 
 def add_storage_agent():
@@ -241,6 +312,7 @@ def add_storage_agent():
         "BuyPricePercentile": 20,
         "SellPricePercentile": 80
     })
+    set_config_to_sess_state()
 
 
 def add_pv_agent():
@@ -248,6 +320,7 @@ def add_pv_agent():
         "Type": "PVAgent",
         "PVArea": 100
     })
+    set_config_to_sess_state()
 
 
 def add_grocery_store_agent():
@@ -255,6 +328,7 @@ def add_grocery_store_agent():
         "Type": "GroceryStoreAgent",
         "PVArea": 320
     })
+    set_config_to_sess_state()
 
 
 def add_grid_agent():
@@ -263,127 +337,210 @@ def add_grid_agent():
         "Resource": "ELECTRICITY",
         "TransferRate": 10000
     })
+    set_config_to_sess_state()
 
 
 def agent_inputs(agent):
     """Contains input fields needed to define an agent."""
+    current_config = read_config()
     form = st.form(key="Form" + agent['Name'])
     agent['Name'] = form.text_input('Name', key='NameField' + agent['Name'], value=agent['Name'])
     agent['Type'] = form.selectbox('Type', options=ALL_AGENT_TYPES,
                                    key='TypeSelectBox' + agent['Name'],
                                    index=ALL_AGENT_TYPES.index(agent['Type']))
-    if agent['Type'] == 'BuildingAgent':
-        agent['GrossFloorArea'] = form.number_input(
-            'Gross floor area (sqm)', min_value=0.0, step=10.0,
-            value=float(agent['GrossFloorArea']),
-            help=app_constants.GROSS_FLOOR_AREA_HELP_TEXT,
-            key='GrossFloorArea' + agent['Name']
-        )
-        agent['FractionCommercial'] = form.number_input(
-            'Fraction commercial', min_value=0.0, max_value=1.0,
-            value=get_if_exists_else(agent, 'FractionCommercial', 0.0),
-            help=app_constants.FRACTION_COMMERCIAL_HELP_TEXT,
-            key='FractionCommercial' + agent['Name']
-        )
-        agent['FractionSchool'] = form.number_input(
-            'Fraction school', min_value=0.0, max_value=1.0,
-            value=get_if_exists_else(agent, 'FractionSchool', 0.0),
-            help=app_constants.FRACTION_SCHOOL_HELP_TEXT,
-            key='FractionSchool' + agent['Name']
-        )
-    if agent['Type'] in ['StorageAgent', 'GridAgent']:
+    
+    if agent['Type'] == 'GridAgent':
         agent['Resource'] = form.selectbox('Resource', options=ALL_IMPLEMENTED_RESOURCES_STR,
                                            key='ResourceSelectBox' + agent['Name'],
                                            index=ALL_IMPLEMENTED_RESOURCES_STR.index(agent['Resource']))
-    if agent['Type'] == 'StorageAgent':
-        agent['Capacity'] = form.number_input(
-            'Capacity', min_value=0.0, step=1.0,
-            value=float(agent['Capacity']),
-            help=app_constants.CAPACITY_HELP_TEXT,
-            key='Capacity' + agent['Name']
-        )
-        agent['ChargeRate'] = form.number_input(
-            'Charge rate', min_value=0.01, max_value=10.0,
-            value=float(agent['ChargeRate']),
-            help=app_constants.CHARGE_RATE_HELP_TEXT,
-            key='ChargeRate' + agent['Name']
-        )
-        agent['RoundTripEfficiency'] = form.number_input(
-            'Round-trip efficiency', min_value=0.01, max_value=1.0,
-            value=float(agent['RoundTripEfficiency']),
-            help=app_constants.ROUND_TRIP_EFFICIENCY_HELP_TEXT,
-            key='RoundTripEfficiency' + agent['Name']
-        )
-        agent['NHoursBack'] = int(form.number_input(
-            '\'N hours back\'', min_value=1, max_value=8760,
-            value=int(agent['NHoursBack']),
-            help=app_constants.N_HOURS_BACK_HELP_TEXT,
-            key='NHoursBack' + agent['Name']
-        ))
-        agent['BuyPricePercentile'] = form.number_input(
-            '\'Buy-price percentile\'', min_value=0.0, max_value=100.0, step=1.0,
-            value=float(agent['BuyPricePercentile']),
-            help=app_constants.BUY_PERC_HELP_TEXT,
-            key='BuyPricePercentile' + agent['Name']
-        )
-        agent['SellPricePercentile'] = form.number_input(
-            '\'Sell-price percentile\'', min_value=0.0, max_value=100.0, step=1.0,
-            value=float(agent['SellPricePercentile']),
-            help=app_constants.SELL_PERC_HELP_TEXT,
-            key='SellPricePercentile' + agent['Name']
-        )
-        agent['DischargeRate'] = form.number_input(
-            'Discharge rate', min_value=0.01, max_value=10.0,
-            value=float(get_if_exists_else(agent, 'DischargeRate', agent['ChargeRate'])),
-            help=app_constants.DISCHARGE_RATE_HELP_TEXT,
-            key='DischargeRate' + agent['Name']
-        )
-    if agent['Type'] in ['BuildingAgent', 'PVAgent', 'GroceryStoreAgent']:
-        agent['PVArea'] = form.number_input(
-            'PV area (sqm)', min_value=0.0, format='%.1f', step=10.0,
-            value=float(get_if_exists_else(agent, 'PVArea', 0.0)),
-            help=app_constants.PV_AREA_HELP_TEXT,
-            key='PVArea' + agent['Name']
-        )
-        agent['PVEfficiency'] = form.number_input(
-            'PV efficiency', min_value=0.01, max_value=0.99, format='%.3f',
-            value=get_if_exists_else(agent, 'PVEfficiency',
-                                     st.session_state.config_data['AreaInfo']['DefaultPVEfficiency']),
-            help=app_constants.PV_EFFICIENCY_HELP_TEXT,
-            key='PVEfficiency' + agent['Name']
-        )
-    if agent['Type'] == 'BuildingAgent':
-        agent['NumberHeatPumps'] = form.number_input(
-            'Heat pumps', min_value=0, step=1,
-            value=int(get_if_exists_else(agent, 'NumberHeatPumps', 0)),
-            help=app_constants.HEAT_PUMPS_HELP_TEXT,
-            key='NumberHeatPumps' + agent['Name']
-        )
-        agent['COP'] = form.number_input(
-            'COP', min_value=2.0, step=0.1,
-            value=float(get_if_exists_else(agent, 'COP', DEFAULT_COP)),
-            help=app_constants.HEAT_PUMP_COP_HELP_TEXT,
-            key='COP' + agent['Name'],
-            disabled=(agent['NumberHeatPumps'] == 0)
-        )
-    if agent['Type'] == 'GridAgent':
-        agent['TransferRate'] = form.number_input(
-            'Transfer rate', min_value=0.0, step=10.0,
-            value=float(agent['TransferRate']),
-            help=app_constants.TRANSFER_RATE_HELP_TEXT,
-            key='TransferRate' + agent['Name']
-        )
-    else:
-        col1, col2 = st.columns(2)
-        with col1:
-            st.button('Remove agent', key='RemoveButton' + agent['Name'], on_click=remove_agent, args=(agent,))
-        with col2:
-            st.button('Duplicate agent', key='DuplicateButton' + agent['Name'], on_click=duplicate_agent, args=(agent,))
-    form.form_submit_button('Save agent')
+    elif agent['Type'] == 'StorageAgent':
+        # TODO: options should be ALL_IMPLEMENTED_RESOURCES_STR when HEATING is implemented for StorageAgent
+        agent['Resource'] = form.selectbox('Resource', options=['ELECTRICITY'],
+                                           key='ResourceSelectBox' + agent['Name'],
+                                           index=['ELECTRICITY'].index(agent['Resource']))
+
+    for key, val in app_constants.agent_specs_dict[agent['Type']].items():
+        params = {k: v for k, v in val.items() if k not in
+                  ['display', 'default_value', 'type', 'disabled_cond', 'required']}
+        if 'disabled_cond' in val.keys():
+            for k, v in val['disabled_cond'].items():
+                params['disabled'] = (agent[k] == v)
+        if key == "PVEfficiency":
+            val['default_value'] = current_config['AreaInfo']['DefaultPVEfficiency']
+        elif key == "DischargeRate":
+            val['default_value'] = agent['ChargeRate']
+        if 'default_value' in val.keys():
+            value = get_if_exists_else(agent, key, val['default_value'])
+        else:
+            value = agent[key]
+        if 'type' in val.keys():
+            value = val['type'](value)
+
+        agent[key] = form.number_input(val["display"], **params, value=value,
+                                       key=key + agent['Name'])
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.button('Remove agent', key='RemoveButton' + agent['Name'], on_click=remove_agent, args=(agent,),
+                  use_container_width=True)
+    with col2:
+        st.button('Duplicate agent', key='DuplicateButton' + agent['Name'], on_click=duplicate_agent, args=(agent,),
+                  use_container_width=True)
+    submit = form.form_submit_button('Save agent')
+    if submit:
+        submit = False
+        set_config_to_sess_state()
+        st.experimental_rerun()
 
 
 def get_agent(all_agents: Iterable[IAgent], agent_chosen_guid: str) -> IAgent:
     return [x for x in all_agents if x.guid == agent_chosen_guid][0]
+# -------------------------------------- End agent functions ----------------------------------
+
+
+def add_params_to_form(form, info_type: str):
+    """Populate parameter forms."""
+    current_config = read_config()
+    for key, val in app_constants.param_spec_dict[info_type].items():
+        params = {k: v for k, v in val.items() if k not in ['display', 'required']}
+        st.session_state.config_data[info_type][key] = form.number_input(
+            val['display'], **params,
+            value=current_config[info_type][key])
+
+
+# ---------------------------------------- Config screening -----------------------------------
+def config_data_json_screening(config_data: dict) -> Optional[str]:
+    """Check that config json contains reasonable inputs."""
+
+    str1 = config_data_keys_screening(config_data)
+    if str1 is not None:
+        return str1
+    str2 = config_data_param_screening(config_data)
+    if str2 is not None:
+        return str2
+    str3 = config_data_agent_screening(config_data)
+    if str3 is not None:
+        return str3
+    return None
+
+
+def config_data_keys_screening(config_data: dict) -> Optional[str]:
+    """Check that config is structured as expected."""
+    # Make sure no unrecognized keys are passed
+    unreq = [key for key in config_data.keys() if key not in ['Agents', 'AreaInfo', 'MockDataConstants']]
+    if len(unreq) > 0:
+        return 'Unrecognized key/keys: [\'{}\'] in uploaded config.'.format(', '.join(unreq))
+    
+    if 'AreaInfo' in config_data:
+        if not isinstance(config_data['AreaInfo'], dict):
+            return '\'AreaInfo\'should be provided as a dict.'
+
+    if 'MockDataConstants' in config_data:
+        if not isinstance(config_data['MockDataConstants'], dict):
+            return '\'MockDataConstants\' should be provided as a dict.'
+        
+    # Make sure agents are provided as list
+    if 'Agents' not in config_data:
+        return 'No agents are provided!'
+
+    if not isinstance(config_data['Agents'], list):
+        return '\'Agents\' values should be provided as a list.'
+
+    if len(config_data['Agents']) == 0:
+        return 'No agents are provided!'
+
+    return None
+
+
+def config_data_param_screening(config_data: dict) -> Optional[str]:
+    """Check that config json contains reasonable parameters."""
+
+    # Check params for correct keys and values in ranges
+    for info_type in [c for c in ['AreaInfo', 'MockDataConstants'] if c in config_data]:
+        for key, val in config_data[info_type].items():
+            if key in app_constants.param_spec_dict[info_type].keys():
+
+                if "min_value" in app_constants.param_spec_dict[info_type][key].keys():
+                    if val < app_constants.param_spec_dict[info_type][key]["min_value"]:
+                        return "Specified {}: {} < {}.".format(key, val, app_constants.param_spec_dict[
+                            info_type][key]["min_value"])
+                if "max_value" in app_constants.param_spec_dict[info_type][key].keys():
+                    if val > app_constants.param_spec_dict[info_type][key]["max_value"]:
+                        return "Specified {}: {} > {}.".format(key, val, app_constants.param_spec_dict[
+                            info_type][key]["max_value"])
+            else:
+                return "Parameter {} is not a valid parameter.".format(key)
+    return None
+
+
+def config_data_agent_screening(config_data: dict) -> Optional[str]:
+    """Check that config json contains reasonable agents."""
+
+    # Make sure no agents are passed without name or type
+    for agent in config_data['Agents']:
+        if 'Type' not in agent.keys():
+            return 'Agent {} provided without \'Type\'.'.format(agent['Name'])
+        if 'Name' not in agent.keys():
+            return 'Agent of type {} provided without \'Name\'.'.format(agent['Type'])
+
+    # Make sure no agents are passed with unknown type
+    for agent in config_data['Agents']:
+        if agent['Type'] not in ['BuildingAgent', 'StorageAgent', 'PVAgent', 'GridAgent', 'GroceryStoreAgent']:
+            return 'Agent {} provided with unrecognized \'Type\' {}.'.format(agent['Name'], agent['Type'])
+        
+        # Check if resource is valid
+        if agent['Type'] in ['StorageAgent', 'GridAgent']:
+            if 'Resource' not in agent.keys():
+                return "No specified resource for agent {}.".format(agent['Name'])
+
+            if not agent['Resource'] in ALL_IMPLEMENTED_RESOURCES_STR:
+                return "Resource {} is not in availible for agent {}.".format(agent['Resource'], agent['Name'])
+            
+            # TODO: This can be removed when heating is implemented for StorageAgent
+            if agent['Type'] == 'StorageAgent':
+                if not agent['Resource'] == 'ELECTRICITY':
+                    return "Resource {} is not yet availible for agent {}.".format(agent['Resource'], agent['Name'])
+        
+    # Ensure all essential agents exists, and of the right amount.
+    # Needs exactly two GridAgents, one for each resource
+    if 'GridAgent' not in [agent['Type'] for agent in config_data['Agents']]:
+        return 'No GridAgent provided!'
+    for resource in ALL_IMPLEMENTED_RESOURCES_STR:
+        if resource not in [agent['Resource'] for agent in config_data['Agents'] if agent['Type'] == 'GridAgent']:
+            return 'No GridAgent with resource: {} provided!'.format(resource)
+    if (len([agent['Resource'] for agent in config_data['Agents'] if agent['Type'] == 'GridAgent'])
+       > len(ALL_IMPLEMENTED_RESOURCES_STR)):
+        return 'Too many GridAgents provided, should be one for each resource!'
+    # Needs at least one other agent
+    if len([agent for agent in config_data['Agents'] if agent['Type'] != 'GridAgent']) == 0:
+        return 'No non-GridAgents provided, needs at least one other agent!'
+    # TODO: Should we allow for having no BuildingAgents?
+    
+    # Check agents for correct keys and values in ranges
+    for agent in config_data['Agents']:
+        items = {k: v for k, v in agent.items() if k not in ['Type', 'Name', 'Resource']}
+        for key, val in items.items():
+
+            if key not in app_constants.agent_specs_dict[agent['Type']].keys():
+                return ("Specified {} not in availible "
+                        "input params for agent {} of type {}.".format(key, agent['Name'], agent['Type']))
+            
+            if "min_value" in app_constants.agent_specs_dict[agent['Type']][key].keys():
+                if val < app_constants.agent_specs_dict[agent['Type']][key]["min_value"]:
+                    return "Specified {}: {} < {}.".format(key, val, app_constants.agent_specs_dict[
+                        agent['Type']][key]["min_value"])
+                
+            if "max_value" in app_constants.agent_specs_dict[agent['Type']][key].keys():
+                if val > app_constants.agent_specs_dict[agent['Type']][key]["max_value"]:
+                    return "Specified {}: {} > {}.".format(key, val, app_constants.agent_specs_dict[
+                        agent['Type']][key]["max_value"])
+            
+        for key in [key for key, val in app_constants.agent_specs_dict[agent['Type']].items() if val['required']]:
+            if key not in items.keys():
+                return "Missing parameter {} for agent {}.".format(key, agent['Name'])
+
+    return None
+# ------------------------------------- End config screening ----------------------------------
 
 
 def set_max_width(width: str):
@@ -527,7 +684,8 @@ def aggregated_local_production_df() -> pd.DataFrame:
     return pd.DataFrame(data=data, index=['Electricity', 'Heating'], columns=['Total'])
 
 
-def results_by_agent_as_df_with_highlight(agent_chosen_guid: str) -> Tuple[pd.DataFrame, pd.io.formats.style.Styler]:
+# @st.cache_data
+def results_by_agent_as_df() -> pd.DataFrame:
     res_by_agents = st.session_state.simulation_results.results_by_agent
     lst = []
     for key, val in res_by_agents.items():
@@ -535,9 +693,13 @@ def results_by_agent_as_df_with_highlight(agent_chosen_guid: str) -> Tuple[pd.Da
         df.rename({0: key}, axis=1, inplace=True)
         lst.append(df)
     dfs = pd.concat(lst, axis=1)
-    formatted_df = dfs.style.set_properties(subset=[agent_chosen_guid], **{'background-color': 'lemonchiffon'}).\
+    return dfs
+
+
+def results_by_agent_as_df_with_highlight(df: pd.DataFrame, agent_chosen_guid: str) -> pd.io.formats.style.Styler:
+    formatted_df = df.style.set_properties(subset=[agent_chosen_guid], **{'background-color': 'lemonchiffon'}).\
         format('{:.2f}')
-    return dfs, formatted_df
+    return formatted_df
 
 
 def construct_traded_amount_by_agent_chart(agent_chosen_guid: str,
@@ -599,7 +761,7 @@ def altair_period_chart(df: pd.DataFrame, domain: List[str], range_color: List[s
         add_selection(selection).interactive(bind_y=False)
 
 
-@st.cache_data(ttl=3600)
+# @st.cache_data(ttl=3600)
 def convert_df_to_csv(df: pd.DataFrame, include_index: bool = False):
     return df.to_csv(index=include_index).encode('utf-8')
 
@@ -622,4 +784,73 @@ def display_df_and_make_downloadable(df: pd.DataFrame,
 
     download_df_as_csv_button(df, file_name, include_index=True)
     
-    
+
+# @st.cache_data()
+def load_results(uploaded_results_file):
+    st.session_state.simulation_results = pickle.load(uploaded_results_file)
+
+
+def agent_diff(default: dict, new: dict):
+    agents_in_default = [agent['Name'] for agent in default['Agents']]
+    agents_in_new = [agent['Name'] for agent in new['Agents']]
+
+    agents_same = [x for x in agents_in_new if x in set(agents_in_default)]
+    agents_only_in_default = [x for x in agents_in_default if x not in set(agents_same)]
+    agents_only_in_new = [x for x in agents_in_new if x not in set(agents_same)]
+
+    param_diff = {}
+    for agent_name in agents_same:
+        agent_default = [agent for agent in default['Agents'] if agent['Name'] == agent_name][0]
+        agent_new = [agent for agent in new['Agents'] if agent['Name'] == agent_name][0]
+        diff = set(agent_default.items()) - set(agent_new.items())
+        if len(diff) > 0:
+            param_diff[agent_name] = dict((key, {'default': agent_default[key],
+                                                 'new': agent_new[key]}) for key in dict(diff).keys())
+
+    return agents_only_in_default, agents_only_in_new, param_diff
+
+
+def param_diff(default: dict, new: dict) -> Tuple[List[Tuple], List[Tuple]]:
+    changed_area_info_params = list(set(default['AreaInfo'].items()) - set(new['AreaInfo'].items()))
+    changed_mock_data_params = list(set(default['MockDataConstants'].items()) - set(new['MockDataConstants'].items()))
+    return changed_area_info_params, changed_mock_data_params
+
+
+def display_diff_in_config(default: dict, new: dict):
+
+    str_to_disp = []
+
+    old_agents, new_agents, changes_to_agents = agent_diff(default.copy(), new.copy())
+
+    if len(old_agents) > 0:
+        str_to_disp.append('**Removed agents:** ')
+        str_to_disp.append(', '.join(old_agents))
+    if len(new_agents) > 0:
+        str_to_disp.append('**Added agents:** ')
+        str_to_disp.append(', '.join(new_agents))
+    if len(changes_to_agents.keys()) > 0:
+        str_to_disp.append('**Changes to default agents:**')
+        for name, params in changes_to_agents.items():
+            str_agent_change = name + ': ' + '*'
+            for key, vals in params.items():
+                str_agent_change += (key + ': ' + str(vals['default']) + ' &rarr; '
+                                     + str(vals['new']) + ', ')
+            str_to_disp.append(str_agent_change[:-2] + '*')
+
+    changes_to_area_info_params, changes_to_mock_data_params = param_diff(default.copy(), new.copy())
+
+    if len(changes_to_area_info_params) > 0:
+        str_to_disp.append('**Changes to area info parameters:**')
+        for param in changes_to_area_info_params:
+            str_to_disp.append(param[0] + ': ' + str(param[1]))
+
+    if len(changes_to_mock_data_params) > 0:
+        str_to_disp.append('**Changes to mock data parameters:**')
+        for param in changes_to_mock_data_params:
+            str_to_disp.append(param[0] + ': ' + str(param[1]))
+
+    if len(str_to_disp) > 1:
+        for s in str_to_disp:
+            st.markdown(s)
+
+    return len(new_agents) > 0
