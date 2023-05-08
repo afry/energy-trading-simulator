@@ -208,19 +208,17 @@ class DataStore:
 
     def get_nordpool_data_datetimes(self):
         return self.nordpool_data.index.tolist()
-
+    
     def get_nordpool_prices_last_n_hours_dict(self, period: datetime.datetime, go_back_n_hours: int):
-        nordpool_prices_last_n_hours = {}
-        for i in range(go_back_n_hours):
-            t = minus_n_hours(period, i + 1)
-            try:
-                nordpool_prices_last_n_hours[t] = self.get_nordpool_price_for_period(t)
-            except KeyError:
-                logger.info('No Nordpool data on or before {}. Exiting get_nordpool_prices_last_n_hours_dict with {} '
-                            'entries instead of the desired {}'.
-                            format(t, len(nordpool_prices_last_n_hours), go_back_n_hours))
-                break
-        return nordpool_prices_last_n_hours
+        mask = (self.nordpool_data.index < period) & \
+            (self.nordpool_data.index >= minus_n_hours(period, go_back_n_hours))
+        nordpool_prices_last_n_hours = self.nordpool_data.loc[mask]
+        if len(nordpool_prices_last_n_hours.index) != go_back_n_hours:
+            logger.info('No Nordpool data before {}. Returning get_nordpool_prices_last_n_hours_dict with {} '
+                        'entries instead of the desired {}'.
+                        format(nordpool_prices_last_n_hours.index.min(), len(nordpool_prices_last_n_hours.index),
+                               go_back_n_hours))
+        return nordpool_prices_last_n_hours.to_dict()
 
     def get_local_price_if_exists_else_external_estimate(self, period: datetime.datetime, clearing_prices_historical:
                                                          Union[Dict[datetime.datetime, Dict[Resource, float]],
