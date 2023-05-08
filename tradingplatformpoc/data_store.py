@@ -19,6 +19,9 @@ DEFAULT_HEATING_WHOLESALE_PRICE_FRACTION = 0.5  # External grid buys heat at 50%
 DEFAULT_ELECTRICITY_WHOLESALE_PRICE_OFFSET = 0.05
 # Variable consumption fee + effektavgift/(hours in a year) = 0.0588+620/8768 = 0.13
 
+# Assume no pv area as default
+DEFAULT_PV_AREA = 0.0
+
 logger = logging.getLogger(__name__)
 
 
@@ -35,6 +38,7 @@ class DataStore:
     def __init__(self, config_area_info: dict, nordpool_data: pd.Series, irradiation_data: pd.Series,
                  grid_carbon_intensity: pd.Series):
         self.default_pv_efficiency = config_area_info["DefaultPVEfficiency"]
+        self.default_pv_area = DEFAULT_PV_AREA
         self.heating_wholesale_price_fraction = get_if_exists_else(config_area_info,
                                                                    'ExternalHeatingWholesalePriceFraction',
                                                                    DEFAULT_HEATING_WHOLESALE_PRICE_FRACTION)
