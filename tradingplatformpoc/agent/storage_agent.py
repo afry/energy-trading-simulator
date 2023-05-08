@@ -152,5 +152,5 @@ def get_prices_last_n_hours(period: datetime.datetime, n_hours: int, clearing_pr
                            else None for t in ts]
     if None in prices_last_n_hours:
         logger.info('Missing prices in last {} hours.'.format(n_hours))
-        prices_last_n_hours = [price for price in prices_last_n_hours if price is not None]
+        return [price for price in prices_last_n_hours if price is not None]
     return prices_last_n_hours
