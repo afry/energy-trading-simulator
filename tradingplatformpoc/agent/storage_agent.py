@@ -149,11 +149,11 @@ def get_prices_last_n_hours(period: datetime.datetime, n_hours: int, clearing_pr
     @return: A list with length at most n_hours with floats. Can be shorter than n_hours if there is no data available
         far enough back.
     """
-    prices_last_n_hours = []
-    for i in range(n_hours):
-        t = minus_n_hours(period, i + 1)
-        if t in clearing_prices_historical:
-            prices_last_n_hours.append(clearing_prices_historical[t])
-        elif t in external_prices_last_n_hours_dict:
-            prices_last_n_hours.append(external_prices_last_n_hours_dict[t])
+    ts = [minus_n_hours(period, i + 1) for i in range(n_hours)]
+    prices_last_n_hours = [clearing_prices_historical[t] if t in clearing_prices_historical
+                           else external_prices_last_n_hours_dict[t] if t in external_prices_last_n_hours_dict
+                           else None for t in ts]
+    if None in prices_last_n_hours:
+        logger.info('Missing prices in last {} hours.'.format(n_hours))
+        prices_last_n_hours = [price for price in prices_last_n_hours if price is not None]
     return prices_last_n_hours
