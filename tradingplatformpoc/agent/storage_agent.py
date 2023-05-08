@@ -85,10 +85,7 @@ class StorageAgent(IAgent):
 
     def get_clearing_prices_for_resource(self, clearing_prices_hist: Dict[datetime.datetime, Dict[Resource, float]]) \
             -> Dict[datetime.datetime, float]:
-        clearing_prices_for_resource: Dict[datetime.datetime, float] = {}
-        for k, v in clearing_prices_hist.items():
-            clearing_prices_for_resource[k] = v[self.resource]
-        return clearing_prices_for_resource
+        return {k: v[self.resource] for k, v in clearing_prices_hist.items()}
 
     def make_prognosis(self, period: datetime.datetime, resource: Resource) -> float:
         pass
