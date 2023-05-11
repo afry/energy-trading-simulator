@@ -127,7 +127,7 @@ def construct_storage_level_chart(storage_levels_dict: Dict[datetime.datetime, f
     storage_levels = pd.DataFrame.from_dict(storage_levels_dict, orient='index').reset_index()
     storage_levels.columns = ['period', 'capacity_kwh']
     return alt.Chart(storage_levels).mark_line(). \
-        encode(x=alt.X('period', axis=alt.Axis(title='Period'), scale=alt.Scale(type="utc")),
+        encode(x=alt.X('period', axis=alt.Axis(title='Period (UTC)'), scale=alt.Scale(type="utc")),
                y=alt.Y('capacity_kwh', axis=alt.Axis(title='Capacity [kWh]')),
                tooltip=[alt.Tooltip(field='period', title='Period', type='temporal', format='%Y-%m-%d %H:%M'),
                         alt.Tooltip(field='capacity_kwh', title='Capacity [kWh]')]). \
