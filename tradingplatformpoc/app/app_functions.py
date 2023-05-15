@@ -245,8 +245,11 @@ def fill_with_default_params(new_config: dict) -> dict:
 
 # ---------------------------------------- Agent functions ------------------------------------
 def remove_agent(some_agent: Dict[str, Any]):
-    st.session_state.config_data['Agents'].remove(some_agent)
-    set_config_to_sess_state()
+    if some_agent['Type'] == 'GridAgent':
+        st.error('Not allowed to remove GridAgent!')
+    else:
+        st.session_state.config_data['Agents'].remove(some_agent)
+        set_config_to_sess_state()
 
 
 def duplicate_agent(some_agent: Dict[str, Any]):
