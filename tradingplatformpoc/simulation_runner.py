@@ -320,7 +320,8 @@ def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings
             space_heat_cons_series = buildings_mock_data[get_space_heat_cons_key(agent_name)]
             hot_tap_water_cons_series = buildings_mock_data[get_hot_tap_water_cons_key(agent_name)]
             pv_efficiency = get_if_exists_else(agent, 'PVEfficiency', data_store_entity.default_pv_efficiency)
-            pv_prod_series = calculate_solar_prod(data_store_entity.irradiation_data, agent['PVArea'], pv_efficiency)
+            pv_area = get_if_exists_else(agent, 'PVArea', data_store_entity.default_pv_area)
+            pv_prod_series = calculate_solar_prod(data_store_entity.irradiation_data, pv_area, pv_efficiency)
             # We're not currently supporting different temperatures of heating, it's just "heating" as a very simplified
             # entity. Therefore we'll bunch them together here for now.
             total_heat_cons_series = space_heat_cons_series + hot_tap_water_cons_series

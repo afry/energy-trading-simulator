@@ -66,9 +66,10 @@ def calculate_bids_with_acceptance_status(clearing_price: float, buy_bids: List[
 
     # First, go through buy bids, biggest price first
     buy_quantity_accepted = 0.0
-    buy_bid_price_points = get_price_points(buy_bids)
-    for buy_bid_price_point in sorted(buy_bid_price_points, reverse=True):
-        buy_bids_with_this_price = [bid for bid in buy_bids if bid.price == buy_bid_price_point]
+    sorted_buy_bid_price_points = get_sorted_price_points(buy_bids, reverse=True)
+    for buy_bid_price_point in sorted_buy_bid_price_points:
+        buy_bids_with_this_price = [bid for bid in buy_bids if (bid.price == buy_bid_price_point)
+                                    | (np.isnan(bid.price) & np.isnan(buy_bid_price_point))]
         if buy_bid_price_point < clearing_price:
             for bid in buy_bids_with_this_price:
                 bwas_for_resource.append(NetBidWithAcceptanceStatus.from_bid(bid, 0.0))
@@ -83,9 +84,10 @@ def calculate_bids_with_acceptance_status(clearing_price: float, buy_bids: List[
 
     # Now go through sell bids, lowest price first
     sell_quantity_accepted = 0.0
-    sell_bid_price_points = get_price_points(sell_bids)
-    for sell_bid_price_point in sorted(sell_bid_price_points, reverse=False):
-        sell_bids_with_this_price = [bid for bid in sell_bids if bid.price == sell_bid_price_point]
+    sorted_sell_bid_price_points = get_sorted_price_points(sell_bids, reverse=False)
+    for sell_bid_price_point in sorted_sell_bid_price_points:
+        sell_bids_with_this_price = [bid for bid in sell_bids if (bid.price == sell_bid_price_point)
+                                     | (np.isnan(bid.price) & np.isnan(sell_bid_price_point))]
         if sell_bid_price_point > clearing_price:
             for bid in sell_bids_with_this_price:
                 bwas_for_resource.append(NetBidWithAcceptanceStatus.from_bid(bid, 0.0))
@@ -127,6 +129,17 @@ def calculate_clearing_price(demand_which_needs_to_be_filled: float, price_point
 
 def get_price_points(bids: Iterable[NetBid]) -> Set[float]:
     return set([x.price for x in bids])
+
+
+def get_sorted_price_points(bids: Iterable[NetBid], reverse) -> List[float]:
+    bid_price_points = get_price_points(bids)
+    sorted_bid_price_points = sorted([point for point in bid_price_points if not np.isnan(point)],
+                                     reverse=reverse)
+    # Put nan last
+    if len([point for point in bid_price_points if np.isnan(point)]) > 0:
+        sorted_bid_price_points.append(np.nan)
+
+    return sorted_bid_price_points
 
 
 def deal_with_no_solution_found(bids_without_acceptance_status: Iterable[NetBid], period: datetime.datetime) -> \

@@ -19,6 +19,9 @@ DEFAULT_HEATING_WHOLESALE_PRICE_FRACTION = 0.5  # External grid buys heat at 50%
 DEFAULT_ELECTRICITY_WHOLESALE_PRICE_OFFSET = 0.05
 # Variable consumption fee + effektavgift/(hours in a year) = 0.0588+620/8768 = 0.13
 
+# Assume no pv area as default
+DEFAULT_PV_AREA = 0.0
+
 logger = logging.getLogger(__name__)
 
 
@@ -35,6 +38,7 @@ class DataStore:
     def __init__(self, config_area_info: dict, nordpool_data: pd.Series, irradiation_data: pd.Series,
                  grid_carbon_intensity: pd.Series):
         self.default_pv_efficiency = config_area_info["DefaultPVEfficiency"]
+        self.default_pv_area = DEFAULT_PV_AREA
         self.heating_wholesale_price_fraction = get_if_exists_else(config_area_info,
                                                                    'ExternalHeatingWholesalePriceFraction',
                                                                    DEFAULT_HEATING_WHOLESALE_PRICE_FRACTION)
@@ -204,19 +208,17 @@ class DataStore:
 
     def get_nordpool_data_datetimes(self):
         return self.nordpool_data.index.tolist()
-
+    
     def get_nordpool_prices_last_n_hours_dict(self, period: datetime.datetime, go_back_n_hours: int):
-        nordpool_prices_last_n_hours = {}
-        for i in range(go_back_n_hours):
-            t = minus_n_hours(period, i + 1)
-            try:
-                nordpool_prices_last_n_hours[t] = self.get_nordpool_price_for_period(t)
-            except KeyError:
-                logger.info('No Nordpool data on or before {}. Exiting get_nordpool_prices_last_n_hours_dict with {} '
-                            'entries instead of the desired {}'.
-                            format(t, len(nordpool_prices_last_n_hours), go_back_n_hours))
-                break
-        return nordpool_prices_last_n_hours
+        mask = (self.nordpool_data.index < period) & \
+            (self.nordpool_data.index >= minus_n_hours(period, go_back_n_hours))
+        nordpool_prices_last_n_hours = self.nordpool_data.loc[mask]
+        if len(nordpool_prices_last_n_hours.index) != go_back_n_hours:
+            logger.info('No Nordpool data before {}. Returning get_nordpool_prices_last_n_hours_dict with {} '
+                        'entries instead of the desired {}'.
+                        format(nordpool_prices_last_n_hours.index.min(), len(nordpool_prices_last_n_hours.index),
+                               go_back_n_hours))
+        return nordpool_prices_last_n_hours.to_dict()
 
     def get_local_price_if_exists_else_external_estimate(self, period: datetime.datetime, clearing_prices_historical:
                                                          Union[Dict[datetime.datetime, Dict[Resource, float]],

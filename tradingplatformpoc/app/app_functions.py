@@ -45,7 +45,7 @@ def construct_price_chart(prices_df: pd.DataFrame, resource: Resource) -> alt.Ch
     range_color = ['blue', 'green', 'red']
     range_dash = [[0, 0], [2, 4], [2, 4]]
     return alt.Chart(data_to_use).mark_line(). \
-        encode(x=alt.X('period', axis=alt.Axis(title='Period')),
+        encode(x=alt.X('period', axis=alt.Axis(title='Period (UTC)'), scale=alt.Scale(type="utc")),
                y=alt.Y('value', axis=alt.Axis(title='Price [SEK]')),
                color=alt.Color('variable', scale=alt.Scale(domain=domain, range=range_color)),
                strokeDash=alt.StrokeDash('variable', scale=alt.Scale(domain=domain, range=range_dash)),
@@ -113,7 +113,7 @@ def construct_building_with_heat_pump_chart(agent_chosen: Union[BuildingAgent, P
     heat_pump_area = alt.Chart(heat_pump_df). \
         mark_area(color=app_constants.HEAT_PUMP_CHART_COLOR, opacity=0.3, interpolate='step-after'). \
         encode(
-        x=alt.X('period:T', axis=alt.Axis(title='Period')),
+        x=alt.X('period:T', axis=alt.Axis(title='Period (UTC)'), scale=alt.Scale(type="utc")),
         y=alt.Y('Heat pump workload', axis=alt.Axis(title='Heat pump workload', titleColor='gray')),
         tooltip=[alt.Tooltip(field='period', title='Period', type='temporal', format='%Y-%m-%d %H:%M'),
                  alt.Tooltip(field='Heat pump workload', title='Heat pump workload', type='quantitative')]
@@ -127,7 +127,7 @@ def construct_storage_level_chart(storage_levels_dict: Dict[datetime.datetime, f
     storage_levels = pd.DataFrame.from_dict(storage_levels_dict, orient='index').reset_index()
     storage_levels.columns = ['period', 'capacity_kwh']
     return alt.Chart(storage_levels).mark_line(). \
-        encode(x=alt.X('period', axis=alt.Axis(title='Period')),
+        encode(x=alt.X('period', axis=alt.Axis(title='Period (UTC)'), scale=alt.Scale(type="utc")),
                y=alt.Y('capacity_kwh', axis=alt.Axis(title='Capacity [kWh]')),
                tooltip=[alt.Tooltip(field='period', title='Period', type='temporal', format='%Y-%m-%d %H:%M'),
                         alt.Tooltip(field='capacity_kwh', title='Capacity [kWh]')]). \
@@ -245,8 +245,11 @@ def fill_with_default_params(new_config: dict) -> dict:
 
 # ---------------------------------------- Agent functions ------------------------------------
 def remove_agent(some_agent: Dict[str, Any]):
-    st.session_state.config_data['Agents'].remove(some_agent)
-    set_config_to_sess_state()
+    if some_agent['Type'] == 'GridAgent':
+        st.error('Not allowed to remove GridAgent!')
+    else:
+        st.session_state.config_data['Agents'].remove(some_agent)
+        set_config_to_sess_state()
 
 
 def duplicate_agent(some_agent: Dict[str, Any]):
@@ -749,14 +752,16 @@ def construct_traded_amount_by_agent_chart(agent_chosen_guid: str,
 
 def altair_period_chart(df: pd.DataFrame, domain: List[str], range_color: List[str]) -> alt.Chart:
     """Altair chart for one or more variables over period."""
+    selection = alt.selection_single(fields=['variable'], bind='legend')
     return alt.Chart(df).mark_line(). \
-        encode(x=alt.X('period:T', axis=alt.Axis(title='Period')),
+        encode(x=alt.X('period:T', axis=alt.Axis(title='Period (UTC)'), scale=alt.Scale(type="utc")),
                y=alt.Y('value', axis=alt.Axis(title='Energy [kWh]')),
                color=alt.Color('variable', scale=alt.Scale(domain=domain, range=range_color)),
+               opacity=alt.condition(selection, alt.value(1), alt.value(0.2)),
                tooltip=[alt.Tooltip(field='period', title='Period', type='temporal', format='%Y-%m-%d %H:%M'),
                         alt.Tooltip(field='variable', title='Variable'),
                         alt.Tooltip(field='value', title='Value')]). \
-        interactive(bind_y=False)
+        add_selection(selection).interactive(bind_y=False)
 
 
 # @st.cache_data(ttl=3600)
