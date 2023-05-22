@@ -1,12 +1,13 @@
 import json
 import logging
+import os
 import pickle
 
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.app.app_functions import add_building_agent, add_grocery_store_agent, add_params_to_form, \
     add_pv_agent, add_storage_agent, agent_inputs, config_data_json_screening, display_diff_in_config, \
-    fill_with_default_params, get_config, read_config, remove_all_building_agents, set_config, \
-    set_config_to_sess_state, set_max_width
+    fill_with_default_params, get_config, read_config, read_simulation_results, remove_all_building_agents, \
+    set_config, set_config_to_sess_state, set_max_width, set_simulation_results
 
 import streamlit as st
 from st_pages import show_pages_from_config, add_indentation
@@ -23,6 +24,7 @@ set_max_width('1000px')  # This tab looks a bit daft when it is too wide, so lim
 run_sim = st.button("Click here to run simulation")
 progress_bar = st.progress(0.0)
 progress_text = st.info("")
+
 results_download_button = st.empty()
 if "simulation_results" in st.session_state:
     results_download_button.download_button(label="Download simulation results",
@@ -32,6 +34,17 @@ if "simulation_results" in st.session_state:
 else:
     results_download_button.download_button(label="Download simulation results", data=b'placeholder',
                                             disabled=True)
+
+last_results_download_button = st.empty()
+if os.path.exists(app_constants.LAST_SIMULATION_RESULTS):
+    last_simultion_timestamp, last_simultion_results = read_simulation_results()
+    last_results_download_button.download_button(label="Download last result",
+                                                 help="Download simulation results from last run on "
+                                                 + last_simultion_timestamp.strftime("%Y-%m-%d, %H:%M") + " UTC",
+                                                 data=pickle.dumps(last_simultion_results),
+                                                 file_name="last_simulation_results_"
+                                                 + last_simultion_timestamp.strftime("%Y%m%d%H%M") + ".pickle",
+                                                 mime='application/octet-stream')
 
 options = ['...input parameters through UI.', '...upload configuration file.']
 option_choosen = st.sidebar.selectbox('I want to...', options)
@@ -192,6 +205,7 @@ if run_sim:
     st.spinner("Running simulation")
     simulation_results = run_trading_simulations(read_config(), app_constants.MOCK_DATA_PATH,
                                                  progress_bar, progress_text)
+    set_simulation_results(simulation_results)
     st.session_state.simulation_results = simulation_results
     logger.info("Simulation finished!")
     progress_text.success('Simulation finished!')
