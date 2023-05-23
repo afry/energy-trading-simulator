@@ -246,7 +246,6 @@ def fill_with_default_params(new_config: dict) -> dict:
 # ------------------------------------- Save result functions ---------------------------------
 def set_simulation_results(simulation_results: SimulationResults):
     """Writes simulation results to file."""
-
     data = (datetime.datetime.now(datetime.timezone.utc), simulation_results)
     with open(app_constants.LAST_SIMULATION_RESULTS, 'wb') as f:
         pickle.dump(data, f)
@@ -255,9 +254,7 @@ def set_simulation_results(simulation_results: SimulationResults):
 def read_simulation_results() -> Tuple[datetime.datetime, SimulationResults]:
     """Reads simulation results from file."""
     with open(app_constants.LAST_SIMULATION_RESULTS, 'rb') as f:
-        res = pickle.load(f)
-        (timestamp, simulation_results) = res
-    return timestamp, simulation_results
+        return pickle.load(f)
 # ----------------------------------- End save result functions -------------------------------
 
 
