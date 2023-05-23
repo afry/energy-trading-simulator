@@ -71,6 +71,9 @@ tradingplatformpoc/data/models/*.pickle
 # Custom config file
 tradingplatformpoc/data/current_config.json
 
+# Last simulation result
+tradingplatformpoc/data/last_simulation_results.pickle
+
 # Notebook checkpoints
 */.ipynb_checkpoints/*
 
