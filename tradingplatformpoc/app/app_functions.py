@@ -255,6 +255,22 @@ def read_simulation_results() -> Tuple[datetime.datetime, SimulationResults]:
     """Reads simulation results from file."""
     with open(app_constants.LAST_SIMULATION_RESULTS, 'rb') as f:
         return pickle.load(f)
+
+
+def results_button(results_download_button):
+    if os.path.exists(app_constants.LAST_SIMULATION_RESULTS):
+        last_simultion_timestamp, last_simultion_results = read_simulation_results()
+        results_download_button.download_button(label="Download simulation result from :green["
+                                                + last_simultion_timestamp.strftime("%Y-%m-%d, %H:%M") + " UTC]",
+                                                help="Download simulation result from last run that was finished at "
+                                                + last_simultion_timestamp.strftime("%Y-%m-%d, %H:%M") + " UTC",
+                                                data=pickle.dumps(last_simultion_results),
+                                                file_name="simulation_results_"
+                                                + last_simultion_timestamp.strftime("%Y%m%d%H%M") + ".pickle",
+                                                mime='application/octet-stream')
+    else:
+        results_download_button.download_button(label="Download simulation results", data=b'placeholder',
+                                                disabled=True)
 # ----------------------------------- End save result functions -------------------------------
 
 

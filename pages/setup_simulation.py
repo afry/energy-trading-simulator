@@ -1,13 +1,11 @@
 import json
 import logging
-import os
-import pickle
 
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.app.app_functions import add_building_agent, add_grocery_store_agent, add_params_to_form, \
     add_pv_agent, add_storage_agent, agent_inputs, config_data_json_screening, display_diff_in_config, \
-    fill_with_default_params, get_config, read_config, read_simulation_results, remove_all_building_agents, \
-    set_config, set_config_to_sess_state, set_max_width, set_simulation_results
+    fill_with_default_params, get_config, read_config, remove_all_building_agents, \
+    results_button, set_config, set_config_to_sess_state, set_max_width, set_simulation_results
 
 import streamlit as st
 from st_pages import show_pages_from_config, add_indentation
@@ -28,22 +26,9 @@ progress_text = st.info("")
 if not ('simulation_results' in st.session_state):
     st.caption('Be aware that the download button returns last saved simulation '
                'result which might be from another session.')
-else:
-    st.caption('Be sure to check that the timestamp of the result matches the time of your last run.')
+
 results_download_button = st.empty()
-if os.path.exists(app_constants.LAST_SIMULATION_RESULTS):
-    last_simultion_timestamp, last_simultion_results = read_simulation_results()
-    results_download_button.download_button(label="Download simulation result from :green["
-                                            + last_simultion_timestamp.strftime("%Y-%m-%d, %H:%M") + " UTC]",
-                                            help="Download simulation result from last run that was finished at "
-                                            + last_simultion_timestamp.strftime("%Y-%m-%d, %H:%M") + " UTC",
-                                            data=pickle.dumps(last_simultion_results),
-                                            file_name="simulation_results_"
-                                            + last_simultion_timestamp.strftime("%Y%m%d%H%M") + ".pickle",
-                                            mime='application/octet-stream')
-else:
-    results_download_button.download_button(label="Download simulation results", data=b'placeholder',
-                                            disabled=True)
+results_button(results_download_button)
 
 options = ['...input parameters through UI.', '...upload configuration file.']
 option_choosen = st.sidebar.selectbox('I want to...', options)
@@ -208,7 +193,4 @@ if run_sim:
     st.session_state.simulation_results = simulation_results
     logger.info("Simulation finished!")
     progress_text.success('Simulation finished!')
-    results_download_button.download_button(label="Download simulation results",
-                                            data=pickle.dumps(simulation_results),
-                                            file_name="simulation_results.pickle",
-                                            mime='application/octet-stream')
+    results_button(results_download_button)
