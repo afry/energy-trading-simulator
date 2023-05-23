@@ -25,26 +25,25 @@ run_sim = st.button("Click here to run simulation")
 progress_bar = st.progress(0.0)
 progress_text = st.info("")
 
+if not ('simulation_results' in st.session_state):
+    st.caption('Be aware that the download button returns last saved simulation '
+               'result which might be from another session.')
+else:
+    st.caption('Be sure to check that the timestamp of the result matches the time of your last run.')
 results_download_button = st.empty()
-if "simulation_results" in st.session_state:
-    results_download_button.download_button(label="Download simulation results",
-                                            data=pickle.dumps(st.session_state.simulation_results),
-                                            file_name="simulation_results.pickle",
+if os.path.exists(app_constants.LAST_SIMULATION_RESULTS):
+    last_simultion_timestamp, last_simultion_results = read_simulation_results()
+    results_download_button.download_button(label="Download simulation result from :green["
+                                            + last_simultion_timestamp.strftime("%Y-%m-%d, %H:%M") + " UTC]",
+                                            help="Download simulation result from last run that was finished at "
+                                            + last_simultion_timestamp.strftime("%Y-%m-%d, %H:%M") + " UTC",
+                                            data=pickle.dumps(last_simultion_results),
+                                            file_name="simulation_results_"
+                                            + last_simultion_timestamp.strftime("%Y%m%d%H%M") + ".pickle",
                                             mime='application/octet-stream')
 else:
     results_download_button.download_button(label="Download simulation results", data=b'placeholder',
                                             disabled=True)
-
-last_results_download_button = st.empty()
-if os.path.exists(app_constants.LAST_SIMULATION_RESULTS):
-    last_simultion_timestamp, last_simultion_results = read_simulation_results()
-    last_results_download_button.download_button(label="Download last result",
-                                                 help="Download simulation results from last run on "
-                                                 + last_simultion_timestamp.strftime("%Y-%m-%d, %H:%M") + " UTC",
-                                                 data=pickle.dumps(last_simultion_results),
-                                                 file_name="last_simulation_results_"
-                                                 + last_simultion_timestamp.strftime("%Y%m%d%H%M") + ".pickle",
-                                                 mime='application/octet-stream')
 
 options = ['...input parameters through UI.', '...upload configuration file.']
 option_choosen = st.sidebar.selectbox('I want to...', options)
