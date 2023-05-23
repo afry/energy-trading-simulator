@@ -54,7 +54,7 @@ config_container = st.container()
 with config_container:
     col_config, col_reset = st.columns([4, 1])
     with col_reset:
-        reset_config_button = st.button("Reset configuration",
+        reset_config_button = st.button(label=":red[Reset configuration]",
                                         help="Click here to DELETE custom configuration and reset configuration"
                                         " to default values and agents.", disabled=(option_choosen == options[1]))
     with col_config:
@@ -112,7 +112,7 @@ if option_choosen == options[0]:
             agent = current_agents[choosen_agent_ind]
             agent_inputs(agent)
 
-            st.button("Remove all BuildingAgents", on_click=remove_all_building_agents, use_container_width=True)
+            st.button(":red[Remove all BuildingAgents]", on_click=remove_all_building_agents, use_container_width=True)
 
         with add_agents_tab:
             st.markdown('To add new agents, select the appropriate agent type from the drop down list, '
