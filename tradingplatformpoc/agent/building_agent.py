@@ -156,7 +156,7 @@ class BuildingAgent(IAgent):
             # External grid may not want to buy heat at all, so going with the former, for now.
             bids.append(self.construct_sell_heat_bid(-heat_net_consumption_incl_pump, pred_heat_price))
         return bids
-
+    
     def calculate_optimal_workload(self, elec_net_consumption: float, heat_net_consumption: float,
                                    pred_elec_price: float, pred_heat_price: float) -> int:
         """
@@ -168,39 +168,41 @@ class BuildingAgent(IAgent):
         elec_sell_price = self.data_store.get_electricity_gross_internal_price(pred_elec_price)
         heat_sell_price = pred_heat_price if self.allow_sell_heat else 0
 
-        min_cost = 1e10  # Big placeholder number
-        prev_cost = 1e10  # Big placeholder number
-        workload_to_use = 0
-        for workload, (elec, heat) in self.workloads_data.items():
+        # Converting workload ordered dict into numpy array for faster computing
+        # Columns: Workload, electricity input, heating output
+        workload_elec_heat_array = np.array([np.array([workload, vals[0], vals[1]])
+                                             for workload, vals in self.workloads_data.items()])
+        elec = workload_elec_heat_array[:, 1]
+        heat = workload_elec_heat_array[:, 2]
 
-            elec_net_consumption_incl_pump = elec_net_consumption + elec * self.n_heat_pumps
-            heat_net_consumption_incl_pump = heat_net_consumption - heat * self.n_heat_pumps
-            heat_supply = abs(np.minimum(0, heat_net_consumption_incl_pump))
-            elec_supply = abs(np.minimum(0, elec_net_consumption_incl_pump))
-            incomes = elec_supply * elec_sell_price + heat_supply * heat_sell_price
-            heat_demand = np.maximum(0, heat_net_consumption_incl_pump)
-            elec_demand = np.maximum(0, elec_net_consumption_incl_pump)
-            expenditures = elec_demand * pred_elec_price + heat_demand + pred_heat_price
-            expected_cost = expenditures - incomes
+        # Calculate electricity supply and demand
+        elec_net_consumption_incl_pump = elec_net_consumption + elec * self.n_heat_pumps
+        elec_supply = supply(elec_net_consumption_incl_pump)
+        elec_demand = demand(elec_net_consumption_incl_pump)
 
-            if expected_cost > prev_cost:
-                # Since the COP(workload) function is concave, the function of cost given a workload is convex.
-                # Therefore, we know that if the cost for this workload is higher than the cost for the previous (lower)
-                # workload, there is no point to look at any higher workloads, and we'll break out of this loop.
-                # Note that this assumes that self.workloads_data is ordered and increasing!
-                break
+        # Calculate heating supply and demand
+        heat_net_consumption_incl_pump = heat_net_consumption - heat * self.n_heat_pumps
+        heat_supply = supply(heat_net_consumption_incl_pump)
+        heat_demand = demand(heat_net_consumption_incl_pump)
 
-            if expected_cost < min_cost:
-                min_cost = expected_cost
-                workload_to_use = workload
-            logger.debug('For workload {}, elec net consumption was {:.2f}, heat net consumption was {:.2f}, E[inc] was'
-                         ' {:.2f}, E[exp] was {:.2f}, E[cost] was {:.2f}, COP was {:.2f}'.
-                         format(int(workload), elec_net_consumption_incl_pump, heat_net_consumption_incl_pump,
-                                incomes, expenditures, expected_cost, (heat / elec) if elec > 0 else 0))
-            prev_cost = expected_cost
-            if heat_supply > 0 and not self.allow_sell_heat:
-                break  # No point in evaluating higher workloads - can't sell excess heat anyway
-        return workload_to_use
+        # Calculate expected cost
+        incomes = elec_supply * elec_sell_price + heat_supply * heat_sell_price
+        expenditures = elec_demand * pred_elec_price + heat_demand + pred_heat_price
+        expected_cost = expenditures - incomes
+
+        # Find workload for minimum expected cost
+        index_of_min_cost = np.argmin(expected_cost)
+        return workload_elec_heat_array[index_of_min_cost, 0]
+
+
+def supply(net_consumption_incl_pump: np.ndarray) -> np.ndarray:
+    """Return positive supply if consumption is negative, otherwise zero."""
+    return np.absolute(np.minimum(np.zeros(len(net_consumption_incl_pump)), net_consumption_incl_pump))
+
+
+def demand(net_consumption_incl_pump: np.ndarray) -> np.ndarray:
+    """Return demand if consumption is positive, otherwise zero."""
+    return np.maximum(np.zeros(len(net_consumption_incl_pump)), net_consumption_incl_pump)
 
 
 def construct_workloads_data(coeff_of_perf: Optional[float], n_heat_pumps: int) -> \
