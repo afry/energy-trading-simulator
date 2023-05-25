@@ -162,11 +162,6 @@ with config_container:
     st.markdown('---')
 
 st.markdown("**Guides**")
-with st.expander("Guidelines on configuration file"):
-    st.markdown(app_constants.CONFIG_GUIDELINES_MARKDOWN)
-    st.json(app_constants.AREA_INFO_EXAMPLE)
-    st.markdown(app_constants.MOCK_DATA_CONSTANTS_MARKDOWN)
-    st.json(app_constants.MOCK_DATA_CONSTANTS_EXAMPLE)
 with st.expander("BuildingAgent specification"):
     st.markdown(app_constants.BUILDING_AGENT_SPEC_MARKDOWN)
     st.json(app_constants.BUILDING_AGENT_EXAMPLE)

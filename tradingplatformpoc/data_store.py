@@ -10,14 +10,11 @@ from pkg_resources import resource_filename
 
 from tradingplatformpoc import trading_platform_utils
 from tradingplatformpoc.bid import Resource
+from tradingplatformpoc.data.config.params_specs import param_spec_dict
 from tradingplatformpoc.district_heating_calculations import calculate_jan_feb_avg_heating_sold, \
     calculate_peak_day_avg_cons_kw, estimate_district_heating_price, exact_district_heating_price_for_month
 from tradingplatformpoc.trading_platform_utils import get_if_exists_else, minus_n_hours
 
-DEFAULT_HEATING_WHOLESALE_PRICE_FRACTION = 0.5  # External grid buys heat at 50% of the price they buy for - arbitrary
-
-DEFAULT_ELECTRICITY_WHOLESALE_PRICE_OFFSET = 0.05
-# Variable consumption fee + effektavgift/(hours in a year) = 0.0588+620/8768 = 0.13
 
 # Assume no pv area as default
 DEFAULT_PV_AREA = 0.0
@@ -39,11 +36,13 @@ class DataStore:
                  grid_carbon_intensity: pd.Series):
         self.default_pv_efficiency = config_area_info["DefaultPVEfficiency"]
         self.default_pv_area = DEFAULT_PV_AREA
-        self.heating_wholesale_price_fraction = get_if_exists_else(config_area_info,
-                                                                   'ExternalHeatingWholesalePriceFraction',
-                                                                   DEFAULT_HEATING_WHOLESALE_PRICE_FRACTION)
-        self.elec_wholesale_offset = get_if_exists_else(config_area_info, 'ExternalElectricityWholesalePriceOffset',
-                                                        DEFAULT_ELECTRICITY_WHOLESALE_PRICE_OFFSET)
+        self.heating_wholesale_price_fraction = get_if_exists_else(
+            config_area_info,
+            'ExternalHeatingWholesalePriceFraction',
+            param_spec_dict['AreaInfo']['ExternalHeatingWholesalePriceFraction']['default'])
+        self.elec_wholesale_offset = get_if_exists_else(
+            config_area_info, 'ExternalElectricityWholesalePriceOffset',
+            param_spec_dict['AreaInfo']['ExternalElectricityWholesalePriceOffset']['default'])
         self.elec_tax = config_area_info["ElectricityTax"]
         self.elec_grid_fee = config_area_info["ElectricityGridFee"]
         self.elec_tax_internal = config_area_info["ElectricityTaxInternal"]
