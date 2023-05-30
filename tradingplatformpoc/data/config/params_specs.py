@@ -12,6 +12,7 @@ param_spec_dict = {
             "min_value": 0.01,
             "max_value": 0.99,
             "format": "%.3f",
+            "default": 0.165,
             "help": "A number specifying the efficiency of solar panels in "
                     "the microgrid. Can be overridden by individual agents. "
                     "Number must be between 0 and 1, and is typically in the 0.15-0.25 "
@@ -23,6 +24,7 @@ param_spec_dict = {
             "min_value": 0.0,
             "max_value": 0.99,
             "format": "%.3f",
+            "default": 0.05,
             "help": "A number specifying the loss of heat in every transfer. Must be between 0 and "
                     "0.99, where 0 would mean no losses at all, and 0.99 would mean that almost all energy "
                     "is lost when trying to transfer heat from one agent to another. A reasonable number "
@@ -44,6 +46,7 @@ param_spec_dict = {
             "display": "Electricity tax:",
             "min_value": 0.0,
             "format": "%.3f",
+            "default": 0.392,
             "help": "The electricity tax in SEK/kWh, for trades not inside the local market. For 2022, this "
                     "is 0.392, but here it can be set to any (non-negative) number",
             "required": True
@@ -52,6 +55,7 @@ param_spec_dict = {
             "display": "Electricity grid fee:",
             "min_value": 0.0,
             "format": "%.3f",
+            "default": 0.148,
             "help": "The electricity grid fee in SEK/kWh, for trades not inside the local market. The "
                     "price at which electricity can be "
                     "imported into the microgrid will be set to the Nordpool spot price, plus the "
@@ -66,6 +70,7 @@ param_spec_dict = {
             "display": "Electricity tax (internal):",
             "min_value": 0.0,
             "format": "%.3f",
+            "default": 0.392,
             "help": "The electricity tax in SEK/kWh, paid on internal trades in the local market. "
                     "Should be between 0 and the 'external'/'normal' tax",
             "required": True
@@ -74,6 +79,7 @@ param_spec_dict = {
             "display": "Electricity grid fee (internal):",
             "min_value": 0.0,
             "format": "%.3f",
+            "default": 0.148,
             "help": "The grid fee, in SEK/kWh, paid on internal trades in the local market. "
                     "Should be between 0 and the 'external'/'normal' grid fee",
             "required": True
@@ -96,6 +102,7 @@ param_spec_dict = {
             "display": "Residential electricity kWh/year/m2:",
             "min_value": 1,
             "max_value": 100,
+            "default": 20,
             "help": "Number indicating the electricity consumption of residential areas, in kWh per "
                     "year and square meter. The default of 20 kWh/year/m2 'atemp' comes from a "
                     "2017-2018 metering study made by Skanska, 'Hushållsel i nybyggda flerbostadshus'. "
@@ -108,6 +115,7 @@ param_spec_dict = {
             "display": "Residential space heat kWh/year/m2:",
             "min_value": 1,
             "max_value": 100,
+            "default": 25,
             "help": "Number indicating the space heating consumption of residential "
                     "areas, in kWh per year and square meter. The default of 25 "
                     "kWh/year/m2 has been provided by BDAB.",
@@ -117,6 +125,7 @@ param_spec_dict = {
             "display": "Residential hot tap water kWh/year/m2:",
             "min_value": 1,
             "max_value": 100,
+            "default": 25,
             "help": "Number indicating the hot tap water consumption of residential "
                     "areas, in kWh per year and square meter. The default of 25 "
                     "kWh/year/m2 has been provided by BDAB.",
@@ -126,6 +135,7 @@ param_spec_dict = {
             "display": "Residential hot tap water relative standard deviation:",
             "min_value": 0.0,
             "max_value": 1.0,
+            "default": 0.2,
             "help": "The standard deviation of simulated heating consumption of "
                     "residential areas, in relative terms. For a given hour, an expected "
                     "value will be calculated, and the simulated value will then be this "
@@ -139,6 +149,7 @@ param_spec_dict = {
             "display": "Commercial electricity kWh/year/m2:",
             "min_value": 1,
             "max_value": 200,
+            "default": 118,
             "help": "Number indicating the electricity consumption of commercial areas, in kWh per "
                     "year and square meter. The default of 118 kWh/year/m2 comes from "
                     "Energimyndigheten's 2009 report 'Energianvändning i handelslokaler'. This "
@@ -149,6 +160,7 @@ param_spec_dict = {
             "display": "Commercial electricity relative standard deviation:",
             "min_value": 0.0,
             "max_value": 1.0,
+            "default": 0.2,
             "help": "The standard deviation of simulated electricity consumption of commercial "
                     "areas, in relative terms. For a given hour, an expected value will be "
                     "calculated, and the simulated value will then be this expected value, "
@@ -161,6 +173,7 @@ param_spec_dict = {
             "display": "Commercial space heat kWh/year/m2:",
             "min_value": 1,
             "max_value": 100,
+            "default": 32,
             "help": "Number indicating the space heating consumption of commercial areas, "
                     "in kWh per year and square meter. The default of 32 kWh/year/m2 has "
                     "been derived from a combination of numbers provided by BDAB: For "
@@ -174,6 +187,7 @@ param_spec_dict = {
             "min_value": 1.0,
             "max_value": 10.0,
             "step": 0.5,
+            "default": 3.5,
             "help": "Number indicating the hot tap water consumption of commercial areas, "
                     "in kWh per year and square meter. The default of 3.5 kWh/year/m2 has "
                     "been derived from a combination of numbers provided by BDAB: For "
@@ -186,6 +200,7 @@ param_spec_dict = {
             "display": "Commercial hot tap water relative standard deviation:",
             "min_value": 0.0,
             "max_value": 1.0,
+            "default": 0.2,
             "help": "The standard deviation of simulated hot tap water consumption of "
                     "commercial areas, in relative terms. For a given hour, an expected "
                     "value will be calculated, and the simulated value will then be "
@@ -199,6 +214,7 @@ param_spec_dict = {
             "display": "School electricity kWh/year/m2:",
             "min_value": 1,
             "max_value": 200,
+            "default": 60,
             "help": "Number indicating the electricity consumption of school buildings, "
                     "in kWh per year and square meter. The default of 60 kWh/year/m2 "
                     "comes from Energimyndigheten's 2009 report 'Energin i skolan'.",
@@ -208,6 +224,7 @@ param_spec_dict = {
             "display": "School electricity relative standard deviation:",
             "min_value": 0.0,
             "max_value": 1.0,
+            "default": 0.2,
             "help": "The standard deviation of simulated electricity consumption of school "
                     "areas, in relative terms. For a given hour, an expected value will be "
                     "calculated, and the simulated value will then be this expected value, "
@@ -220,6 +237,7 @@ param_spec_dict = {
             "display": "School space heat kWh/year/m2:",
             "min_value": 1,
             "max_value": 100,
+            "default": 25,
             "help": "Number indicating the space heating consumption of school "
                     "buildings, in kWh per year and square meter. The default of 25 "
                     "kWh/year/m2 has been provided by BDAB.",
@@ -229,6 +247,7 @@ param_spec_dict = {
             "display": "School hot tap water kWh/year/m2:",
             "min_value": 1,
             "max_value": 100,
+            "default": 7,
             "help": "Number indicating the hot tap water consumption of school "
                     "buildings, in kWh per year and square meter. The default of 7 "
                     "kWh/year/m2 has been provided by BDAB.",
@@ -238,6 +257,7 @@ param_spec_dict = {
             "display": "School hot tap water relative standard deviation:",
             "min_value": 0.0,
             "max_value": 1.0,
+            "default": 0.2,
             "help": "The standard deviation of simulated hot tap water consumption of "
                     "school buildings, in relative terms. For a given hour, an "
                     "expected value will be calculated, and the simulated value "

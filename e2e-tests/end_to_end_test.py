@@ -1,16 +1,14 @@
-import json
 from unittest import TestCase
 
 from pkg_resources import resource_filename
 
 from tradingplatformpoc import simulation_runner
+from tradingplatformpoc.app.app_functions import read_config
 from tradingplatformpoc.bid import Action
 from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES
 
 mock_datas_file_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
-config_filename = resource_filename("tradingplatformpoc.data", "default_config.json")
-with open(config_filename, "r") as jsonfile:
-    config_data = json.load(jsonfile)
+config_data = read_config(name='default')
 
 
 class Test(TestCase):
@@ -31,15 +29,15 @@ class Test(TestCase):
                                                                             == period]
             for resource in ALL_IMPLEMENTED_RESOURCES:
                 trades_for_period_and_resource = trades_for_period.loc[trades_for_period.resource == resource]
-                energy_bought_kwh = sum(trades_for_period_and_resource.loc[trades_for_period_and_resource.action ==
-                                                                           Action.BUY, 'quantity_pre_loss'])
-                energy_sold_kwh = sum(trades_for_period_and_resource.loc[trades_for_period_and_resource.action ==
-                                                                         Action.SELL, 'quantity_post_loss'])
+                energy_bought_kwh = sum(trades_for_period_and_resource.loc[trades_for_period_and_resource.action
+                                                                           == Action.BUY, 'quantity_pre_loss'])
+                energy_sold_kwh = sum(trades_for_period_and_resource.loc[trades_for_period_and_resource.action
+                                                                         == Action.SELL, 'quantity_post_loss'])
                 self.assertAlmostEqual(energy_bought_kwh, energy_sold_kwh, places=7)
 
             total_cost = 0  # Should sum to 0 at the end of this loop
-            agents_who_traded_or_were_penalized = set(trades_for_period.source.tolist() +
-                                                      extra_costs_for_period.agent.tolist())
+            agents_who_traded_or_were_penalized = set(trades_for_period.source.tolist()
+                                                      + extra_costs_for_period.agent.tolist())
             for agent_id in agents_who_traded_or_were_penalized:
                 trades_for_agent = trades_for_period.loc[trades_for_period.source == agent_id]
                 extra_costs_for_agent = extra_costs_for_period.loc[extra_costs_for_period.agent == agent_id]

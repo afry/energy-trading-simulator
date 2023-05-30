@@ -4,11 +4,12 @@ import logging
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.app.app_functions import add_building_agent, add_grocery_store_agent, add_params_to_form, \
     add_pv_agent, add_storage_agent, agent_inputs, config_data_json_screening, display_diff_in_config, \
-    fill_with_default_params, get_config, read_config, remove_all_building_agents, \
+    get_config, read_config, remove_all_building_agents, \
     results_button, set_config, set_config_to_sess_state, set_max_width, set_simulation_results
 
 import streamlit as st
 from st_pages import show_pages_from_config, add_indentation
+from tradingplatformpoc.data.config.access_config import fill_with_default_params
 
 from tradingplatformpoc.simulation_runner import run_trading_simulations
 
