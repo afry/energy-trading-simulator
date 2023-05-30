@@ -243,6 +243,37 @@ def fill_with_default_params(new_config: dict) -> dict:
 # ------------------------------------- End config functions ----------------------------------
 
 
+# ------------------------------------- Save result functions ---------------------------------
+def set_simulation_results(simulation_results: SimulationResults):
+    """Writes simulation results to file."""
+    data = (datetime.datetime.now(datetime.timezone.utc), simulation_results)
+    with open(app_constants.LAST_SIMULATION_RESULTS, 'wb') as f:
+        pickle.dump(data, f)
+
+
+def read_simulation_results() -> Tuple[datetime.datetime, SimulationResults]:
+    """Reads simulation results from file."""
+    with open(app_constants.LAST_SIMULATION_RESULTS, 'rb') as f:
+        return pickle.load(f)
+
+
+def results_button(results_download_button):
+    if os.path.exists(app_constants.LAST_SIMULATION_RESULTS):
+        last_simultion_timestamp, last_simultion_results = read_simulation_results()
+        results_download_button.download_button(label="Download simulation result from :green["
+                                                + last_simultion_timestamp.strftime("%Y-%m-%d, %H:%M") + " UTC]",
+                                                help="Download simulation result from last run that was finished at "
+                                                + last_simultion_timestamp.strftime("%Y-%m-%d, %H:%M") + " UTC",
+                                                data=pickle.dumps(last_simultion_results),
+                                                file_name="simulation_results_"
+                                                + last_simultion_timestamp.strftime("%Y%m%d%H%M") + ".pickle",
+                                                mime='application/octet-stream')
+    else:
+        results_download_button.download_button(label="Download simulation results", data=b'placeholder',
+                                                disabled=True)
+# ----------------------------------- End save result functions -------------------------------
+
+
 # ---------------------------------------- Agent functions ------------------------------------
 def remove_agent(some_agent: Dict[str, Any]):
     if some_agent['Type'] == 'GridAgent':
@@ -384,10 +415,12 @@ def agent_inputs(agent):
 
     col1, col2 = st.columns(2)
     with col1:
-        st.button('Remove agent', key='RemoveButton' + agent['Name'], on_click=remove_agent, args=(agent,),
+        st.button(label=':red[Remove agent]', key='RemoveButton' + agent['Name'],
+                  on_click=remove_agent, args=(agent,),
                   use_container_width=True)
     with col2:
-        st.button('Duplicate agent', key='DuplicateButton' + agent['Name'], on_click=duplicate_agent, args=(agent,),
+        st.button(label='Duplicate agent', key='DuplicateButton' + agent['Name'],
+                  on_click=duplicate_agent, args=(agent,),
                   use_container_width=True)
     submit = form.form_submit_button('Save agent')
     if submit:
