@@ -1,7 +1,24 @@
 import json
 
 from tradingplatformpoc.app import app_constants
-from tradingplatformpoc.data.config import params_specs
+
+
+def read_param_specs(names):
+    """Reads and returns specified params specification from file."""
+    file_dict = {'AreaInfo': app_constants.AREA_INFO_SPECS,
+                 'MockDataConstants': app_constants.MOCK_DATA_CONSTANTS_SPECS}
+    param_specs = {}
+    for name in names:
+        with open(file_dict[name], "r") as jsonfile:
+            param_specs[name] = json.load(jsonfile)
+    return param_specs
+
+
+def read_default_params(names):
+    """Returns default values of params."""
+    param_specs = read_param_specs(names)
+    return dict((param_type, dict((param, values['default']) for param, values in param_dict.items()))
+                for param_type, param_dict in param_specs.items())
 
 
 def set_config(config: dict):
@@ -18,8 +35,7 @@ def read_config(name: str = 'current') -> dict:
     with open(file_dict[name], "r") as jsonfile:
         config = json.load(jsonfile)
     if name == 'default':
-        default_params = {param_type: {param: values['default'] for param, values in param_dict.items()}
-                          for param_type, param_dict in params_specs.param_spec_dict.items()}
+        default_params = read_default_params(names=['AreaInfo', 'MockDataConstants'])
         config = {'Agents': config, **default_params}
     return config
 
@@ -32,8 +48,9 @@ def reset_config():
 
 def fill_with_default_params(new_config: dict) -> dict:
     """If not all parameters are specified in uploaded config, use default for the unspecified ones."""
+    param_specs = read_param_specs(['AreaInfo', 'MockDataConstants'])
     for param_type in ['AreaInfo', 'MockDataConstants']:
-        params_only_in_default = dict((k, v) for k, v in params_specs.param_spec_dict[param_type].items()
+        params_only_in_default = dict((k, v) for k, v in param_specs[param_type].items()
                                       if k not in set(new_config[param_type].keys()))
         for k, v in params_only_in_default.items():
             new_config[param_type][k] = v

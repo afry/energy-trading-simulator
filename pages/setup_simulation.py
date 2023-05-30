@@ -9,7 +9,7 @@ from tradingplatformpoc.app.app_functions import add_building_agent, add_grocery
 
 import streamlit as st
 from st_pages import show_pages_from_config, add_indentation
-from tradingplatformpoc.data.config.access_config import fill_with_default_params
+from tradingplatformpoc.data.config.access_config import fill_with_default_params, read_param_specs
 
 from tradingplatformpoc.simulation_runner import run_trading_simulations
 
@@ -64,7 +64,7 @@ if option_choosen == options[0]:
         with area_info_tab:
             # st.markdown("**General area parameters:**")  # ---------------
             area_form = st.form(key="AreaInfoForm")
-            add_params_to_form(area_form, 'AreaInfo')
+            add_params_to_form(area_form, read_param_specs(['AreaInfo']), 'AreaInfo')
             _dummy1 = area_form.number_input(
                 'CO2 penalization rate:', value=0.0, help=app_constants.CO2_PEN_RATE_HELP_TEXT, disabled=True)
             submit_area_form = area_form.form_submit_button("Save area info")
@@ -75,7 +75,7 @@ if option_choosen == options[0]:
         with mock_data_constants_tab:
             # st.markdown("**Data simulation parameters for digital twin:**")  # ---------------
             mdc_form = st.form(key="MockDataConstantsForm")
-            add_params_to_form(mdc_form, 'MockDataConstants')
+            add_params_to_form(mdc_form, read_param_specs(['MockDataConstants']), 'MockDataConstants')
             submit_mdc_form = mdc_form.form_submit_button("Save mock data generation constants")
             if submit_mdc_form:
                 submit_mdc_form = False

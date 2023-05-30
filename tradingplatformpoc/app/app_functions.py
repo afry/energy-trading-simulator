@@ -17,8 +17,7 @@ from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.bid import Action, Resource
-from tradingplatformpoc.data.config import params_specs
-from tradingplatformpoc.data.config.access_config import read_config, reset_config, set_config
+from tradingplatformpoc.data.config.access_config import read_config, read_param_specs, reset_config, set_config
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.generate_mock_data import create_inputs_df
 from tradingplatformpoc.results.results_key import ResultsKey
@@ -402,10 +401,10 @@ def get_agent(all_agents: Iterable[IAgent], agent_chosen_guid: str) -> IAgent:
 # -------------------------------------- End agent functions ----------------------------------
 
 
-def add_params_to_form(form, info_type: str):
+def add_params_to_form(form, param_spec_dict: dict, info_type: str):
     """Populate parameter forms."""
     current_config = read_config()
-    for key, val in params_specs.param_spec_dict[info_type].items():
+    for key, val in param_spec_dict[info_type].items():
         params = {k: v for k, v in val.items() if k not in ['display', 'required', 'default']}
         st.session_state.config_data[info_type][key] = form.number_input(
             val['display'], **params,
@@ -459,18 +458,20 @@ def config_data_keys_screening(config_data: dict) -> Optional[str]:
 def config_data_param_screening(config_data: dict) -> Optional[str]:
     """Check that config json contains reasonable parameters."""
 
+    param_specs = read_param_specs(['AreaInfo', 'MockDataConstants'])
+
     # Check params for correct keys and values in ranges
     for info_type in [c for c in ['AreaInfo', 'MockDataConstants'] if c in config_data]:
         for key, val in config_data[info_type].items():
-            if key in params_specs.param_spec_dict[info_type].keys():
+            if key in param_specs[info_type].keys():
 
-                if "min_value" in params_specs.param_spec_dict[info_type][key].keys():
-                    if val < params_specs.param_spec_dict[info_type][key]["min_value"]:
-                        return "Specified {}: {} < {}.".format(key, val, params_specs.param_spec_dict[
+                if "min_value" in param_specs[info_type][key].keys():
+                    if val < param_specs[info_type][key]["min_value"]:
+                        return "Specified {}: {} < {}.".format(key, val, param_specs[
                             info_type][key]["min_value"])
-                if "max_value" in params_specs.param_spec_dict[info_type][key].keys():
-                    if val > params_specs.param_spec_dict[info_type][key]["max_value"]:
-                        return "Specified {}: {} > {}.".format(key, val, params_specs.param_spec_dict[
+                if "max_value" in param_specs[info_type][key].keys():
+                    if val > param_specs[info_type][key]["max_value"]:
+                        return "Specified {}: {} > {}.".format(key, val, param_specs[
                             info_type][key]["max_value"])
             else:
                 return "Parameter {} is not a valid parameter.".format(key)

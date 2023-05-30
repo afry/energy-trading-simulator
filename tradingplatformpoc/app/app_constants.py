@@ -209,6 +209,8 @@ GROCERY_STORE_AGENT_EXAMPLE = """
 """
 
 DEFAULT_AGENTS_FILENAME = resource_filename("tradingplatformpoc.data.config", "default_agents.json")
+AREA_INFO_SPECS = resource_filename("tradingplatformpoc.data.config", "area_info_specs.json")
+MOCK_DATA_CONSTANTS_SPECS = resource_filename("tradingplatformpoc.data.config", "mock_data_constants_specs.json")
 CURRENT_CONFIG_FILENAME = resource_filename("tradingplatformpoc.data.config", "current_config.json")
 LAST_SIMULATION_RESULTS = resource_filename("tradingplatformpoc.data", "last_simulation_results.pickle")
 MOCK_DATA_PATH = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
