@@ -3,6 +3,11 @@ import json
 from tradingplatformpoc.app import app_constants
 
 
+def read_agent_specs():
+    with open(app_constants.AGENT_SPECS_FILENAME, "r") as jsonfile:
+        return json.load(jsonfile)
+
+
 def read_param_specs(names):
     """Reads and returns specified params specification from file."""
     file_dict = {'AreaInfo': app_constants.AREA_INFO_SPECS,

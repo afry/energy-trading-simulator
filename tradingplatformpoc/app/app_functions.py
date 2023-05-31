@@ -17,7 +17,8 @@ from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.bid import Action, Resource
-from tradingplatformpoc.data.config.access_config import read_config, read_param_specs, reset_config, set_config
+from tradingplatformpoc.data.config.access_config import read_agent_specs, read_config, read_param_specs, \
+    reset_config, set_config
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.generate_mock_data import create_inputs_df
 from tradingplatformpoc.results.results_key import ResultsKey
@@ -343,13 +344,15 @@ def add_grid_agent():
 
 def agent_inputs(agent):
     """Contains input fields needed to define an agent."""
-    current_config = read_config()
     form = st.form(key="Form" + agent['Name'])
+
+    # Name and agent type
     agent['Name'] = form.text_input('Name', key='NameField' + agent['Name'], value=agent['Name'])
     agent['Type'] = form.selectbox('Type', options=ALL_AGENT_TYPES,
                                    key='TypeSelectBox' + agent['Name'],
                                    index=ALL_AGENT_TYPES.index(agent['Type']))
     
+    # Resource
     if agent['Type'] == 'GridAgent':
         agent['Resource'] = form.selectbox('Resource', options=ALL_IMPLEMENTED_RESOURCES_STR,
                                            key='ResourceSelectBox' + agent['Name'],
@@ -360,26 +363,28 @@ def agent_inputs(agent):
                                            key='ResourceSelectBox' + agent['Name'],
                                            index=['ELECTRICITY'].index(agent['Resource']))
 
-    for key, val in app_constants.agent_specs_dict[agent['Type']].items():
+    # Parameters
+    agent_specs = read_agent_specs()
+    for key, val in agent_specs[agent['Type']].items():
         params = {k: v for k, v in val.items() if k not in
                   ['display', 'default_value', 'type', 'disabled_cond', 'required']}
+        
         if 'disabled_cond' in val.keys():
             for k, v in val['disabled_cond'].items():
                 params['disabled'] = (agent[k] == v)
-        if key == "PVEfficiency":
-            val['default_value'] = current_config['AreaInfo']['DefaultPVEfficiency']
-        elif key == "DischargeRate":
-            val['default_value'] = agent['ChargeRate']
-        if 'default_value' in val.keys():
-            value = get_if_exists_else(agent, key, val['default_value'])
-        else:
-            value = agent[key]
-        if 'type' in val.keys():
-            value = val['type'](value)
+
+        # Use default value if no other value is specified
+        value = get_if_exists_else(agent, key, val['default_value'])
+
+        if ("type", "float") in val.items():
+            value = float(value)
+        elif ("type", "int") in val.items():
+            value = int(value)
 
         agent[key] = form.number_input(val["display"], **params, value=value,
                                        key=key + agent['Name'])
 
+    # Additional buttons
     col1, col2 = st.columns(2)
     with col1:
         st.button(label=':red[Remove agent]', key='RemoveButton' + agent['Name'],
@@ -389,6 +394,8 @@ def agent_inputs(agent):
         st.button(label='Duplicate agent', key='DuplicateButton' + agent['Name'],
                   on_click=duplicate_agent, args=(agent,),
                   use_container_width=True)
+        
+    # Submit
     submit = form.form_submit_button('Save agent')
     if submit:
         submit = False
@@ -522,25 +529,26 @@ def config_data_agent_screening(config_data: dict) -> Optional[str]:
     # TODO: Should we allow for having no BuildingAgents?
     
     # Check agents for correct keys and values in ranges
+    agent_specs = read_agent_specs()
     for agent in config_data['Agents']:
         items = {k: v for k, v in agent.items() if k not in ['Type', 'Name', 'Resource']}
         for key, val in items.items():
 
-            if key not in app_constants.agent_specs_dict[agent['Type']].keys():
+            if key not in agent_specs[agent['Type']].keys():
                 return ("Specified {} not in availible "
                         "input params for agent {} of type {}.".format(key, agent['Name'], agent['Type']))
             
-            if "min_value" in app_constants.agent_specs_dict[agent['Type']][key].keys():
-                if val < app_constants.agent_specs_dict[agent['Type']][key]["min_value"]:
-                    return "Specified {}: {} < {}.".format(key, val, app_constants.agent_specs_dict[
+            if "min_value" in agent_specs[agent['Type']][key].keys():
+                if val < agent_specs[agent['Type']][key]["min_value"]:
+                    return "Specified {}: {} < {}.".format(key, val, agent_specs[
                         agent['Type']][key]["min_value"])
                 
-            if "max_value" in app_constants.agent_specs_dict[agent['Type']][key].keys():
-                if val > app_constants.agent_specs_dict[agent['Type']][key]["max_value"]:
-                    return "Specified {}: {} > {}.".format(key, val, app_constants.agent_specs_dict[
+            if "max_value" in agent_specs[agent['Type']][key].keys():
+                if val > agent_specs[agent['Type']][key]["max_value"]:
+                    return "Specified {}: {} > {}.".format(key, val, agent_specs[
                         agent['Type']][key]["max_value"])
             
-        for key in [key for key, val in app_constants.agent_specs_dict[agent['Type']].items() if val['required']]:
+        for key in [key for key, val in agent_specs[agent['Type']].items() if val['required']]:
             if key not in items.keys():
                 return "Missing parameter {} for agent {}.".format(key, agent['Name'])
 
