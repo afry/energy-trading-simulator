@@ -162,23 +162,6 @@ with config_container:
                        mime="text/json")
     st.markdown('---')
 
-st.markdown("**Guides**")
-with st.expander("BuildingAgent specification"):
-    st.markdown(app_constants.BUILDING_AGENT_SPEC_MARKDOWN)
-    st.json(app_constants.BUILDING_AGENT_EXAMPLE)
-with st.expander("StorageAgent specification"):
-    st.markdown(app_constants.STORAGE_AGENT_SPEC_MARKDOWN)
-    st.json(app_constants.STORAGE_AGENT_EXAMPLE)
-with st.expander("GridAgent specification"):
-    st.markdown(app_constants.GRID_AGENT_SPEC_MARKDOWN)
-    st.json(app_constants.GRID_AGENT_EXAMPLE)
-with st.expander("PVAgent specification"):
-    st.markdown(app_constants.PV_AGENT_SPEC_MARKDOWN)
-    st.json(app_constants.PV_AGENT_EXAMPLE)
-with st.expander("GroceryStoreAgent specification"):
-    st.markdown(app_constants.GROCERY_STORE_AGENT_SPEC_MARKDOWN)
-    st.json(app_constants.GROCERY_STORE_AGENT_EXAMPLE)
-
 if run_sim:
     run_sim = False
     logger.info("Running simulation")
