@@ -333,15 +333,6 @@ def add_grocery_store_agent():
     set_config_to_sess_state()
 
 
-def add_grid_agent():
-    add_agent({
-        "Type": "GridAgent",
-        "Resource": "ELECTRICITY",
-        "TransferRate": 10000
-    })
-    set_config_to_sess_state()
-
-
 def agent_inputs(agent):
     """Contains input fields needed to define an agent."""
     form = st.form(key="Form" + agent['Name'])
