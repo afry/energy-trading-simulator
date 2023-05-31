@@ -17,8 +17,8 @@ from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.bid import Action, Resource
-from tradingplatformpoc.data.config.access_config import read_agent_specs, read_config, read_param_specs, \
-    reset_config, set_config
+from tradingplatformpoc.data.config.access_config import read_agent_defaults, read_agent_specs, read_config, \
+    read_param_specs, reset_config, set_config
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.generate_mock_data import create_inputs_df
 from tradingplatformpoc.results.results_key import ResultsKey
@@ -298,39 +298,30 @@ def add_agent(new_agent: Dict[str, Any]):
 def add_building_agent():
     add_agent({
         "Type": "BuildingAgent",
-        "GrossFloorArea": 1000.0
+        **read_agent_defaults("BuildingAgent")
     })
-    set_config_to_sess_state()
 
 
 def add_storage_agent():
     add_agent({
         "Type": "StorageAgent",
         "Resource": "ELECTRICITY",
-        "Capacity": 1000,
-        "ChargeRate": 0.4,
-        "RoundTripEfficiency": 0.93,
-        "NHoursBack": 168,
-        "BuyPricePercentile": 20,
-        "SellPricePercentile": 80
+        **read_agent_defaults("StorageAgent")
     })
-    set_config_to_sess_state()
 
 
 def add_pv_agent():
     add_agent({
         "Type": "PVAgent",
-        "PVArea": 100
+        **read_agent_defaults("PVAgent")
     })
-    set_config_to_sess_state()
 
 
 def add_grocery_store_agent():
     add_agent({
         "Type": "GroceryStoreAgent",
-        "PVArea": 320
+        **read_agent_defaults("GroceryStoreAgent")
     })
-    set_config_to_sess_state()
 
 
 def agent_inputs(agent):

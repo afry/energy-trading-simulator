@@ -8,6 +8,12 @@ def read_agent_specs():
         return json.load(jsonfile)
 
 
+def read_agent_defaults(type):
+    with open(app_constants.AGENT_SPECS_FILENAME, "r") as jsonfile:
+        agent_specs = json.load(jsonfile)
+    return dict((param, val["default_value"]) for param, val in agent_specs[type])
+
+
 def read_param_specs(names):
     """Reads and returns specified params specification from file."""
     file_dict = {'AreaInfo': app_constants.AREA_INFO_SPECS,
@@ -60,3 +66,5 @@ def fill_with_default_params(new_config: dict) -> dict:
         for k, v in params_only_in_default.items():
             new_config[param_type][k] = v
     return new_config
+
+# TODO: Fill with agent defaults

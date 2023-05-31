@@ -175,7 +175,7 @@
             "step": 10.0,
             "format": "%.1f",
             "help": "Specified in square meters, indicating the total areal of solar panels that this agent has at its disposal",
-            "default_value": 0.0,
+            "default_value": 320,
             "type": "float",
             "required": false
         },
