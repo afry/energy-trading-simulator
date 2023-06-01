@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from tradingplatformpoc.app.app_functions import config_data_agent_screening, config_data_keys_screening, \
+from tradingplatformpoc.config.screen_config import config_data_agent_screening, config_data_keys_screening, \
     config_data_param_screening
 
 
