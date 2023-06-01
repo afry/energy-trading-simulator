@@ -2,15 +2,15 @@ import json
 import logging
 
 from tradingplatformpoc.app import app_constants
-from tradingplatformpoc.app.app_functions import add_building_agent, add_grocery_store_agent, add_params_to_form, \
-    add_pv_agent, add_storage_agent, agent_inputs, config_data_json_screening, display_diff_in_config, \
-    read_config, remove_all_building_agents, \
+from tradingplatformpoc.app.app_functions import config_data_json_screening, display_diff_in_config, \
     results_button, set_config, set_max_width, set_simulation_results
 
 import streamlit as st
 from st_pages import show_pages_from_config, add_indentation
+from tradingplatformpoc.app.app_inputs import add_building_agent, add_grocery_store_agent, add_params_to_form, \
+    add_pv_agent, add_storage_agent, agent_inputs, remove_all_building_agents
 from tradingplatformpoc.config.access_config import fill_agents_with_defaults, fill_with_default_params, get_config, \
-    read_param_specs
+    read_config, read_param_specs
 
 from tradingplatformpoc.simulation_runner import run_trading_simulations
 

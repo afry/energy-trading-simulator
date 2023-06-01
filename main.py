@@ -3,7 +3,7 @@ import pickle
 from logging.handlers import TimedRotatingFileHandler
 
 from pkg_resources import resource_filename
-from tradingplatformpoc.app.app_functions import read_config
+from tradingplatformpoc.app.app_inputs import read_config
 from tradingplatformpoc.simulation_runner import run_trading_simulations
 import logging
 import sys

@@ -3,7 +3,7 @@ from unittest import TestCase
 from pkg_resources import resource_filename
 
 from tradingplatformpoc import simulation_runner
-from tradingplatformpoc.app.app_functions import read_config
+from tradingplatformpoc.app.app_inputs import read_config
 from tradingplatformpoc.bid import Action
 from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES
 
