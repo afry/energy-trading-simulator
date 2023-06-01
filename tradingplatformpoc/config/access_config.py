@@ -8,10 +8,8 @@ def read_agent_specs():
         return json.load(jsonfile)
 
 
-def read_agent_defaults(type):
-    with open(app_constants.AGENT_SPECS_FILENAME, "r") as jsonfile:
-        agent_specs = json.load(jsonfile)
-    return dict((param, val["default_value"]) for param, val in agent_specs[type])
+def read_agent_defaults(agent_type, agent_specs):
+    return dict((param, val["default_value"]) for param, val in agent_specs[agent_type].items())
 
 
 def read_param_specs(names):
@@ -67,4 +65,17 @@ def fill_with_default_params(new_config: dict) -> dict:
             new_config[param_type][k] = v
     return new_config
 
-# TODO: Fill with agent defaults
+
+def fill_agent_with_defaults(agent: dict, agent_specs: dict) -> dict:
+    """Fill agent with default values based on type if value is not specified."""
+    default_values = read_agent_defaults(agent['Type'], agent_specs)
+    to_add = dict((key, val) for key, val in default_values.items() if key not in agent.keys())
+    agent.update(to_add)
+    return agent
+
+
+def fill_agents_with_defaults(new_config: dict) -> dict:
+    """Read specification and fill agents with default values if value is not specified."""
+    agent_specs = read_agent_specs()
+    new_config['Agents'] = [fill_agent_with_defaults(agent, agent_specs) for agent in new_config['Agents']]
+    return new_config

@@ -298,7 +298,7 @@ def add_agent(new_agent: Dict[str, Any]):
 def add_building_agent():
     add_agent({
         "Type": "BuildingAgent",
-        **read_agent_defaults("BuildingAgent")
+        **read_agent_defaults("BuildingAgent", read_agent_specs())
     })
 
 
@@ -306,21 +306,21 @@ def add_storage_agent():
     add_agent({
         "Type": "StorageAgent",
         "Resource": "ELECTRICITY",
-        **read_agent_defaults("StorageAgent")
+        **read_agent_defaults("StorageAgent", read_agent_specs())
     })
 
 
 def add_pv_agent():
     add_agent({
         "Type": "PVAgent",
-        **read_agent_defaults("PVAgent")
+        **read_agent_defaults("PVAgent", read_agent_specs())
     })
 
 
 def add_grocery_store_agent():
     add_agent({
         "Type": "GroceryStoreAgent",
-        **read_agent_defaults("GroceryStoreAgent")
+        **read_agent_defaults("GroceryStoreAgent", read_agent_specs())
     })
 
 
