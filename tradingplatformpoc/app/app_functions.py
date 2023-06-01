@@ -187,11 +187,6 @@ def results_dict_to_df(raw_dict: Dict[ResultsKey, float]) -> pd.DataFrame:
 
 
 # -------------------------------------- Config functions -------------------------------------
-def set_config_to_sess_state():
-    """Writes session state config to current configuration file."""
-    set_config(st.session_state.config_data)
-
-
 def get_config(reset: bool) -> dict:
     """
     If no current config file exists or the reset button is clicked, reset.
@@ -248,7 +243,7 @@ def remove_agent(some_agent: Dict[str, Any]):
         st.error('Not allowed to remove GridAgent!')
     else:
         st.session_state.config_data['Agents'].remove(some_agent)
-        set_config_to_sess_state()
+        set_config(st.session_state.config_data)
 
 
 def duplicate_agent(some_agent: Dict[str, Any]):
@@ -268,13 +263,13 @@ def duplicate_agent(some_agent: Dict[str, Any]):
         else:
             n_copies_existing += 1
     st.session_state.config_data['Agents'].append(new_agent)
-    set_config_to_sess_state()
+    set_config(st.session_state.config_data)
 
 
 def remove_all_building_agents():
     st.session_state.config_data['Agents'] = [agent for agent in st.session_state.config_data['Agents']
                                               if agent['Type'] != 'BuildingAgent']
-    set_config_to_sess_state()
+    set_config(st.session_state.config_data)
 
 
 def add_agent(new_agent: Dict[str, Any]):
@@ -292,7 +287,7 @@ def add_agent(new_agent: Dict[str, Any]):
     number_of_existing_new_agents = len([agent for agent in current_config['Agents'] if name_str in agent['Name']])
     new_agent["Name"] = name_str + str(number_of_existing_new_agents + 1)
     st.session_state.config_data['Agents'].append(new_agent)
-    set_config_to_sess_state()
+    set_config(st.session_state.config_data)
 
 
 def add_building_agent():
@@ -381,7 +376,7 @@ def agent_inputs(agent):
     submit = form.form_submit_button('Save agent')
     if submit:
         submit = False
-        set_config_to_sess_state()
+        set_config(st.session_state.config_data)
         st.experimental_rerun()
 
 

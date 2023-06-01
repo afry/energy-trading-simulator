@@ -5,7 +5,7 @@ from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.app.app_functions import add_building_agent, add_grocery_store_agent, add_params_to_form, \
     add_pv_agent, add_storage_agent, agent_inputs, config_data_json_screening, display_diff_in_config, \
     get_config, read_config, remove_all_building_agents, \
-    results_button, set_config, set_config_to_sess_state, set_max_width, set_simulation_results
+    results_button, set_config, set_max_width, set_simulation_results
 
 import streamlit as st
 from st_pages import show_pages_from_config, add_indentation
@@ -71,7 +71,7 @@ if option_choosen == options[0]:
             submit_area_form = area_form.form_submit_button("Save area info")
             if submit_area_form:
                 submit_area_form = False
-                set_config_to_sess_state()
+                set_config(st.session_state.config_data)
 
         with mock_data_constants_tab:
             # st.markdown("**Data simulation parameters for digital twin:**")  # ---------------
@@ -80,7 +80,7 @@ if option_choosen == options[0]:
             submit_mdc_form = mdc_form.form_submit_button("Save mock data generation constants")
             if submit_mdc_form:
                 submit_mdc_form = False
-                set_config_to_sess_state()
+                set_config(st.session_state.config_data)
 
     # ------------------- Start agents -------------------
     with st.expander("Agents"):
