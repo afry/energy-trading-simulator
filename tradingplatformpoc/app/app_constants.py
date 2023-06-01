@@ -17,14 +17,6 @@ ALTAIR_BASE_COLORS = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
 
 HEAT_PUMP_CHART_COLOR = 'gray'
 
-START_PAGE = "Start page"
-SETUP_PAGE = "Set up experiment"
-LOAD_PAGE = "Load results"
-BIDS_PAGE = "Results per agent"
-
-SELECT_PAGE_RADIO_LABEL = "Select page"
-ALL_PAGES = (START_PAGE, SETUP_PAGE, LOAD_PAGE, BIDS_PAGE)
-
 CO2_PEN_RATE_HELP_TEXT = "Not yet implemented!"
 RESOURCE_HELP_TEXT = "A string specifying which resource the agent handles. Allowed values: " + \
                      str(trading_platform_utils.ALL_IMPLEMENTED_RESOURCES_STR)
