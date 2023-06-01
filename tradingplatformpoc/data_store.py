@@ -31,7 +31,6 @@ class DataStore:
     def __init__(self, config_area_info: dict, nordpool_data: pd.Series, irradiation_data: pd.Series,
                  grid_carbon_intensity: pd.Series):
         self.default_pv_area = 0.0  # Assume no pv area as default
-        self.default_pv_efficiency = config_area_info["DefaultPVEfficiency"]
         self.heating_wholesale_price_fraction = config_area_info['ExternalHeatingWholesalePriceFraction']
         self.elec_wholesale_offset = config_area_info['ExternalElectricityWholesalePriceOffset']
         self.elec_tax = config_area_info["ElectricityTax"]

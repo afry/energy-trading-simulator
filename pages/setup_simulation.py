@@ -10,7 +10,8 @@ from tradingplatformpoc.app.app_inputs import add_building_agent, add_grocery_st
     add_pv_agent, add_storage_agent, agent_inputs, remove_all_building_agents
 from tradingplatformpoc.config.access_config import fill_agents_with_defaults, fill_with_default_params, get_config, \
     read_config, read_param_specs, set_config
-from tradingplatformpoc.config.screen_config import config_data_json_screening, display_diff_in_config
+from tradingplatformpoc.config.screen_config import compare_pv_efficiency, config_data_json_screening, \
+    display_diff_in_config
 
 from tradingplatformpoc.simulation_runner import run_trading_simulations
 
@@ -53,6 +54,11 @@ with config_container:
     # st.markdown('---')
 
 st.markdown("**Change configuration**")
+
+st.info(compare_pv_efficiency(read_config()))
+# TODO: Button for setting all PVEfficiency params to same value
+# TODO: Same for Heatpump COP
+
 if option_choosen == options[0]:
     with st.expander("General parameters"):
         st.markdown('Change parameter values by filling out the following forms. **Save** '

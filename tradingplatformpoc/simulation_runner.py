@@ -27,7 +27,7 @@ from tradingplatformpoc.results import results_calculator
 from tradingplatformpoc.results.simulation_results import SimulationResults
 from tradingplatformpoc.trade import Trade, TradeMetadataKey
 from tradingplatformpoc.trading_platform_utils import add_to_nested_dict, calculate_solar_prod, flatten_collection, \
-    get_if_exists_else, get_intersection
+    get_intersection
 
 FRACTION_OF_CALC_TIME_FOR_1_MONTH_SIMULATED = 0.065
 
@@ -315,13 +315,16 @@ def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings
     for agent in config_data["Agents"]:
         agent_type = agent["Type"]
         agent_name = agent['Name']
+
+        if agent_type in ["BuildingAgent", "PVAgent", "GroceryStoreAgent"]:
+            pv_prod_series = calculate_solar_prod(data_store_entity.irradiation_data,
+                                                  agent['PVArea'],
+                                                  agent['PVEfficiency'])
         if agent_type == "BuildingAgent":
             elec_cons_series = buildings_mock_data[get_elec_cons_key(agent_name)]
             space_heat_cons_series = buildings_mock_data[get_space_heat_cons_key(agent_name)]
             hot_tap_water_cons_series = buildings_mock_data[get_hot_tap_water_cons_key(agent_name)]
-            pv_efficiency = get_if_exists_else(agent, 'PVEfficiency', data_store_entity.default_pv_efficiency)
-            pv_area = get_if_exists_else(agent, 'PVArea', data_store_entity.default_pv_area)
-            pv_prod_series = calculate_solar_prod(data_store_entity.irradiation_data, pv_area, pv_efficiency)
+
             # We're not currently supporting different temperatures of heating, it's just "heating" as a very simplified
             # entity. Therefore we'll bunch them together here for now.
             total_heat_cons_series = space_heat_cons_series + hot_tap_water_cons_series
@@ -349,14 +352,9 @@ def initialize_agents(data_store_entity: DataStore, config_data: dict, buildings
                                        sell_price_percentile=agent["SellPricePercentile"],
                                        guid=agent_name))
         elif agent_type == "PVAgent":
-            pv_efficiency = get_if_exists_else(agent, 'PVEfficiency', data_store_entity.default_pv_efficiency)
-            pv_prod_series = calculate_solar_prod(data_store_entity.irradiation_data, agent['PVArea'], pv_efficiency)
             pv_digital_twin = StaticDigitalTwin(electricity_production=pv_prod_series)
             agents.append(PVAgent(data_store_entity, pv_digital_twin, guid=agent_name))
         elif agent_type == "GroceryStoreAgent":
-            pv_efficiency = get_if_exists_else(agent, 'PVEfficiency', data_store_entity.default_pv_efficiency)
-            pv_area = agent['PVArea'] if 'PVArea' in agent else 0
-            pv_prod_series = calculate_solar_prod(data_store_entity.irradiation_data, pv_area, pv_efficiency)
             grocery_store_digital_twin = StaticDigitalTwin(electricity_usage=coop_elec_cons,
                                                            heating_usage=coop_heat_cons,
                                                            electricity_production=pv_prod_series)
