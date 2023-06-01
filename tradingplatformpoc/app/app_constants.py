@@ -29,10 +29,10 @@ CO2_PEN_RATE_HELP_TEXT = "Not yet implemented!"
 RESOURCE_HELP_TEXT = "A string specifying which resource the agent handles. Allowed values: " + \
                      str(trading_platform_utils.ALL_IMPLEMENTED_RESOURCES_STR)
 
-DEFAULT_AGENTS_FILENAME = resource_filename("tradingplatformpoc.data.config", "default_agents.json")
-AGENT_SPECS_FILENAME = resource_filename("tradingplatformpoc.data.config", "agents_specs.json")
-AREA_INFO_SPECS = resource_filename("tradingplatformpoc.data.config", "area_info_specs.json")
-MOCK_DATA_CONSTANTS_SPECS = resource_filename("tradingplatformpoc.data.config", "mock_data_constants_specs.json")
-CURRENT_CONFIG_FILENAME = resource_filename("tradingplatformpoc.data.config", "current_config.json")
+DEFAULT_AGENTS_FILENAME = resource_filename("tradingplatformpoc.config", "default_agents.json")
+AGENT_SPECS_FILENAME = resource_filename("tradingplatformpoc.config", "agents_specs.json")
+AREA_INFO_SPECS = resource_filename("tradingplatformpoc.config", "area_info_specs.json")
+MOCK_DATA_CONSTANTS_SPECS = resource_filename("tradingplatformpoc.config", "mock_data_constants_specs.json")
+CURRENT_CONFIG_FILENAME = resource_filename("tradingplatformpoc.config", "current_config.json")
 LAST_SIMULATION_RESULTS = resource_filename("tradingplatformpoc.data", "last_simulation_results.pickle")
 MOCK_DATA_PATH = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")

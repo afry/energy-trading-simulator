@@ -17,7 +17,7 @@ from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.bid import Action, Resource
-from tradingplatformpoc.data.config.access_config import read_agent_defaults, read_agent_specs, read_config, \
+from tradingplatformpoc.config.access_config import read_agent_defaults, read_agent_specs, read_config, \
     read_param_specs, reset_config, set_config
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.generate_mock_data import create_inputs_df

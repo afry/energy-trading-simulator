@@ -9,7 +9,7 @@ from tradingplatformpoc.app.app_functions import add_building_agent, add_grocery
 
 import streamlit as st
 from st_pages import show_pages_from_config, add_indentation
-from tradingplatformpoc.data.config.access_config import fill_with_default_params, read_param_specs
+from tradingplatformpoc.config.access_config import fill_with_default_params, read_param_specs
 
 from tradingplatformpoc.simulation_runner import run_trading_simulations
 
