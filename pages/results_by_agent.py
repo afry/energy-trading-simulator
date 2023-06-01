@@ -3,9 +3,10 @@ from st_pages import show_pages_from_config, add_indentation
 from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app import footer
-from tradingplatformpoc.app.app_functions import construct_building_with_heat_pump_chart, \
+from tradingplatformpoc.app.app_inputs import get_agent
+from tradingplatformpoc.app.app_visualizations import construct_building_with_heat_pump_chart, \
     construct_storage_level_chart, construct_traded_amount_by_agent_chart, display_df_and_make_downloadable, \
-    get_agent, get_viewable_df, results_by_agent_as_df, results_by_agent_as_df_with_highlight
+    get_viewable_df, results_by_agent_as_df, results_by_agent_as_df_with_highlight
 
 show_pages_from_config("pages_config/pages_subpages.toml")
 add_indentation()
