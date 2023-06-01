@@ -4,12 +4,12 @@ import logging
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.app.app_functions import add_building_agent, add_grocery_store_agent, add_params_to_form, \
     add_pv_agent, add_storage_agent, agent_inputs, config_data_json_screening, display_diff_in_config, \
-    get_config, read_config, remove_all_building_agents, \
+    read_config, remove_all_building_agents, \
     results_button, set_config, set_max_width, set_simulation_results
 
 import streamlit as st
 from st_pages import show_pages_from_config, add_indentation
-from tradingplatformpoc.config.access_config import fill_agents_with_defaults, fill_with_default_params, \
+from tradingplatformpoc.config.access_config import fill_agents_with_defaults, fill_with_default_params, get_config, \
     read_param_specs
 
 from tradingplatformpoc.simulation_runner import run_trading_simulations
@@ -45,7 +45,8 @@ with config_container:
                                         " to default values and agents.", disabled=(option_choosen == options[1]))
     with col_config:
         # Saving the config to file on-change. That way changes won't get lost
-        current_config = get_config(reset_config_button)
+        current_config, message = get_config(reset_config_button)
+        st.markdown(message)
         st.session_state.config_data = current_config
     # st.markdown('*If you wish to save your configuration for '
     #             'another session, use the **Export to JSON**-button below.*')

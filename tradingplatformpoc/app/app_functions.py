@@ -18,7 +18,7 @@ from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.bid import Action, Resource
 from tradingplatformpoc.config.access_config import read_agent_defaults, read_agent_specs, read_config, \
-    read_param_specs, reset_config, set_config
+    read_param_specs, set_config
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.generate_mock_data import create_inputs_df
 from tradingplatformpoc.results.results_key import ResultsKey
@@ -184,26 +184,6 @@ def results_dict_to_df(raw_dict: Dict[ResultsKey, float]) -> pd.DataFrame:
     df.rename({0: 'Value'}, axis=1, inplace=True)
     formatted_df = df.style.format({'Value': '{:.2f}'.format})
     return formatted_df
-
-
-# -------------------------------------- Config functions -------------------------------------
-def get_config(reset: bool) -> dict:
-    """
-    If no current config file exists or the reset button is clicked, reset.
-    Return current config.
-    """
-    if not os.path.exists(app_constants.CURRENT_CONFIG_FILENAME):
-        reset_config()
-        st.markdown("**Current configuration: :blue[DEFAULT]**")
-    elif reset:
-        reset = False
-        reset_config()
-        st.markdown("**Current configuration: :blue[DEFAULT]**")
-    else:
-        st.markdown("**Current configuration: :blue[LAST SAVED]**")
-    config = read_config()
-    return config
-# ------------------------------------- End config functions ----------------------------------
 
 
 # ------------------------------------- Save result functions ---------------------------------

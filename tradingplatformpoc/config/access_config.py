@@ -1,4 +1,6 @@
 import json
+import os
+from typing import Tuple
 
 from tradingplatformpoc.app import app_constants
 
@@ -53,6 +55,24 @@ def reset_config():
     """Reads default configuration from file and writes to current configuration file."""
     config = read_config(name='default')
     set_config(config)
+
+
+def get_config(reset: bool) -> Tuple[dict, str]:
+    """
+    If no current config file exists or the reset button is clicked, reset.
+    Return current config.
+    """
+    if not os.path.exists(app_constants.CURRENT_CONFIG_FILENAME):
+        reset_config()
+        message = "**Current configuration: :blue[DEFAULT]**"
+    elif reset:
+        reset = False
+        reset_config()
+        message = "**Current configuration: :blue[DEFAULT]**"
+    else:
+        message = "**Current configuration: :blue[LAST SAVED]**"
+    config = read_config()
+    return config, message
 
 
 def fill_with_default_params(new_config: dict) -> dict:
