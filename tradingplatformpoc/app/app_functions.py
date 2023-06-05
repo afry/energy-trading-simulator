@@ -100,8 +100,7 @@ def construct_static_digital_twin_chart(digital_twin: StaticDigitalTwin, agent_c
 
 
 def construct_building_with_heat_pump_chart(agent_chosen: Union[BuildingAgent, PVAgent],
-                                            heat_pump_levels_dict: Dict[str, Dict[datetime.datetime, float]],
-                                            agent_chosen_guid: str) -> \
+                                            heat_pump_levels_dict: Dict[str, Dict[datetime.datetime, float]]) -> \
         alt.Chart:
     """
     Constructs a multi-line chart with energy production/consumption levels, with any heat pump workload data in the
@@ -110,7 +109,7 @@ def construct_building_with_heat_pump_chart(agent_chosen: Union[BuildingAgent, P
 
     heat_pump_data = heat_pump_levels_dict.get(agent_chosen.guid, {})
     if heat_pump_data == {}:
-        return construct_static_digital_twin_chart(agent_chosen.digital_twin, agent_chosen_guid, False)
+        return construct_static_digital_twin_chart(agent_chosen.digital_twin, agent_chosen.guid, False)
 
     st.write('Note: Energy production/consumption values do not include production/consumption by the heat pumps.')
     heat_pump_df = pd.DataFrame.from_dict(heat_pump_data, orient='index').reset_index()
