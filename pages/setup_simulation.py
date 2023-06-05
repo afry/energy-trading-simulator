@@ -55,7 +55,9 @@ with config_container:
 
 st.markdown("**Change configuration**")
 
-st.info(compare_pv_efficiency(read_config()))
+comp_pveff = compare_pv_efficiency(read_config())
+if comp_pveff is not None:
+    st.info(comp_pveff)
 # TODO: Button for setting all PVEfficiency params to same value
 # TODO: Same for Heatpump COP
 

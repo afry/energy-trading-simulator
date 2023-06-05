@@ -218,4 +218,4 @@ def compare_pv_efficiency(config: dict) -> str:
                              agent['PVEfficiency'] != config['AreaInfo']['DefaultPVEfficiency']]
     if len(agentw_w_other_pv_eff) > 0:
         return "PV efficiency differs from default for {}".format(', '.join(agentw_w_other_pv_eff))
-    return ""
+    return None

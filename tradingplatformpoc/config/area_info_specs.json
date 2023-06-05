@@ -5,6 +5,7 @@
         "max_value": 0.99,
         "format": "%.3f",
         "default": 0.165,
+        "step": 0.005,
         "help": "A number specifying the efficiency of solar panels in the microgrid. Can be overridden by individual agents. Number must be between 0 and 1, and is typically in the 0.15-0.25 range"
     },
     "HeatTransferLoss": {
