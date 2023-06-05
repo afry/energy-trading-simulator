@@ -328,7 +328,7 @@ GROCERY_STORE_AGENT_EXAMPLE = """
 
 DEFAULT_CONFIG_FILENAME = resource_filename("tradingplatformpoc.data", "default_config.json")
 CURRENT_CONFIG_FILENAME = resource_filename("tradingplatformpoc.data", "current_config.json")
-LAST_SIMULATION_RESULTS = resource_filename("tradingplatformpoc.data", "last_simulation_results.pickle")
+LAST_SIMULATION_RESULTS = resource_filename("tradingplatformpoc.data", "last_simulation_results.pbz2")
 MOCK_DATA_PATH = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
 
 param_spec_dict = {
