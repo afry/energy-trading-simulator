@@ -1,12 +1,15 @@
 # ---------------------------------------- Config screening -----------------------------------
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from tradingplatformpoc.config.access_config import read_agent_specs, read_param_specs
 from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES_STR
 
 
 def config_data_json_screening(config_data: dict) -> Optional[str]:
-    """Check that config json contains reasonable inputs."""
+    """
+    This function was made to check the input parameters in the config json for reasonable values ONCE,
+    at the beginning of running the simulation. This should ensure that all variables needed are present.
+    """
 
     str1 = config_data_keys_screening(config_data)
     if str1 is not None:
@@ -143,7 +146,8 @@ def config_data_agent_screening(config_data: dict) -> Optional[str]:
 
 
 # -------------------------------------- Start diff display -----------------------------------
-def agent_diff(default: dict, new: dict):
+def agent_diff(default: dict, new: dict) -> Tuple[List[str], List[str], Dict[str, dict]]:
+    """Returns agents removed, agents added and paramas changed for agents."""
     agents_in_default = [agent['Name'] for agent in default['Agents']]
     agents_in_new = [agent['Name'] for agent in new['Agents']]
 
@@ -164,12 +168,14 @@ def agent_diff(default: dict, new: dict):
 
 
 def param_diff(default: dict, new: dict) -> Tuple[List[Tuple], List[Tuple]]:
+    """Returns lists of parameter key, pairs that differ from the default."""
     changed_area_info_params = list(set(default['AreaInfo'].items()) - set(new['AreaInfo'].items()))
     changed_mock_data_params = list(set(default['MockDataConstants'].items()) - set(new['MockDataConstants'].items()))
     return changed_area_info_params, changed_mock_data_params
 
 
 def display_diff_in_config(default: dict, new: dict) -> List[str]:
+    """Outputs list of strings displaying changes made to the config."""
 
     str_to_disp = []
 
