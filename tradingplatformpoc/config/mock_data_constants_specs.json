@@ -4,56 +4,49 @@
         "min_value": 1,
         "max_value": 100,
         "default": 20,
-        "help": "Number indicating the electricity consumption of residential areas, in kWh per year and square meter. The default of 20 kWh/year/m2 'atemp' comes from a 2017-2018 metering study made by Skanska, 'Hushållsel i nybyggda flerbostadshus'. 'Atemp' refers to a specific surface area measurement from which energy-related metrics are calculated. Essentially, it's the surface area which experiences a temperature modulation by an energy source.",
-        "required": false
+        "help": "Number indicating the electricity consumption of residential areas, in kWh per year and square meter. The default of 20 kWh/year/m2 'atemp' comes from a 2017-2018 metering study made by Skanska, 'Hushållsel i nybyggda flerbostadshus'. 'Atemp' refers to a specific surface area measurement from which energy-related metrics are calculated. Essentially, it's the surface area which experiences a temperature modulation by an energy source."
     },
     "ResidentialSpaceHeatKwhPerYearM2": {
         "display": "Residential space heat kWh/year/m2:",
         "min_value": 1,
         "max_value": 100,
         "default": 25,
-        "help": "Number indicating the space heating consumption of residential areas, in kWh per year and square meter. The default of 25 kWh/year/m2 has been provided by BDAB.",
-        "required": false
+        "help": "Number indicating the space heating consumption of residential areas, in kWh per year and square meter. The default of 25 kWh/year/m2 has been provided by BDAB."
     },
     "ResidentialHotTapWaterKwhPerYearM2": {
         "display": "Residential hot tap water kWh/year/m2:",
         "min_value": 1,
         "max_value": 100,
         "default": 25,
-        "help": "Number indicating the hot tap water consumption of residential areas, in kWh per year and square meter. The default of 25 kWh/year/m2 has been provided by BDAB.",
-        "required": false
+        "help": "Number indicating the hot tap water consumption of residential areas, in kWh per year and square meter. The default of 25 kWh/year/m2 has been provided by BDAB."
     },
     "ResidentialHeatingRelativeErrorStdDev": {
         "display": "Residential hot tap water relative standard deviation:",
         "min_value": 0.0,
         "max_value": 1.0,
         "default": 0.2,
-        "help": "The standard deviation of simulated heating consumption of residential areas, in relative terms. For a given hour, an expected value will be calculated, and the simulated value will then be this expected value, multiplied with a factor normally distributed with a mean of 1 and a standard deviation of this value. Basically, the higher this value is, the more residential heating consumption will vary, hour-to-hour.",
-        "required": false
+        "help": "The standard deviation of simulated heating consumption of residential areas, in relative terms. For a given hour, an expected value will be calculated, and the simulated value will then be this expected value, multiplied with a factor normally distributed with a mean of 1 and a standard deviation of this value. Basically, the higher this value is, the more residential heating consumption will vary, hour-to-hour."
     },
     "CommercialElecKwhPerYearM2": {
         "display": "Commercial electricity kWh/year/m2:",
         "min_value": 1,
         "max_value": 200,
         "default": 118,
-        "help": "Number indicating the electricity consumption of commercial areas, in kWh per year and square meter. The default of 118 kWh/year/m2 comes from Energimyndigheten's 2009 report 'Energianvändning i handelslokaler'. This number is given for 'non-grocery-related' trades premises.",
-        "required": false
+        "help": "Number indicating the electricity consumption of commercial areas, in kWh per year and square meter. The default of 118 kWh/year/m2 comes from Energimyndigheten's 2009 report 'Energianvändning i handelslokaler'. This number is given for 'non-grocery-related' trades premises."
     },
     "CommercialElecRelativeErrorStdDev": {
         "display": "Commercial electricity relative standard deviation:",
         "min_value": 0.0,
         "max_value": 1.0,
         "default": 0.2,
-        "help": "The standard deviation of simulated electricity consumption of commercial areas, in relative terms. For a given hour, an expected value will be calculated, and the simulated value will then be this expected value, multiplied with a factor normally distributed with a mean of 1 and a standard deviation of this value. Basically, the higher this value is, the more commercial electricity consumption will vary, hour-to-hour.",
-        "required": false
+        "help": "The standard deviation of simulated electricity consumption of commercial areas, in relative terms. For a given hour, an expected value will be calculated, and the simulated value will then be this expected value, multiplied with a factor normally distributed with a mean of 1 and a standard deviation of this value. Basically, the higher this value is, the more commercial electricity consumption will vary, hour-to-hour."
     },
     "CommercialSpaceHeatKwhPerYearM2": {
         "display": "Commercial space heat kWh/year/m2:",
         "min_value": 1,
         "max_value": 100,
         "default": 32,
-        "help": "Number indicating the space heating consumption of commercial areas, in kWh per year and square meter. The default of 32 kWh/year/m2 has been derived from a combination of numbers provided by BDAB: For commercial office buildings, they quote 20 kWh/year/m2, and for 'köpcentrum' 44 kWh/year/m2. Since these commercial areas will likely be of mixed character, we split these numbers down the middle.",
-        "required": false
+        "help": "Number indicating the space heating consumption of commercial areas, in kWh per year and square meter. The default of 32 kWh/year/m2 has been derived from a combination of numbers provided by BDAB: For commercial office buildings, they quote 20 kWh/year/m2, and for 'köpcentrum' 44 kWh/year/m2. Since these commercial areas will likely be of mixed character, we split these numbers down the middle."
     },
     "CommercialHotTapWaterKwhPerYearM2": {
         "display": "Commercial hot tap water kWh/year/m2:",
@@ -61,56 +54,49 @@
         "max_value": 10.0,
         "step": 0.5,
         "default": 3.5,
-        "help": "Number indicating the hot tap water consumption of commercial areas, in kWh per year and square meter. The default of 3.5 kWh/year/m2 has been derived from a combination of numbers provided by BDAB: For commercial office buildings, they quote 2 kWh/year/m2, and for 'köpcentrum' 5 kWh/year/m2. Since these commercial areas will likely be of mixed character, we split these numbers down the middle.",
-        "required": false
+        "help": "Number indicating the hot tap water consumption of commercial areas, in kWh per year and square meter. The default of 3.5 kWh/year/m2 has been derived from a combination of numbers provided by BDAB: For commercial office buildings, they quote 2 kWh/year/m2, and for 'köpcentrum' 5 kWh/year/m2. Since these commercial areas will likely be of mixed character, we split these numbers down the middle."
     },
     "CommercialHotTapWaterRelativeErrorStdDev": {
         "display": "Commercial hot tap water relative standard deviation:",
         "min_value": 0.0,
         "max_value": 1.0,
         "default": 0.2,
-        "help": "The standard deviation of simulated hot tap water consumption of commercial areas, in relative terms. For a given hour, an expected value will be calculated, and the simulated value will then be this expected value, multiplied with a factor normally distributed with a mean of 1 and a standard deviation of this value. Basically, the higher this value is, the more commercial hot tap water consumption will vary, hour-to-hour.",
-        "required": false
+        "help": "The standard deviation of simulated hot tap water consumption of commercial areas, in relative terms. For a given hour, an expected value will be calculated, and the simulated value will then be this expected value, multiplied with a factor normally distributed with a mean of 1 and a standard deviation of this value. Basically, the higher this value is, the more commercial hot tap water consumption will vary, hour-to-hour."
     },
     "SchoolElecKwhPerYearM2": {
         "display": "School electricity kWh/year/m2:",
         "min_value": 1,
         "max_value": 200,
         "default": 60,
-        "help": "Number indicating the electricity consumption of school buildings, in kWh per year and square meter. The default of 60 kWh/year/m2 comes from Energimyndigheten's 2009 report 'Energin i skolan'.",
-        "required": false
+        "help": "Number indicating the electricity consumption of school buildings, in kWh per year and square meter. The default of 60 kWh/year/m2 comes from Energimyndigheten's 2009 report 'Energin i skolan'."
     },
     "SchoolElecRelativeErrorStdDev": {
         "display": "School electricity relative standard deviation:",
         "min_value": 0.0,
         "max_value": 1.0,
         "default": 0.2,
-        "help": "The standard deviation of simulated electricity consumption of school areas, in relative terms. For a given hour, an expected value will be calculated, and the simulated value will then be this expected value, multiplied with a factor normally distributed with a mean of 1 and a standard deviation of this value. Basically, the higher this value is, the more school electricity consumption will vary, hour-to-hour.",
-        "required": false
+        "help": "The standard deviation of simulated electricity consumption of school areas, in relative terms. For a given hour, an expected value will be calculated, and the simulated value will then be this expected value, multiplied with a factor normally distributed with a mean of 1 and a standard deviation of this value. Basically, the higher this value is, the more school electricity consumption will vary, hour-to-hour."
     },
     "SchoolSpaceHeatKwhPerYearM2": {
         "display": "School space heat kWh/year/m2:",
         "min_value": 1,
         "max_value": 100,
         "default": 25,
-        "help": "Number indicating the space heating consumption of school buildings, in kWh per year and square meter. The default of 25 kWh/year/m2 has been provided by BDAB.",
-        "required": false
+        "help": "Number indicating the space heating consumption of school buildings, in kWh per year and square meter. The default of 25 kWh/year/m2 has been provided by BDAB."
     },
     "SchoolHotTapWaterKwhPerYearM2": {
         "display": "School hot tap water kWh/year/m2:",
         "min_value": 1,
         "max_value": 100,
         "default": 7,
-        "help": "Number indicating the hot tap water consumption of school buildings, in kWh per year and square meter. The default of 7 kWh/year/m2 has been provided by BDAB.",
-        "required": false
+        "help": "Number indicating the hot tap water consumption of school buildings, in kWh per year and square meter. The default of 7 kWh/year/m2 has been provided by BDAB."
     },
     "SchoolHotTapWaterRelativeErrorStdDev": {
         "display": "School hot tap water relative standard deviation:",
         "min_value": 0.0,
         "max_value": 1.0,
         "default": 0.2,
-        "help": "The standard deviation of simulated hot tap water consumption of school buildings, in relative terms. For a given hour, an expected value will be calculated, and the simulated value will then be this expected value, multiplied with a factor normally distributed with a mean of 1 and a standard deviation of this value. Basically, the higher this value is, the more school hot tap water consumption will vary, hour-to-hour.",
-        "required": false
+        "help": "The standard deviation of simulated hot tap water consumption of school buildings, in relative terms. For a given hour, an expected value will be calculated, and the simulated value will then be this expected value, multiplied with a factor normally distributed with a mean of 1 and a standard deviation of this value. Basically, the higher this value is, the more school hot tap water consumption will vary, hour-to-hour."
     }
 
 }

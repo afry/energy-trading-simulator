@@ -136,7 +136,7 @@ def config_data_agent_screening(config_data: dict) -> Optional[str]:
                     return "Specified {}: {} > {}.".format(key, val, agent_specs[
                         agent['Type']][key]["max_value"])
             
-        for key in [key for key, val in agent_specs[agent['Type']].items() if val['required']]:
+        for key in [key for key, val in agent_specs[agent['Type']].items()]:
             if key not in items.keys():
                 return "Missing parameter {} for agent {}.".format(key, agent['Name'])
 

@@ -113,7 +113,7 @@ def agent_inputs(agent):
     agent_specs = read_agent_specs()
     for key, val in agent_specs[agent['Type']].items():
         params = {k: v for k, v in val.items() if k not in
-                  ['display', 'default_value', 'type', 'disabled_cond', 'required']}
+                  ['display', 'default_value', 'type', 'disabled_cond']}
         
         if 'disabled_cond' in val.keys():
             for k, v in val['disabled_cond'].items():
@@ -158,7 +158,7 @@ def add_params_to_form(form, param_spec_dict: dict, info_type: str):
     """Populate parameter forms."""
     current_config = read_config()
     for key, val in param_spec_dict[info_type].items():
-        params = {k: v for k, v in val.items() if k not in ['display', 'required', 'default']}
+        params = {k: v for k, v in val.items() if k not in ['display', 'default']}
         st.session_state.config_data[info_type][key] = form.number_input(
             val['display'], **params,
             value=current_config[info_type][key])
