@@ -31,6 +31,7 @@ if 'simulation_results' in st.session_state:
         trades_chart = construct_traded_amount_by_agent_chart(agent_chosen_guid,
                                                               st.session_state.simulation_results.all_trades)
         st.altair_chart(trades_chart, use_container_width=True, theme=None)
+        st.write("Click on a variable to highlight it.")
 
     with st.expander('Extra costs'):
         st.write('A negative cost means that the agent was owed money for the period, rather than owing the '
@@ -53,6 +54,7 @@ if 'simulation_results' in st.session_state:
             hp_chart = construct_building_with_heat_pump_chart(agent_chosen, st.session_state.
                                                                simulation_results.heat_pump_levels_dict)
             st.altair_chart(hp_chart, use_container_width=True, theme=None)
+            st.write("Click on a variable to highlight it.")
 
     st.subheader('Aggregated results')
 
