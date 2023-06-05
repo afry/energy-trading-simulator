@@ -18,7 +18,6 @@ from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.bid import Action, Resource
-from tradingplatformpoc.compress import bz2_compress_pickle, bz2_decompress_pickle
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.generate_mock_data import create_inputs_df
 from tradingplatformpoc.results.results_key import ResultsKey
@@ -252,12 +251,14 @@ def fill_with_default_params(new_config: dict) -> dict:
 def set_simulation_results(simulation_results: SimulationResults):
     """Writes simulation results to file."""
     data = (datetime.datetime.now(datetime.timezone.utc), simulation_results)
-    bz2_compress_pickle(app_constants.LAST_SIMULATION_RESULTS, data)
+    with open(app_constants.LAST_SIMULATION_RESULTS, 'wb') as f:
+        pickle.dump(data, f)
 
 
 def read_simulation_results() -> Tuple[datetime.datetime, SimulationResults]:
     """Reads simulation results from file."""
-    return bz2_decompress_pickle(app_constants.LAST_SIMULATION_RESULTS)
+    with open(app_constants.LAST_SIMULATION_RESULTS, 'rb') as f:
+        return pickle.load(f)
 
 
 def results_button(results_download_button):
