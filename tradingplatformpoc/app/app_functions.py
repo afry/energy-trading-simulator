@@ -124,7 +124,7 @@ def construct_building_with_heat_pump_chart(agent_chosen: Union[BuildingAgent, P
                  alt.Tooltip(field='Heat pump workload', title='Heat pump workload', type='quantitative')]
     )
 
-    energy_multiline = construct_static_digital_twin_chart(agent_chosen.digital_twin, agent_chosen_guid, True)
+    energy_multiline = construct_static_digital_twin_chart(agent_chosen.digital_twin, agent_chosen.guid, True)
     return alt.layer(heat_pump_area, energy_multiline).resolve_scale(y='independent')
 
 
