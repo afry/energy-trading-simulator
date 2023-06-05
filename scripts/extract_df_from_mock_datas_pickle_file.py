@@ -1,15 +1,15 @@
-import json
 import pickle
 
 import pandas as pd
 
 from pkg_resources import resource_filename
 
+from tradingplatformpoc.config.access_config import read_config
 from tradingplatformpoc.mock_data_generation_functions import get_all_building_agents, get_elec_cons_key, \
     get_hot_tap_water_cons_key, get_space_heat_cons_key
 
+
 DATA_PATH = 'tradingplatformpoc.data'
-CONFIG_FILE = 'default_config.json'
 IN_PICKLE = resource_filename(DATA_PATH, 'mock_datas.pickle')
 AGENT_TO_LOOK_AT = 'ResidentialBuildingAgentBC1'
 
@@ -21,8 +21,7 @@ different configurations.
 """
 
 # Open config file
-with open(resource_filename(DATA_PATH, CONFIG_FILE), "r") as json_file:
-    config_data = json.load(json_file)
+config_data = read_config(name='default')
 residential_building_agents, total_gross_floor_area = get_all_building_agents(config_data["Agents"])
 # The residential building agents in the current config:
 current_config_rbas = frozenset(residential_building_agents)

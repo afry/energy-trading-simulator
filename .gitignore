@@ -69,7 +69,7 @@ wheels/
 tradingplatformpoc/data/models/*.pickle
 
 # Custom config file
-tradingplatformpoc/data/current_config.json
+tradingplatformpoc/config/current_config.json
 
 # Last simulation result
 tradingplatformpoc/data/last_simulation_results.pickle

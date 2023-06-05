@@ -1,0 +1,61 @@
+{
+    "DefaultPVEfficiency": {
+        "display": "Default PV efficiency:",
+        "min_value": 0.01,
+        "max_value": 0.99,
+        "format": "%.3f",
+        "default": 0.165,
+        "step": 0.005,
+        "help": "A number specifying the efficiency of solar panels in the microgrid. Can be overridden by individual agents. Number must be between 0 and 1, and is typically in the 0.15-0.25 range"
+    },
+    "HeatTransferLoss": {
+        "display": "Heat transfer loss:",
+        "min_value": 0.0,
+        "max_value": 0.99,
+        "format": "%.3f",
+        "default": 0.05,
+        "help": "A number specifying the loss of heat in every transfer. Must be between 0 and 0.99, where 0 would mean no losses at all, and 0.99 would mean that almost all energy is lost when trying to transfer heat from one agent to another. A reasonable number would be in the 0-0.10 range."
+    },
+    "ExternalElectricityWholesalePriceOffset": {
+        "display": "External electricity wholesale price offset:",
+        "min_value": -1.0,
+        "max_value": 1.0,
+        "default": 0.05,
+        "help": "The price at which the microgrid can export electricity to the external grid, will be set to the Nordpool spot price, plus this offset. The unit is SEK/kWh. For Varberg Energi, indications are that this will be in the 0-0.15 range."
+    },
+    "ElectricityTax": {
+        "display": "Electricity tax:",
+        "min_value": 0.0,
+        "format": "%.3f",
+        "default": 0.392,
+        "help": "The electricity tax in SEK/kWh, for trades not inside the local market. For 2022, this is 0.392, but here it can be set to any (non-negative) number"
+    },
+    "ElectricityGridFee": {
+        "display": "Electricity grid fee:",
+        "min_value": 0.0,
+        "format": "%.3f",
+        "default": 0.148,
+        "help": "The electricity grid fee in SEK/kWh, for trades not inside the local market. The price at which electricity can be imported into the microgrid will be set to the Nordpool spot price, plus the electricity tax, plus this number. In reality it is quite complicated to calculate, since it depends on the average effect used for the three months with highest consumption over the year, but here we approximate it with a flat SEK/kWh rate. For Varberg Energi in 2023 this approximation is roughly equal to 0.148, but here it can be set to any (non-negative) number"
+    },
+    "ElectricityTaxInternal": {
+        "display": "Electricity tax (internal):",
+        "min_value": 0.0,
+        "format": "%.3f",
+        "default": 0.392,
+        "help": "The electricity tax in SEK/kWh, paid on internal trades in the local market. Should be between 0 and the 'external'/'normal' tax"
+    },
+    "ElectricityGridFeeInternal": {
+        "display": "Electricity grid fee (internal):",
+        "min_value": 0.0,
+        "format": "%.3f",
+        "default": 0.148,
+        "help": "The grid fee, in SEK/kWh, paid on internal trades in the local market. Should be between 0 and the 'external'/'normal' grid fee"
+    },
+    "ExternalHeatingWholesalePriceFraction": {
+        "display": "External heating wholesale price fraction:",
+        "min_value": 0.0,
+        "max_value": 1.0,
+        "default": 0.5,
+        "help": "The price at which the microgrid can export heat to the external grid, will be set to the import (retail) price, multiplied by this factor. Should be less than 1. In reality, the external grid may not want to buy any heat from the microgrid at all - this can be achieved by setting this number to 0."
+    }
+}

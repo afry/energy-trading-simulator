@@ -3,8 +3,8 @@ import pickle
 from logging.handlers import TimedRotatingFileHandler
 
 from pkg_resources import resource_filename
+from tradingplatformpoc.app.app_inputs import read_config
 from tradingplatformpoc.simulation_runner import run_trading_simulations
-import json
 import logging
 import sys
 
@@ -46,9 +46,7 @@ if string_to_log_later is not None:
 # --- Define path to mock data
 mock_datas_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
 results_path = "./results/"
-config_filename = resource_filename("tradingplatformpoc.data", "default_config.json")
-with open(config_filename, "r") as jsonfile:
-    config_data = json.load(jsonfile)
+config_data = read_config(name='default')
 
 if __name__ == '__main__':
     logger.info("Running main")
