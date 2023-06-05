@@ -52,8 +52,7 @@ if 'simulation_results' in st.session_state:
         # Any building agent with a StaticDigitalTwin
         with st.expander('Energy production/consumption'):
             hp_chart = construct_building_with_heat_pump_chart(agent_chosen, st.session_state.
-                                                               simulation_results.heat_pump_levels_dict,
-                                                               agent_chosen_guid)
+                                                               simulation_results.heat_pump_levels_dict)
             st.altair_chart(hp_chart, use_container_width=True, theme=None)
 
     st.subheader('Aggregated results')

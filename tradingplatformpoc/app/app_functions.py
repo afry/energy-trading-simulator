@@ -44,7 +44,7 @@ def construct_price_chart(prices_df: pd.DataFrame, resource: Resource) -> alt.Ch
     domain = [app_constants.LOCAL_PRICE_STR, app_constants.RETAIL_PRICE_STR, app_constants.WHOLESALE_PRICE_STR]
     range_color = ['blue', 'green', 'red']
     range_dash = [[0, 0], [2, 4], [2, 4]]
-    title = alt.TitleParams("Total of locally produced heating and electricity", anchor='middle')
+    title = alt.TitleParams("Price over Time", anchor='middle')
     selection = alt.selection_single(fields=['variable'], bind='legend')
     return alt.Chart(data_to_use, title=title).mark_line(). \
         encode(x=alt.X('period', axis=alt.Axis(title='Period (UTC)'), scale=alt.Scale(type="utc")),
@@ -96,7 +96,7 @@ def construct_static_digital_twin_chart(digital_twin: StaticDigitalTwin, agent_c
     if should_add_hp_to_legend:
         domain.append('Heat pump workload')
         range_color.append(app_constants.HEAT_PUMP_CHART_COLOR)
-    return altair_period_chart(df, domain, range_color, agent_chosen_guid)
+    return altair_period_chart(df, domain, range_color, "Energy production/consumption for " + agent_chosen_guid)
 
 
 def construct_building_with_heat_pump_chart(agent_chosen: Union[BuildingAgent, PVAgent],
@@ -784,15 +784,16 @@ def construct_traded_amount_by_agent_chart(agent_chosen_guid: str,
                                           'value': 0.0,
                                           'variable': elem['title']})))
 
-    return altair_period_chart(df, domain, range_color, agent_chosen_guid)
+    return altair_period_chart(df, domain, range_color, 'Electricity and Heating Amounts Traded for '
+                               + agent_chosen_guid)
 
 
 def altair_period_chart(df: pd.DataFrame, domain: List[str], range_color: List[str],
-                        agent_chosen_guid: str) -> alt.Chart:
+                        title_str: str) -> alt.Chart:
     """Altair chart for one or more variables over period."""
     selection = alt.selection_single(fields=['variable'], bind='legend')
-    title = alt.TitleParams('Energy and Heating Production/Consumption for ' + agent_chosen_guid, anchor='middle')
-    return alt.Chart(df, title=title).mark_line(). \
+    alt_title = alt.TitleParams(title_str, anchor='middle')
+    return alt.Chart(df, title=alt_title).mark_line(). \
         encode(x=alt.X('period:T', axis=alt.Axis(title='Period (UTC)'), scale=alt.Scale(type="utc")),
                y=alt.Y('value', axis=alt.Axis(title='Energy [kWh]')),
                color=alt.Color('variable', scale=alt.Scale(domain=domain, range=range_color)),
