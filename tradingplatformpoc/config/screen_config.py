@@ -102,7 +102,6 @@ def config_data_agent_screening(config_data: dict) -> Optional[str]:
                 if not agent['Resource'] == 'ELECTRICITY':
                     return "Resource {} is not yet availible for agent {}.".format(agent['Resource'], agent['Name'])
         
-    # Ensure all essential agents exists, and of the right amount.
     # Needs exactly two GridAgents, one for each resource
     if 'GridAgent' not in [agent['Type'] for agent in config_data['Agents']]:
         return 'No GridAgent provided!'
