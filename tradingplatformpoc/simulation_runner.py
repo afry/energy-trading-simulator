@@ -59,16 +59,26 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
         progress_text.info("Generating data...")
     buildings_mock_data: pd.DataFrame = get_generated_mock_data(config_data, mock_datas_pickle_path)
 
+    trading_periods = get_intersection(buildings_mock_data.index.tolist(),
+                                       data_store_entity.get_nordpool_data_datetimes())
+
     # Output lists
     clearing_prices_historical: Dict[datetime.datetime, Dict[Resource, float]] = {}
-    all_trades_dict: Dict[datetime.datetime, Collection[Trade]] = {}
-    all_bids_dict: Dict[datetime.datetime, Collection[NetBidWithAcceptanceStatus]] = {}
+    all_trades_dict: Dict[datetime.datetime,
+                          Collection[Trade]] = dict(zip(trading_periods, ([] for _ in trading_periods)))
+    all_bids_dict: Dict[datetime.datetime,
+                        Collection[NetBidWithAcceptanceStatus]] = dict(zip(trading_periods,
+                                                                           ([] for _ in trading_periods)))
     storage_levels_dict: Dict[str, Dict[datetime.datetime, float]] = {}
     heat_pump_levels_dict: Dict[str, Dict[datetime.datetime, float]] = {}
     all_extra_costs: List[ExtraCost] = []
     # Store the exact external prices, need them for some calculations
-    exact_retail_electricity_prices_by_period: Dict[datetime.datetime, float] = {}
-    exact_wholesale_electricity_prices_by_period: Dict[datetime.datetime, float] = {}
+    exact_retail_electricity_prices_by_period: Dict[datetime.datetime,
+                                                    float] = dict(zip(trading_periods,
+                                                                      (0.0 for _ in trading_periods)))
+    exact_wholesale_electricity_prices_by_period: Dict[datetime.datetime,
+                                                       float] = dict(zip(trading_periods,
+                                                                         (0.0 for _ in trading_periods)))
     # Amount of tax paid
     tax_paid = 0.0
     # Amount of grid fees paid on internal trades
@@ -79,8 +89,6 @@ def run_trading_simulations(config_data: Dict[str, Any], mock_datas_pickle_path:
     agents, grid_agents = initialize_agents(data_store_entity, config_data, buildings_mock_data, energy_data_csv_path)
 
     # Main loop
-    trading_periods = get_intersection(buildings_mock_data.index.tolist(),
-                                       data_store_entity.get_nordpool_data_datetimes())
     for period in trading_periods:
         if period.day == period.hour == 1:
             info_string = "Simulations entering {:%B}".format(period)
