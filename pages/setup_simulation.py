@@ -189,7 +189,6 @@ if run_sim:
     st.spinner("Running simulation")
 
     simulator = TradingSimulator(read_config(), app_constants.MOCK_DATA_PATH)
-    simulator.initialize_agents()
     simulation_results = simulator.run(progress_bar, progress_text)
 
     set_simulation_results(simulation_results)

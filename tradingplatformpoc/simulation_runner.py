@@ -67,12 +67,13 @@ class TradingSimulator:
         self.tax_paid = 0.0
         # Amount of grid fees paid on internal trades
         self.grid_fees_paid_on_internal_trades = 0.0
+        self.agents, self.grid_agents = self.initialize_agents()
 
     def initialize_agents(self) -> Tuple[List[IAgent], List[GridAgent]]:
         # Register all agents
         # Keep a list of all agents to iterate over later
-        self.agents: List[IAgent] = []
-        self.grid_agents: List[GridAgent] = []
+        agents: List[IAgent] = []
+        grid_agents: List[GridAgent] = []
 
         # Read energy CSV file
         tornet_household_elec_cons, coop_elec_cons, tornet_heat_cons, coop_heat_cons = \
@@ -100,8 +101,8 @@ class TradingSimulator:
                 nbr_heat_pumps = agent["NumberHeatPumps"] if "NumberHeatPumps" in agent.keys() else 0
                 cop = agent["COP"] if "COP" in agent.keys() else None
 
-                self.agents.append(BuildingAgent(data_store=self.data_store_entity, digital_twin=building_digital_twin,
-                                                 guid=agent_name, nbr_heat_pumps=nbr_heat_pumps, coeff_of_perf=cop))
+                agents.append(BuildingAgent(data_store=self.data_store_entity, digital_twin=building_digital_twin,
+                                            guid=agent_name, nbr_heat_pumps=nbr_heat_pumps, coeff_of_perf=cop))
 
             elif agent_type == "StorageAgent":
                 discharge_rate = agent["DischargeRate"] if "DischargeRate" in agent else agent["ChargeRate"]
@@ -109,18 +110,18 @@ class TradingSimulator:
                                                           max_charge_rate_fraction=agent["ChargeRate"],
                                                           max_discharge_rate_fraction=discharge_rate,
                                                           discharging_efficiency=agent["RoundTripEfficiency"])
-                self.agents.append(StorageAgent(self.data_store_entity, storage_digital_twin,
-                                                resource=Resource[agent["Resource"]],
-                                                n_hours_to_look_back=agent["NHoursBack"],
-                                                buy_price_percentile=agent["BuyPricePercentile"],
-                                                sell_price_percentile=agent["SellPricePercentile"],
-                                                guid=agent_name))
+                agents.append(StorageAgent(self.data_store_entity, storage_digital_twin,
+                                           resource=Resource[agent["Resource"]],
+                                           n_hours_to_look_back=agent["NHoursBack"],
+                                           buy_price_percentile=agent["BuyPricePercentile"],
+                                           sell_price_percentile=agent["SellPricePercentile"],
+                                           guid=agent_name))
             elif agent_type == "PVAgent":
                 pv_efficiency = get_if_exists_else(agent, 'PVEfficiency', self.data_store_entity.default_pv_efficiency)
                 pv_prod_series = calculate_solar_prod(self.data_store_entity.irradiation_data,
                                                       agent['PVArea'], pv_efficiency)
                 pv_digital_twin = StaticDigitalTwin(electricity_production=pv_prod_series)
-                self.agents.append(PVAgent(self.data_store_entity, pv_digital_twin, guid=agent_name))
+                agents.append(PVAgent(self.data_store_entity, pv_digital_twin, guid=agent_name))
             elif agent_type == "GroceryStoreAgent":
                 pv_efficiency = get_if_exists_else(agent, 'PVEfficiency', self.data_store_entity.default_pv_efficiency)
                 pv_area = agent['PVArea'] if 'PVArea' in agent else 0
@@ -128,20 +129,20 @@ class TradingSimulator:
                 grocery_store_digital_twin = StaticDigitalTwin(electricity_usage=coop_elec_cons,
                                                                heating_usage=coop_heat_cons,
                                                                electricity_production=pv_prod_series)
-                self.agents.append(BuildingAgent(data_store=self.data_store_entity,
-                                                 digital_twin=grocery_store_digital_twin,
-                                                 guid=agent_name))
+                agents.append(BuildingAgent(data_store=self.data_store_entity,
+                                            digital_twin=grocery_store_digital_twin,
+                                            guid=agent_name))
             elif agent_type == "GridAgent":
                 grid_agent = GridAgent(self.data_store_entity, Resource[agent["Resource"]],
                                        max_transfer_per_hour=agent["TransferRate"], guid=agent_name)
-                self.agents.append(grid_agent)
-                self.grid_agents.append(grid_agent)
+                agents.append(grid_agent)
+                grid_agents.append(grid_agent)
 
         # Verify that we have a Grid Agent
-        if not any(isinstance(agent, GridAgent) for agent in self.agents):
+        if not any(isinstance(agent, GridAgent) for agent in agents):
             raise RuntimeError("No grid agent initialized")
 
-        return self.agents, self.grid_agents
+        return agents, grid_agents
 
     def run(self, progress_bar: Union[st.progress, None] = None,
             progress_text: Union[st.info, None] = None) -> \
