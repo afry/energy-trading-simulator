@@ -1,7 +1,7 @@
 import json
 import logging
 
-from tradingplatformpoc.app import app_constants
+from tradingplatformpoc.app import app_constants, footer
 from tradingplatformpoc.app.app_functions import results_button, set_max_width, set_simulation_results
 
 import streamlit as st
@@ -187,3 +187,5 @@ if run_sim:
     logger.info("Simulation finished!")
     progress_text.success('Simulation finished!')
     results_button(results_download_button)
+
+st.write(footer.html, unsafe_allow_html=True)
