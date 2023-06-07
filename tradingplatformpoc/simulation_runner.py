@@ -153,9 +153,7 @@ class TradingSimulator:
         @param progress_text            A streamlit info field, used only when running simulations through the UI
         """
 
-        frac_complete = 0.0
-        # Annoyingly, we must keep track of this separately,
-        # can't "get" progress from the progress bar
+        progress = Progress(progress_bar)
         logger.info("Starting trading simulations")
 
         # Load generated mock data
@@ -167,9 +165,8 @@ class TradingSimulator:
             if period.day == period.hour == 1:
                 info_string = "Simulations entering {:%B}".format(period)
                 logger.info(info_string)
-                if progress_bar is not None:
-                    frac_complete = increase_progress_bar(frac_complete, progress_bar,
-                                                          FRACTION_OF_CALC_TIME_FOR_1_MONTH_SIMULATED)
+                progress.increase(FRACTION_OF_CALC_TIME_FOR_1_MONTH_SIMULATED)
+                progress.display()
                 if progress_text is not None:
                     progress_text.info(info_string + "...")
 
@@ -235,9 +232,8 @@ class TradingSimulator:
             self.exact_retail_electricity_prices_by_period[period] = retail_price_elec
             self.all_extra_costs.extend(extra_costs)
 
-        if progress_bar is not None:
-            frac_complete = increase_progress_bar(frac_complete, progress_bar,
-                                                  FRACTION_OF_CALC_TIME_FOR_1_MONTH_SIMULATED + 0.01)  # Final month
+        progress.increase(FRACTION_OF_CALC_TIME_FOR_1_MONTH_SIMULATED + 0.01)  # Final month
+        progress.display()
         if progress_text is not None:
             progress_text.info("Simulated a full year, starting some calculations on district heating price...")
 
@@ -261,12 +257,11 @@ class TradingSimulator:
 
         logger.info('Creating extra_costs_df')
         extra_costs_df = pd.DataFrame([x.to_series() for x in self.all_extra_costs]).sort_values(['period', 'agent'])
-        if progress_bar is not None:
-            frac_complete = increase_progress_bar(frac_complete, progress_bar, 0.05)
+        progress.increase(0.05)
+        progress.display()
 
-        all_trades_df, frac_complete = construct_df_from_datetime_dict(self.all_trades_dict,
-                                                                       progress_bar, frac_complete)
-        all_bids_df, frac_complete = construct_df_from_datetime_dict(self.all_bids_dict, progress_bar, frac_complete)
+        all_trades_df = construct_df_from_datetime_dict(self.all_trades_dict, progress)
+        all_bids_df = construct_df_from_datetime_dict(self.all_bids_dict, progress)
 
         logger.info('Aggregating results per agent')
         if progress_text is not None:
@@ -276,8 +271,8 @@ class TradingSimulator:
                                                                  self.exact_wholesale_electricity_prices_by_period,
                                                                  exact_retail_heat_price_by_ym,
                                                                  exact_wholesale_heat_price_by_ym)
-        if progress_bar is not None:
-            increase_progress_bar(frac_complete, progress_bar, 1 - frac_complete)
+        progress.final()
+        progress.display()
 
         sim_res = SimulationResults(clearing_prices_historical=self.clearing_prices_historical,
                                     all_trades=all_trades_df,
@@ -316,14 +311,28 @@ def net_bids_from_gross_bids(gross_bids: List[GrossBid], data_store_entity: Data
     return net_bids
 
 
-def increase_progress_bar(frac_complete: float, progress_bar: st.progress, increase_by: float):
-    """
-    Increases the progress bar, and returns its current value.
-    """
-    # Capping at 0.0 and 1.0 to avoid StreamlitAPIException
-    new_frac_complete = min(1.0, max(0.0, frac_complete + increase_by))
-    progress_bar.progress(new_frac_complete)
-    return new_frac_complete
+class Progress:
+    def __init__(self, progress_bar: Union[st.progress, None] = None):
+        self.frac_complete = 0.0
+        self.progress_bar = progress_bar
+
+    def get_process(self):
+        return self.frac_complete
+
+    def increase(self, increase_by: float):
+        """
+        Increases the progress bar, and returns its current value.
+        """
+        # Capping at 0.0 and 1.0 to avoid StreamlitAPIException
+        self.frac_complete = min(1.0, max(0.0, self.frac_complete + increase_by))
+
+    def final(self):
+        self.frac_complete = 1.0
+
+    def display(self):
+        frac_complete = self.get_process()
+        if self.progress_bar is not None:
+            self.progress_bar.progress(frac_complete)
 
 
 def go_through_trades_metadata(metadata: Dict[TradeMetadataKey, Any], period: datetime.datetime, agent_guid: str,
@@ -397,12 +406,12 @@ def get_quantity_heating_sold_by_external_grid(external_trades: List[Trade]) -> 
 
 def construct_df_from_datetime_dict(some_dict: Union[Dict[datetime.datetime, Collection[NetBidWithAcceptanceStatus]],
                                                      Dict[datetime.datetime, Collection[Trade]]],
-                                    progress_bar: Union[st.progress, None] = None, frac_complete: float = 0.0) \
-        -> Tuple[pd.DataFrame, float]:
+                                    progress: Progress) \
+        -> pd.DataFrame:
     """
     Streamlit likes to deal with pd.DataFrames, so we'll save data in that format.
 
-    progress_bar and frac_complete are only used when called from the UI, to show progress to the user.
+    progress are only used when called from the UI, to show progress to the user.
     """
     logger.info('Constructing dataframe from datetime dict')
     dict_list = []
@@ -410,6 +419,6 @@ def construct_df_from_datetime_dict(some_dict: Union[Dict[datetime.datetime, Col
         dict_list.extend([x.to_dict_with_period(period) for x in some_collection])
     data_frame = pd.DataFrame(dict_list)
 
-    if progress_bar is not None:
-        frac_complete = increase_progress_bar(frac_complete, progress_bar, 0.005)
-    return data_frame, frac_complete
+    progress.increase(0.005)
+    progress.display()
+    return data_frame
