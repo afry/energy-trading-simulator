@@ -73,6 +73,7 @@ tradingplatformpoc/config/current_config.json
 
 # Last simulation result
 tradingplatformpoc/data/last_simulation_results.pickle
+tradingplatformpoc/data/last_simulation_results.pbz2
 
 # Notebook checkpoints
 */.ipynb_checkpoints/*
