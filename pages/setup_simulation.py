@@ -123,7 +123,7 @@ if option_choosen == options[0]:
         with add_agents_tab:
             st.markdown('Select the type of the agent to add '
                         'from the drop down list, and modify the pre-selected parameter values. '
-                        'Clicke on **Save** to create agent.')
+                        'Click on **Save** to create agent.')
             agent_type_options = ['BuildingAgent', 'GroceryStoreAgent', 'StorageAgent', 'PVAgent']
             choosen_agent_type = st.selectbox('Add new agent of type:', options=agent_type_options)
             if choosen_agent_type == 'BuildingAgent':
