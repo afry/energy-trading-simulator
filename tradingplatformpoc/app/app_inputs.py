@@ -56,7 +56,7 @@ def add_agent(new_agent: Dict[str, Any]):
     number_of_existing_new_agents = len([agent for agent in current_config['Agents'] if name_str in agent['Name']])
     new_agent["Name"] = name_str + str(number_of_existing_new_agents + 1)
     st.session_state.config_data['Agents'].append(new_agent)
-    set_config(st.session_state.config_data)
+    agent_inputs(new_agent)
 
 
 def add_building_agent():
@@ -129,17 +129,6 @@ def agent_inputs(agent):
 
         agent[key] = form.number_input(val["display"], **params, value=value,
                                        key=key + agent['Name'])
-
-    # Additional buttons
-    col1, col2 = st.columns(2)
-    with col1:
-        st.button(label=':red[Remove agent]', key='RemoveButton' + agent['Name'],
-                  on_click=remove_agent, args=(agent,),
-                  use_container_width=True)
-    with col2:
-        st.button(label='Duplicate agent', key='DuplicateButton' + agent['Name'],
-                  on_click=duplicate_agent, args=(agent,),
-                  use_container_width=True)
         
     # Submit
     submit = form.form_submit_button('Save agent')

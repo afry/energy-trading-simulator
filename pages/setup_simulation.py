@@ -7,7 +7,7 @@ from tradingplatformpoc.app.app_functions import results_button, set_max_width, 
 import streamlit as st
 from st_pages import show_pages_from_config, add_indentation
 from tradingplatformpoc.app.app_inputs import add_building_agent, add_grocery_store_agent, add_params_to_form, \
-    add_pv_agent, add_storage_agent, agent_inputs, remove_all_building_agents
+    add_pv_agent, add_storage_agent, agent_inputs, duplicate_agent, remove_agent, remove_all_building_agents
 from tradingplatformpoc.config.access_config import fill_agents_with_defaults, fill_with_default_params, get_config, \
     read_config, read_param_specs, set_config
 from tradingplatformpoc.config.screen_config import compare_pv_efficiency, config_data_json_screening, \
@@ -107,27 +107,33 @@ if option_choosen == options[0]:
             agent = current_agents[choosen_agent_ind]
             agent_inputs(agent)
 
+            # Additional buttons
+            col1, col2 = st.columns(2)
+            with col1:
+                st.button(label=':red[Remove agent]', key='RemoveButton' + agent['Name'],
+                          on_click=remove_agent, args=(agent,),
+                          use_container_width=True)
+            with col2:
+                st.button(label='Duplicate agent', key='DuplicateButton' + agent['Name'],
+                          on_click=duplicate_agent, args=(agent,),
+                          use_container_width=True)
+
             st.button(":red[Remove all BuildingAgents]", on_click=remove_all_building_agents, use_container_width=True)
 
         with add_agents_tab:
-            st.markdown('To add new agents, select the appropriate agent type from the drop down list, '
-                        'and click on **Create agent** to submit. The parameters of the new '
-                        'agent can be modified in the *Modify existing agents*-tab.')
-            add_new_agent_form = st.form(key="AddAgentOfTypeForm")
+            st.markdown('Select the type of the agent to add '
+                        'from the drop down list, and modify the pre-selected parameter values. '
+                        'Clicke on **Save** to create agent.')
             agent_type_options = ['BuildingAgent', 'GroceryStoreAgent', 'StorageAgent', 'PVAgent']
-            choosen_agent_type = add_new_agent_form.selectbox('Add new agent of type:', options=agent_type_options)
-            submit = add_new_agent_form.form_submit_button('Create agent')
-            if submit:
-                submit = False
-                if choosen_agent_type == 'BuildingAgent':
-                    add_building_agent()
-                elif choosen_agent_type == 'GroceryStoreAgent':
-                    add_grocery_store_agent()
-                elif choosen_agent_type == 'StorageAgent':
-                    add_storage_agent()
-                elif choosen_agent_type == 'PVAgent':
-                    add_pv_agent()
-                st.experimental_rerun()
+            choosen_agent_type = st.selectbox('Add new agent of type:', options=agent_type_options)
+            if choosen_agent_type == 'BuildingAgent':
+                add_building_agent()
+            elif choosen_agent_type == 'GroceryStoreAgent':
+                add_grocery_store_agent()
+            elif choosen_agent_type == 'StorageAgent':
+                add_storage_agent()
+            elif choosen_agent_type == 'PVAgent':
+                add_pv_agent()
             if 'agents_added' in st.session_state.keys() and st.session_state.agents_added:
                 st.success("Last new agent added: '" + current_agents[-1]["Name"] + "'")
         # --------------------- End config specification for dummies ------------------------
