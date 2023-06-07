@@ -1,6 +1,5 @@
 import datetime
 import hashlib
-import json
 import logging
 import os
 import pickle
@@ -19,13 +18,12 @@ from statsmodels.regression.linear_model import RegressionResultsWrapper
 
 from tradingplatformpoc import commercial_heating_model
 from tradingplatformpoc.compress import bz2_decompress_pickle
+from tradingplatformpoc.config.access_config import read_config
 from tradingplatformpoc.mock_data_generation_functions import MockDataKey, get_all_building_agents, \
     get_commercial_electricity_consumption_hourly_factor, get_commercial_heating_consumption_hourly_factor, \
     get_elec_cons_key, get_hot_tap_water_cons_key, get_school_heating_consumption_hourly_factor, \
     get_space_heat_cons_key, load_existing_data_sets
 from tradingplatformpoc.trading_platform_utils import get_if_exists_else, nan_helper
-
-CONFIG_FILE = 'default_config.json'
 
 DATA_PATH = 'tradingplatformpoc.data'
 
@@ -89,8 +87,7 @@ def run(config_data: Dict[str, Any]) -> Dict[MockDataKey, pl.DataFrame]:
     mock_data_key = MockDataKey(frozenset(building_agents), frozenset(config_data['MockDataConstants'].items()))
 
     if mock_data_key in all_data_sets:
-        logger.info('Already had mock data for the configuration described in %s, exiting generate_mock_data' %
-                    CONFIG_FILE)
+        logger.info('Already had mock data for the default configuration described in, exiting generate_mock_data')
     else:
         # So we have established that we need to generate new mock data.
         logger.debug('Beginning mock data generation')
@@ -723,7 +720,6 @@ if __name__ == '__main__':
     )
 
     # Open config file
-    with open(resource_filename(DATA_PATH, CONFIG_FILE), "r") as json_file:
-        config_from_file = json.load(json_file)
+    config_from_file = read_config(name='default')
 
     run(config_from_file)

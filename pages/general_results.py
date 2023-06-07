@@ -3,11 +3,11 @@ import time
 import streamlit as st
 from st_pages import show_pages_from_config, add_indentation
 from tradingplatformpoc.app import footer
-
-from tradingplatformpoc.app.app_functions import aggregated_import_and_export_results_df_split_on_period, \
+from tradingplatformpoc.app.app_visualizations import aggregated_import_and_export_results_df_split_on_period, \
     aggregated_import_and_export_results_df_split_on_temperature, aggregated_local_production_df, \
     aggregated_taxes_and_fees_results_df, construct_price_chart, construct_prices_df, \
     get_price_df_when_local_price_inbetween
+
 from tradingplatformpoc.bid import Resource
 
 logger = logging.getLogger(__name__)
@@ -57,10 +57,12 @@ if 'simulation_results' in st.session_state:
 
     if 'price_chart' in st.session_state:
         st.altair_chart(st.session_state.price_chart, use_container_width=True, theme=None)
+        st.write("Click on a variable to highlight it.")
         with st.expander("Periods where local electricity price was "
                          "between external retail and wholesale price:"):
             st.dataframe(get_price_df_when_local_price_inbetween(st.session_state.combined_price_df,
                                                                  Resource.ELECTRICITY))
+            
 else:
     st.write('Run simulations and load data first!')
 

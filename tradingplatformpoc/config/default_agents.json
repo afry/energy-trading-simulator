@@ -1,0 +1,268 @@
+[
+	{
+		"Type": "BuildingAgent",
+		"Name": "ResidentialBuildingAgentBC1",
+		"GrossFloorArea": 11305.3333333333,
+		"PVArea": 1748.6666666667,
+		"PVEfficiency": 0.165,
+		"FractionCommercial": 0.2,
+		"FractionSchool": 0.0,
+		"NumberHeatPumps": 3,
+		"COP": 4.6
+	},
+	{
+		"Type": "BuildingAgent",
+		"Name": "ResidentialBuildingAgentB2",
+		"GrossFloorArea": 7801.375,
+		"PVArea": 1206.6875,
+		"PVEfficiency": 0.165,
+		"FractionCommercial": 0.0,
+		"FractionSchool": 0.0,
+		"NumberHeatPumps": 3,
+		"COP": 4.6
+	},
+	{
+		"Type": "BuildingAgent",
+		"Name": "ResidentialBuildingAgentB3",
+		"GrossFloorArea": 9000.25,
+		"PVArea": 1392.125,
+		"PVEfficiency": 0.165,
+		"FractionCommercial": 0.0,
+		"FractionSchool": 0.0,
+		"NumberHeatPumps": 3,
+		"COP": 4.6
+	},
+	{
+		"Type": "BuildingAgent",
+		"Name": "ResidentialBuildingAgentB4",
+		"GrossFloorArea": 6938.4166666667,
+		"PVArea": 1073.2083333333,
+		"PVEfficiency": 0.165,
+		"FractionCommercial": 0.0,
+		"FractionSchool": 0.0,
+		"NumberHeatPumps": 3,
+		"COP": 4.6
+	},
+	{
+		"Type": "BuildingAgent",
+		"Name": "ResidentialBuildingAgentB5",
+		"GrossFloorArea": 8322.625,
+		"PVArea": 1287.3125,
+		"PVEfficiency": 0.165,
+		"FractionCommercial": 0.0,
+		"FractionSchool": 0.0,
+		"NumberHeatPumps": 3,
+		"COP": 4.6
+	},
+	{
+		"Type": "BuildingAgent",
+		"Name": "ResidentialBuildingAgentBC6",
+		"GrossFloorArea": 7430.7083333333,
+		"PVArea": 1149.3541666667,
+		"PVEfficiency": 0.165,
+		"FractionCommercial": 0.2,
+		"FractionSchool": 0.0,
+		"NumberHeatPumps": 3,
+		"COP": 4.6
+	},
+	{
+		"Type": "BuildingAgent",
+		"Name": "ResidentialBuildingAgentBC7",
+		"GrossFloorArea": 7789.7916666667,
+		"PVArea": 1204.8958333333,
+		"PVEfficiency": 0.165,
+		"FractionCommercial": 0.2,
+		"FractionSchool": 0.0,
+		"NumberHeatPumps": 3,
+		"COP": 4.6
+	},
+	{
+		"Type": "BuildingAgent",
+		"Name": "ResidentialBuildingAgentB8",
+		"GrossFloorArea": 12753.25,
+		"PVArea": 1972.625,
+		"PVEfficiency": 0.165,
+		"FractionCommercial": 0.0,
+		"FractionSchool": 0.0,
+		"NumberHeatPumps": 3,
+		"COP": 4.6
+	},
+	{
+		"Type": "BuildingAgent",
+		"Name": "ResidentialBuildingAgentB9",
+		"GrossFloorArea": 8328.4166666667,
+		"PVArea": 1288.2083333333,
+		"PVEfficiency": 0.165,
+		"FractionCommercial": 0.0,
+		"FractionSchool": 0.0,
+		"NumberHeatPumps": 3,
+		"COP": 4.6
+	},
+	{
+		"Type": "BuildingAgent",
+		"Name": "ResidentialBuildingAgentB10",
+		"GrossFloorArea": 7459.6666666667,
+		"PVArea": 1153.8333333333,
+		"PVEfficiency": 0.165,
+		"FractionCommercial": 0.0,
+		"FractionSchool": 0.0,
+		"NumberHeatPumps": 3,
+		"COP": 4.6
+	},
+	{
+		"Type": "BuildingAgent",
+		"Name": "ResidentialBuildingAgentB11",
+		"GrossFloorArea": 4830.25,
+		"PVArea": 747.125,
+		"PVEfficiency": 0.165,
+		"FractionCommercial": 0.0,
+		"FractionSchool": 0.0,
+		"NumberHeatPumps": 3,
+		"COP": 4.6
+	},
+	{
+		"Type": "BuildingAgent",
+		"Name": "ResidentialBuildingAgentBC12",
+		"GrossFloorArea": 9591.0,
+		"PVArea": 1483.5,
+		"PVEfficiency": 0.165,
+		"FractionCommercial": 0.2,
+		"FractionSchool": 0.0,
+		"NumberHeatPumps": 3,
+		"COP": 4.6
+	},
+	{
+		"Type": "BuildingAgent",
+		"Name": "ResidentialBuildingAgentB13",
+		"GrossFloorArea": 8340.0,
+		"PVArea": 1290.0,
+		"PVEfficiency": 0.165,
+		"FractionCommercial": 0.0,
+		"FractionSchool": 0.0,
+		"NumberHeatPumps": 3,
+		"COP": 4.6
+	},
+	{
+		"Type": "BuildingAgent",
+		"Name": "ResidentialBuildingAgentB14",
+		"GrossFloorArea": 5820.625,
+		"PVArea": 900.3125,
+		"PVEfficiency": 0.165,
+		"FractionCommercial": 0.0,
+		"FractionSchool": 0.0,
+		"NumberHeatPumps": 3,
+		"COP": 4.6
+	},
+	{
+		"Type": "BuildingAgent",
+		"Name": "ResidentialBuildingAgentB15",
+		"GrossFloorArea": 4604.375,
+		"PVArea": 712.1875,
+		"PVEfficiency": 0.165,
+		"FractionCommercial": 0.0,
+		"FractionSchool": 0.0,
+		"NumberHeatPumps": 3,
+		"COP": 4.6
+	},
+	{
+		"Type": "BuildingAgent",
+		"Name": "ResidentialBuildingAgentB16",
+		"GrossFloorArea": 3874.625,
+		"PVArea": 599.3125,
+		"PVEfficiency": 0.165,
+		"FractionCommercial": 0.0,
+		"FractionSchool": 0.0,
+		"NumberHeatPumps": 3,
+		"COP": 4.6
+	},
+	{
+		"Type": "BuildingAgent",
+		"Name": "ResidentialBuildingAgentBC17",
+		"GrossFloorArea": 5635.2916666667,
+		"PVArea": 871.6458333333,
+		"PVEfficiency": 0.165,
+		"FractionCommercial": 0.2,
+		"FractionSchool": 0.0,
+		"NumberHeatPumps": 3,
+		"COP": 4.6
+	},
+	{
+		"Type": "BuildingAgent",
+		"Name": "ResidentialBuildingAgentB18",
+		"GrossFloorArea": 12011.9166666667,
+		"PVArea": 1857.9583333333,
+		"PVEfficiency": 0.165,
+		"FractionCommercial": 0.0,
+		"FractionSchool": 0.0,
+		"NumberHeatPumps": 3,
+		"COP": 4.6
+	},
+	{
+		"Type": "BuildingAgent",
+		"Name": "ResidentialBuildingAgentB19",
+		"GrossFloorArea": 8728.0416666667,
+		"PVArea": 1350.0208333333,
+		"PVEfficiency": 0.165,
+		"FractionCommercial": 0.0,
+		"FractionSchool": 0.0,
+		"NumberHeatPumps": 3,
+		"COP": 4.6
+	},
+	{
+		"Type": "BuildingAgent",
+		"Name": "ResidentialBuildingAgentB20",
+		"GrossFloorArea": 7314.875,
+		"PVArea": 1131.4375,
+		"PVEfficiency": 0.165,
+		"FractionCommercial": 0.0,
+		"FractionSchool": 0.0,
+		"NumberHeatPumps": 3,
+		"COP": 4.6
+	},
+	{
+		"Type": "StorageAgent",
+		"Name": "BatteryStorageAgent1",
+		"Resource": "ELECTRICITY",
+		"Capacity": 1000,
+		"ChargeRate": 0.4,
+		"RoundTripEfficiency": 0.93,
+		"NHoursBack": 168,
+		"BuyPricePercentile": 20,
+		"SellPricePercentile": 80
+	},
+	{
+		"Type": "PVAgent",
+		"Name": "PVAgent1",
+		"PVArea": 24324.3,
+		"PVEfficiency": 0.165
+	},
+	{
+		"Type": "GroceryStoreAgent",
+		"Name": "GroceryStoreAgent",
+		"PVArea": 320,
+		"PVEfficiency": 0.165
+	},
+	{
+		"Type": "BuildingAgent",
+		"Name": "SchoolBuildingAgent",
+		"GrossFloorArea": 5000,
+		"PVArea": 0,
+		"PVEfficiency": 0.165,
+		"FractionCommercial": 0.0,
+		"FractionSchool": 1.0,
+		"NumberHeatPumps": 1,
+		"COP": 4.6
+	},
+	{
+		"Type": "GridAgent",
+		"Name": "ElectricityGridAgent",
+		"Resource": "ELECTRICITY",
+		"TransferRate": 10000
+	},
+	{
+		"Type": "GridAgent",
+		"Name": "HeatingGridAgent",
+		"Resource": "HEATING",
+		"TransferRate": 10000
+	}
+]

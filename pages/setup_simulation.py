@@ -1,14 +1,17 @@
 import json
 import logging
 
-from tradingplatformpoc.app import app_constants
-from tradingplatformpoc.app.app_functions import add_building_agent, add_grocery_store_agent, add_params_to_form, \
-    add_pv_agent, add_storage_agent, agent_inputs, config_data_json_screening, display_diff_in_config, \
-    fill_with_default_params, get_config, read_config, remove_all_building_agents, \
-    results_button, set_config, set_config_to_sess_state, set_max_width, set_simulation_results
+from tradingplatformpoc.app import app_constants, footer
+from tradingplatformpoc.app.app_functions import results_button, set_max_width, set_simulation_results
 
 import streamlit as st
 from st_pages import show_pages_from_config, add_indentation
+from tradingplatformpoc.app.app_inputs import add_building_agent, add_grocery_store_agent, add_params_to_form, \
+    add_pv_agent, add_storage_agent, agent_inputs, remove_all_building_agents
+from tradingplatformpoc.config.access_config import fill_agents_with_defaults, fill_with_default_params, get_config, \
+    read_config, read_param_specs, set_config
+from tradingplatformpoc.config.screen_config import compare_pv_efficiency, config_data_json_screening, \
+    display_diff_in_config
 
 from tradingplatformpoc.simulation_runner import run_trading_simulations
 
@@ -43,13 +46,21 @@ with config_container:
                                         " to default values and agents.", disabled=(option_choosen == options[1]))
     with col_config:
         # Saving the config to file on-change. That way changes won't get lost
-        current_config = get_config(reset_config_button)
+        current_config, message = get_config(reset_config_button)
+        st.markdown(message)
         st.session_state.config_data = current_config
     # st.markdown('*If you wish to save your configuration for '
     #             'another session, use the **Export to JSON**-button below.*')
     # st.markdown('---')
 
 st.markdown("**Change configuration**")
+
+comp_pveff = compare_pv_efficiency(read_config())
+if comp_pveff is not None:
+    st.info(comp_pveff)
+# TODO: Button for setting all PVEfficiency params to same value
+# TODO: Same for Heatpump COP
+
 if option_choosen == options[0]:
     with st.expander("General parameters"):
         st.markdown('Change parameter values by filling out the following forms. **Save** '
@@ -63,22 +74,22 @@ if option_choosen == options[0]:
         with area_info_tab:
             # st.markdown("**General area parameters:**")  # ---------------
             area_form = st.form(key="AreaInfoForm")
-            add_params_to_form(area_form, 'AreaInfo')
+            add_params_to_form(area_form, read_param_specs(['AreaInfo']), 'AreaInfo')
             _dummy1 = area_form.number_input(
                 'CO2 penalization rate:', value=0.0, help=app_constants.CO2_PEN_RATE_HELP_TEXT, disabled=True)
             submit_area_form = area_form.form_submit_button("Save area info")
             if submit_area_form:
                 submit_area_form = False
-                set_config_to_sess_state()
+                set_config(st.session_state.config_data)
 
         with mock_data_constants_tab:
             # st.markdown("**Data simulation parameters for digital twin:**")  # ---------------
             mdc_form = st.form(key="MockDataConstantsForm")
-            add_params_to_form(mdc_form, 'MockDataConstants')
+            add_params_to_form(mdc_form, read_param_specs(['MockDataConstants']), 'MockDataConstants')
             submit_mdc_form = mdc_form.form_submit_button("Save mock data generation constants")
             if submit_mdc_form:
                 submit_mdc_form = False
-                set_config_to_sess_state()
+                set_config(st.session_state.config_data)
 
     # ------------------- Start agents -------------------
     with st.expander("Agents"):
@@ -140,6 +151,7 @@ if option_choosen == options[1]:
         except ValueError:
             st.stop()
         uploaded_config = fill_with_default_params(uploaded_config)
+        uploaded_config = fill_agents_with_defaults(uploaded_config)
         set_config(uploaded_config)
         st.info("Using configuration from uploaded file.")
 
@@ -151,7 +163,10 @@ with config_container:
             st.json(read_config(), expanded=True)
     with coltext:
         with st.expander('Configuration changes from default'):
-            display_diff_in_config(read_config(name='default'), read_config())
+            str_to_disp = display_diff_in_config(read_config(name='default'), read_config())
+            if len(str_to_disp) > 1:
+                for s in str_to_disp:
+                    st.markdown(s)
 
     st.write("Click button below to download the current experiment configuration to a JSON-file, which you can later "
              "upload to re-use this configuration without having to do over any changes you have made so far.")
@@ -160,28 +175,6 @@ with config_container:
                        file_name="trading-platform-poc-config.json",
                        mime="text/json")
     st.markdown('---')
-
-st.markdown("**Guides**")
-with st.expander("Guidelines on configuration file"):
-    st.markdown(app_constants.CONFIG_GUIDELINES_MARKDOWN)
-    st.json(app_constants.AREA_INFO_EXAMPLE)
-    st.markdown(app_constants.MOCK_DATA_CONSTANTS_MARKDOWN)
-    st.json(app_constants.MOCK_DATA_CONSTANTS_EXAMPLE)
-with st.expander("BuildingAgent specification"):
-    st.markdown(app_constants.BUILDING_AGENT_SPEC_MARKDOWN)
-    st.json(app_constants.BUILDING_AGENT_EXAMPLE)
-with st.expander("StorageAgent specification"):
-    st.markdown(app_constants.STORAGE_AGENT_SPEC_MARKDOWN)
-    st.json(app_constants.STORAGE_AGENT_EXAMPLE)
-with st.expander("GridAgent specification"):
-    st.markdown(app_constants.GRID_AGENT_SPEC_MARKDOWN)
-    st.json(app_constants.GRID_AGENT_EXAMPLE)
-with st.expander("PVAgent specification"):
-    st.markdown(app_constants.PV_AGENT_SPEC_MARKDOWN)
-    st.json(app_constants.PV_AGENT_EXAMPLE)
-with st.expander("GroceryStoreAgent specification"):
-    st.markdown(app_constants.GROCERY_STORE_AGENT_SPEC_MARKDOWN)
-    st.json(app_constants.GROCERY_STORE_AGENT_EXAMPLE)
 
 if run_sim:
     run_sim = False
@@ -194,3 +187,5 @@ if run_sim:
     logger.info("Simulation finished!")
     progress_text.success('Simulation finished!')
     results_button(results_download_button)
+
+st.write(footer.html, unsafe_allow_html=True)

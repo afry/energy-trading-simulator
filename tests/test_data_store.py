@@ -51,7 +51,9 @@ class TestDataStore(TestCase):
                                                               "ElectricityTax": 1.5,
                                                               "ElectricityGridFee": 0.5,
                                                               "ElectricityTaxInternal": 0,
-                                                              "ElectricityGridFeeInternal": 0},
+                                                              "ElectricityGridFeeInternal": 0,
+                                                              "ExternalElectricityWholesalePriceOffset": 0.05,
+                                                              "ExternalHeatingWholesalePriceFraction": 0.5},
                                             nordpool_data=ONES_SERIES * CONSTANT_NORDPOOL_PRICE,
                                             irradiation_data=ONES_SERIES,
                                             grid_carbon_intensity=ONES_SERIES)
