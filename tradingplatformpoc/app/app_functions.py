@@ -8,6 +8,7 @@ import pandas as pd
 import streamlit as st
 
 from tradingplatformpoc.app import app_constants
+from tradingplatformpoc.compress import bz2_compress_pickle, bz2_decompress_pickle
 from tradingplatformpoc.results.simulation_results import SimulationResults
 
 
@@ -15,14 +16,13 @@ from tradingplatformpoc.results.simulation_results import SimulationResults
 def set_simulation_results(simulation_results: SimulationResults):
     """Writes simulation results to file."""
     data = (datetime.datetime.now(datetime.timezone.utc), simulation_results)
-    with open(app_constants.LAST_SIMULATION_RESULTS, 'wb') as f:
-        pickle.dump(data, f)
+    bz2_compress_pickle(app_constants.LAST_SIMULATION_RESULTS, data)
 
 
 def read_simulation_results() -> Tuple[datetime.datetime, SimulationResults]:
     """Reads simulation results from file."""
-    with open(app_constants.LAST_SIMULATION_RESULTS, 'rb') as f:
-        return pickle.load(f)
+
+    return bz2_decompress_pickle(app_constants.LAST_SIMULATION_RESULTS)
 
 
 def results_button(results_download_button):
