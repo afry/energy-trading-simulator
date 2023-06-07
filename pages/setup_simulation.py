@@ -133,7 +133,8 @@ if option_choosen == options[0]:
             st.markdown('To delete agents, select them by name from the drop down list and click on **Delete agents**.')
             delete_agents_form = st.form(key="DeleteAgentsForm")
             current_agents = {agent['Name']: agent for agent in current_agents if agent['Type'] != 'GridAgent'}
-            agent_names_to_delete = delete_agents_form.multiselect("Agents to delete:", current_agents.keys())
+            agent_names_to_delete = delete_agents_form.multiselect("Agents to delete:", current_agents.keys(),
+                                                                   default=current_agents.keys())
             submit = delete_agents_form.form_submit_button(':red[Delete agents]')
             if submit:
                 submit = False
