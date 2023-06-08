@@ -95,10 +95,3 @@ def nan_helper(y):
 def get_if_exists_else(some_dict: Dict[str, Any], key: str, default_value: Any) -> Any:
     """If some_dict has a 'key' attribute, use that, else use the default value."""
     return some_dict[key] if key in some_dict else default_value
-
-
-def add_to_nested_dict(nested_dict: dict, key1, key2, value):
-    if key1 in nested_dict:
-        nested_dict[key1][key2] = value
-    else:
-        nested_dict[key1] = {key2: value}
