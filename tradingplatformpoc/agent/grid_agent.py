@@ -1,11 +1,11 @@
 import datetime
 import logging
-from typing import Any, Dict, Iterable, List, Tuple, Union
+from typing import Dict, Iterable, List, Union
 
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.bid import Action, GrossBid, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.data_store import DataStore
-from tradingplatformpoc.trade import Market, Trade, TradeMetadataKey
+from tradingplatformpoc.trade import Market, Trade
 
 logger = logging.getLogger(__name__)
 
@@ -46,11 +46,10 @@ class GridAgent(IAgent):
         pass
 
     def make_trades_given_clearing_price(self, period: datetime.datetime, clearing_prices: Dict[Resource, float],
-                                         accepted_bids_for_agent: List[NetBidWithAcceptanceStatus]) -> \
-            Tuple[List[Trade], Dict[TradeMetadataKey, Any]]:
+                                         accepted_bids_for_agent: List[NetBidWithAcceptanceStatus]) -> List[Trade]:
         # The external grid is used to make up for any differences on the local market. Therefore these will be
         # calculated at a later stage (in calculate_external_trades)
-        return [], {}
+        return []
 
     def calculate_external_trades(self, trades_excl_external: Iterable[Trade], clearing_prices: Dict[Resource, float]) \
             -> List[Trade]:

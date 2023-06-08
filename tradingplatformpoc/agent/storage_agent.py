@@ -1,6 +1,6 @@
 import datetime
 import logging
-from typing import Any, Dict, List, Tuple, Union
+from typing import Dict, List, Union
 
 import numpy as np
 
@@ -8,7 +8,7 @@ from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.bid import Action, GrossBid, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
-from tradingplatformpoc.trade import Market, Trade, TradeMetadataKey
+from tradingplatformpoc.trade import Market, Trade
 from tradingplatformpoc.trading_platform_utils import minus_n_hours
 
 LOWEST_BID_QUANTITY = 0.001  # Bids with a lower quantity than this won't have any real effect, will only clog things up
@@ -48,6 +48,7 @@ class StorageAgent(IAgent):
         self.if_lower_than_this_percentile_then_buy = buy_price_percentile
         self.if_higher_than_this_percentile_then_sell = sell_price_percentile
         self.need_at_least_n_hours = int(self.go_back_n_hours / 2)
+        self.capacity_kwh_used: Dict[datetime.datetime, float] = {}
 
     def make_bids(self, period: datetime.datetime, clearing_prices_historical: Union[Dict[datetime.datetime, Dict[
             Resource, float]], None]) -> List[GrossBid]:
@@ -94,8 +95,7 @@ class StorageAgent(IAgent):
         pass
 
     def make_trades_given_clearing_price(self, period: datetime.datetime, clearing_prices: Dict[Resource, float],
-                                         accepted_bids_for_agent: List[NetBidWithAcceptanceStatus]) -> \
-            Tuple[List[Trade], Dict[TradeMetadataKey, Any]]:
+                                         accepted_bids_for_agent: List[NetBidWithAcceptanceStatus]) -> List[Trade]:
         trades = []
         # In this implementation, the battery never sells or buys directly from the external grid.
         if len(accepted_bids_for_agent) > 1:
@@ -116,7 +116,8 @@ class StorageAgent(IAgent):
                                                         clearing_price, Market.LOCAL, period,
                                                         tax_paid=self.data_store.elec_tax_internal,
                                                         grid_fee_paid=self.data_store.elec_grid_fee_internal)]
-        return trades, {TradeMetadataKey.STORAGE_LEVEL: self.digital_twin.capacity_kwh}
+        self.capacity_kwh_used[period] = self.digital_twin.capacity_kwh
+        return trades
 
     def calculate_buy_price(self, prices_last_n_hours: List[float]):
         return np.percentile(prices_last_n_hours, self.if_lower_than_this_percentile_then_buy)

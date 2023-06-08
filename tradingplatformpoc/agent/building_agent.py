@@ -2,7 +2,7 @@ import datetime
 import logging
 import math
 from collections import OrderedDict
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -13,7 +13,7 @@ from tradingplatformpoc.bid import Action, GrossBid, NetBidWithAcceptanceStatus,
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.heat_pump import HeatPump
-from tradingplatformpoc.trade import Trade, TradeMetadataKey
+from tradingplatformpoc.trade import Trade
 from tradingplatformpoc.trading_platform_utils import minus_n_hours
 
 logger = logging.getLogger(__name__)
@@ -33,6 +33,7 @@ class BuildingAgent(IAgent):
         self.n_heat_pumps = nbr_heat_pumps
         self.workloads_data = construct_workloads_data(coeff_of_perf, nbr_heat_pumps)
         self.allow_sell_heat = False
+        self.workload_used: Dict[datetime.datetime, float] = {}
 
     def make_bids(self, period: datetime.datetime, clearing_prices_historical: Union[Dict[datetime.datetime, Dict[
             Resource, float]], None] = None) -> List[GrossBid]:
@@ -61,8 +62,7 @@ class BuildingAgent(IAgent):
         return actual_consumption - actual_production
 
     def make_trades_given_clearing_price(self, period: datetime.datetime, clearing_prices: Dict[Resource, float],
-                                         accepted_bids_for_agent: List[NetBidWithAcceptanceStatus]) -> \
-            Tuple[List[Trade], Dict[TradeMetadataKey, Any]]:
+                                         accepted_bids_for_agent: List[NetBidWithAcceptanceStatus]) -> List[Trade]:
         trades = []
         elec_retail_price = self.data_store.get_estimated_retail_price(period, Resource.ELECTRICITY, True)
         elec_wholesale_price = self.data_store.get_estimated_wholesale_price(period, Resource.ELECTRICITY)
@@ -121,7 +121,8 @@ class BuildingAgent(IAgent):
                 # If not, then in reality what would presumably happen is that the buildings would be heated up more
                 # than necessary, which would presumably lower the heat demand in subsequent periods. This is left as
                 # a possible future improvement.
-        return trades, {TradeMetadataKey.HEAT_PUMP_WORKLOAD: workload_to_use}
+        self.workload_used[period] = workload_to_use  # Metadata
+        return trades
 
     def make_bids_with_heat_pump(self, period: datetime.datetime, pred_elec_price: float, pred_heat_price: float) -> \
             List[GrossBid]:

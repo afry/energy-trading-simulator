@@ -55,8 +55,6 @@ class TradingSimulator:
             = dict(zip(self.trading_periods, ([] for _ in self.trading_periods)))
         self.all_bids_dict: Dict[datetime.datetime, Collection[NetBidWithAcceptanceStatus]] \
             = dict(zip(self.trading_periods, ([] for _ in self.trading_periods)))
-        self.storage_levels_dict: Dict[str, Dict[datetime.datetime, float]] = {}
-        self.heat_pump_levels_dict: Dict[str, Dict[datetime.datetime, float]] = {}
         self.all_extra_costs: List[ExtraCost] = []
         # Store the exact external prices, need them for some calculations
         self.exact_retail_electricity_prices_by_period: Dict[datetime.datetime, float] \
@@ -195,11 +193,8 @@ class TradingSimulator:
             for agent in self.agents:
                 accepted_bids_for_agent = [bid for bid in bids_with_acceptance_status
                                            if bid.source == agent.guid and bid.accepted_quantity > 0]
-                trades, metadata = agent.make_trades_given_clearing_price(period, clearing_prices,
-                                                                          accepted_bids_for_agent)
+                trades = agent.make_trades_given_clearing_price(period, clearing_prices, accepted_bids_for_agent)
                 trades_excl_external.extend(trades)
-                go_through_trades_metadata(metadata, period, agent.guid, self.heat_pump_levels_dict,
-                                           self.storage_levels_dict)
 
             trades_excl_external = [i for i in trades_excl_external if i]  # filter out None
             external_trades = flatten_collection([ga.calculate_external_trades(trades_excl_external, clearing_prices)
@@ -278,12 +273,16 @@ class TradingSimulator:
         progress.final()
         progress.display()
 
+        storage_levels_dict: Dict[str, Dict[datetime.datetime, float]] = \
+            {agent.guid: agent.capacity_kwh_used for agent in self.agents if isinstance(agent, StorageAgent)}
+        heat_pump_levels_dict: Dict[str, Dict[datetime.datetime, float]] = \
+            {agent.guid: agent.workload_used for agent in self.agents if isinstance(agent, BuildingAgent)}
         sim_res = SimulationResults(clearing_prices_historical=self.clearing_prices_historical,
                                     all_trades=all_trades_df,
                                     all_extra_costs=extra_costs_df,
                                     all_bids=all_bids_df,
-                                    storage_levels_dict=self.storage_levels_dict,
-                                    heat_pump_levels_dict=self.heat_pump_levels_dict,
+                                    storage_levels_dict=storage_levels_dict,
+                                    heat_pump_levels_dict=heat_pump_levels_dict,
                                     config_data=self.config_data,
                                     agents=self.agents,
                                     data_store=self.data_store_entity,
