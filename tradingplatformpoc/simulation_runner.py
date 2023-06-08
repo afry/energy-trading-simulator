@@ -260,8 +260,12 @@ class TradingSimulator:
         progress.increase(0.05)
         progress.display()
 
-        all_trades_df = construct_df_from_datetime_dict(self.all_trades_dict, progress)
-        all_bids_df = construct_df_from_datetime_dict(self.all_bids_dict, progress)
+        all_trades_df = construct_df_from_datetime_dict(self.all_trades_dict)
+        progress.increase(0.005)
+        progress.display()
+        all_bids_df = construct_df_from_datetime_dict(self.all_bids_dict)
+        progress.increase(0.005)
+        progress.display()
 
         logger.info('Aggregating results per agent')
         if progress_text is not None:
@@ -405,20 +409,11 @@ def get_quantity_heating_sold_by_external_grid(external_trades: List[Trade]) -> 
 
 
 def construct_df_from_datetime_dict(some_dict: Union[Dict[datetime.datetime, Collection[NetBidWithAcceptanceStatus]],
-                                                     Dict[datetime.datetime, Collection[Trade]]],
-                                    progress: Progress) \
+                                                     Dict[datetime.datetime, Collection[Trade]]]) \
         -> pd.DataFrame:
     """
     Streamlit likes to deal with pd.DataFrames, so we'll save data in that format.
-
-    progress are only used when called from the UI, to show progress to the user.
     """
     logger.info('Constructing dataframe from datetime dict')
-    dict_list = []
-    for (period, some_collection) in some_dict.items():
-        dict_list.extend([x.to_dict_with_period(period) for x in some_collection])
-    data_frame = pd.DataFrame(dict_list)
-
-    progress.increase(0.005)
-    progress.display()
-    return data_frame
+    return pd.DataFrame([x.to_dict_with_period(period) for period, some_collection in some_dict.items()
+                         for x in some_collection])
