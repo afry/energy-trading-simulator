@@ -1,6 +1,6 @@
 import datetime
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 import pandas as pd
 
@@ -16,8 +16,8 @@ class SimulationResults:
     all_trades: pd.DataFrame
     all_bids: pd.DataFrame
     all_extra_costs: pd.DataFrame
-    storage_levels_dict: Dict[str, Dict[datetime.datetime, Optional[float]]]
-    heat_pump_levels_dict: Dict[str, Dict[datetime.datetime, Optional[float]]]
+    storage_levels_dict: Dict[str, Dict[datetime.datetime, float]]
+    heat_pump_levels_dict: Dict[str, Dict[datetime.datetime, float]]
     config_data: Dict[str, Any]
     agents: List[IAgent]
     data_store: DataStore

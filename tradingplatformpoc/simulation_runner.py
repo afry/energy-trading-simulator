@@ -1,7 +1,7 @@
 import datetime
 import logging
 import pickle
-from typing import Any, Collection, Dict, List, Optional, Tuple, Union
+from typing import Any, Collection, Dict, List, Tuple, Union
 
 import pandas as pd
 
@@ -26,7 +26,7 @@ from tradingplatformpoc.mock_data_generation_functions import MockDataKey, get_a
 from tradingplatformpoc.results import results_calculator
 from tradingplatformpoc.results.simulation_results import SimulationResults
 from tradingplatformpoc.trade import Trade, TradeMetadataKey
-from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, flatten_collection, \
+from tradingplatformpoc.trading_platform_utils import add_to_nested_dict, calculate_solar_prod, flatten_collection, \
     get_if_exists_else, get_intersection
 
 FRACTION_OF_CALC_TIME_FOR_1_MONTH_SIMULATED = 0.065
@@ -55,6 +55,8 @@ class TradingSimulator:
             = dict(zip(self.trading_periods, ([] for _ in self.trading_periods)))
         self.all_bids_dict: Dict[datetime.datetime, Collection[NetBidWithAcceptanceStatus]] \
             = dict(zip(self.trading_periods, ([] for _ in self.trading_periods)))
+        self.storage_levels_dict: Dict[str, Dict[datetime.datetime, float]] = {}
+        self.heat_pump_levels_dict: Dict[str, Dict[datetime.datetime, float]] = {}
         self.all_extra_costs: List[ExtraCost] = []
         # Store the exact external prices, need them for some calculations
         self.exact_retail_electricity_prices_by_period: Dict[datetime.datetime, float] \
@@ -150,15 +152,6 @@ class TradingSimulator:
         @param progress_bar             A streamlit progress bar, used only when running simulations through the UI
         @param progress_text            A streamlit info field, used only when running simulations through the UI
         """
-
-        # Initialize metadata dictionaries
-        placeholder_dict: Dict[datetime.datetime, Optional[float]] = \
-            dict(zip(self.trading_periods, (None for _ in self.trading_periods)))
-        self.storage_levels_dict: Dict[str, Dict[datetime.datetime, Optional[float]]] = \
-            {agent.guid: placeholder_dict for agent in self.agents if isinstance(agent, StorageAgent)}
-        
-        self.heat_pump_levels_dict: Dict[str, Dict[datetime.datetime, Optional[float]]] = \
-            {agent.guid: placeholder_dict for agent in self.agents if hasattr(agent, "n_heat_pumps")}
 
         progress = Progress(progress_bar)
         logger.info("Starting trading simulations")
@@ -347,17 +340,19 @@ class Progress:
 
 
 def go_through_trades_metadata(metadata: Dict[TradeMetadataKey, Any], period: datetime.datetime, agent_guid: str,
-                               heat_pump_levels_dict: Dict[str, Dict[datetime.datetime, Optional[float]]],
-                               storage_levels_dict: Dict[str, Dict[datetime.datetime, Optional[float]]]):
+                               heat_pump_levels_dict: Dict[str, Dict[datetime.datetime, float]],
+                               storage_levels_dict: Dict[str, Dict[datetime.datetime, float]]):
     """
     The agent may want to send some metadata along with its trade, to the simulation runner. Any such metadata is dealt
     with here.
     """
     for metadata_key in metadata:
         if metadata_key == TradeMetadataKey.STORAGE_LEVEL:
-            storage_levels_dict[agent_guid][period] = metadata[metadata_key]  # capacity_for_agent
+            capacity_for_agent = metadata[metadata_key]
+            add_to_nested_dict(storage_levels_dict, agent_guid, period, capacity_for_agent)
         elif metadata_key == TradeMetadataKey.HEAT_PUMP_WORKLOAD:
-            heat_pump_levels_dict[agent_guid][period] = metadata[metadata_key]  # current_heat_pump_level
+            current_heat_pump_level = metadata[metadata_key]
+            add_to_nested_dict(heat_pump_levels_dict, agent_guid, period, current_heat_pump_level)
         else:
             logger.info('Encountered unexpected metadata! Key: {}, Value: {}'.
                         format(metadata_key, metadata[metadata_key]))
