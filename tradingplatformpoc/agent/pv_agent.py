@@ -1,11 +1,11 @@
 import datetime
-from typing import Dict, List, Union
+from typing import Any, Dict, List, Tuple, Union
 
 from tradingplatformpoc.agent.iagent import IAgent, get_price_and_market_to_use_when_selling
 from tradingplatformpoc.bid import Action, GrossBid, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
-from tradingplatformpoc.trade import Trade
+from tradingplatformpoc.trade import Trade, TradeMetadataKey
 from tradingplatformpoc.trading_platform_utils import minus_n_hours
 
 
@@ -43,7 +43,8 @@ class PVAgent(IAgent):
         return -self.digital_twin.get_production(period, Resource.ELECTRICITY)
 
     def make_trades_given_clearing_price(self, period: datetime.datetime, clearing_prices: Dict[Resource, float],
-                                         accepted_bids_for_agent: List[NetBidWithAcceptanceStatus]) -> List[Trade]:
+                                         accepted_bids_for_agent: List[NetBidWithAcceptanceStatus]) -> \
+            Tuple[List[Trade], Dict[TradeMetadataKey, Any]]:
         usage = self.get_actual_usage(period, Resource.ELECTRICITY)
         if usage < 0:
             wholesale_price = self.get_external_grid_buy_price(period, Resource.ELECTRICITY)
@@ -53,6 +54,6 @@ class PVAgent(IAgent):
             # the internal electricity tax, and the internal grid fee
             return [self.construct_elec_trade(Action.SELL, -usage, price_to_use, market_to_use, period,
                                               tax_paid=self.data_store.elec_tax_internal,
-                                              grid_fee_paid=self.data_store.elec_grid_fee_internal)]
+                                              grid_fee_paid=self.data_store.elec_grid_fee_internal)], {}
         else:
-            return []
+            return [], {}
