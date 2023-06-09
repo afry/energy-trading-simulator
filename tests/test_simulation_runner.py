@@ -11,8 +11,8 @@ from pkg_resources import resource_filename
 from tests import utility_test_objects
 
 from tradingplatformpoc.app import app_constants
-from tradingplatformpoc.app.app_functions import read_config
 from tradingplatformpoc.bid import Action, Resource
+from tradingplatformpoc.config.access_config import read_config
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.simulation_runner import TradingSimulator, construct_df_from_datetime_dict, \
     get_external_heating_prices, get_quantity_heating_sold_by_external_grid
