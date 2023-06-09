@@ -70,3 +70,21 @@ def download_df_as_csv_button(df: pd.DataFrame, file_name: str, include_index: b
 # @st.cache_data()
 def load_results(uploaded_results_file):
     st.session_state.simulation_results = pickle.load(uploaded_results_file)
+
+
+def update_multiselect_style():
+    st.markdown(
+        """
+        <style>
+            .stMultiSelect [data-baseweb="tag"] {
+                height: fit-content;
+                background-color: white !important;
+                color: black;
+            }
+            .stMultiSelect [data-baseweb="tag"] span[title] {
+                white-space: normal; max-width: 100%; overflow-wrap: anywhere;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
