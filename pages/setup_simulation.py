@@ -2,7 +2,8 @@ import json
 import logging
 
 from tradingplatformpoc.app import app_constants, footer
-from tradingplatformpoc.app.app_functions import results_button, set_max_width, set_simulation_results
+from tradingplatformpoc.app.app_functions import results_button, set_max_width, set_simulation_results, \
+    update_multiselect_style
 
 import streamlit as st
 from st_pages import show_pages_from_config, add_indentation
@@ -93,8 +94,9 @@ if option_choosen == options[0]:
 
     # ------------------- Start agents -------------------
     with st.expander("Agents"):
-        modify_agents_tab, add_agents_tab = st.tabs(["Modify existing agents",
-                                                     "Add new agents"])
+        modify_agents_tab, add_agents_tab, delete_agents_tab = st.tabs(["Modify existing agents",
+                                                                        "Add new agents",
+                                                                        "Delete agents"])
         current_agents = st.session_state.config_data['Agents'][:]
         with modify_agents_tab:
             st.markdown('To change agent parameters, first select the agent name from the drop down list, '
@@ -118,8 +120,6 @@ if option_choosen == options[0]:
                           on_click=duplicate_agent, args=(agent,),
                           use_container_width=True)
 
-            st.button(":red[Remove all BuildingAgents]", on_click=remove_all_building_agents, use_container_width=True)
-
         with add_agents_tab:
             st.markdown('Select the type of the agent to add '
                         'from the drop down list, and modify the pre-selected parameter values. '
@@ -136,6 +136,27 @@ if option_choosen == options[0]:
                 add_pv_agent()
             if 'agents_added' in st.session_state.keys() and st.session_state.agents_added:
                 st.success("Last new agent added: '" + current_agents[-1]["Name"] + "'")
+        with delete_agents_tab:
+            st.markdown('To delete agents, select them by name from the drop down list and click on **Delete agents**.')
+            delete_agents_form = st.form(key="DeleteAgentsForm")
+            current_agents_possible_to_delete = {agent['Name']: agent for agent
+                                                 in current_agents if agent['Type'] != 'GridAgent'}
+            if len(current_agents_possible_to_delete) > 0:
+                update_multiselect_style()
+                agent_names_to_delete = delete_agents_form.multiselect("Agents to delete:",
+                                                                       current_agents_possible_to_delete.keys(),
+                                                                       default=current_agents_possible_to_delete.keys())
+                submit_delete_agent = delete_agents_form.form_submit_button(':red[Delete agents]')
+                if submit_delete_agent:
+                    submit_delete_agent = False
+                    for agent in [current_agents_possible_to_delete[name] for name in agent_names_to_delete]:
+                        remove_agent(agent)
+                    st.experimental_rerun()
+            else:
+                st.markdown('No agents availible to delete.')
+
+            st.button(":red[Remove all BuildingAgents]", on_click=remove_all_building_agents, use_container_width=True)
+
         # --------------------- End config specification for dummies ------------------------
 
 if option_choosen == options[1]:

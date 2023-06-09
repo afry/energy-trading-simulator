@@ -48,15 +48,11 @@ def add_agent(new_agent: Dict[str, Any]):
     The first will be named 'New[insert agent type]1', the second 'New[insert agent type]2' etc.
     """
 
-    # To keep track of if the success text should be displayed
-    st.session_state.agents_added = True
-
     current_config = read_config()
     name_str = "New" + new_agent['Type']
     number_of_existing_new_agents = len([agent for agent in current_config['Agents'] if name_str in agent['Name']])
     new_agent["Name"] = name_str + str(number_of_existing_new_agents + 1)
-    st.session_state.config_data['Agents'].append(new_agent)
-    agent_inputs(new_agent)
+    agent_inputs(new_agent, new=True)
 
 
 def add_building_agent():
@@ -88,7 +84,7 @@ def add_grocery_store_agent():
     })
 
 
-def agent_inputs(agent):
+def agent_inputs(agent, new: bool = False):
     """Contains input fields needed to define an agent."""
     form = st.form(key="Form" + agent['Name'])
 
@@ -134,6 +130,10 @@ def agent_inputs(agent):
     submit = form.form_submit_button('Save agent')
     if submit:
         submit = False
+        if new is True:
+            st.session_state.config_data['Agents'].append(agent)
+            # To keep track of if the success text should be displayed
+            st.session_state.agents_added = True
         set_config(st.session_state.config_data)
         st.experimental_rerun()
 
