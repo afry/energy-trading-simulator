@@ -29,29 +29,7 @@ DATA_PATH = 'tradingplatformpoc.data'
 
 MOCK_DATAS_PICKLE = resource_filename(DATA_PATH, 'mock_datas.pickle')
 
-KWH_PER_YEAR_M2_ATEMP_DEFAULT = 20  # According to Skanska: 20 kWh/year/m2 Atemp
 EVERY_X_HOURS = 3  # Random noise will be piecewise linear, with knots every X hours
-RESIDENTIAL_HEATING_RELATIVE_ERROR_STD_DEV_DEFAULT = 0.2
-# For the following two, see https://doc.afdrift.se/display/RPJ/Expected+energy+use+for+different+buildings
-KWH_PER_YEAR_M2_RESIDENTIAL_SPACE_HEATING_DEFAULT = 25
-KWH_PER_YEAR_M2_RESIDENTIAL_HOT_TAP_WATER_DEFAULT = 25
-
-# Constants for the 'commercial' electricity bit:
-COMM_ELEC_KWH_PER_YEAR_M2_DEFAULT = 118
-COMM_ELEC_REL_ERROR_STD_DEV_DEFAULT = 0.2
-# Constants for the 'commercial' heating bit:
-# As per https://doc.afdrift.se/display/RPJ/Commercial+areas
-KWH_SPACE_HEATING_PER_YEAR_M2_COMMERCIAL_DEFAULT = 32
-KWH_HOT_TAP_WATER_PER_YEAR_M2_COMMERCIAL_DEFAULT = 3.5
-COMMERCIAL_HOT_TAP_WATER_RELATIVE_ERROR_STD_DEV_DEFAULT = 0.2
-
-# Constants for school
-KWH_ELECTRICITY_PER_YEAR_M2_SCHOOL_DEFAULT = 60
-SCHOOL_ELEC_REL_ERROR_STD_DEV_DEFAULT = 0.2
-SCHOOL_HOT_TAP_WATER_RELATIVE_ERROR_STD_DEV_DEFAULT = 0.2
-# For the following two, see https://doc.afdrift.se/display/RPJ/Expected+energy+use+for+different+buildings
-KWH_HOT_TAP_WATER_PER_YEAR_M2_SCHOOL_DEFAULT = 7
-KWH_SPACE_HEATING_PER_YEAR_M2_SCHOOL_DEFAULT = 25
 
 # Will use these to set random seed.
 RESIDENTIAL_HEATING_SEED_SUFFIX = "RH"
@@ -82,8 +60,6 @@ def run(config_data: Dict[str, Any]) -> Dict[MockDataKey, pl.DataFrame]:
     all_data_sets = load_existing_data_sets(MOCK_DATAS_PICKLE)
 
     building_agents, total_gross_floor_area_residential = get_all_building_agents(config_data["Agents"])
-    if 'MockDataConstants' not in config_data:
-        config_data['MockDataConstants'] = {}
     mock_data_key = MockDataKey(frozenset(building_agents), frozenset(config_data['MockDataConstants'].items()))
 
     if mock_data_key in all_data_sets:
@@ -162,12 +138,9 @@ def simulate_and_add_to_output_df(config_data: Dict[str, Any], agent: dict, df_i
         residential_gross_floor_area = agent['GrossFloorArea'] * fraction_residential
         school_gross_floor_area_m2 = agent['GrossFloorArea'] * fraction_school
 
-        kwh_electricity_per_year_m2_comm = get_if_exists_else(config_data['MockDataConstants'],
-                                                              'CommercialElecKwhPerYearM2',
-                                                              COMM_ELEC_KWH_PER_YEAR_M2_DEFAULT)
-        commercial_electricity_relative_error_std_dev = get_if_exists_else(config_data['MockDataConstants'],
-                                                                           'CommercialElecRelativeErrorStdDev',
-                                                                           COMM_ELEC_REL_ERROR_STD_DEV_DEFAULT)
+        kwh_electricity_per_year_m2_comm = config_data['MockDataConstants']['CommercialElecKwhPerYearM2']
+        commercial_electricity_relative_error_std_dev = \
+            config_data['MockDataConstants']['CommercialElecRelativeErrorStdDev']
         commercial_electricity_cons = simulate_area_electricity(
             commercial_gross_floor_area,
             seed_commercial_electricity,
@@ -184,16 +157,12 @@ def simulate_and_add_to_output_df(config_data: Dict[str, Any], agent: dict, df_i
             simulate_residential_total_heating(config_data, df_inputs, n_rows, residential_gross_floor_area,
                                                seed_residential_heating)
 
-        kwh_per_year_m2_atemp = get_if_exists_else(config_data['MockDataConstants'], 'ResidentialElecKwhPerYearM2Atemp',
-                                                   KWH_PER_YEAR_M2_ATEMP_DEFAULT)
+        kwh_per_year_m2_atemp = config_data['MockDataConstants']['ResidentialElecKwhPerYearM2Atemp']
         household_electricity_cons = simulate_household_electricity_aggregated(
             df_inputs, model, residential_gross_floor_area, seed_residential_electricity, n_rows, kwh_per_year_m2_atemp)
 
-        school_elec_kwh_per_year_m2 = get_if_exists_else(config_data['MockDataConstants'], 'SchoolElecKwhPerYearM2',
-                                                         KWH_ELECTRICITY_PER_YEAR_M2_SCHOOL_DEFAULT)
-        school_electricity_relative_error_std_dev = get_if_exists_else(config_data['MockDataConstants'],
-                                                                       'SchoolElecRelativeErrorStdDev',
-                                                                       SCHOOL_ELEC_REL_ERROR_STD_DEV_DEFAULT)
+        school_elec_kwh_per_year_m2 = config_data['MockDataConstants']['SchoolElecKwhPerYearM2']
+        school_electricity_relative_error_std_dev = config_data['MockDataConstants']['SchoolElecRelativeErrorStdDev']
         school_electricity_cons = simulate_area_electricity(school_gross_floor_area_m2, seed_school_electricity,
                                                             df_inputs, school_elec_kwh_per_year_m2,
                                                             school_electricity_relative_error_std_dev,
@@ -449,19 +418,13 @@ def simulate_commercial_area_total_heating(config_data: Dict[str, Any], commerci
     @return Two pl.LazyFrames with datetimes and hourly heating load, in kWh. The first space heating, the second hot
         tap water.
     """
-    space_heating_per_year_m2 = get_if_exists_else(config_data['MockDataConstants'],
-                                                   'CommercialSpaceHeatKwhPerYearM2',
-                                                   KWH_SPACE_HEATING_PER_YEAR_M2_COMMERCIAL_DEFAULT)
+    space_heating_per_year_m2 = config_data['MockDataConstants']['CommercialSpaceHeatKwhPerYearM2']
     space_heating = simulate_space_heating(commercial_gross_floor_area_m2, random_seed, input_df,
                                            space_heating_per_year_m2, get_commercial_heating_consumption_hourly_factor,
                                            n_rows)
 
-    hot_tap_water_per_year_m2 = get_if_exists_else(config_data['MockDataConstants'],
-                                                   'CommercialHotTapWaterKwhPerYearM2',
-                                                   KWH_HOT_TAP_WATER_PER_YEAR_M2_COMMERCIAL_DEFAULT)
-    hot_tap_water_relative_error_std_dev = get_if_exists_else(config_data['MockDataConstants'],
-                                                              'CommercialHotTapWaterRelativeErrorStdDev',
-                                                              COMMERCIAL_HOT_TAP_WATER_RELATIVE_ERROR_STD_DEV_DEFAULT)
+    hot_tap_water_per_year_m2 = config_data['MockDataConstants']['CommercialHotTapWaterKwhPerYearM2']
+    hot_tap_water_relative_error_std_dev = config_data['MockDataConstants']['CommercialHotTapWaterRelativeErrorStdDev']
     hot_tap_water = simulate_hot_tap_water(commercial_gross_floor_area_m2, random_seed, input_df,
                                            hot_tap_water_per_year_m2, get_commercial_heating_consumption_hourly_factor,
                                            hot_tap_water_relative_error_std_dev,
@@ -502,18 +465,12 @@ def simulate_school_area_heating(config_data: Dict[str, Any], school_gross_floor
     This function follows the recipe outlined in the corresponding function for commercial buildings.
     @return Two pl.DataFrames with datetimes and hourly total heating load, in kWh.
     """
-    space_heating_per_year_m2 = get_if_exists_else(config_data['MockDataConstants'],
-                                                   'SchoolSpaceHeatKwhPerYearM2',
-                                                   KWH_SPACE_HEATING_PER_YEAR_M2_SCHOOL_DEFAULT)
+    space_heating_per_year_m2 = config_data['MockDataConstants']['SchoolSpaceHeatKwhPerYearM2']
     space_heating = simulate_space_heating(school_gross_floor_area_m2, random_seed, input_df,
                                            space_heating_per_year_m2,
                                            get_school_heating_consumption_hourly_factor, n_rows)
-    hot_tap_water_per_year_m2 = get_if_exists_else(config_data['MockDataConstants'],
-                                                   'SchoolHotTapWaterKwhPerYearM2',
-                                                   KWH_HOT_TAP_WATER_PER_YEAR_M2_SCHOOL_DEFAULT)
-    hot_tap_water_relative_error_std_dev = get_if_exists_else(config_data['MockDataConstants'],
-                                                              'SchoolHotTapWaterRelativeErrorStdDev',
-                                                              SCHOOL_HOT_TAP_WATER_RELATIVE_ERROR_STD_DEV_DEFAULT)
+    hot_tap_water_per_year_m2 = config_data['MockDataConstants']['SchoolHotTapWaterKwhPerYearM2']
+    hot_tap_water_relative_error_std_dev = config_data['MockDataConstants']['SchoolHotTapWaterRelativeErrorStdDev']
     hot_tap_water = simulate_hot_tap_water(school_gross_floor_area_m2, random_seed, input_df,
                                            hot_tap_water_per_year_m2,
                                            get_school_heating_consumption_hourly_factor,
@@ -584,8 +541,7 @@ def simulate_residential_total_heating(config_data: Dict[str, Any], df_inputs: p
     points_to_generate = len(every_xth)
 
     rng = np.random.default_rng(random_seed)
-    std_dev = get_if_exists_else(config_data['MockDataConstants'], 'ResidentialHeatingRelativeErrorStdDev',
-                                 RESIDENTIAL_HEATING_RELATIVE_ERROR_STD_DEV_DEFAULT)
+    std_dev = config_data['MockDataConstants']['ResidentialHeatingRelativeErrorStdDev']
     generated_points = rng.normal(1, std_dev, points_to_generate)
 
     noise = np.empty((n_rows,))
@@ -600,14 +556,10 @@ def simulate_residential_total_heating(config_data: Dict[str, Any], df_inputs: p
     # Could argue we should use different noise here ^, but there is some logic to these two varying together
 
     # Scale
-    space_heating_per_year_per_m2 = get_if_exists_else(config_data['MockDataConstants'],
-                                                       'ResidentialSpaceHeatKwhPerYearM2',
-                                                       KWH_PER_YEAR_M2_RESIDENTIAL_SPACE_HEATING_DEFAULT)
+    space_heating_per_year_per_m2 = config_data['MockDataConstants']['ResidentialSpaceHeatKwhPerYearM2']
     space_heating_scaled = scale_energy_consumption(space_heating_unscaled, gross_floor_area_m2,
                                                     space_heating_per_year_per_m2, n_rows)
-    hot_tap_water_per_year_per_m2 = get_if_exists_else(config_data['MockDataConstants'],
-                                                       'ResidentialHotTapWaterKwhPerYearM2',
-                                                       KWH_PER_YEAR_M2_RESIDENTIAL_HOT_TAP_WATER_DEFAULT)
+    hot_tap_water_per_year_per_m2 = config_data['MockDataConstants']['ResidentialHotTapWaterKwhPerYearM2']
     hot_tap_water_scaled = scale_energy_consumption(hot_tap_water_unscaled, gross_floor_area_m2,
                                                     hot_tap_water_per_year_per_m2, n_rows)
     return space_heating_scaled, hot_tap_water_scaled

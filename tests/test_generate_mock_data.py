@@ -12,7 +12,8 @@ import polars as pl
 
 from tradingplatformpoc import generate_mock_data
 from tradingplatformpoc.compress import bz2_decompress_pickle
-from tradingplatformpoc.generate_mock_data import DATA_PATH, KWH_SPACE_HEATING_PER_YEAR_M2_SCHOOL_DEFAULT, \
+from tradingplatformpoc.config.access_config import read_param_specs
+from tradingplatformpoc.generate_mock_data import DATA_PATH, \
     all_parameters_match, is_day_before_major_holiday_sweden, is_major_holiday_sweden, simulate_series, \
     simulate_space_heating
 from tradingplatformpoc.mock_data_generation_functions import get_school_heating_consumption_hourly_factor
@@ -43,8 +44,10 @@ class Test(TestCase):
         input_df = pl.DataFrame({'datetime': datetimes,
                                  'temperature': rng.normal(loc=8, scale=8, size=len(datetimes))})
         self.assertAlmostEqual(-0.8267075925242562, input_df['temperature'][0])
+        school_space_heat_kwh_per_year_m2_default = \
+            read_param_specs(['MockDataConstants'])['MockDataConstants']['SchoolSpaceHeatKwhPerYearM2']['default']
         space_heating = simulate_space_heating(100, random_seed, input_df.lazy(),
-                                               KWH_SPACE_HEATING_PER_YEAR_M2_SCHOOL_DEFAULT,
+                                               school_space_heat_kwh_per_year_m2_default,
                                                get_school_heating_consumption_hourly_factor, len(datetimes))
         space_heating_pd = space_heating.collect().to_pandas()
         self.assertAlmostEqual(2500, space_heating_pd.value[:8766].sum())

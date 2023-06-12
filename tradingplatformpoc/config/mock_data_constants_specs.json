@@ -30,6 +30,7 @@
     "CommercialElecKwhPerYearM2": {
         "display": "Commercial electricity kWh/year/m2:",
         "min_value": 1,
+        
         "max_value": 200,
         "default": 118,
         "help": "Number indicating the electricity consumption of commercial areas, in kWh per year and square meter. The default of 118 kWh/year/m2 comes from Energimyndigheten's 2009 report 'Energianvändning i handelslokaler'. This number is given for 'non-grocery-related' trades premises."
