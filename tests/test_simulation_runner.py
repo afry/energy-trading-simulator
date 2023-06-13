@@ -14,8 +14,8 @@ from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.bid import Action, Resource
 from tradingplatformpoc.config.access_config import read_config
 from tradingplatformpoc.data_store import DataStore
-from tradingplatformpoc.simulation_runner import TradingSimulator, construct_df_from_datetime_dict, \
-    get_external_heating_prices, get_quantity_heating_sold_by_external_grid
+from tradingplatformpoc.simulation_runner.trading_simulator import TradingSimulator, \
+    construct_df_from_datetime_dict, get_external_heating_prices, get_quantity_heating_sold_by_external_grid
 from tradingplatformpoc.trade import Market, Trade
 from tradingplatformpoc.trading_platform_utils import hourly_datetime_array_between
 

@@ -11,7 +11,7 @@ from tests import utility_test_objects
 from tradingplatformpoc import data_store
 from tradingplatformpoc.bid import Action, GrossBid, Resource
 from tradingplatformpoc.market_solver import no_bids_accepted, resolve_bids
-from tradingplatformpoc.simulation_runner import net_bids_from_gross_bids
+from tradingplatformpoc.simulation_runner.trading_simulator import net_bids_from_gross_bids
 from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES, hourly_datetime_array_between
 
 DATETIME_ARRAY = hourly_datetime_array_between(datetime(2018, 12, 31, 23, tzinfo=timezone.utc),

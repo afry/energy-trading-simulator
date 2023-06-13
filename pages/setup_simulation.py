@@ -13,8 +13,7 @@ from tradingplatformpoc.config.access_config import fill_agents_with_defaults, f
     read_config, read_param_specs, set_config
 from tradingplatformpoc.config.screen_config import compare_pv_efficiency, config_data_json_screening, \
     display_diff_in_config
-
-from tradingplatformpoc.simulation_runner import TradingSimulator
+from tradingplatformpoc.simulation_runner.trading_simulator import TradingSimulator
 
 logger = logging.getLogger(__name__)
 
