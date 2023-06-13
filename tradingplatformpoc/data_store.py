@@ -9,9 +9,9 @@ import pandas as pd
 from pkg_resources import resource_filename
 
 from tradingplatformpoc import trading_platform_utils
-from tradingplatformpoc.bid import Resource
 from tradingplatformpoc.district_heating_calculations import calculate_jan_feb_avg_heating_sold, \
     calculate_peak_day_avg_cons_kw, estimate_district_heating_price, exact_district_heating_price_for_month
+from tradingplatformpoc.market.bid import Resource
 from tradingplatformpoc.trading_platform_utils import minus_n_hours
 
 

@@ -10,7 +10,7 @@ from tradingplatformpoc.app.app_visualizations import aggregated_import_and_expo
     aggregated_import_and_export_results_df_split_on_temperature, aggregated_local_production_df, \
     aggregated_taxes_and_fees_results_df, construct_price_chart, construct_prices_df, \
     get_price_df_when_local_price_inbetween
-from tradingplatformpoc.bid import Resource
+from tradingplatformpoc.market.bid import Resource
 
 logger = logging.getLogger(__name__)
 

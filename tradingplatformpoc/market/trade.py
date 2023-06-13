@@ -1,7 +1,7 @@
 import datetime
 from enum import Enum
 
-from tradingplatformpoc.bid import Action, Resource, action_string, resource_string
+from tradingplatformpoc.market.bid import Action, Resource, action_string, resource_string
 
 
 class Market(Enum):

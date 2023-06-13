@@ -4,7 +4,7 @@ from pkg_resources import resource_filename
 
 from tradingplatformpoc import simulation_runner
 from tradingplatformpoc.app.app_inputs import read_config
-from tradingplatformpoc.bid import Action
+from tradingplatformpoc.market.bid import Action
 from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES
 
 mock_datas_file_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")

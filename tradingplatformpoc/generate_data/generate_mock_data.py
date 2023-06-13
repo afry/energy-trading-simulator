@@ -17,8 +17,8 @@ import polars as pl
 from statsmodels.regression.linear_model import RegressionResultsWrapper
 
 from tradingplatformpoc.compress import bz2_decompress_pickle
-from tradingplatformpoc.generate_data import commercial_heating_model
 from tradingplatformpoc.config.access_config import read_config
+from tradingplatformpoc.generate_data import commercial_heating_model
 from tradingplatformpoc.generate_data.mock_data_generation_functions import MockDataKey, get_all_building_agents, \
     get_commercial_electricity_consumption_hourly_factor, get_commercial_heating_consumption_hourly_factor, \
     get_elec_cons_key, get_hot_tap_water_cons_key, get_school_heating_consumption_hourly_factor, \

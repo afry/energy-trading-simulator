@@ -11,7 +11,7 @@ from pkg_resources import resource_filename
 from tests import utility_test_objects
 
 from tradingplatformpoc import data_store
-from tradingplatformpoc.bid import Resource
+from tradingplatformpoc.market.bid import Resource
 from tradingplatformpoc.trading_platform_utils import hourly_datetime_array_between
 
 FEB_1_1_AM = datetime(2019, 2, 1, 1, 0, 0, tzinfo=timezone.utc)

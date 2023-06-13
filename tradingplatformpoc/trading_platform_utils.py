@@ -5,7 +5,7 @@ import numpy as np
 
 import pandas as pd
 
-from tradingplatformpoc.bid import Resource
+from tradingplatformpoc.market.bid import Resource
 
 ALL_IMPLEMENTED_RESOURCES = [Resource.ELECTRICITY, Resource.HEATING]
 ALL_IMPLEMENTED_RESOURCES_STR = [res.name for res in ALL_IMPLEMENTED_RESOURCES]

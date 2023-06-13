@@ -4,7 +4,7 @@ from typing import Dict, Iterable, List, Set, Tuple, Union
 
 import numpy as np
 
-from tradingplatformpoc.bid import Action, NetBid, NetBidWithAcceptanceStatus, Resource
+from tradingplatformpoc.market.bid import Action, NetBid, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES
 
 logger = logging.getLogger(__name__)

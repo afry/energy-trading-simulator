@@ -1,9 +1,9 @@
 import datetime
 from typing import Collection, Dict, List, Tuple, Union
 
-from tradingplatformpoc.bid import Action, NetBidWithAcceptanceStatus, Resource
-from tradingplatformpoc.extra_cost import ExtraCost, ExtraCostType, get_extra_cost_type_for_bid_inaccuracy
-from tradingplatformpoc.trade import Market, Trade
+from tradingplatformpoc.market.bid import Action, NetBidWithAcceptanceStatus, Resource
+from tradingplatformpoc.market.extra_cost import ExtraCost, ExtraCostType, get_extra_cost_type_for_bid_inaccuracy
+from tradingplatformpoc.market.trade import Market, Trade
 from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES
 
 

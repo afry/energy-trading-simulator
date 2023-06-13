@@ -2,8 +2,8 @@ import logging
 
 import pandas as pd
 
-from tradingplatformpoc.bid import Resource
 from tradingplatformpoc.digitaltwin.idigital_twin import IDigitalTwin
+from tradingplatformpoc.market.bid import Resource
 
 logger = logging.getLogger(__name__)
 

@@ -4,9 +4,9 @@ from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
 
-from ..bid import Action, GrossBid, NetBidWithAcceptanceStatus, Resource
 from ..data_store import DataStore
-from ..trade import Market, Trade, TradeMetadataKey
+from ..market.bid import Action, GrossBid, NetBidWithAcceptanceStatus, Resource
+from ..market.trade import Market, Trade, TradeMetadataKey
 
 
 class IAgent(ABC):

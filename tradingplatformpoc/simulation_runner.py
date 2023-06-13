@@ -9,24 +9,25 @@ from pkg_resources import resource_filename
 
 import streamlit as st
 
-from tradingplatformpoc import balance_manager, data_store, market_solver
+from tradingplatformpoc import data_store
 from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.agent.storage_agent import StorageAgent
-from tradingplatformpoc.balance_manager import correct_for_exact_heating_price
-from tradingplatformpoc.bid import Action, GrossBid, NetBid, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
-from tradingplatformpoc.extra_cost import ExtraCost
 from tradingplatformpoc.generate_data import generate_mock_data
 from tradingplatformpoc.generate_data.mock_data_generation_functions import MockDataKey, get_all_building_agents, \
     get_elec_cons_key, get_hot_tap_water_cons_key, get_space_heat_cons_key
+from tradingplatformpoc.market import balance_manager, market_solver
+from tradingplatformpoc.market.balance_manager import correct_for_exact_heating_price
+from tradingplatformpoc.market.bid import Action, GrossBid, NetBid, NetBidWithAcceptanceStatus, Resource
+from tradingplatformpoc.market.extra_cost import ExtraCost
+from tradingplatformpoc.market.trade import Trade, TradeMetadataKey
 from tradingplatformpoc.results import results_calculator
 from tradingplatformpoc.results.simulation_results import SimulationResults
-from tradingplatformpoc.trade import Trade, TradeMetadataKey
 from tradingplatformpoc.trading_platform_utils import add_to_nested_dict, calculate_solar_prod, flatten_collection, \
     get_intersection
 

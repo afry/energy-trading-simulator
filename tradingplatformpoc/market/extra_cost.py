@@ -3,7 +3,7 @@ from enum import Enum
 
 import pandas as pd
 
-from tradingplatformpoc.bid import Resource
+from tradingplatformpoc.market.bid import Resource
 
 
 class ExtraCostType(Enum):
