@@ -1,3 +1,4 @@
+# import datetime
 import datetime
 from unittest import TestCase
 
@@ -9,26 +10,29 @@ from pkg_resources import resource_filename
 
 from tests import utility_test_objects
 
-from tradingplatformpoc import simulation_runner
+from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.bid import Action, Resource
+from tradingplatformpoc.config.access_config import read_config
 from tradingplatformpoc.data_store import DataStore
-from tradingplatformpoc.simulation_runner import construct_df_from_datetime_dict, \
-    get_quantity_heating_sold_by_external_grid
+from tradingplatformpoc.simulation_runner.trading_simulator import TradingSimulator, \
+    construct_df_from_datetime_dict, get_external_heating_prices, get_quantity_heating_sold_by_external_grid
 from tradingplatformpoc.trade import Market, Trade
 from tradingplatformpoc.trading_platform_utils import hourly_datetime_array_between
 
 
 class Test(TestCase):
     mock_datas_file_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
-    fake_config = {'Agents': []}
+    config = read_config(name='default')
     empty_data_store = DataStore(utility_test_objects.AREA_INFO, pd.Series(dtype=float), pd.Series(dtype=float),
                                  pd.Series(dtype=float))
 
     def test_initialize_agents(self):
-        energy_data_csv_path = resource_filename("tradingplatformpoc.data", "full_mock_energy_data.csv")
+        """Test that an error is thrown if no GridAgents are initialized."""
+        fake_config = {'Agents': [agent for agent in self.config['Agents'] if agent['Type'] != 'GridAgent'],
+                       'AreaInfo': self.config['AreaInfo'],
+                       'MockDataConstants': self.config['MockDataConstants']}
         with self.assertRaises(RuntimeError):
-            simulation_runner.initialize_agents(self.empty_data_store, self.fake_config, pd.DataFrame(),
-                                                energy_data_csv_path)
+            TradingSimulator(fake_config, app_constants.MOCK_DATA_PATH)
 
     def test_get_quantity_heating_sold_by_external_grid(self):
         """Test that get_quantity_heating_sold_by_external_grid doesn't break when there are no external trades."""
@@ -43,7 +47,7 @@ class Test(TestCase):
             estimated_retail_heating_prices_by_year_and_month, \
                 estimated_wholesale_heating_prices_by_year_and_month, \
                 exact_retail_heating_prices_by_year_and_month, \
-                exact_wholesale_heating_prices_by_year_and_month = simulation_runner.get_external_heating_prices(
+                exact_wholesale_heating_prices_by_year_and_month = get_external_heating_prices(
                     self.empty_data_store, hourly_datetime_array_between(
                         datetime.datetime(2019, 2, 1), datetime.datetime(2019, 2, 2)))
         self.assertTrue(len(captured.records) > 0)
@@ -63,5 +67,5 @@ class Test(TestCase):
         dt_dict = {dt: [Trade(Action.BUY, Resource.ELECTRICITY, i, i, 'Agent' + str(i), False, Market.LOCAL, dt)
                         for i in range(1, 6)]
                    for dt in dts}
-        my_df, _some_float = construct_df_from_datetime_dict(dt_dict)
+        my_df = construct_df_from_datetime_dict(dt_dict)
         self.assertEqual(8761 * 5, len(my_df.index))
