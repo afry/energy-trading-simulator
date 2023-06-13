@@ -8,27 +8,29 @@ from pkg_resources import resource_filename
 
 import streamlit as st
 
-from tradingplatformpoc import balance_manager, data_store, market_solver
+from tradingplatformpoc import data_store
 from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.agent.storage_agent import StorageAgent
-from tradingplatformpoc.balance_manager import correct_for_exact_heating_price
-from tradingplatformpoc.bid import GrossBid, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
-from tradingplatformpoc.extra_cost import ExtraCost
-from tradingplatformpoc.mock_data_generation_functions import get_elec_cons_key, \
+from tradingplatformpoc.generate_data.mock_data_generation_functions import get_elec_cons_key, \
     get_hot_tap_water_cons_key, get_space_heat_cons_key
+from tradingplatformpoc.market import balance_manager
+from tradingplatformpoc.market import market_solver
+from tradingplatformpoc.market.balance_manager import correct_for_exact_heating_price
+from tradingplatformpoc.market.bid import GrossBid, NetBidWithAcceptanceStatus, Resource
+from tradingplatformpoc.market.extra_cost import ExtraCost
+from tradingplatformpoc.market.trade import Trade
 from tradingplatformpoc.results import results_calculator
 from tradingplatformpoc.results.simulation_results import SimulationResults
 from tradingplatformpoc.simulation_runner.progress import Progress
 from tradingplatformpoc.simulation_runner.simulation_utils import construct_df_from_datetime_dict,  \
     get_external_heating_prices, get_generated_mock_data, get_quantity_heating_sold_by_external_grid, \
     go_through_trades_metadata, net_bids_from_gross_bids
-from tradingplatformpoc.trade import Trade
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, flatten_collection, \
     get_intersection
 

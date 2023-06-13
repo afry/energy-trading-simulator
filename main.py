@@ -3,10 +3,10 @@ import pickle
 from logging.handlers import TimedRotatingFileHandler
 
 from pkg_resources import resource_filename
-from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.app.app_inputs import read_config
 import logging
 import sys
+from tradingplatformpoc.constants import MOCK_DATA_PATH
 
 from tradingplatformpoc.simulation_runner.trading_simulator import TradingSimulator
 
@@ -52,7 +52,7 @@ config_data = read_config(name='default')
 
 if __name__ == '__main__':
     logger.info("Running main")
-    simulator = TradingSimulator(read_config(), app_constants.MOCK_DATA_PATH)
+    simulator = TradingSimulator(read_config(), MOCK_DATA_PATH)
     simulation_results = simulator.run()
     logger.info("Finished running simulations. Will save simulations results as a pickle file.")
     with open(results_path + 'simulation_results.pickle', 'wb') as destination:
