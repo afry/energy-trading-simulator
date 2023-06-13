@@ -1,24 +1,24 @@
 import json
 import logging
 
+from st_pages import add_indentation, show_pages_from_config
+
+import streamlit as st
+
 from tradingplatformpoc.app import app_constants, footer
 from tradingplatformpoc.app.app_functions import results_button, set_max_width, set_simulation_results, \
     update_multiselect_style
-
-import streamlit as st
-from st_pages import show_pages_from_config, add_indentation
 from tradingplatformpoc.app.app_inputs import add_building_agent, add_grocery_store_agent, add_params_to_form, \
     add_pv_agent, add_storage_agent, agent_inputs, duplicate_agent, remove_agent, remove_all_building_agents
 from tradingplatformpoc.config.access_config import fill_agents_with_defaults, fill_with_default_params, get_config, \
     read_config, read_param_specs, set_config
 from tradingplatformpoc.config.screen_config import compare_pv_efficiency, config_data_json_screening, \
     display_diff_in_config
-
 from tradingplatformpoc.simulation_runner import run_trading_simulations
 
 logger = logging.getLogger(__name__)
 
-show_pages_from_config("pages_config/pages.toml")
+show_pages_from_config("tradingplatformpoc/app/pages_config/pages.toml")
 add_indentation()
 
 set_max_width('1000px')  # This tab looks a bit daft when it is too wide, so limiting it here.
