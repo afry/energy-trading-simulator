@@ -17,7 +17,7 @@ from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.app.app_functions import download_df_as_csv_button
 from tradingplatformpoc.bid import Action, Resource
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
-from tradingplatformpoc.generate_mock_data import create_inputs_df
+from tradingplatformpoc.generate_data.generate_mock_data import create_inputs_df
 from tradingplatformpoc.results.results_key import ResultsKey
 from tradingplatformpoc.results.simulation_results import SimulationResults
 

@@ -45,7 +45,7 @@ For more info on this model, see https://doc.afdrift.se/display/RPJ/Household+el
 * Verify that you have a json config file under the data folder specifying the area to be simulated.
 * Run the mock data generation script:
 
-        python tradingplatformpoc/generate_mock_data.py
+        python tradingplatformpoc/generate_data/generate_mock_data.py
 
 The resulting data is stored in a pickle file. To verify its contents, save an extract in a .csv file using the 
 [extraction script](scripts/extract_df_from_mock_datas_pickle_file.py).
