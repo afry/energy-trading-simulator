@@ -141,30 +141,30 @@ class TradingSimulator:
         return agents, grid_agents
 
     def run(self, progress_bar: Union[st.progress, None] = None,
-            progress_text: Union[st.info, None] = None) -> \
-            SimulationResults:
+            progress_text: Union[st.info, None] = None) -> SimulationResults:
         """
         The core loop of the simulation, running through the desired time period and performing trades.
         @param progress_bar             A streamlit progress bar, used only when running simulations through the UI
         @param progress_text            A streamlit info field, used only when running simulations through the UI
         """
 
-        progress = Progress(progress_bar)
+        self.progress = Progress(progress_bar)
+        self.progress_text = progress_text
         logger.info("Starting trading simulations")
 
         # Load generated mock data
-        if progress_text is not None:
-            progress_text.info("Generating data...")
+        if self.progress_text is not None:
+            self.progress_text.info("Generating data...")
 
         # Main loop
         for period in self.trading_periods:
             if period.day == period.hour == 1:
                 info_string = "Simulations entering {:%B}".format(period)
                 logger.info(info_string)
-                progress.increase(FRACTION_OF_CALC_TIME_FOR_1_MONTH_SIMULATED)
-                progress.display()
-                if progress_text is not None:
-                    progress_text.info(info_string + "...")
+                self.progress.increase(FRACTION_OF_CALC_TIME_FOR_1_MONTH_SIMULATED)
+                self.progress.display()
+                if self.progress_text is not None:
+                    self.progress_text.info(info_string + "...")
 
             # Get all bids
             bids = [agent.make_bids(period, self.clearing_prices_historical) for agent in self.agents]
@@ -205,10 +205,10 @@ class TradingSimulator:
 
             # Sum up grid fees paid
             grid_fees_paid_period = sum([trade.get_total_grid_fee_paid() for trade in trades_excl_external])
-            grid_fees_paid_on_internal_trades = self.grid_fees_paid_on_internal_trades + grid_fees_paid_period
+            self.grid_fees_paid_on_internal_trades = self.grid_fees_paid_on_internal_trades + grid_fees_paid_period
             # Sum up tax paid
             tax_paid_period = sum([trade.get_total_tax_paid() for trade in all_trades_for_period])
-            tax_paid = self.tax_paid + tax_paid_period
+            self.tax_paid = self.tax_paid + tax_paid_period
 
             external_heating_sell_quantity = get_quantity_heating_sold_by_external_grid(external_trades)
             self.data_store_entity.add_external_heating_sell(period, external_heating_sell_quantity)
@@ -228,12 +228,17 @@ class TradingSimulator:
             self.exact_retail_electricity_prices_by_period[period] = retail_price_elec
             self.all_extra_costs.extend(extra_costs)
 
-        progress.increase(FRACTION_OF_CALC_TIME_FOR_1_MONTH_SIMULATED + 0.01)  # Final month
-        progress.display()
-        if progress_text is not None:
-            progress_text.info("Simulated a full year, starting some calculations on district heating price...")
+        self.progress.increase(FRACTION_OF_CALC_TIME_FOR_1_MONTH_SIMULATED + 0.01)  # Final month
+        self.progress.display()
+        if self.progress_text is not None:
+            self.progress_text.info("Simulated a full year, starting some calculations on district heating price...")
 
-        # Simulations finished. Now, we need to go through and calculate the exact district heating price for each month
+        return self.extract_results()
+
+    def extract_results(self) -> SimulationResults:
+        """
+        Simulations finished. Now, we need to go through and calculate the exact district heating price for each month
+        """
         logger.info('Calculating external_heating_prices')
         estimated_retail_heat_price_by_ym, \
             estimated_wholesale_heat_price_by_ym, \
@@ -248,31 +253,31 @@ class TradingSimulator:
                                                                       estimated_wholesale_heat_price_by_ym)
         self.all_extra_costs.extend(heat_cost_discr_corrections)
 
-        if progress_text is not None:
-            progress_text.info("Formatting results...")
+        if self.progress_text is not None:
+            self.progress_text.info("Formatting results...")
 
         logger.info('Creating extra_costs_df')
         extra_costs_df = pd.DataFrame([x.to_series() for x in self.all_extra_costs]).sort_values(['period', 'agent'])
-        progress.increase(0.05)
-        progress.display()
+        self.progress.increase(0.05)
+        self.progress.display()
 
         all_trades_df = construct_df_from_datetime_dict(self.all_trades_dict)
-        progress.increase(0.005)
-        progress.display()
+        self.progress.increase(0.005)
+        self.progress.display()
         all_bids_df = construct_df_from_datetime_dict(self.all_bids_dict)
-        progress.increase(0.005)
-        progress.display()
+        self.progress.increase(0.005)
+        self.progress.display()
 
         logger.info('Aggregating results per agent')
-        if progress_text is not None:
-            progress_text.info("Aggregating results per agent...")
+        if self.progress_text is not None:
+            self.progress_text.info("Aggregating results per agent...")
         results_by_agent = results_calculator.calc_basic_results(self.agents, all_trades_df, extra_costs_df,
                                                                  self.exact_retail_electricity_prices_by_period,
                                                                  self.exact_wholesale_electricity_prices_by_period,
                                                                  exact_retail_heat_price_by_ym,
                                                                  exact_wholesale_heat_price_by_ym)
-        progress.final()
-        progress.display()
+        self.progress.final()
+        self.progress.display()
 
         sim_res = SimulationResults(clearing_prices_historical=self.clearing_prices_historical,
                                     all_trades=all_trades_df,
@@ -283,8 +288,8 @@ class TradingSimulator:
                                     config_data=self.config_data,
                                     agents=self.agents,
                                     data_store=self.data_store_entity,
-                                    grid_fees_paid_on_internal_trades=grid_fees_paid_on_internal_trades,
-                                    tax_paid=tax_paid,
+                                    grid_fees_paid_on_internal_trades=self.grid_fees_paid_on_internal_trades,
+                                    tax_paid=self.tax_paid,
                                     exact_retail_heating_prices_by_year_and_month=exact_retail_heat_price_by_ym,
                                     exact_wholesale_heating_prices_by_year_and_month=exact_wholesale_heat_price_by_ym,
                                     results_by_agent=results_by_agent
