@@ -38,6 +38,8 @@ The following guide is for using pgAdmin to access the Azure Database, but this 
 
 Make sure you have an active subscription on Azure and access to the relevant Resource group: _JonstakaPOC_.
 Make sure pgAdmin is installed and setup with password (personal, will not affect the access of others).
+Make sure your ip address is in JonstakaPOC/database_jonstaka/Networking. 
+
 To access the server:
 
 Right click Server in the left drop down menu in pgAdmin and choose Register -> Server...
