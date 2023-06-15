@@ -6,8 +6,8 @@ import pandas as pd
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.storage_agent import StorageAgent
-from tradingplatformpoc.bid import Action, Resource
-from tradingplatformpoc.extra_cost import ExtraCostType
+from tradingplatformpoc.market.bid import Action, Resource
+from tradingplatformpoc.market.extra_cost import ExtraCostType
 from tradingplatformpoc.results.results_key import ResultsKey
 
 

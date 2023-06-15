@@ -13,10 +13,10 @@ from tradingplatformpoc.agent.building_agent import BuildingAgent, construct_wor
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.agent.storage_agent import StorageAgent
-from tradingplatformpoc.bid import Action, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
-from tradingplatformpoc.trade import Market, Trade
+from tradingplatformpoc.market.bid import Action, NetBidWithAcceptanceStatus, Resource
+from tradingplatformpoc.market.trade import Market, Trade
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, hourly_datetime_array_between
 
 SOME_DATETIME = datetime(2019, 2, 1, 1)

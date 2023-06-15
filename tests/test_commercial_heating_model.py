@@ -1,6 +1,7 @@
 from unittest import TestCase
 
-from tradingplatformpoc.commercial_heating_model import probability_of_0_space_heating, space_heating_given_more_than_0
+from tradingplatformpoc.generate_data.commercial_heating_model import probability_of_0_space_heating, \
+    space_heating_given_more_than_0
 
 
 class Test(TestCase):

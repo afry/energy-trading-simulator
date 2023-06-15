@@ -14,6 +14,7 @@ from tradingplatformpoc.config.access_config import fill_agents_with_defaults, f
     read_config, read_param_specs, set_config
 from tradingplatformpoc.config.screen_config import compare_pv_efficiency, config_data_json_screening, \
     display_diff_in_config
+from tradingplatformpoc.constants import MOCK_DATA_PATH
 from tradingplatformpoc.simulation_runner.trading_simulator import TradingSimulator
 
 logger = logging.getLogger(__name__)
@@ -208,7 +209,7 @@ if run_sim:
     logger.info("Running simulation")
     st.spinner("Running simulation")
 
-    simulator = TradingSimulator(read_config(), app_constants.MOCK_DATA_PATH)
+    simulator = TradingSimulator(read_config(), MOCK_DATA_PATH)
     simulation_results = simulator.run(progress_bar, progress_text)
 
     set_simulation_results(simulation_results)

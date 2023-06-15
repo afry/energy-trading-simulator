@@ -5,11 +5,11 @@ from typing import Any, Collection, Dict, List, Tuple, Union
 
 import pandas as pd
 
-from tradingplatformpoc import generate_mock_data
-from tradingplatformpoc.bid import Action, GrossBid, NetBid, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.data_store import DataStore
-from tradingplatformpoc.mock_data_generation_functions import MockDataKey, get_all_building_agents
-from tradingplatformpoc.trade import Trade, TradeMetadataKey
+from tradingplatformpoc.generate_data import generate_mock_data
+from tradingplatformpoc.generate_data.mock_data_generation_functions import MockDataKey, get_all_building_agents
+from tradingplatformpoc.market.bid import Action, GrossBid, NetBid, NetBidWithAcceptanceStatus, Resource
+from tradingplatformpoc.market.trade import Trade, TradeMetadataKey
 from tradingplatformpoc.trading_platform_utils import add_to_nested_dict
 
 logger = logging.getLogger(__name__)

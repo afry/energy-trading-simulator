@@ -10,13 +10,13 @@ from pkg_resources import resource_filename
 
 import polars as pl
 
-from tradingplatformpoc import generate_mock_data
 from tradingplatformpoc.compress import bz2_decompress_pickle
 from tradingplatformpoc.config.access_config import read_param_specs
-from tradingplatformpoc.generate_mock_data import DATA_PATH, \
+from tradingplatformpoc.generate_data import generate_mock_data
+from tradingplatformpoc.generate_data.generate_mock_data import DATA_PATH, \
     all_parameters_match, is_day_before_major_holiday_sweden, is_major_holiday_sweden, simulate_series, \
     simulate_space_heating
-from tradingplatformpoc.mock_data_generation_functions import get_school_heating_consumption_hourly_factor
+from tradingplatformpoc.generate_data.mock_data_generation_functions import get_school_heating_consumption_hourly_factor
 from tradingplatformpoc.trading_platform_utils import hourly_datetime_array_between
 
 

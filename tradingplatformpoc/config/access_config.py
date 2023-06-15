@@ -2,11 +2,13 @@ import json
 import os
 from typing import Tuple
 
-from tradingplatformpoc.app import app_constants
+from tradingplatformpoc.app.app_constants import CURRENT_CONFIG_FILENAME
+from tradingplatformpoc.constants import AGENT_SPECS_FILENAME, AREA_INFO_SPECS, \
+    DEFAULT_AGENTS_FILENAME, MOCK_DATA_CONSTANTS_SPECS
 
 
 def read_agent_specs():
-    with open(app_constants.AGENT_SPECS_FILENAME, "r") as jsonfile:
+    with open(AGENT_SPECS_FILENAME, "r") as jsonfile:
         return json.load(jsonfile)
 
 
@@ -16,8 +18,8 @@ def read_agent_defaults(agent_type, agent_specs):
 
 def read_param_specs(names):
     """Reads and returns specified params specification from file."""
-    file_dict = {'AreaInfo': app_constants.AREA_INFO_SPECS,
-                 'MockDataConstants': app_constants.MOCK_DATA_CONSTANTS_SPECS}
+    file_dict = {'AreaInfo': AREA_INFO_SPECS,
+                 'MockDataConstants': MOCK_DATA_CONSTANTS_SPECS}
     param_specs = {}
     for name in names:
         with open(file_dict[name], "r") as jsonfile:
@@ -34,14 +36,14 @@ def read_default_params(names):
 
 def set_config(config: dict):
     """Writes config to current configuration file."""
-    with open(app_constants.CURRENT_CONFIG_FILENAME, 'w') as f:
+    with open(CURRENT_CONFIG_FILENAME, 'w') as f:
         json.dump(config, f)
 
 
 def read_config(name: str = 'current') -> dict:
     """Reads and returns specified config from file."""
-    file_dict = {'current': app_constants.CURRENT_CONFIG_FILENAME,
-                 'default': app_constants.DEFAULT_AGENTS_FILENAME}
+    file_dict = {'current': CURRENT_CONFIG_FILENAME,
+                 'default': DEFAULT_AGENTS_FILENAME}
 
     with open(file_dict[name], "r") as jsonfile:
         config = json.load(jsonfile)
@@ -62,7 +64,7 @@ def get_config(reset: bool) -> Tuple[dict, str]:
     If no current config file exists or the reset button is clicked, reset.
     Return current config.
     """
-    if not os.path.exists(app_constants.CURRENT_CONFIG_FILENAME):
+    if not os.path.exists(CURRENT_CONFIG_FILENAME):
         reset_config()
         message = "**Current configuration: :blue[DEFAULT]**"
     elif reset:

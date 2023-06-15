@@ -2,9 +2,9 @@ from unittest import TestCase
 
 from pkg_resources import resource_filename
 
-from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.app.app_inputs import read_config
-from tradingplatformpoc.bid import Action
+from tradingplatformpoc.constants import MOCK_DATA_PATH
+from tradingplatformpoc.market.bid import Action
 from tradingplatformpoc.simulation_runner.trading_simulator import TradingSimulator
 from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES
 
@@ -22,7 +22,7 @@ class Test(TestCase):
         and received by different actors all match up.
         """
 
-        simulator = TradingSimulator(config_data, app_constants.MOCK_DATA_PATH)
+        simulator = TradingSimulator(config_data, MOCK_DATA_PATH)
         simulation_results = simulator.run()
 
         for period in simulation_results.clearing_prices_historical.keys():
