@@ -33,6 +33,30 @@ Install package as editable (command automatically searches for the setup.py fil
         
         pip install -e .
 
+## Access Azure Database through pgAdmin
+The following guide is for using pgAdmin to access the Azure Database, but this is optional and you can choose GUI after your liking.
+
+Make sure you have an active subscription on Azure and access to the relevant Resource group: _JonstakaPOC_.
+Make sure pgAdmin is installed and setup with password (personal, will not affect the access of others).
+To access the server:
+
+Right click Server in the left drop down menu in pgAdmin and choose Register -> Server...
+
+Under the General tab fill Name (of your choosing).
+Under the Connection tab add info from Nudging in Azure:
+
+Host name/adress: Corresponds to the Server name in the Database Overview.
+
+Username: Here use the Admin username in the Database Overview.
+
+Password: This is found in Key vault -> Secrets. Copy the CURRENT VERSION of the admin password and Save.
+Save the password in pdAdmin. 
+
+
+
+
+NOTE: Do not use admin user with python.
+
 ## Model file for mock data generation
 Note that in order to generate mock data, one needs to have a .pickle-file located in
 data/models/household_electricity_model.pickle
