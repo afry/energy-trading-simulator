@@ -42,20 +42,15 @@ Make sure your ip address is in JonstakaPOC/database_jonstaka/Networking.
 
 To access the server:
 
-Right click Server in the left drop down menu in pgAdmin and choose Register -> Server...
-
-Under the General tab fill Name (of your choosing).
-Under the Connection tab add info from _JonstakaPOC_ in Azure:
-
-Host name/adress: Corresponds to the Server name in the Database Overview.
-
-Username: Here use the Admin username in the Database Overview. (everything before the @)
-
-Password: This is found in Key vault -> Secrets. Copy the CURRENT VERSION of the admin password and Save.
-Save the password in pdAdmin. 
-
-
-
+- Right click Server in the left drop down menu in pgAdmin and choose Register -> Server...
+- 
+- Under the General tab fill Name (of your choosing).
+- Under the Connection tab add info from _JonstakaPOC_ in Azure:
+- 
+        - _Host name/adress_: Corresponds to the Server name in the Database Overview.
+        - _Username_: Here use the Admin username in the Database Overview. (everything before the @)
+        - _Password_: This is found in Key vault -> Secrets. Copy the CURRENT VERSION of the admin password and Save.
+        - Save the password in pdAdmin. 
 
 NOTE: Do not use admin user with python.
 
