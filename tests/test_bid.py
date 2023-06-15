@@ -1,7 +1,7 @@
 import math
 from unittest import TestCase
 
-from tradingplatformpoc.bid import Action, GrossBid, NetBid, Resource
+from tradingplatformpoc.market.bid import Action, GrossBid, NetBid, Resource
 
 
 class TestGrossBid(TestCase):

@@ -5,8 +5,8 @@ from typing import Any, Dict, List, Tuple
 import pandas as pd
 
 from tradingplatformpoc.agent.iagent import IAgent
-from tradingplatformpoc.bid import Resource
 from tradingplatformpoc.data_store import DataStore
+from tradingplatformpoc.market.bid import Resource
 from tradingplatformpoc.results.results_key import ResultsKey
 
 

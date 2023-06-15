@@ -4,10 +4,10 @@ from unittest import TestCase
 
 import numpy as np
 
-from tradingplatformpoc.balance_manager import calculate_penalty_costs_for_period_and_resource, \
+from tradingplatformpoc.market.balance_manager import calculate_penalty_costs_for_period_and_resource, \
     correct_for_exact_heating_price
-from tradingplatformpoc.bid import Action, NetBidWithAcceptanceStatus, Resource
-from tradingplatformpoc.trade import Market, Trade
+from tradingplatformpoc.market.bid import Action, NetBidWithAcceptanceStatus, Resource
+from tradingplatformpoc.market.trade import Market, Trade
 
 SOME_DATETIME = datetime.datetime(2019, 1, 2)
 DEFAULT_HEAT_WHOLESALE_PRICE = 1.5

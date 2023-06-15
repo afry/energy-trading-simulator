@@ -55,7 +55,7 @@ if __name__ == '__main__':
 
     st.set_page_config(layout="wide")
 
-    show_pages_from_config("pages_config/pages.toml")
+    show_pages_from_config("tradingplatformpoc/app/pages_config/pages.toml")
     add_indentation()
 
     st.write(

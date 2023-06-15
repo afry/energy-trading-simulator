@@ -225,6 +225,7 @@
 		"Resource": "ELECTRICITY",
 		"Capacity": 1000,
 		"ChargeRate": 0.4,
+		"DischargeRate": 0.4,
 		"RoundTripEfficiency": 0.93,
 		"NHoursBack": 168,
 		"BuyPricePercentile": 20,

@@ -1,0 +1,24 @@
+[[pages]]
+path = "app.py"
+name = "Start"
+
+[[pages]]
+path = "tradingplatformpoc/app/pages/setup_simulation.py"
+name = "Setup simulation"
+
+[[pages]]
+path = "tradingplatformpoc/app/pages/load_results.py"
+name = "Load results"
+
+[[pages]]
+name = ""
+icon = ""
+is_section = true
+
+[[pages]]
+path = "tradingplatformpoc/app/pages/general_results.py"
+name = "General results"
+
+[[pages]]
+path = "tradingplatformpoc/app/pages/results_by_agent.py"
+name = "Results by agent"

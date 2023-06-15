@@ -5,8 +5,8 @@ import pandas as pd
 from pkg_resources import resource_filename
 
 from tradingplatformpoc.config.access_config import read_config
-from tradingplatformpoc.mock_data_generation_functions import get_all_building_agents, get_elec_cons_key, \
-    get_hot_tap_water_cons_key, get_space_heat_cons_key
+from tradingplatformpoc.generate_data.mock_data_generation_functions import get_all_building_agents, \
+    get_elec_cons_key, get_hot_tap_water_cons_key, get_space_heat_cons_key
 
 
 DATA_PATH = 'tradingplatformpoc.data'

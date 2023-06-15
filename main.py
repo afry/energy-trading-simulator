@@ -4,9 +4,11 @@ from logging.handlers import TimedRotatingFileHandler
 
 from pkg_resources import resource_filename
 from tradingplatformpoc.app.app_inputs import read_config
-from tradingplatformpoc.simulation_runner import run_trading_simulations
 import logging
 import sys
+from tradingplatformpoc.constants import MOCK_DATA_PATH
+
+from tradingplatformpoc.simulation_runner.trading_simulator import TradingSimulator
 
 # --- Read sys.argv to get logging level, if it is specified ---
 string_to_log_later = None
@@ -50,7 +52,8 @@ config_data = read_config(name='default')
 
 if __name__ == '__main__':
     logger.info("Running main")
-    simulation_results = run_trading_simulations(config_data, mock_datas_path)
+    simulator = TradingSimulator(read_config(), MOCK_DATA_PATH)
+    simulation_results = simulator.run()
     logger.info("Finished running simulations. Will save simulations results as a pickle file.")
     with open(results_path + 'simulation_results.pickle', 'wb') as destination:
         pickle.dump(simulation_results, destination)

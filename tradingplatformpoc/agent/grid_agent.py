@@ -3,9 +3,9 @@ import logging
 from typing import Any, Dict, Iterable, List, Tuple, Union
 
 from tradingplatformpoc.agent.iagent import IAgent
-from tradingplatformpoc.bid import Action, GrossBid, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.data_store import DataStore
-from tradingplatformpoc.trade import Market, Trade, TradeMetadataKey
+from tradingplatformpoc.market.bid import Action, GrossBid, NetBidWithAcceptanceStatus, Resource
+from tradingplatformpoc.market.trade import Market, Trade, TradeMetadataKey
 
 logger = logging.getLogger(__name__)
 
