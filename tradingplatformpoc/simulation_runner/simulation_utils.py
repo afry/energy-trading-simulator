@@ -5,11 +5,13 @@ from typing import Any, Collection, Dict, List, Tuple, Union
 
 import pandas as pd
 
+from tradingplatformpoc.connection import SessionMaker
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.generate_data import generate_mock_data
 from tradingplatformpoc.generate_data.mock_data_generation_functions import MockDataKey, get_all_building_agents
 from tradingplatformpoc.market.bid import Action, GrossBid, NetBid, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.market.trade import Trade, TradeMetadataKey
+from tradingplatformpoc.sql.trade import models
 from tradingplatformpoc.trading_platform_utils import add_to_nested_dict
 
 logger = logging.getLogger(__name__)
@@ -112,3 +114,19 @@ def construct_df_from_datetime_dict(some_dict: Union[Dict[datetime.datetime, Col
     logger.info('Constructing dataframe from datetime dict')
     return pd.DataFrame([x.to_dict_with_period(period) for period, some_collection in some_dict.items()
                          for x in some_collection])
+
+
+def to_categories(df, col):
+    for val in pd.unique(df[col]):
+        df.loc[df[col] == val, col] = val.name
+
+
+def save_trades_to_db(job_id: str, df: pd.DataFrame):
+    to_categories(df, 'resource')
+    to_categories(df, 'action')
+    to_categories(df, 'market')
+    df['job_id'] = job_id
+    objects = [models.Trade(**trade_row) for _i, trade_row in df.iterrows()]
+    with SessionMaker() as sess:
+        sess.bulk_save_objects(objects)
+        sess.commit()

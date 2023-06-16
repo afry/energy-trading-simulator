@@ -22,7 +22,7 @@ class Test(TestCase):
         and received by different actors all match up.
         """
 
-        simulator = TradingSimulator(config_data, MOCK_DATA_PATH)
+        simulator = TradingSimulator('end_to_end_job_id', config_data, MOCK_DATA_PATH)
         simulation_results = simulator.run()
 
         for period in simulation_results.clearing_prices_historical.keys():

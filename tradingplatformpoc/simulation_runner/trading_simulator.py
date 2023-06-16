@@ -30,7 +30,7 @@ from tradingplatformpoc.results.simulation_results import SimulationResults
 from tradingplatformpoc.simulation_runner.progress import Progress
 from tradingplatformpoc.simulation_runner.simulation_utils import construct_df_from_datetime_dict,  \
     get_external_heating_prices, get_generated_mock_data, get_quantity_heating_sold_by_external_grid, \
-    go_through_trades_metadata, net_bids_from_gross_bids
+    go_through_trades_metadata, net_bids_from_gross_bids, save_trades_to_db
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, flatten_collection, \
     get_intersection
 
@@ -40,7 +40,8 @@ logger = logging.getLogger(__name__)
 
 
 class TradingSimulator:
-    def __init__(self, config_data: Dict[str, Any], mock_datas_pickle_path: str):
+    def __init__(self, job_id: str, config_data: Dict[str, Any], mock_datas_pickle_path: str):
+        self.job_id = job_id
         self.config_data = config_data
         self.mock_datas_pickle_path = mock_datas_pickle_path
 
@@ -264,6 +265,7 @@ class TradingSimulator:
         self.progress.display()
 
         all_trades_df = construct_df_from_datetime_dict(self.all_trades_dict)
+        save_trades_to_db(self.job_id, all_trades_df)
         self.progress.increase(0.005)
         self.progress.display()
         all_bids_df = construct_df_from_datetime_dict(self.all_bids_dict)

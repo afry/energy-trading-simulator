@@ -33,7 +33,7 @@ class Test(TestCase):
                        'AreaInfo': self.config['AreaInfo'],
                        'MockDataConstants': self.config['MockDataConstants']}
         with self.assertRaises(RuntimeError):
-            TradingSimulator(fake_config, MOCK_DATA_PATH)
+            TradingSimulator('test_job_id', fake_config, MOCK_DATA_PATH)
 
     def test_get_quantity_heating_sold_by_external_grid(self):
         """Test that get_quantity_heating_sold_by_external_grid doesn't break when there are no external trades."""

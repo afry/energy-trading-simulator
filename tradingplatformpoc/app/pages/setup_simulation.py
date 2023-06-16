@@ -209,7 +209,7 @@ if run_sim:
     logger.info("Running simulation")
     st.spinner("Running simulation")
 
-    simulator = TradingSimulator(read_config(), MOCK_DATA_PATH)
+    simulator = TradingSimulator('placeholder_job_id', read_config(), MOCK_DATA_PATH)
     simulation_results = simulator.run(progress_bar, progress_text)
 
     set_simulation_results(simulation_results)

@@ -18,7 +18,8 @@ DB_URI = f"postgresql+psycopg2://{os.getenv('PG_USER')}:{os.getenv('PG_PASSWORD'
 db_engine = create_engine(
     DB_URI,
     echo=False,
-    pool_pre_ping=True
+    pool_pre_ping=True,
+    connect_args={'options': '-csearch_path={}'.format('simulation')}
 )
 
 SessionMaker = sa_orm.sessionmaker(bind=db_engine, class_=Session)
