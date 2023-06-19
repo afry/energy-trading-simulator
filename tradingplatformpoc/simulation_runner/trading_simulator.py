@@ -30,7 +30,7 @@ from tradingplatformpoc.results.simulation_results import SimulationResults
 from tradingplatformpoc.simulation_runner.progress import Progress
 from tradingplatformpoc.simulation_runner.simulation_utils import construct_df_from_datetime_dict,  \
     get_external_heating_prices, get_generated_mock_data, get_quantity_heating_sold_by_external_grid, \
-    go_through_trades_metadata, net_bids_from_gross_bids, save_trades_to_db
+    go_through_trades_metadata, net_bids_from_gross_bids, save_to_db
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, flatten_collection, \
     get_intersection
 
@@ -265,7 +265,6 @@ class TradingSimulator:
         self.progress.display()
 
         all_trades_df = construct_df_from_datetime_dict(self.all_trades_dict)
-        save_trades_to_db(self.job_id, all_trades_df)
         self.progress.increase(0.005)
         self.progress.display()
         all_bids_df = construct_df_from_datetime_dict(self.all_bids_dict)
@@ -280,6 +279,8 @@ class TradingSimulator:
                                                                  self.exact_wholesale_electricity_prices_by_period,
                                                                  exact_retail_heat_price_by_ym,
                                                                  exact_wholesale_heat_price_by_ym)
+        save_to_db('trades', self.job_id, all_trades_df, ['action', 'resource', 'market'])
+        save_to_db('bids', self.job_id, all_bids_df, ['action', 'resource'])
         self.progress.final()
         self.progress.display()
 

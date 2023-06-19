@@ -11,7 +11,8 @@ from tradingplatformpoc.generate_data import generate_mock_data
 from tradingplatformpoc.generate_data.mock_data_generation_functions import MockDataKey, get_all_building_agents
 from tradingplatformpoc.market.bid import Action, GrossBid, NetBid, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.market.trade import Trade, TradeMetadataKey
-from tradingplatformpoc.sql.trade import models
+from tradingplatformpoc.sql.bid.models import Bid as TableBid
+from tradingplatformpoc.sql.trade.models import Trade as TableTrade
 from tradingplatformpoc.trading_platform_utils import add_to_nested_dict
 
 logger = logging.getLogger(__name__)
@@ -23,16 +24,16 @@ def net_bids_from_gross_bids(gross_bids: List[GrossBid], data_store_entity: Data
     Note: External electricity bids already have grid fee
     """
     net_bids: List[NetBid] = []
-    for bid in gross_bids:
-        if bid.action == Action.SELL and bid.resource == Resource.ELECTRICITY:
-            if bid.by_external:
-                net_price = data_store_entity.get_electricity_net_external_price(bid.price)
-                net_bids.append(NetBid.from_gross_bid(bid, net_price))
+    for gross_bid in gross_bids:
+        if gross_bid.action == Action.SELL and gross_bid.resource == Resource.ELECTRICITY:
+            if gross_bid.by_external:
+                net_price = data_store_entity.get_electricity_net_external_price(gross_bid.price)
+                net_bids.append(NetBid.from_gross_bid(gross_bid, net_price))
             else:
-                net_price = data_store_entity.get_electricity_net_internal_price(bid.price)
-                net_bids.append(NetBid.from_gross_bid(bid, net_price))
+                net_price = data_store_entity.get_electricity_net_internal_price(gross_bid.price)
+                net_bids.append(NetBid.from_gross_bid(gross_bid, net_price))
         else:
-            net_bids.append(NetBid.from_gross_bid(bid, bid.price))
+            net_bids.append(NetBid.from_gross_bid(gross_bid, gross_bid.price))
     return net_bids
 
 
@@ -116,17 +117,19 @@ def construct_df_from_datetime_dict(some_dict: Union[Dict[datetime.datetime, Col
                          for x in some_collection])
 
 
-def to_categories(df, col):
+def fields_to_strings(df, col):
     for val in pd.unique(df[col]):
         df.loc[df[col] == val, col] = val.name
 
 
-def save_trades_to_db(job_id: str, df: pd.DataFrame):
-    to_categories(df, 'resource')
-    to_categories(df, 'action')
-    to_categories(df, 'market')
+def save_to_db(data: str, job_id: str, df: pd.DataFrame, keys_to_categories: List[str]):
+    for key in keys_to_categories:
+        fields_to_strings(df, key)
     df['job_id'] = job_id
-    objects = [models.Trade(**trade_row) for _i, trade_row in df.iterrows()]
+    if data == 'trades':
+        objects = [TableTrade(**trade_row) for _i, trade_row in df.iterrows()]
+    elif data == 'bids':
+        objects = [TableBid(**bid_row) for _i, bid_row in df.iterrows()]
     with SessionMaker() as sess:
         sess.bulk_save_objects(objects)
         sess.commit()

@@ -7,8 +7,8 @@ from sqlalchemy import Column, DateTime, Integer
 from sqlmodel import Field, SQLModel
 
 
-class Trade(SQLModel, table=True):
-    __tablename__ = 'trade'
+class Bid(SQLModel, table=True):
+    __tablename__ = 'bid'
 
     id: Optional[int] = Field(
         title='Unique integer ID',
@@ -38,16 +38,10 @@ class Trade(SQLModel, table=True):
         title='Resource',
         nullable=False
     )
-    quantity_pre_loss: Optional[float] = Field(
+    quantity: Optional[float] = Field(
         primary_key=False,
         default=None,
-        title='Quantity pre loss',
-        nullable=False
-    )
-    quantity_post_loss: Optional[float] = Field(
-        primary_key=False,
-        default=None,
-        title='Quantity post loss',
+        title='Quantity',
         nullable=False
     )
     price: Optional[float] = Field(
@@ -66,23 +60,5 @@ class Trade(SQLModel, table=True):
         primary_key=False,
         default=None,
         title='Trade by external market',
-        nullable=False
-    )
-    market: Optional[str] = Field(
-        primary_key=False,
-        default=None,
-        title='Market',
-        nullable=False
-    )
-    tax_paid: Optional[float] = Field(
-        primary_key=False,
-        default=None,
-        title='Tax paid',
-        nullable=False
-    )
-    grid_fee_paid: Optional[float] = Field(
-        primary_key=False,
-        default=None,
-        title='Grid fee paid',
         nullable=False
     )
