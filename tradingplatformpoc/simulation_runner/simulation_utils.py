@@ -5,6 +5,8 @@ from typing import Any, Collection, Dict, List, Tuple, Union
 
 import pandas as pd
 
+from sqlalchemy import delete
+
 from tradingplatformpoc.connection import SessionMaker
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.generate_data import generate_mock_data
@@ -132,4 +134,13 @@ def save_to_db(data: str, job_id: str, df: pd.DataFrame, keys_to_categories: Lis
         objects = [TableBid(**bid_row) for _i, bid_row in df.iterrows()]
     with SessionMaker() as sess:
         sess.bulk_save_objects(objects)
+        sess.commit()
+
+
+def delete_from_db(job_id: str, table_name: str):
+    with SessionMaker() as sess:
+        if table_name == 'Trade':
+            sess.execute(delete(TableTrade).where(TableTrade.job_id == job_id))
+        elif table_name == 'Bid':
+            sess.execute(delete(TableBid).where(TableBid.job_id == job_id))
         sess.commit()

@@ -28,7 +28,7 @@ from tradingplatformpoc.market.trade import Trade
 from tradingplatformpoc.results import results_calculator
 from tradingplatformpoc.results.simulation_results import SimulationResults
 from tradingplatformpoc.simulation_runner.progress import Progress
-from tradingplatformpoc.simulation_runner.simulation_utils import construct_df_from_datetime_dict,  \
+from tradingplatformpoc.simulation_runner.simulation_utils import construct_df_from_datetime_dict, delete_from_db,  \
     get_external_heating_prices, get_generated_mock_data, get_quantity_heating_sold_by_external_grid, \
     go_through_trades_metadata, net_bids_from_gross_bids, save_to_db
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, flatten_collection, \
@@ -279,10 +279,17 @@ class TradingSimulator:
                                                                  self.exact_wholesale_electricity_prices_by_period,
                                                                  exact_retail_heat_price_by_ym,
                                                                  exact_wholesale_heat_price_by_ym)
+        logger.info('Saving trades to db...')
         save_to_db('trades', self.job_id, all_trades_df, ['action', 'resource', 'market'])
+        logger.info('Saving bids to db...')
         save_to_db('bids', self.job_id, all_bids_df, ['action', 'resource'])
         self.progress.final()
         self.progress.display()
+
+        logger.info('Deleting trades in db with job ID {}...'.format(self.job_id))
+        delete_from_db(self.job_id, 'Trade')
+        logger.info('Deleting bids in db with job ID {}...'.format(self.job_id))
+        delete_from_db(self.job_id, 'Bid')
 
         sim_res = SimulationResults(clearing_prices_historical=self.clearing_prices_historical,
                                     all_trades=all_trades_df,
