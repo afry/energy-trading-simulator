@@ -28,9 +28,9 @@ from tradingplatformpoc.market.trade import Trade
 from tradingplatformpoc.results import results_calculator
 from tradingplatformpoc.results.simulation_results import SimulationResults
 from tradingplatformpoc.simulation_runner.progress import Progress
-from tradingplatformpoc.simulation_runner.simulation_utils import construct_df_from_datetime_dict, delete_from_db,  \
-    get_external_heating_prices, get_generated_mock_data, get_quantity_heating_sold_by_external_grid, \
-    go_through_trades_metadata, net_bids_from_gross_bids, save_to_db
+from tradingplatformpoc.simulation_runner.simulation_utils import bids_to_db, construct_df_from_datetime_dict, \
+    db_to_trade_df, delete_from_db, get_external_heating_prices, get_generated_mock_data, \
+    get_quantity_heating_sold_by_external_grid, go_through_trades_metadata, net_bids_from_gross_bids, trades_to_db
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, flatten_collection, \
     get_intersection
 
@@ -168,9 +168,17 @@ class TradingSimulator:
             if self.progress_text is not None:
                 self.progress_text.info(info_string + "...")
 
+            # Periods
+            trading_periods_in_this_month = self.trading_periods[(self.trading_periods.year == year)
+                                                                 & (self.trading_periods.month_name() == month)]
+
+            all_bids_dict_month: Dict[datetime.datetime, Collection[NetBidWithAcceptanceStatus]] \
+                = dict(zip(trading_periods_in_this_month, ([] for _ in trading_periods_in_this_month)))
+            all_trades_dict_month: Dict[datetime.datetime, Collection[Trade]] \
+                = dict(zip(trading_periods_in_this_month, ([] for _ in trading_periods_in_this_month)))
+
             # Month loop
-            for period in self.trading_periods[(self.trading_periods.year == year)
-                                               & (self.trading_periods.month_name() == month)]:
+            for period in trading_periods_in_this_month:
                 # Get all bids
                 bids = [agent.make_bids(period, self.clearing_prices_historical) for agent in self.agents]
 
@@ -185,6 +193,7 @@ class TradingSimulator:
                 self.clearing_prices_historical[period] = clearing_prices
 
                 self.all_bids_dict[period] = bids_with_acceptance_status
+                all_bids_dict_month[period] = bids_with_acceptance_status
 
                 # Send clearing price back to agents, allow them to "make trades", i.e. decide if they want to buy/sell
                 # energy, from/to either the local market or directly from/to the external grid.
@@ -208,6 +217,7 @@ class TradingSimulator:
                                                       for ga in self.grid_agents])
                 all_trades_for_period = trades_excl_external + external_trades
                 self.all_trades_dict[period] = all_trades_for_period
+                all_trades_dict_month[period] = all_trades_for_period
 
                 # Sum up grid fees paid
                 grid_fees_paid_period = sum([trade.get_total_grid_fee_paid() for trade in trades_excl_external])
@@ -233,6 +243,11 @@ class TradingSimulator:
                 self.exact_wholesale_electricity_prices_by_period[period] = wholesale_price_elec
                 self.exact_retail_electricity_prices_by_period[period] = retail_price_elec
                 self.all_extra_costs.extend(extra_costs)
+
+            logger.info('Saving bids to db...')
+            bids_to_db(all_bids_dict_month, self.job_id)
+            logger.info('Saving trades to db...')
+            trades_to_db(all_trades_dict_month, self.job_id)
 
         self.progress.increase(FRACTION_OF_CALC_TIME_FOR_1_MONTH_SIMULATED + 0.01)  # Final month
         self.progress.display()
@@ -267,12 +282,15 @@ class TradingSimulator:
         self.progress.increase(0.05)
         self.progress.display()
 
-        all_trades_df = construct_df_from_datetime_dict(self.all_trades_dict)
+        # all_trades_df = construct_df_from_datetime_dict(self.all_trades_dict)
         self.progress.increase(0.005)
         self.progress.display()
         all_bids_df = construct_df_from_datetime_dict(self.all_bids_dict)
         self.progress.increase(0.005)
         self.progress.display()
+
+        logger.info('Read trades from db...')
+        all_trades_df = db_to_trade_df(self.job_id)
 
         logger.info('Aggregating results per agent')
         if self.progress_text is not None:
@@ -282,10 +300,6 @@ class TradingSimulator:
                                                                  self.exact_wholesale_electricity_prices_by_period,
                                                                  exact_retail_heat_price_by_ym,
                                                                  exact_wholesale_heat_price_by_ym)
-        logger.info('Saving trades to db...')
-        save_to_db('trades', self.job_id, all_trades_df, ['action', 'resource', 'market'])
-        logger.info('Saving bids to db...')
-        save_to_db('bids', self.job_id, all_bids_df, ['action', 'resource'])
         self.progress.final()
         self.progress.display()
 
