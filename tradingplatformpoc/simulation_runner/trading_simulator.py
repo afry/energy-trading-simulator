@@ -34,7 +34,7 @@ from tradingplatformpoc.simulation_runner.simulation_utils import construct_df_f
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, flatten_collection, \
     get_intersection
 
-FRACTION_OF_CALC_TIME_FOR_1_MONTH_SIMULATED = 0.065
+FRACTION_OF_CALC_TIME_FOR_1_MONTH_SIMULATED = 0.065  # TODO: Maybe should be dependent on # months
 
 logger = logging.getLogger(__name__)
 
@@ -53,8 +53,8 @@ class TradingSimulator:
 
         self.buildings_mock_data: pd.DataFrame = get_generated_mock_data(self.config_data, self.mock_datas_pickle_path)
 
-        self.trading_periods = get_intersection(self.buildings_mock_data.index.tolist(),
-                                                self.data_store_entity.get_nordpool_data_datetimes())
+        self.trading_periods = pd.DatetimeIndex(get_intersection(self.buildings_mock_data.index.tolist(),
+                                                self.data_store_entity.get_nordpool_data_datetimes()))
 
         self.clearing_prices_historical: Dict[datetime.datetime, Dict[Resource, float]] = {}
         self.all_trades_dict: Dict[datetime.datetime, Collection[Trade]] \
@@ -160,76 +160,79 @@ class TradingSimulator:
             self.progress_text.info("Generating data...")
 
         # Main loop
-        for period in self.trading_periods:
-            if period.day == period.hour == 1:
-                info_string = "Simulations entering {:%B}".format(period)
-                logger.info(info_string)
-                self.progress.increase(FRACTION_OF_CALC_TIME_FOR_1_MONTH_SIMULATED)
-                self.progress.display()
-                if self.progress_text is not None:
-                    self.progress_text.info(info_string + "...")
+        for year, month in pd.unique(self.trading_periods.map(lambda x: (x.year, x.month_name()))):
+            info_string = "Simulations entering {}".format(month)
+            logger.info(info_string)
+            self.progress.increase(FRACTION_OF_CALC_TIME_FOR_1_MONTH_SIMULATED)
+            self.progress.display()
+            if self.progress_text is not None:
+                self.progress_text.info(info_string + "...")
 
-            # Get all bids
-            bids = [agent.make_bids(period, self.clearing_prices_historical) for agent in self.agents]
+            # Month loop
+            for period in self.trading_periods[(self.trading_periods.year == year)
+                                               & (self.trading_periods.month_name() == month)]:
+                # Get all bids
+                bids = [agent.make_bids(period, self.clearing_prices_historical) for agent in self.agents]
 
-            # Flatten bids list
-            bids_flat: List[GrossBid] = flatten_collection(bids)
+                # Flatten bids list
+                bids_flat: List[GrossBid] = flatten_collection(bids)
 
-            # Add in tax and grid fee for SELL bids (for electricity, heating is not taxed)
-            net_bids = net_bids_from_gross_bids(bids_flat, self.data_store_entity)
+                # Add in tax and grid fee for SELL bids (for electricity, heating is not taxed)
+                net_bids = net_bids_from_gross_bids(bids_flat, self.data_store_entity)
 
-            # Resolve bids
-            clearing_prices, bids_with_acceptance_status = market_solver.resolve_bids(period, net_bids)
-            self.clearing_prices_historical[period] = clearing_prices
+                # Resolve bids
+                clearing_prices, bids_with_acceptance_status = market_solver.resolve_bids(period, net_bids)
+                self.clearing_prices_historical[period] = clearing_prices
 
-            self.all_bids_dict[period] = bids_with_acceptance_status
+                self.all_bids_dict[period] = bids_with_acceptance_status
 
-            # Send clearing price back to agents, allow them to "make trades", i.e. decide if they want to buy/sell
-            # energy, from/to either the local market or directly from/to the external grid.
-            # To be clear: These "trades" are for _actual_ amounts, not predicted.
-            # All agents except the external grid agent
-            # makes these, then finally the external grid agent "fills in" the energy
-            # imbalances through "trades" of its own
-            trades_excl_external = []
-            for agent in self.agents:
-                accepted_bids_for_agent = [bid for bid in bids_with_acceptance_status
-                                           if bid.source == agent.guid and bid.accepted_quantity > 0]
-                trades, metadata = agent.make_trades_given_clearing_price(period, clearing_prices,
-                                                                          accepted_bids_for_agent)
-                trades_excl_external.extend(trades)
-                go_through_trades_metadata(metadata, period, agent.guid, self.heat_pump_levels_dict,
-                                           self.storage_levels_dict)
+                # Send clearing price back to agents, allow them to "make trades", i.e. decide if they want to buy/sell
+                # energy, from/to either the local market or directly from/to the external grid.
+                # To be clear: These "trades" are for _actual_ amounts, not predicted.
+                # All agents except the external grid agent
+                # makes these, then finally the external grid agent "fills in" the energy
+                # imbalances through "trades" of its own
+                trades_excl_external = []
+                for agent in self.agents:
+                    accepted_bids_for_agent = [bid for bid in bids_with_acceptance_status
+                                               if bid.source == agent.guid and bid.accepted_quantity > 0]
+                    trades, metadata = agent.make_trades_given_clearing_price(period, clearing_prices,
+                                                                              accepted_bids_for_agent)
+                    trades_excl_external.extend(trades)
+                    go_through_trades_metadata(metadata, period, agent.guid, self.heat_pump_levels_dict,
+                                               self.storage_levels_dict)
 
-            trades_excl_external = [i for i in trades_excl_external if i]  # filter out None
-            external_trades = flatten_collection([ga.calculate_external_trades(trades_excl_external, clearing_prices)
-                                                 for ga in self.grid_agents])
-            all_trades_for_period = trades_excl_external + external_trades
-            self.all_trades_dict[period] = all_trades_for_period
+                trades_excl_external = [i for i in trades_excl_external if i]  # filter out None
+                external_trades = flatten_collection([ga.calculate_external_trades(trades_excl_external,
+                                                                                   clearing_prices)
+                                                      for ga in self.grid_agents])
+                all_trades_for_period = trades_excl_external + external_trades
+                self.all_trades_dict[period] = all_trades_for_period
 
-            # Sum up grid fees paid
-            grid_fees_paid_period = sum([trade.get_total_grid_fee_paid() for trade in trades_excl_external])
-            self.grid_fees_paid_on_internal_trades = self.grid_fees_paid_on_internal_trades + grid_fees_paid_period
-            # Sum up tax paid
-            tax_paid_period = sum([trade.get_total_tax_paid() for trade in all_trades_for_period])
-            self.tax_paid = self.tax_paid + tax_paid_period
+                # Sum up grid fees paid
+                grid_fees_paid_period = sum([trade.get_total_grid_fee_paid() for trade in trades_excl_external])
+                self.grid_fees_paid_on_internal_trades = self.grid_fees_paid_on_internal_trades + grid_fees_paid_period
+                # Sum up tax paid
+                tax_paid_period = sum([trade.get_total_tax_paid() for trade in all_trades_for_period])
+                self.tax_paid = self.tax_paid + tax_paid_period
 
-            external_heating_sell_quantity = get_quantity_heating_sold_by_external_grid(external_trades)
-            self.data_store_entity.add_external_heating_sell(period, external_heating_sell_quantity)
+                external_heating_sell_quantity = get_quantity_heating_sold_by_external_grid(external_trades)
+                self.data_store_entity.add_external_heating_sell(period, external_heating_sell_quantity)
 
-            wholesale_price_elec = self.data_store_entity.get_exact_wholesale_price(period, Resource.ELECTRICITY)
-            retail_price_elec = self.data_store_entity.get_exact_retail_price(period, Resource.ELECTRICITY,
-                                                                              include_tax=True)
-            wholesale_prices = {Resource.ELECTRICITY: wholesale_price_elec,
-                                Resource.HEATING: self.data_store_entity
-                                .get_estimated_wholesale_price(period, Resource.HEATING)}
-            extra_costs = balance_manager.calculate_penalty_costs_for_period(bids_with_acceptance_status,
-                                                                             all_trades_for_period,
-                                                                             period,
-                                                                             clearing_prices,
-                                                                             wholesale_prices)
-            self.exact_wholesale_electricity_prices_by_period[period] = wholesale_price_elec
-            self.exact_retail_electricity_prices_by_period[period] = retail_price_elec
-            self.all_extra_costs.extend(extra_costs)
+                wholesale_price_elec = self.data_store_entity.get_exact_wholesale_price(period, Resource.ELECTRICITY)
+                retail_price_elec = self.data_store_entity.get_exact_retail_price(period, Resource.ELECTRICITY,
+                                                                                  include_tax=True)
+                wholesale_prices = {Resource.ELECTRICITY: wholesale_price_elec,
+                                    Resource.HEATING: self.data_store_entity
+                                    .get_estimated_wholesale_price(period, Resource.HEATING)}
+                extra_costs = balance_manager.calculate_penalty_costs_for_period(bids_with_acceptance_status,
+                                                                                 all_trades_for_period,
+                                                                                 period,
+                                                                                 clearing_prices,
+                                                                                 wholesale_prices)
+                self.exact_wholesale_electricity_prices_by_period[period] = wholesale_price_elec
+                self.exact_retail_electricity_prices_by_period[period] = retail_price_elec
+                self.all_extra_costs.extend(extra_costs)
 
         self.progress.increase(FRACTION_OF_CALC_TIME_FOR_1_MONTH_SIMULATED + 0.01)  # Final month
         self.progress.display()
