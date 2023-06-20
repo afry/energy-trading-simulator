@@ -28,7 +28,7 @@ from tradingplatformpoc.market.trade import Trade
 from tradingplatformpoc.results import results_calculator
 from tradingplatformpoc.results.simulation_results import SimulationResults
 from tradingplatformpoc.simulation_runner.progress import Progress
-from tradingplatformpoc.simulation_runner.simulation_utils import bids_to_db, construct_df_from_datetime_dict, \
+from tradingplatformpoc.simulation_runner.simulation_utils import bids_to_db, db_to_bid_df, \
     db_to_trade_df, delete_from_db, get_external_heating_prices, get_generated_mock_data, \
     get_quantity_heating_sold_by_external_grid, go_through_trades_metadata, net_bids_from_gross_bids, trades_to_db
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, flatten_collection, \
@@ -58,8 +58,6 @@ class TradingSimulator:
 
         self.clearing_prices_historical: Dict[datetime.datetime, Dict[Resource, float]] = {}
         self.all_trades_dict: Dict[datetime.datetime, Collection[Trade]] \
-            = dict(zip(self.trading_periods, ([] for _ in self.trading_periods)))
-        self.all_bids_dict: Dict[datetime.datetime, Collection[NetBidWithAcceptanceStatus]] \
             = dict(zip(self.trading_periods, ([] for _ in self.trading_periods)))
         self.storage_levels_dict: Dict[str, Dict[datetime.datetime, float]] = {}
         self.heat_pump_levels_dict: Dict[str, Dict[datetime.datetime, float]] = {}
@@ -192,7 +190,6 @@ class TradingSimulator:
                 clearing_prices, bids_with_acceptance_status = market_solver.resolve_bids(period, net_bids)
                 self.clearing_prices_historical[period] = clearing_prices
 
-                self.all_bids_dict[period] = bids_with_acceptance_status
                 all_bids_dict_month[period] = bids_with_acceptance_status
 
                 # Send clearing price back to agents, allow them to "make trades", i.e. decide if they want to buy/sell
@@ -282,15 +279,14 @@ class TradingSimulator:
         self.progress.increase(0.05)
         self.progress.display()
 
-        # all_trades_df = construct_df_from_datetime_dict(self.all_trades_dict)
-        self.progress.increase(0.005)
-        self.progress.display()
-        all_bids_df = construct_df_from_datetime_dict(self.all_bids_dict)
-        self.progress.increase(0.005)
-        self.progress.display()
-
         logger.info('Read trades from db...')
         all_trades_df = db_to_trade_df(self.job_id)
+        self.progress.increase(0.005)
+        self.progress.display()
+        logger.info('Read bids from db...')
+        all_bids_df = db_to_bid_df(self.job_id)
+        self.progress.increase(0.005)
+        self.progress.display()
 
         logger.info('Aggregating results per agent')
         if self.progress_text is not None:
@@ -302,11 +298,6 @@ class TradingSimulator:
                                                                  exact_wholesale_heat_price_by_ym)
         self.progress.final()
         self.progress.display()
-
-        logger.info('Deleting trades in db with job ID {}...'.format(self.job_id))
-        delete_from_db(self.job_id, 'Trade')
-        logger.info('Deleting bids in db with job ID {}...'.format(self.job_id))
-        delete_from_db(self.job_id, 'Bid')
 
         sim_res = SimulationResults(clearing_prices_historical=self.clearing_prices_historical,
                                     all_trades=all_trades_df,
@@ -323,4 +314,10 @@ class TradingSimulator:
                                     exact_wholesale_heating_prices_by_year_and_month=exact_wholesale_heat_price_by_ym,
                                     results_by_agent=results_by_agent
                                     )
+        
+        logger.info('Deleting trades in db with job ID {}...'.format(self.job_id))
+        delete_from_db(self.job_id, 'Trade')
+        logger.info('Deleting bids in db with job ID {}...'.format(self.job_id))
+        delete_from_db(self.job_id, 'Bid')
+
         return sim_res

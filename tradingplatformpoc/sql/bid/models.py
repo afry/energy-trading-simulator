@@ -41,7 +41,7 @@ class Bid(SQLModel, table=True):
     quantity: Optional[float] = Field(
         primary_key=False,
         default=None,
-        title='Quantity',
+        title='Accepted quantity',
         nullable=False
     )
     price: Optional[float] = Field(

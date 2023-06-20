@@ -198,3 +198,17 @@ def db_to_trade_df(job_id: str) -> pd.DataFrame:
                                            'tax_paid': trade.tax_paid,
                                            'grid_fee_paid': trade.grid_fee_paid
                                            } for (trade, ) in trades])
+
+
+def db_to_bid_df(job_id: str) -> pd.DataFrame:
+    with SessionMaker() as sess:
+        bids = sess.execute(select(TableBid).where(TableBid.job_id == job_id)).all()
+        return pd.DataFrame.from_records([{'period': bid.period,
+                                           'action': Action[bid.action],
+                                           'resource': Resource[bid.resource],
+                                           'quantity': bid.quantity,
+                                           'price': bid.price,
+                                           'source': bid.source,
+                                           'by_external': bid.by_external,
+                                           'accepted_quantity': bid.quantity
+                                           } for (bid, ) in bids])
