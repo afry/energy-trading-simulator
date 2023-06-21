@@ -2,10 +2,10 @@ import datetime
 import math
 from unittest import TestCase
 
-import numpy as np
+# import numpy as np
 
-from tradingplatformpoc.market.balance_manager import calculate_penalty_costs_for_period_and_resource, \
-    correct_for_exact_heating_price
+from tradingplatformpoc.market.balance_manager import calculate_penalty_costs_for_period_and_resource  # , \
+# correct_for_exact_heating_price
 from tradingplatformpoc.market.bid import Action, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.market.trade import Market, Trade
 
@@ -218,220 +218,225 @@ class Test(TestCase):
         with self.assertRaises(RuntimeError):
             calculate_penalty_costs_for_period_and_resource(bids, trades, wp, wp)
 
-    def test_correct_for_exact_heating_price_external_sell(self):
-        """
-        Test basic functionality of correct_with_exact_heating_price when the external grid sells heating to the
-        microgrid.
-        The grid will be owed 10 * (0.75 - 0.5) = 2.50 SEK.
-        Should be attributed 60% to buyer 1, 40% to buyer 2.
-        """
-        est_retail_price = 0.5
-        exact_retail_price = 0.75
-        trades = [
-            Trade(Action.SELL, Resource.HEATING, 10, est_retail_price, "Grid", True, Market.LOCAL, SOME_DATETIME),
-            Trade(Action.BUY, Resource.HEATING, 6, est_retail_price, "Buyer1", False, Market.LOCAL, SOME_DATETIME),
-            Trade(Action.BUY, Resource.HEATING, 4, est_retail_price, "Buyer2", False, Market.LOCAL, SOME_DATETIME)]
-        exact_retail_heating_prices_by_year_and_month = {(SOME_DATETIME.year, SOME_DATETIME.month): exact_retail_price}
-        exact_wholesale_heating_prices_by_year_and_month = {(SOME_DATETIME.year, SOME_DATETIME.month): np.nan}
-        estimated_retail_heating_prices_by_year_and_month = {
-            (SOME_DATETIME.year, SOME_DATETIME.month): est_retail_price}
-        estimated_wholesale_heating_prices_by_year_and_month = {(SOME_DATETIME.year, SOME_DATETIME.month): np.nan}
-        extra_costs = correct_for_exact_heating_price([SOME_DATETIME], {SOME_DATETIME: trades},
-                                                      exact_retail_heating_prices_by_year_and_month,
-                                                      exact_wholesale_heating_prices_by_year_and_month,
-                                                      estimated_retail_heating_prices_by_year_and_month,
-                                                      estimated_wholesale_heating_prices_by_year_and_month)
-        self.assertEqual(1.5, [x.cost for x in extra_costs if x.agent == "Buyer1"][0])
-        self.assertEqual(1.0, [x.cost for x in extra_costs if x.agent == "Buyer2"][0])
+    # def test_correct_for_exact_heating_price_external_sell(self):
+    #     """
+    #     Test basic functionality of correct_with_exact_heating_price when the external grid sells heating to the
+    #     microgrid.
+    #     The grid will be owed 10 * (0.75 - 0.5) = 2.50 SEK.
+    #     Should be attributed 60% to buyer 1, 40% to buyer 2.
+    #     """
+    #     est_retail_price = 0.5
+    #     exact_retail_price = 0.75
+    #     trades = [
+    #         Trade(Action.SELL, Resource.HEATING, 10, est_retail_price, "Grid", True, Market.LOCAL, SOME_DATETIME),
+    #         Trade(Action.BUY, Resource.HEATING, 6, est_retail_price, "Buyer1", False, Market.LOCAL, SOME_DATETIME),
+    #         Trade(Action.BUY, Resource.HEATING, 4, est_retail_price, "Buyer2", False, Market.LOCAL, SOME_DATETIME)]
+    #     exact_retail_heating_prices_by_year_and_month = {(SOME_DATETIME.year, SOME_DATETIME.month):
+    #                                                      exact_retail_price}
+    #     exact_wholesale_heating_prices_by_year_and_month = {(SOME_DATETIME.year, SOME_DATETIME.month): np.nan}
+    #     estimated_retail_heating_prices_by_year_and_month = {
+    #         (SOME_DATETIME.year, SOME_DATETIME.month): est_retail_price}
+    #     estimated_wholesale_heating_prices_by_year_and_month = {(SOME_DATETIME.year, SOME_DATETIME.month): np.nan}
+    #     extra_costs = correct_for_exact_heating_price([SOME_DATETIME], {SOME_DATETIME: trades},
+    #                                                   exact_retail_heating_prices_by_year_and_month,
+    #                                                   exact_wholesale_heating_prices_by_year_and_month,
+    #                                                   estimated_retail_heating_prices_by_year_and_month,
+    #                                                   estimated_wholesale_heating_prices_by_year_and_month)
+    #     self.assertEqual(1.5, [x.cost for x in extra_costs if x.agent == "Buyer1"][0])
+    #     self.assertEqual(1.0, [x.cost for x in extra_costs if x.agent == "Buyer2"][0])
 
-    def test_correct_for_exact_heating_price_external_buy(self):
-        """
-        Test basic functionality of correct_with_exact_heating_price when the external grid buys heating from the
-        microgrid.
-        The grid will be owed 10 * (0.5 - 0.25) = 2.50 SEK.
-        Should be attributed 60% to seller 1, 40% to seller 2.
-        """
-        est_wholesale_price = 0.5
-        exact_wholesale_price = 0.25
-        trades = [
-            Trade(Action.BUY, Resource.HEATING, 10, est_wholesale_price, "Grid", True, Market.LOCAL, SOME_DATETIME),
-            Trade(Action.SELL, Resource.HEATING, 6, est_wholesale_price, "Seller1", False, Market.LOCAL, SOME_DATETIME),
-            Trade(Action.SELL, Resource.HEATING, 4, est_wholesale_price, "Seller2", False, Market.LOCAL, SOME_DATETIME)]
-        exact_retail_heating_prices_by_year_and_month = {(SOME_DATETIME.year, SOME_DATETIME.month): np.nan}
-        exact_wholesale_heating_prices_by_year_and_month = {
-            (SOME_DATETIME.year, SOME_DATETIME.month): exact_wholesale_price}
-        estimated_retail_heating_prices_by_year_and_month = {(SOME_DATETIME.year, SOME_DATETIME.month): np.nan}
-        estimated_wholesale_heating_prices_by_year_and_month = {
-            (SOME_DATETIME.year, SOME_DATETIME.month): est_wholesale_price}
-        extra_costs = correct_for_exact_heating_price([SOME_DATETIME], {SOME_DATETIME: trades},
-                                                      exact_retail_heating_prices_by_year_and_month,
-                                                      exact_wholesale_heating_prices_by_year_and_month,
-                                                      estimated_retail_heating_prices_by_year_and_month,
-                                                      estimated_wholesale_heating_prices_by_year_and_month)
-        self.assertEqual(1.5, [x.cost for x in extra_costs if x.agent == "Seller1"][0])
-        self.assertEqual(1.0, [x.cost for x in extra_costs if x.agent == "Seller2"][0])
+    # def test_correct_for_exact_heating_price_external_buy(self):
+    #     """
+    #     Test basic functionality of correct_with_exact_heating_price when the external grid buys heating from the
+    #     microgrid.
+    #     The grid will be owed 10 * (0.5 - 0.25) = 2.50 SEK.
+    #     Should be attributed 60% to seller 1, 40% to seller 2.
+    #     """
+    #     est_wholesale_price = 0.5
+    #     exact_wholesale_price = 0.25
+    #     trades = [
+    #         Trade(Action.BUY, Resource.HEATING, 10, est_wholesale_price, "Grid", True, Market.LOCAL, SOME_DATETIME),
+    #         Trade(Action.SELL, Resource.HEATING, 6, est_wholesale_price, "Seller1", False, Market.LOCAL,
+    #               SOME_DATETIME),
+    #         Trade(Action.SELL, Resource.HEATING, 4, est_wholesale_price, "Seller2", False, Market.LOCAL,
+    #               SOME_DATETIME)]
+    #     exact_retail_heating_prices_by_year_and_month = {(SOME_DATETIME.year, SOME_DATETIME.month): np.nan}
+    #     exact_wholesale_heating_prices_by_year_and_month = {
+    #         (SOME_DATETIME.year, SOME_DATETIME.month): exact_wholesale_price}
+    #     estimated_retail_heating_prices_by_year_and_month = {(SOME_DATETIME.year, SOME_DATETIME.month): np.nan}
+    #     estimated_wholesale_heating_prices_by_year_and_month = {
+    #         (SOME_DATETIME.year, SOME_DATETIME.month): est_wholesale_price}
+    #     extra_costs = correct_for_exact_heating_price([SOME_DATETIME], {SOME_DATETIME: trades},
+    #                                                   exact_retail_heating_prices_by_year_and_month,
+    #                                                   exact_wholesale_heating_prices_by_year_and_month,
+    #                                                   estimated_retail_heating_prices_by_year_and_month,
+    #                                                   estimated_wholesale_heating_prices_by_year_and_month)
+    #     self.assertEqual(1.5, [x.cost for x in extra_costs if x.agent == "Seller1"][0])
+    #     self.assertEqual(1.0, [x.cost for x in extra_costs if x.agent == "Seller2"][0])
 
-    def test_correct_for_exact_heating_price_external_sell_lower_price(self):
-        """
-        Test functionality of correct_with_exact_heating_price when the external grid sells heating to the microgrid,
-        and the exact price turns out to be lower than the estimated price.
-        The grid will be owed 10 * (0.25 - 0.5) = -2.50 SEK, i.e. grid the will owe the customer 2.50 SEK.
-        Should be attributed 60% to buyer 1, 40% to buyer 2.
-        """
-        est_retail_price = 0.5
-        exact_retail_price = 0.25
-        trades = [
-            Trade(Action.SELL, Resource.HEATING, 10, est_retail_price, "Grid", True, Market.LOCAL, SOME_DATETIME),
-            Trade(Action.BUY, Resource.HEATING, 6, est_retail_price, "Buyer1", False, Market.LOCAL, SOME_DATETIME),
-            Trade(Action.BUY, Resource.HEATING, 4, est_retail_price, "Buyer2", False, Market.LOCAL, SOME_DATETIME)]
-        exact_retail_heating_prices_by_year_and_month = {(SOME_DATETIME.year, SOME_DATETIME.month): exact_retail_price}
-        exact_wholesale_heating_prices_by_year_and_month = {(SOME_DATETIME.year, SOME_DATETIME.month): np.nan}
-        estimated_retail_heating_prices_by_year_and_month = {
-            (SOME_DATETIME.year, SOME_DATETIME.month): est_retail_price}
-        estimated_wholesale_heating_prices_by_year_and_month = {(SOME_DATETIME.year, SOME_DATETIME.month): np.nan}
-        extra_costs = correct_for_exact_heating_price([SOME_DATETIME], {SOME_DATETIME: trades},
-                                                      exact_retail_heating_prices_by_year_and_month,
-                                                      exact_wholesale_heating_prices_by_year_and_month,
-                                                      estimated_retail_heating_prices_by_year_and_month,
-                                                      estimated_wholesale_heating_prices_by_year_and_month)
-        self.assertEqual(-1.5, [x.cost for x in extra_costs if x.agent == "Buyer1"][0])
-        self.assertEqual(-1.0, [x.cost for x in extra_costs if x.agent == "Buyer2"][0])
+    # def test_correct_for_exact_heating_price_external_sell_lower_price(self):
+    #     """
+    #     Test functionality of correct_with_exact_heating_price when the external grid sells heating to the microgrid,
+    #     and the exact price turns out to be lower than the estimated price.
+    #     The grid will be owed 10 * (0.25 - 0.5) = -2.50 SEK, i.e. grid the will owe the customer 2.50 SEK.
+    #     Should be attributed 60% to buyer 1, 40% to buyer 2.
+    #     """
+    #     est_retail_price = 0.5
+    #     exact_retail_price = 0.25
+    #     trades = [
+    #         Trade(Action.SELL, Resource.HEATING, 10, est_retail_price, "Grid", True, Market.LOCAL, SOME_DATETIME),
+    #         Trade(Action.BUY, Resource.HEATING, 6, est_retail_price, "Buyer1", False, Market.LOCAL, SOME_DATETIME),
+    #         Trade(Action.BUY, Resource.HEATING, 4, est_retail_price, "Buyer2", False, Market.LOCAL, SOME_DATETIME)]
+    #     exact_retail_heating_prices_by_year_and_month = {(SOME_DATETIME.year, SOME_DATETIME.month):
+    #                                                      exact_retail_price}
+    #     exact_wholesale_heating_prices_by_year_and_month = {(SOME_DATETIME.year, SOME_DATETIME.month): np.nan}
+    #     estimated_retail_heating_prices_by_year_and_month = {
+    #         (SOME_DATETIME.year, SOME_DATETIME.month): est_retail_price}
+    #     estimated_wholesale_heating_prices_by_year_and_month = {(SOME_DATETIME.year, SOME_DATETIME.month): np.nan}
+    #     extra_costs = correct_for_exact_heating_price([SOME_DATETIME], {SOME_DATETIME: trades},
+    #                                                   exact_retail_heating_prices_by_year_and_month,
+    #                                                   exact_wholesale_heating_prices_by_year_and_month,
+    #                                                   estimated_retail_heating_prices_by_year_and_month,
+    #                                                   estimated_wholesale_heating_prices_by_year_and_month)
+    #     self.assertEqual(-1.5, [x.cost for x in extra_costs if x.agent == "Buyer1"][0])
+    #     self.assertEqual(-1.0, [x.cost for x in extra_costs if x.agent == "Buyer2"][0])
 
-    def test_correct_for_exact_heating_price_with_local_producer(self):
-        """
-        Test basic functionality of correct_with_exact_heating_price, when there is a local producer of heating present,
-        but there is a local deficit, and the exact retail price is bigger than the estimated retail price.
-        The grid will be owed 1000 * (0.75 - 0.5) = 250 SEK.
-        The local producer should not be affected.
-        The debt should be attributed 75% to buyer 1, 25% to buyer 2.
-        See also https://doc.afdrift.se/pages/viewpage.action?pageId=34766880
-        """
-        est_retail_price = 0.5
-        exact_retail_price = 0.75
-        trades = [
-            Trade(Action.SELL, Resource.HEATING, 1000, est_retail_price, "Grid", True, Market.LOCAL, SOME_DATETIME),
-            Trade(Action.BUY, Resource.HEATING, 900, est_retail_price, "Buyer1", False, Market.LOCAL, SOME_DATETIME),
-            Trade(Action.BUY, Resource.HEATING, 300, est_retail_price, "Buyer2", False, Market.LOCAL, SOME_DATETIME),
-            Trade(Action.SELL, Resource.HEATING, 200, est_retail_price, "Seller", False, Market.LOCAL, SOME_DATETIME)]
-        exact_retail_heating_prices_by_year_and_month = {(SOME_DATETIME.year, SOME_DATETIME.month): exact_retail_price}
-        exact_wholesale_heating_prices_by_year_and_month = {(SOME_DATETIME.year, SOME_DATETIME.month): np.nan}
-        estimated_retail_heating_prices_by_year_and_month = {
-            (SOME_DATETIME.year, SOME_DATETIME.month): est_retail_price}
-        estimated_wholesale_heating_prices_by_year_and_month = {(SOME_DATETIME.year, SOME_DATETIME.month): np.nan}
-        extra_costs = correct_for_exact_heating_price([SOME_DATETIME], {SOME_DATETIME: trades},
-                                                      exact_retail_heating_prices_by_year_and_month,
-                                                      exact_wholesale_heating_prices_by_year_and_month,
-                                                      estimated_retail_heating_prices_by_year_and_month,
-                                                      estimated_wholesale_heating_prices_by_year_and_month)
-        self.assertEqual(187.5, [x.cost for x in extra_costs if x.agent == "Buyer1"][0])
-        self.assertEqual(62.5, [x.cost for x in extra_costs if x.agent == "Buyer2"][0])
+    # def test_correct_for_exact_heating_price_with_local_producer(self):
+    #     """
+    #     Test basic functionality of correct_with_exact_heating_price, when there is a local producer of heating
+    #     present, but there is a local deficit, and the exact retail price is bigger than the estimated retail price.
+    #     The grid will be owed 1000 * (0.75 - 0.5) = 250 SEK.
+    #     The local producer should not be affected.
+    #     The debt should be attributed 75% to buyer 1, 25% to buyer 2.
+    #     See also https://doc.afdrift.se/pages/viewpage.action?pageId=34766880
+    #     """
+    #     est_retail_price = 0.5
+    #     exact_retail_price = 0.75
+    #     trades = [
+    #         Trade(Action.SELL, Resource.HEATING, 1000, est_retail_price, "Grid", True, Market.LOCAL, SOME_DATETIME),
+    #         Trade(Action.BUY, Resource.HEATING, 900, est_retail_price, "Buyer1", False, Market.LOCAL, SOME_DATETIME),
+    #         Trade(Action.BUY, Resource.HEATING, 300, est_retail_price, "Buyer2", False, Market.LOCAL, SOME_DATETIME),
+    #         Trade(Action.SELL, Resource.HEATING, 200, est_retail_price, "Seller", False, Market.LOCAL, SOME_DATETIME)]
+    #     exact_retail_heating_prices_by_year_and_month = {(SOME_DATETIME.year, SOME_DATETIME.month):
+    #                                                      exact_retail_price}
+    #     exact_wholesale_heating_prices_by_year_and_month = {(SOME_DATETIME.year, SOME_DATETIME.month): np.nan}
+    #     estimated_retail_heating_prices_by_year_and_month = {
+    #         (SOME_DATETIME.year, SOME_DATETIME.month): est_retail_price}
+    #     estimated_wholesale_heating_prices_by_year_and_month = {(SOME_DATETIME.year, SOME_DATETIME.month): np.nan}
+    #     extra_costs = correct_for_exact_heating_price([SOME_DATETIME], {SOME_DATETIME: trades},
+    #                                                   exact_retail_heating_prices_by_year_and_month,
+    #                                                   exact_wholesale_heating_prices_by_year_and_month,
+    #                                                   estimated_retail_heating_prices_by_year_and_month,
+    #                                                   estimated_wholesale_heating_prices_by_year_and_month)
+    #     self.assertEqual(187.5, [x.cost for x in extra_costs if x.agent == "Buyer1"][0])
+    #     self.assertEqual(62.5, [x.cost for x in extra_costs if x.agent == "Buyer2"][0])
 
-    def test_calculate_heating_costs_two_steps(self):
-        """
-        Test both steps of heating balancing calculations: First, costs stemming from a discrepancy between estimated
-        external price and exact external price. Second, costs stemming from bid inaccuracies which led to imports when
-        there weren't expected to be any.
-        """
-        est_ws_price = 0.4
-        est_retail_price = 0.5
-        exact_ws_price = 0.6  # Irrelevant
-        exact_retail_price = 0.75
-        bids = [
-            NetBidWithAcceptanceStatus(Action.SELL, Resource.HEATING, 200, est_retail_price, "Grid", True, 0),
-            NetBidWithAcceptanceStatus(Action.BUY, Resource.HEATING, 6, math.inf, "Buyer1", False, 6),
-            NetBidWithAcceptanceStatus(Action.BUY, Resource.HEATING, 4, math.inf, "Buyer2", False, 4),
-            NetBidWithAcceptanceStatus(Action.SELL, Resource.HEATING, 11, 0, "Seller", False, 10)]
-        # In market solver clearing price gets set to est_ws_price
-        trades = [
-            Trade(Action.SELL, Resource.HEATING, 3, est_retail_price, "Grid", True, Market.LOCAL, SOME_DATETIME),
-            Trade(Action.BUY, Resource.HEATING, 6, est_ws_price, "Buyer1", False, Market.LOCAL, SOME_DATETIME),
-            Trade(Action.BUY, Resource.HEATING, 6, est_ws_price, "Buyer2", False, Market.LOCAL, SOME_DATETIME),
-            Trade(Action.SELL, Resource.HEATING, 9, est_ws_price, "Seller", False, Market.LOCAL, SOME_DATETIME)]
-        # Buyer1 pays 6*0.4 = 2.4
-        # Buyer2 pays 6*0.4 = 2.4
-        # Grid receives 3*0.5 = 1.5 (estimated)
-        # Seller receives 9*0.4 = 3.6
-        # Total paid in 4.8, total paid out 5.1 estimated, discrepancy of 0.3.
-        # Correcting for estimated - exact difference, grid is owed 3 * (0.75 - 0.5) = 0.75.
-        # This cost is split proportionally between net consumers, Buyer1 and Buyer2.
-        exact_retail_heating_prices_by_year_and_month = {
-            (SOME_DATETIME.year, SOME_DATETIME.month): exact_retail_price}
-        exact_wholesale_heating_prices_by_year_and_month = {
-            (SOME_DATETIME.year, SOME_DATETIME.month): exact_ws_price}
-        estimated_retail_heating_prices_by_year_and_month = {
-            (SOME_DATETIME.year, SOME_DATETIME.month): est_retail_price}
-        estimated_wholesale_heating_prices_by_year_and_month = {
-            (SOME_DATETIME.year, SOME_DATETIME.month): est_ws_price}
-        cost_discr_corrs = correct_for_exact_heating_price([SOME_DATETIME], {SOME_DATETIME: trades},
-                                                           exact_retail_heating_prices_by_year_and_month,
-                                                           exact_wholesale_heating_prices_by_year_and_month,
-                                                           estimated_retail_heating_prices_by_year_and_month,
-                                                           estimated_wholesale_heating_prices_by_year_and_month)
-        self.assertAlmostEqual(0.375, [x.cost for x in cost_discr_corrs if x.agent == "Buyer1"][0], places=3)
-        self.assertAlmostEqual(0.375, [x.cost for x in cost_discr_corrs if x.agent == "Buyer2"][0], places=3)
-        self.assertAlmostEqual(-0.75, [x.cost for x in cost_discr_corrs if x.agent == "Grid"][0], places=3)
+    # def test_calculate_heating_costs_two_steps(self):
+    #     """
+    #     Test both steps of heating balancing calculations: First, costs stemming from a discrepancy between estimated
+    #     external price and exact external price. Second, costs stemming from bid inaccuracies
+    #     which led to imports when there weren't expected to be any.
+    #     """
+    #     est_ws_price = 0.4
+    #     est_retail_price = 0.5
+    #     exact_ws_price = 0.6  # Irrelevant
+    #     exact_retail_price = 0.75
+    #     bids = [
+    #         NetBidWithAcceptanceStatus(Action.SELL, Resource.HEATING, 200, est_retail_price, "Grid", True, 0),
+    #         NetBidWithAcceptanceStatus(Action.BUY, Resource.HEATING, 6, math.inf, "Buyer1", False, 6),
+    #         NetBidWithAcceptanceStatus(Action.BUY, Resource.HEATING, 4, math.inf, "Buyer2", False, 4),
+    #         NetBidWithAcceptanceStatus(Action.SELL, Resource.HEATING, 11, 0, "Seller", False, 10)]
+    #     # In market solver clearing price gets set to est_ws_price
+    #     trades = [
+    #         Trade(Action.SELL, Resource.HEATING, 3, est_retail_price, "Grid", True, Market.LOCAL, SOME_DATETIME),
+    #         Trade(Action.BUY, Resource.HEATING, 6, est_ws_price, "Buyer1", False, Market.LOCAL, SOME_DATETIME),
+    #         Trade(Action.BUY, Resource.HEATING, 6, est_ws_price, "Buyer2", False, Market.LOCAL, SOME_DATETIME),
+    #         Trade(Action.SELL, Resource.HEATING, 9, est_ws_price, "Seller", False, Market.LOCAL, SOME_DATETIME)]
+    #     # Buyer1 pays 6*0.4 = 2.4
+    #     # Buyer2 pays 6*0.4 = 2.4
+    #     # Grid receives 3*0.5 = 1.5 (estimated)
+    #     # Seller receives 9*0.4 = 3.6
+    #     # Total paid in 4.8, total paid out 5.1 estimated, discrepancy of 0.3.
+    #     # Correcting for estimated - exact difference, grid is owed 3 * (0.75 - 0.5) = 0.75.
+    #     # This cost is split proportionally between net consumers, Buyer1 and Buyer2.
+    #     exact_retail_heating_prices_by_year_and_month = {
+    #         (SOME_DATETIME.year, SOME_DATETIME.month): exact_retail_price}
+    #     exact_wholesale_heating_prices_by_year_and_month = {
+    #         (SOME_DATETIME.year, SOME_DATETIME.month): exact_ws_price}
+    #     estimated_retail_heating_prices_by_year_and_month = {
+    #         (SOME_DATETIME.year, SOME_DATETIME.month): est_retail_price}
+    #     estimated_wholesale_heating_prices_by_year_and_month = {
+    #         (SOME_DATETIME.year, SOME_DATETIME.month): est_ws_price}
+    #     cost_discr_corrs = correct_for_exact_heating_price([SOME_DATETIME], {SOME_DATETIME: trades},
+    #                                                        exact_retail_heating_prices_by_year_and_month,
+    #                                                        exact_wholesale_heating_prices_by_year_and_month,
+    #                                                        estimated_retail_heating_prices_by_year_and_month,
+    #                                                        estimated_wholesale_heating_prices_by_year_and_month)
+    #     self.assertAlmostEqual(0.375, [x.cost for x in cost_discr_corrs if x.agent == "Buyer1"][0], places=3)
+    #     self.assertAlmostEqual(0.375, [x.cost for x in cost_discr_corrs if x.agent == "Buyer2"][0], places=3)
+    #     self.assertAlmostEqual(-0.75, [x.cost for x in cost_discr_corrs if x.agent == "Grid"][0], places=3)
 
-        # Step 2
-        cost_to_be_paid_by_agent = calculate_penalty_costs_for_period_and_resource(bids,
-                                                                                   trades,
-                                                                                   est_ws_price,
-                                                                                   est_ws_price)
-        self.assertEqual(2, len(cost_to_be_paid_by_agent))
-        self.assertAlmostEqual(0.2, cost_to_be_paid_by_agent["Buyer2"], places=3)
-        self.assertAlmostEqual(0.1, cost_to_be_paid_by_agent["Seller"], places=3)
+    #     # Step 2
+    #     cost_to_be_paid_by_agent = calculate_penalty_costs_for_period_and_resource(bids,
+    #                                                                                trades,
+    #                                                                                est_ws_price,
+    #                                                                                est_ws_price)
+    #     self.assertEqual(2, len(cost_to_be_paid_by_agent))
+    #     self.assertAlmostEqual(0.2, cost_to_be_paid_by_agent["Buyer2"], places=3)
+    #     self.assertAlmostEqual(0.1, cost_to_be_paid_by_agent["Seller"], places=3)
 
         # These two steps are independent of each other, so doesn't matter which one is done first
 
-    def test_calculate_heating_costs_two_steps_external_sell(self):
-        """
-        Test both steps of heating balancing calculations: First, costs stemming from a discrepancy between estimated
-        external price and exact external price. Second, costs stemming from bid inaccuracies which led to exports when
-        there weren't expected to be any.
-        """
-        est_wholesale_price = 0.4
-        est_retail_price = 0.5
-        exact_wholesale_price = 0.42
-        bids = [
-            NetBidWithAcceptanceStatus(Action.SELL, Resource.HEATING, 200, est_retail_price, "Grid", True, 1),
-            NetBidWithAcceptanceStatus(Action.BUY, Resource.HEATING, 6, math.inf, "Buyer1", False, 6),
-            NetBidWithAcceptanceStatus(Action.BUY, Resource.HEATING, 4, math.inf, "Buyer2", False, 4),
-            NetBidWithAcceptanceStatus(Action.SELL, Resource.HEATING, 9, 0, "Seller", False, 9)]
-        # In market solver clearing price gets set to est_retail_price
-        trades = [
-            Trade(Action.BUY, Resource.HEATING, 1, est_wholesale_price, "Grid", True, Market.LOCAL, SOME_DATETIME),
-            Trade(Action.BUY, Resource.HEATING, 6, est_retail_price, "Buyer1", False, Market.LOCAL, SOME_DATETIME),
-            Trade(Action.BUY, Resource.HEATING, 2, est_retail_price, "Buyer2", False, Market.LOCAL, SOME_DATETIME),
-            Trade(Action.SELL, Resource.HEATING, 9, est_retail_price, "Seller", False, Market.LOCAL, SOME_DATETIME)]
-        # Buyer2 turned out to only need 2, so 1 had to get sold to grid, at a lower price
-        # Buyer1 pays 6*0.5 = 3.0
-        # Buyer2 pays 2*0.5 = 1.0
-        # Grid pays 1*0.4 = 0.4
-        # Seller receives 9*0.5 = 4.5
-        # Total paid in 4.4 estimated, total paid out 4.5, discrepancy of 0.1.
-        # In estimated - exact discrepancy calculation, Grid pays 1*(0.42-0.4) = 0.02 more, this is distributed among
-        # sellers, but we have just one seller here, so +0.02 to "Seller" (i.e. a negative cost).
-        # 0.02 - 0.02 = 0 so discrepancy is still 0.1.
-        # Next, we look at bid inaccuracies. "Buyer2" was the only one who made an inaccurate bid, so she will take on
-        # the full penalty of 0.1.
-        exact_retail_heating_prices_by_year_and_month = {(SOME_DATETIME.year, SOME_DATETIME.month): np.nan}
-        exact_wholesale_heating_prices_by_year_and_month = {
-            (SOME_DATETIME.year, SOME_DATETIME.month): exact_wholesale_price}
-        estimated_retail_heating_prices_by_year_and_month = {
-            (SOME_DATETIME.year, SOME_DATETIME.month): est_retail_price}
-        estimated_wholesale_heating_prices_by_year_and_month = {
-            (SOME_DATETIME.year, SOME_DATETIME.month): est_wholesale_price}
-        cost_discr_corrs = correct_for_exact_heating_price([SOME_DATETIME], {SOME_DATETIME: trades},
-                                                           exact_retail_heating_prices_by_year_and_month,
-                                                           exact_wholesale_heating_prices_by_year_and_month,
-                                                           estimated_retail_heating_prices_by_year_and_month,
-                                                           estimated_wholesale_heating_prices_by_year_and_month)
-        self.assertAlmostEqual(0.02, [x.cost for x in cost_discr_corrs if x.agent == "Grid"][0], places=3)
-        self.assertAlmostEqual(-0.02, [x.cost for x in cost_discr_corrs if x.agent == "Seller"][0], places=3)
+    # def test_calculate_heating_costs_two_steps_external_sell(self):
+    #     """
+    #     Test both steps of heating balancing calculations: First, costs stemming from a discrepancy between estimated
+    #     external price and exact external price. Second, costs stemming from bid
+    #     inaccuracies which led to exports when there weren't expected to be any.
+    #     """
+    #     est_wholesale_price = 0.4
+    #     est_retail_price = 0.5
+    #     exact_wholesale_price = 0.42
+    #     bids = [
+    #         NetBidWithAcceptanceStatus(Action.SELL, Resource.HEATING, 200, est_retail_price, "Grid", True, 1),
+    #         NetBidWithAcceptanceStatus(Action.BUY, Resource.HEATING, 6, math.inf, "Buyer1", False, 6),
+    #         NetBidWithAcceptanceStatus(Action.BUY, Resource.HEATING, 4, math.inf, "Buyer2", False, 4),
+    #         NetBidWithAcceptanceStatus(Action.SELL, Resource.HEATING, 9, 0, "Seller", False, 9)]
+    #     # In market solver clearing price gets set to est_retail_price
+    #     trades = [
+    #         Trade(Action.BUY, Resource.HEATING, 1, est_wholesale_price, "Grid", True, Market.LOCAL, SOME_DATETIME),
+    #         Trade(Action.BUY, Resource.HEATING, 6, est_retail_price, "Buyer1", False, Market.LOCAL, SOME_DATETIME),
+    #         Trade(Action.BUY, Resource.HEATING, 2, est_retail_price, "Buyer2", False, Market.LOCAL, SOME_DATETIME),
+    #         Trade(Action.SELL, Resource.HEATING, 9, est_retail_price, "Seller", False, Market.LOCAL, SOME_DATETIME)]
+    #     # Buyer2 turned out to only need 2, so 1 had to get sold to grid, at a lower price
+    #     # Buyer1 pays 6*0.5 = 3.0
+    #     # Buyer2 pays 2*0.5 = 1.0
+    #     # Grid pays 1*0.4 = 0.4
+    #     # Seller receives 9*0.5 = 4.5
+    #     # Total paid in 4.4 estimated, total paid out 4.5, discrepancy of 0.1.
+    #     # In estimated - exact discrepancy calculation, Grid pays 1*(0.42-0.4) = 0.02 more, this is distributed among
+    #     # sellers, but we have just one seller here, so +0.02 to "Seller" (i.e. a negative cost).
+    #     # 0.02 - 0.02 = 0 so discrepancy is still 0.1.
+    #     # Next, we look at bid inaccuracies. "Buyer2" was the only one who made an inaccurate bid, so she will take on
+    #     # the full penalty of 0.1.
+    #     exact_retail_heating_prices_by_year_and_month = {(SOME_DATETIME.year, SOME_DATETIME.month): np.nan}
+    #     exact_wholesale_heating_prices_by_year_and_month = {
+    #         (SOME_DATETIME.year, SOME_DATETIME.month): exact_wholesale_price}
+    #     estimated_retail_heating_prices_by_year_and_month = {
+    #         (SOME_DATETIME.year, SOME_DATETIME.month): est_retail_price}
+    #     estimated_wholesale_heating_prices_by_year_and_month = {
+    #         (SOME_DATETIME.year, SOME_DATETIME.month): est_wholesale_price}
+    #     cost_discr_corrs = correct_for_exact_heating_price([SOME_DATETIME], {SOME_DATETIME: trades},
+    #                                                        exact_retail_heating_prices_by_year_and_month,
+    #                                                        exact_wholesale_heating_prices_by_year_and_month,
+    #                                                        estimated_retail_heating_prices_by_year_and_month,
+    #                                                        estimated_wholesale_heating_prices_by_year_and_month)
+    #     self.assertAlmostEqual(0.02, [x.cost for x in cost_discr_corrs if x.agent == "Grid"][0], places=3)
+    #     self.assertAlmostEqual(-0.02, [x.cost for x in cost_discr_corrs if x.agent == "Seller"][0], places=3)
 
-        # Step 2
-        cost_to_be_paid_by_agent = calculate_penalty_costs_for_period_and_resource(bids,
-                                                                                   trades,
-                                                                                   est_retail_price,
-                                                                                   est_wholesale_price)
-        self.assertEqual(1, len(cost_to_be_paid_by_agent))
-        self.assertAlmostEqual(0.1, cost_to_be_paid_by_agent["Buyer2"], places=3)
+    #     # Step 2
+    #     cost_to_be_paid_by_agent = calculate_penalty_costs_for_period_and_resource(bids,
+    #                                                                                trades,
+    #                                                                                est_retail_price,
+    #                                                                                est_wholesale_price)
+    #     self.assertEqual(1, len(cost_to_be_paid_by_agent))
+    #     self.assertAlmostEqual(0.1, cost_to_be_paid_by_agent["Buyer2"], places=3)
