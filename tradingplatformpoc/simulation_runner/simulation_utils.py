@@ -1,23 +1,15 @@
 import datetime
 import logging
 import pickle
-from contextlib import _GeneratorContextManager
-from typing import Any, Callable, Collection, Dict, List, Tuple, Union
+from typing import Any, Collection, Dict, List, Tuple, Union
 
 import pandas as pd
 
-from sqlalchemy import delete, select
-
-from sqlmodel import Session
-
-from tradingplatformpoc.connection import session_scope
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.generate_data import generate_mock_data
 from tradingplatformpoc.generate_data.mock_data_generation_functions import MockDataKey, get_all_building_agents
 from tradingplatformpoc.market.bid import Action, GrossBid, NetBid, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.market.trade import Trade, TradeMetadataKey
-from tradingplatformpoc.sql.bid.models import Bid as TableBid
-from tradingplatformpoc.sql.trade.models import Trade as TableTrade
 from tradingplatformpoc.trading_platform_utils import add_to_nested_dict
 
 logger = logging.getLogger(__name__)
@@ -120,103 +112,3 @@ def construct_df_from_datetime_dict(some_dict: Union[Dict[datetime.datetime, Col
     logger.info('Constructing dataframe from datetime dict')
     return pd.DataFrame([x.to_dict_with_period(period) for period, some_collection in some_dict.items()
                          for x in some_collection])
-
-
-def fields_to_strings(df, col):
-    for val in pd.unique(df[col]):
-        df.loc[df[col] == val, col] = val.name
-
-
-def save_to_db(data: str, job_id: str, df: pd.DataFrame, keys_to_categories: List[str],
-               session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope):
-    for key in keys_to_categories:
-        fields_to_strings(df, key)
-    df['job_id'] = job_id
-    if data == 'trades':
-        objects = [TableTrade(**trade_row) for _i, trade_row in df.iterrows()]
-    elif data == 'bids':
-        objects = [TableBid(**bid_row) for _i, bid_row in df.iterrows()]
-    with session_generator() as db:
-        db.bulk_save_objects(objects)
-        db.commit()
-
-
-def delete_from_db(job_id: str, table_name: str,
-                   session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope):
-    with session_generator() as db:
-        if table_name == 'Trade':
-            db.execute(delete(TableTrade).where(TableTrade.job_id == job_id))
-        elif table_name == 'Bid':
-            db.execute(delete(TableBid).where(TableBid.job_id == job_id))
-        db.commit()
-
-
-def bids_to_db(trades_dict: Dict[datetime.datetime, Collection[NetBidWithAcceptanceStatus]], job_id: str):
-    objects = [TableBid(period=period,
-                        job_id=job_id,
-                        source=x.source,
-                        by_external=x.by_external,
-                        action=x.action.name,
-                        resource=x.resource.name,
-                        quantity=x.quantity,
-                        price=x.price,
-                        accepted_quantity=x.accepted_quantity)
-               for period, some_collection in trades_dict.items() for x in some_collection]
-    bulk_insert(objects)
-        
-
-def trades_to_db(bids_dict: Dict[datetime.datetime, Collection[Trade]], job_id: str):
-    objects = [TableTrade(period=period,
-                          job_id=job_id,
-                          source=x.source,
-                          by_external=x.by_external,
-                          action=x.action.name,
-                          resource=x.resource.name,
-                          quantity_pre_loss=x.quantity_pre_loss,
-                          quantity_post_loss=x.quantity_post_loss,
-                          price=x.price,
-                          market=x.market.name,
-                          tax_paid=x.tax_paid,
-                          grid_fee_paid=x.grid_fee_paid)
-               for period, some_collection in bids_dict.items() for x in some_collection]
-    bulk_insert(objects)
-
-
-def bulk_insert(objects: list,
-                session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope):
-    with session_generator() as db:
-        db.bulk_save_objects(objects)
-        db.commit()
-
-
-def db_to_trade_df(job_id: str,
-                   session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope) -> pd.DataFrame:
-    with session_generator() as db:
-        trades = db.execute(select(TableTrade).where(TableTrade.job_id == job_id)).all()
-        return pd.DataFrame.from_records([{'period': trade.period,
-                                           'action': trade.action,
-                                           'resource': trade.resource,
-                                           'quantity_pre_loss': trade.quantity_pre_loss,
-                                           'quantity_post_loss': trade.quantity_post_loss,
-                                           'price': trade.price,
-                                           'source': trade.source,
-                                           'by_external': trade.by_external,
-                                           'market': trade.market,
-                                           'tax_paid': trade.tax_paid,
-                                           'grid_fee_paid': trade.grid_fee_paid
-                                           } for (trade, ) in trades])
-
-
-def db_to_bid_df(job_id: str,
-                 session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope) -> pd.DataFrame:
-    with session_generator() as db:
-        bids = db.execute(select(TableBid).where(TableBid.job_id == job_id)).all()
-        return pd.DataFrame.from_records([{'period': bid.period,
-                                           'action': bid.action,
-                                           'resource': bid.resource,
-                                           'quantity': bid.quantity,
-                                           'price': bid.price,
-                                           'source': bid.source,
-                                           'by_external': bid.by_external,
-                                           'accepted_quantity': bid.quantity
-                                           } for (bid, ) in bids])

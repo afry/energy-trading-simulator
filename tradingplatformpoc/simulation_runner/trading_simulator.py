@@ -15,6 +15,7 @@ from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.agent.storage_agent import StorageAgent
 from tradingplatformpoc.data_store import DataStore
+from tradingplatformpoc.database import delete_from_db
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
 from tradingplatformpoc.generate_data.mock_data_generation_functions import get_elec_cons_key, \
@@ -28,9 +29,11 @@ from tradingplatformpoc.market.trade import Trade
 from tradingplatformpoc.results import results_calculator
 from tradingplatformpoc.results.simulation_results import SimulationResults
 from tradingplatformpoc.simulation_runner.progress import Progress
-from tradingplatformpoc.simulation_runner.simulation_utils import bids_to_db, db_to_bid_df, \
-    db_to_trade_df, delete_from_db, get_external_heating_prices, get_generated_mock_data, \
-    get_quantity_heating_sold_by_external_grid, go_through_trades_metadata, net_bids_from_gross_bids, trades_to_db
+from tradingplatformpoc.simulation_runner.simulation_utils import \
+    get_external_heating_prices, get_generated_mock_data, \
+    get_quantity_heating_sold_by_external_grid, go_through_trades_metadata, net_bids_from_gross_bids
+from tradingplatformpoc.sql.bid.crud import bids_to_db, db_to_bid_df
+from tradingplatformpoc.sql.trade.crud import db_to_trade_df, trades_to_db
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, flatten_collection, \
     get_intersection
 
