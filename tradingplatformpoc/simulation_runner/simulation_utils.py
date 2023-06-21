@@ -15,7 +15,7 @@ from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.generate_data import generate_mock_data
 from tradingplatformpoc.generate_data.mock_data_generation_functions import MockDataKey, get_all_building_agents
 from tradingplatformpoc.market.bid import Action, GrossBid, NetBid, NetBidWithAcceptanceStatus, Resource
-from tradingplatformpoc.market.trade import Market, Trade, TradeMetadataKey
+from tradingplatformpoc.market.trade import Trade, TradeMetadataKey
 from tradingplatformpoc.sql.bid.models import Bid as TableBid
 from tradingplatformpoc.sql.trade.models import Trade as TableTrade
 from tradingplatformpoc.trading_platform_utils import add_to_nested_dict
@@ -194,14 +194,14 @@ def db_to_trade_df(job_id: str,
     with session_generator() as db:
         trades = db.execute(select(TableTrade).where(TableTrade.job_id == job_id)).all()
         return pd.DataFrame.from_records([{'period': trade.period,
-                                           'action': Action[trade.action],
-                                           'resource': Resource[trade.resource],
+                                           'action': trade.action,
+                                           'resource': trade.resource,
                                            'quantity_pre_loss': trade.quantity_pre_loss,
                                            'quantity_post_loss': trade.quantity_post_loss,
                                            'price': trade.price,
                                            'source': trade.source,
                                            'by_external': trade.by_external,
-                                           'market': Market[trade.market],
+                                           'market': trade.market,
                                            'tax_paid': trade.tax_paid,
                                            'grid_fee_paid': trade.grid_fee_paid
                                            } for (trade, ) in trades])
@@ -212,8 +212,8 @@ def db_to_bid_df(job_id: str,
     with session_generator() as db:
         bids = db.execute(select(TableBid).where(TableBid.job_id == job_id)).all()
         return pd.DataFrame.from_records([{'period': bid.period,
-                                           'action': Action[bid.action],
-                                           'resource': Resource[bid.resource],
+                                           'action': bid.action,
+                                           'resource': bid.resource,
                                            'quantity': bid.quantity,
                                            'price': bid.price,
                                            'source': bid.source,

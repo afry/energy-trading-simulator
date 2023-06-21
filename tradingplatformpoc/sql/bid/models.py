@@ -2,9 +2,11 @@ import datetime
 
 from pydantic.types import Optional
 
-from sqlalchemy import Column, DateTime, Integer
+from sqlalchemy import Column, DateTime, Enum, Integer
 
 from sqlmodel import Field, SQLModel
+
+from tradingplatformpoc.market.bid import Action, Resource
 
 
 class Bid(SQLModel, table=True):
@@ -27,16 +29,12 @@ class Bid(SQLModel, table=True):
         sa_column=Column(DateTime(timezone=True))
     )
     action: Optional[str] = Field(
-        primary_key=False,
-        default=None,
         title='Action',
-        nullable=False
+        sa_column=Column(Enum(Action), primary_key=False, default=None, nullable=False)
     )
     resource: Optional[str] = Field(
-        primary_key=False,
-        default=None,
         title='Resource',
-        nullable=False
+        sa_column=Column(Enum(Resource), primary_key=False, default=None, nullable=False)
     )
     quantity: Optional[float] = Field(
         primary_key=False,
