@@ -57,8 +57,6 @@ class TradingSimulator:
                                                 self.data_store_entity.get_nordpool_data_datetimes()))
 
         self.clearing_prices_historical: Dict[datetime.datetime, Dict[Resource, float]] = {}
-        self.all_trades_dict: Dict[datetime.datetime, Collection[Trade]] \
-            = dict(zip(self.trading_periods, ([] for _ in self.trading_periods)))
         self.storage_levels_dict: Dict[str, Dict[datetime.datetime, float]] = {}
         self.heat_pump_levels_dict: Dict[str, Dict[datetime.datetime, float]] = {}
         self.all_extra_costs: List[ExtraCost] = []
@@ -149,6 +147,12 @@ class TradingSimulator:
         @param progress_text            A streamlit info field, used only when running simulations through the UI
         """
 
+        # TODO: Fix this: Temporary - Just to make sure job_id is unique
+        logger.info('Deleting trades in db with job ID {}...'.format(self.job_id))
+        delete_from_db(self.job_id, 'Trade')
+        logger.info('Deleting bids in db with job ID {}...'.format(self.job_id))
+        delete_from_db(self.job_id, 'Bid')
+
         self.progress = Progress(progress_bar)
         self.progress_text = progress_text
         logger.info("Starting trading simulations")
@@ -213,7 +217,6 @@ class TradingSimulator:
                                                                                    clearing_prices)
                                                       for ga in self.grid_agents])
                 all_trades_for_period = trades_excl_external + external_trades
-                self.all_trades_dict[period] = all_trades_for_period
                 all_trades_dict_month[period] = all_trades_for_period
 
                 # Sum up grid fees paid
@@ -264,11 +267,12 @@ class TradingSimulator:
             exact_wholesale_heat_price_by_ym = get_external_heating_prices(self.data_store_entity, self.trading_periods)
 
         logger.info('Calculating heat_cost_discr_corrections')
-        heat_cost_discr_corrections = correct_for_exact_heating_price(self.trading_periods, self.all_trades_dict,
+        heat_cost_discr_corrections = correct_for_exact_heating_price(self.trading_periods,
                                                                       exact_retail_heat_price_by_ym,
                                                                       exact_wholesale_heat_price_by_ym,
                                                                       estimated_retail_heat_price_by_ym,
-                                                                      estimated_wholesale_heat_price_by_ym)
+                                                                      estimated_wholesale_heat_price_by_ym,
+                                                                      self.job_id)
         self.all_extra_costs.extend(heat_cost_discr_corrections)
 
         if self.progress_text is not None:

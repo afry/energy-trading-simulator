@@ -1,13 +1,16 @@
 import datetime
 import logging
 import pickle
-from typing import Any, Collection, Dict, List, Tuple, Union
+from contextlib import _GeneratorContextManager
+from typing import Any, Callable, Collection, Dict, List, Tuple, Union
 
 import pandas as pd
 
 from sqlalchemy import delete, select
 
-from tradingplatformpoc.connection import SessionMaker
+from sqlmodel import Session
+
+from tradingplatformpoc.connection import session_scope
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.generate_data import generate_mock_data
 from tradingplatformpoc.generate_data.mock_data_generation_functions import MockDataKey, get_all_building_agents
@@ -124,7 +127,8 @@ def fields_to_strings(df, col):
         df.loc[df[col] == val, col] = val.name
 
 
-def save_to_db(data: str, job_id: str, df: pd.DataFrame, keys_to_categories: List[str]):
+def save_to_db(data: str, job_id: str, df: pd.DataFrame, keys_to_categories: List[str],
+               session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope):
     for key in keys_to_categories:
         fields_to_strings(df, key)
     df['job_id'] = job_id
@@ -132,18 +136,19 @@ def save_to_db(data: str, job_id: str, df: pd.DataFrame, keys_to_categories: Lis
         objects = [TableTrade(**trade_row) for _i, trade_row in df.iterrows()]
     elif data == 'bids':
         objects = [TableBid(**bid_row) for _i, bid_row in df.iterrows()]
-    with SessionMaker() as sess:
-        sess.bulk_save_objects(objects)
-        sess.commit()
+    with session_generator() as db:
+        db.bulk_save_objects(objects)
+        db.commit()
 
 
-def delete_from_db(job_id: str, table_name: str):
-    with SessionMaker() as sess:
+def delete_from_db(job_id: str, table_name: str,
+                   session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope):
+    with session_generator() as db:
         if table_name == 'Trade':
-            sess.execute(delete(TableTrade).where(TableTrade.job_id == job_id))
+            db.execute(delete(TableTrade).where(TableTrade.job_id == job_id))
         elif table_name == 'Bid':
-            sess.execute(delete(TableBid).where(TableBid.job_id == job_id))
-        sess.commit()
+            db.execute(delete(TableBid).where(TableBid.job_id == job_id))
+        db.commit()
 
 
 def bids_to_db(trades_dict: Dict[datetime.datetime, Collection[NetBidWithAcceptanceStatus]], job_id: str):
@@ -177,15 +182,17 @@ def trades_to_db(bids_dict: Dict[datetime.datetime, Collection[Trade]], job_id: 
     bulk_insert(objects)
 
 
-def bulk_insert(objects: list):
-    with SessionMaker() as sess:
-        sess.bulk_save_objects(objects)
-        sess.commit()
+def bulk_insert(objects: list,
+                session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope):
+    with session_generator() as db:
+        db.bulk_save_objects(objects)
+        db.commit()
 
 
-def db_to_trade_df(job_id: str) -> pd.DataFrame:
-    with SessionMaker() as sess:
-        trades = sess.execute(select(TableTrade).where(TableTrade.job_id == job_id)).all()
+def db_to_trade_df(job_id: str,
+                   session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope) -> pd.DataFrame:
+    with session_generator() as db:
+        trades = db.execute(select(TableTrade).where(TableTrade.job_id == job_id)).all()
         return pd.DataFrame.from_records([{'period': trade.period,
                                            'action': Action[trade.action],
                                            'resource': Resource[trade.resource],
@@ -200,9 +207,10 @@ def db_to_trade_df(job_id: str) -> pd.DataFrame:
                                            } for (trade, ) in trades])
 
 
-def db_to_bid_df(job_id: str) -> pd.DataFrame:
-    with SessionMaker() as sess:
-        bids = sess.execute(select(TableBid).where(TableBid.job_id == job_id)).all()
+def db_to_bid_df(job_id: str,
+                 session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope) -> pd.DataFrame:
+    with session_generator() as db:
+        bids = db.execute(select(TableBid).where(TableBid.job_id == job_id)).all()
         return pd.DataFrame.from_records([{'period': bid.period,
                                            'action': Action[bid.action],
                                            'resource': Resource[bid.resource],
