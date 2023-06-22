@@ -2,7 +2,7 @@ import datetime
 import logging
 import math
 from collections import OrderedDict
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -17,8 +17,6 @@ from tradingplatformpoc.market.trade import Trade, TradeMetadataKey
 from tradingplatformpoc.trading_platform_utils import minus_n_hours
 
 logger = logging.getLogger(__name__)
-
-# from memory_profiler import profile
 
 
 class BuildingAgent(IAgent):
@@ -36,8 +34,8 @@ class BuildingAgent(IAgent):
         self.workloads_data = construct_workloads_data(coeff_of_perf, nbr_heat_pumps)
         self.allow_sell_heat = False
 
-    def make_bids(self, period: datetime.datetime, clearing_prices_historical: Dict[datetime.datetime, Dict[
-            Resource, float]] = None) -> List[GrossBid]:
+    def make_bids(self, period: datetime.datetime, clearing_prices_historical: Union[Dict[datetime.datetime, Dict[
+            Resource, float]], None] = None) -> List[GrossBid]:
         # The building should make a bid for purchasing energy, or selling if it has a surplus
         prev_period = trading_platform_utils.minus_n_hours(period, 1)
         prev_prices = self.data_store.get_local_price_if_exists_else_external_estimate(prev_period,
@@ -45,7 +43,6 @@ class BuildingAgent(IAgent):
         return self.make_bids_with_heat_pump(period, prev_prices[Resource.ELECTRICITY],
                                              prev_prices[Resource.HEATING])
 
-    # @profile
     def make_prognosis(self, period: datetime.datetime, resource: Resource) -> float:
         # The building should make a prognosis for how much energy will be required
         prev_trading_period = minus_n_hours(period, 1)
