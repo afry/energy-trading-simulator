@@ -12,7 +12,7 @@ from tradingplatformpoc.results.results_key import ResultsKey
 from tradingplatformpoc.sql.trade.crud import db_to_aggregated_trades_by_agent, db_to_trades_by_agent
 
 
-def calc_basic_results(agents: Iterable[IAgent], job_id: str, all_trades_df: pd.DataFrame, extra_costs_df: pd.DataFrame,
+def calc_basic_results(agents: Iterable[IAgent], job_id: str, extra_costs_df: pd.DataFrame,
                        exact_retail_electricity_prices_by_period: Dict[datetime.datetime, float],
                        exact_wholesale_electricity_prices_by_period: Dict[datetime.datetime, float],
                        exact_retail_heating_prices_by_year_and_month: Dict[Tuple[int, int], float],
@@ -20,7 +20,7 @@ def calc_basic_results(agents: Iterable[IAgent], job_id: str, all_trades_df: pd.
         Dict[str, Dict[ResultsKey, float]]:
     results_by_agent = {}
     for agent in agents:
-        results_by_agent[agent.guid] = calc_basic_results_for_agent(agent, job_id, all_trades_df, extra_costs_df,
+        results_by_agent[agent.guid] = calc_basic_results_for_agent(agent, job_id, extra_costs_df,
                                                                     exact_retail_electricity_prices_by_period,
                                                                     exact_wholesale_electricity_prices_by_period,
                                                                     exact_retail_heating_prices_by_year_and_month,
@@ -28,7 +28,7 @@ def calc_basic_results(agents: Iterable[IAgent], job_id: str, all_trades_df: pd.
     return results_by_agent
 
 
-def calc_basic_results_for_agent(agent: IAgent, job_id: str, all_trades: pd.DataFrame, all_extra_costs: pd.DataFrame,
+def calc_basic_results_for_agent(agent: IAgent, job_id: str, all_extra_costs: pd.DataFrame,
                                  exact_retail_electricity_prices_by_period: Dict[datetime.datetime, float],
                                  exact_wholesale_electricity_prices_by_period: Dict[datetime.datetime, float],
                                  exact_retail_heating_prices_by_year_and_month: Dict[Tuple[int, int], float],
@@ -52,7 +52,6 @@ def calc_basic_results_for_agent(agent: IAgent, job_id: str, all_trades: pd.Data
     sek_tax_paid = 0.0
     sek_grid_fee_paid = 0.0
     for elem in res:
-        # print(elem)
         if (elem.resource == Resource.ELECTRICITY) & (elem.action == Action.BUY):
             quantity_bought_elec = elem.sum_quantity_pre_loss
             sek_bought_for_elec = elem.sum_total_bought_for
@@ -76,8 +75,6 @@ def calc_basic_results_for_agent(agent: IAgent, job_id: str, all_trades: pd.Data
     sek_bought_for = sek_bought_for_heat + sek_bought_for_elec
     sek_sold_for = sek_sold_for_heat + sek_sold_for_elec
     sek_traded_for = sek_bought_for + sek_sold_for
-
-    # trades_df = all_trades.loc[all_trades.source == agent.guid]
 
     if not isinstance(agent, GridAgent):
         ec_df = all_extra_costs.loc[all_extra_costs.agent == agent.guid]

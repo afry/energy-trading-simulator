@@ -286,24 +286,24 @@ class TradingSimulator:
         self.progress.increase(0.05)
         self.progress.display()
 
+        logger.info('Aggregating results per agent')
+        if self.progress_text is not None:
+            self.progress_text.info("Aggregating results per agent...")
+        results_by_agent = results_calculator.calc_basic_results(self.agents, self.job_id, extra_costs_df,
+                                                                 self.exact_retail_electricity_prices_by_period,
+                                                                 self.exact_wholesale_electricity_prices_by_period,
+                                                                 exact_retail_heat_price_by_ym,
+                                                                 exact_wholesale_heat_price_by_ym)
+        self.progress.increase(0.005)
+        self.progress.display()
+
         logger.info('Read trades from db...')
         all_trades_df = db_to_trade_df(self.job_id)
         self.progress.increase(0.005)
         self.progress.display()
         logger.info('Read bids from db...')
         all_bids_df = db_to_bid_df(self.job_id)
-        self.progress.increase(0.005)
-        self.progress.display()
 
-        logger.info('Aggregating results per agent')
-        if self.progress_text is not None:
-            self.progress_text.info("Aggregating results per agent...")
-        results_by_agent = results_calculator.calc_basic_results(self.agents, self.job_id, all_trades_df,
-                                                                 extra_costs_df,
-                                                                 self.exact_retail_electricity_prices_by_period,
-                                                                 self.exact_wholesale_electricity_prices_by_period,
-                                                                 exact_retail_heat_price_by_ym,
-                                                                 exact_wholesale_heat_price_by_ym)
         self.progress.final()
         self.progress.display()
 
