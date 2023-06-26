@@ -1,3 +1,4 @@
+import argparse
 import os
 import pickle
 from logging.handlers import TimedRotatingFileHandler
@@ -50,11 +51,14 @@ if string_to_log_later is not None:
 mock_datas_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
 results_path = "./results/"
 config_data = read_config(name='default')
+parser = argparse.ArgumentParser()
+parser.add_argument("--job_id", dest="job_id", default="main_job_id", help="Job ID", type=str)
+args = parser.parse_args()
 
 if __name__ == '__main__':
-    logger.info("Running main")
+    logger.info("Running main with job ID {}".format(args.job_id))
     create_db_and_tables()
-    simulator = TradingSimulator('main_job_id', read_config(), MOCK_DATA_PATH)
+    simulator = TradingSimulator(args.job_id, config_data, MOCK_DATA_PATH)
     simulation_results = simulator.run()
     logger.info("Finished running simulations. Will save simulations results as a pickle file.")
     with open(results_path + 'simulation_results.pickle', 'wb') as destination:
