@@ -34,7 +34,8 @@ from tradingplatformpoc.simulation_runner.simulation_utils import \
     get_quantity_heating_sold_by_external_grid, go_through_trades_metadata, net_bids_from_gross_bids
 from tradingplatformpoc.sql.bid.crud import bids_to_db, db_to_bid_df
 from tradingplatformpoc.sql.extra_cost.crud import db_to_extra_cost_df, extra_costs_to_db
-from tradingplatformpoc.sql.trade.crud import db_to_trade_df, trades_to_db
+from tradingplatformpoc.sql.trade.crud import db_to_trade_df, get_total_grid_fee_paid_on_internal_trades, \
+    get_total_tax_paid, trades_to_db
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, flatten_collection, \
     get_intersection
 
@@ -68,10 +69,7 @@ class TradingSimulator:
             = dict(zip(self.trading_periods, (0.0 for _ in self.trading_periods)))
         self.exact_wholesale_electricity_prices_by_period: Dict[datetime.datetime, float] \
             = dict(zip(self.trading_periods, (0.0 for _ in self.trading_periods)))
-        # Amount of tax paid
-        self.tax_paid = 0.0
-        # Amount of grid fees paid on internal trades
-        self.grid_fees_paid_on_internal_trades = 0.0
+
         self.agents, self.grid_agents = self.initialize_agents()
 
     def initialize_agents(self) -> Tuple[List[IAgent], List[GridAgent]]:
@@ -225,13 +223,6 @@ class TradingSimulator:
                 all_trades_for_period = trades_excl_external + external_trades
                 all_trades_dict_month[period] = all_trades_for_period
 
-                # Sum up grid fees paid
-                grid_fees_paid_period = sum([trade.get_total_grid_fee_paid() for trade in trades_excl_external])
-                self.grid_fees_paid_on_internal_trades = self.grid_fees_paid_on_internal_trades + grid_fees_paid_period
-                # Sum up tax paid
-                tax_paid_period = sum([trade.get_total_tax_paid() for trade in all_trades_for_period])
-                self.tax_paid = self.tax_paid + tax_paid_period
-
                 external_heating_sell_quantity = get_quantity_heating_sold_by_external_grid(external_trades)
                 self.data_store_entity.add_external_heating_sell(period, external_heating_sell_quantity)
 
@@ -314,6 +305,9 @@ class TradingSimulator:
         self.progress.final()
         self.progress.display()
 
+        tax_paid = get_total_tax_paid(self.job_id)
+        grid_fees_paid_on_internal_trades = get_total_grid_fee_paid_on_internal_trades(self.job_id)
+
         sim_res = SimulationResults(clearing_prices_historical=self.clearing_prices_historical,
                                     all_trades=all_trades_df,
                                     all_extra_costs=extra_costs_df,
@@ -323,8 +317,8 @@ class TradingSimulator:
                                     config_data=self.config_data,
                                     agents=self.agents,
                                     data_store=self.data_store_entity,
-                                    grid_fees_paid_on_internal_trades=self.grid_fees_paid_on_internal_trades,
-                                    tax_paid=self.tax_paid,
+                                    grid_fees_paid_on_internal_trades=grid_fees_paid_on_internal_trades,
+                                    tax_paid=tax_paid,
                                     exact_retail_heating_prices_by_year_and_month=exact_retail_heat_price_by_ym,
                                     exact_wholesale_heating_prices_by_year_and_month=exact_wholesale_heat_price_by_ym,
                                     results_by_agent=results_by_agent

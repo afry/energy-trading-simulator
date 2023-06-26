@@ -1,6 +1,6 @@
 import datetime
 from contextlib import _GeneratorContextManager
-from typing import Callable, Collection, Dict
+from typing import Callable, Collection, Dict, Tuple
 
 import pandas as pd
 
@@ -10,6 +10,7 @@ from sqlmodel import Session
 
 from tradingplatformpoc.connection import session_scope
 from tradingplatformpoc.database import bulk_insert
+from tradingplatformpoc.market.bid import Action
 from tradingplatformpoc.market.trade import Trade
 from tradingplatformpoc.sql.trade.models import Trade as TableTrade
 
@@ -101,3 +102,26 @@ def db_to_trades_by_agent(source: str, job_id: str,
                                    TableTrade.price.label('price'))
                             .where((TableTrade.job_id == job_id) & (TableTrade.source == source))).all()
         return trades
+
+
+def get_total_tax_paid(job_id: str,
+                       session_generator: Callable[[], _GeneratorContextManager[Session]]
+                       = session_scope) -> Tuple[float, float]:
+    with session_generator() as db:
+        res = db.query(
+            func.sum(TableTrade.tax_paid_for_quantity).label('sum_tax_paid_for_quantities'),
+        ).filter(TableTrade.action == Action.SELL, TableTrade.job_id == job_id).first()
+
+        return res.sum_tax_paid_for_quantities or 0.0
+
+
+def get_total_grid_fee_paid_on_internal_trades(job_id: str,
+                                               session_generator: Callable[[], _GeneratorContextManager[Session]]
+                                               = session_scope) -> Tuple[float, float]:
+    with session_generator() as db:
+        res = db.query(
+            func.sum(TableTrade.grid_fee_paid_for_quantity).label('sum_grid_fee_paid_for_quantities'),
+        ).filter(TableTrade.action == Action.SELL, TableTrade.by_external.is_(False),
+                 TableTrade.job_id == job_id).first()
+
+        return res.sum_grid_fee_paid_for_quantities or 0.0
