@@ -9,7 +9,7 @@ from tradingplatformpoc.agent.storage_agent import StorageAgent
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.market.extra_cost import ExtraCostType
 from tradingplatformpoc.results.results_key import ResultsKey
-from tradingplatformpoc.sql.trade.crud import aggregated_trades_by_agent
+from tradingplatformpoc.sql.trade.crud import db_to_aggregated_trades_by_agent, db_to_trades_by_agent
 
 
 def calc_basic_results(agents: Iterable[IAgent], job_id: str, all_trades_df: pd.DataFrame, extra_costs_df: pd.DataFrame,
@@ -40,7 +40,7 @@ def calc_basic_results_for_agent(agent: IAgent, job_id: str, all_trades: pd.Data
     """
     results_dict = {}
 
-    res = aggregated_trades_by_agent(agent.guid, job_id)
+    res = db_to_aggregated_trades_by_agent(agent.guid, job_id)
     quantity_bought_elec = 0.0
     quantity_bought_heat = 0.0
     quantity_sold_elec = 0.0
@@ -77,14 +77,14 @@ def calc_basic_results_for_agent(agent: IAgent, job_id: str, all_trades: pd.Data
     sek_sold_for = sek_sold_for_heat + sek_sold_for_elec
     sek_traded_for = sek_bought_for + sek_sold_for
 
-    trades_df = all_trades.loc[all_trades.source == agent.guid]
+    # trades_df = all_trades.loc[all_trades.source == agent.guid]
 
     if not isinstance(agent, GridAgent):
         ec_df = all_extra_costs.loc[all_extra_costs.agent == agent.guid]
         extra_costs_for_bad_bids = ec_df.loc[ec_df.cost_type.apply(lambda x: x.is_for_bid_inaccuracy())].cost.sum()
         extra_costs_for_heat_cost_discr = ec_df.loc[ec_df.cost_type == ExtraCostType.HEAT_EXT_COST_CORR].cost.sum()
 
-        saved_on_buy, saved_on_sell = get_savings_vs_only_external(trades_df,
+        saved_on_buy, saved_on_sell = get_savings_vs_only_external(agent.guid, job_id,
                                                                    exact_retail_electricity_prices_by_period,
                                                                    exact_wholesale_electricity_prices_by_period,
                                                                    exact_retail_heating_prices_by_year_and_month,
@@ -169,7 +169,7 @@ def sum_total_sold_for(sell_trades: pd.DataFrame) -> float:
     return sell_trades.apply(lambda x: x.quantity_post_loss * x.price, axis=1).sum() if len(sell_trades) > 0 else 0.0
 
 
-def get_savings_vs_only_external(trades_for_agent: pd.DataFrame,
+def get_savings_vs_only_external(agent_guid: str, job_id: str,
                                  exact_retail_electricity_prices_by_period: Dict[datetime.datetime, float],
                                  exact_wholesale_electricity_prices_by_period: Dict[datetime.datetime, float],
                                  exact_retail_heating_prices_by_year_and_month: Dict[Tuple[int, int], float],
@@ -177,7 +177,8 @@ def get_savings_vs_only_external(trades_for_agent: pd.DataFrame,
         Tuple[float, float]:
     saved_on_buy_vs_using_only_external = 0
     saved_on_sell_vs_using_only_external = 0
-    for _i, trade in trades_for_agent.iterrows():
+    trades = db_to_trades_by_agent(agent_guid, job_id)
+    for trade in trades:
         period = trade.period
         resource = trade.resource
         if trade.action == Action.BUY:

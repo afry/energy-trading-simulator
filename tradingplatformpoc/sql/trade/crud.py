@@ -68,8 +68,9 @@ def trades_to_db(bids_dict: Dict[datetime.datetime, Collection[Trade]], job_id: 
     bulk_insert(objects)
 
 
-def aggregated_trades_by_agent(source: str, job_id: str,
-                               session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope):
+def db_to_aggregated_trades_by_agent(source: str, job_id: str,
+                                     session_generator: Callable[[], _GeneratorContextManager[Session]]
+                                     = session_scope):
     '''Fetches aggregated trades data from database for specified agent (source).'''
     with session_generator() as db:
         res = db.query(
@@ -85,3 +86,18 @@ def aggregated_trades_by_agent(source: str, job_id: str,
          .group_by(TableTrade.resource, TableTrade.action).all()
 
         return res
+
+
+def db_to_trades_by_agent(source: str, job_id: str,
+                          session_generator: Callable[[], _GeneratorContextManager[Session]]
+                          = session_scope) -> pd.DataFrame:
+    '''Fetches trades data from database for specified agent (source).'''
+    with session_generator() as db:
+        trades = db.execute(select(TableTrade.period.label('period'),
+                                   TableTrade.action.label('action').label('action'),
+                                   TableTrade.resource.label('resource'),
+                                   TableTrade.quantity_pre_loss.label('quantity_pre_loss'),
+                                   TableTrade.quantity_post_loss.label('quantity_post_loss'),
+                                   TableTrade.price.label('price'))
+                            .where((TableTrade.job_id == job_id) & (TableTrade.source == source))).all()
+        return trades
