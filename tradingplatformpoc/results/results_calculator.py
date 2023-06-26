@@ -38,43 +38,37 @@ def calc_basic_results_for_agent(agent: IAgent, job_id: str, all_extra_costs: pd
     For the given agent, does various aggregations of trades and extra costs, and returns results in a dict. The
     possible keys in the dict are defined in the Enum ResultsKey.
     """
-    results_dict = {}
-
-    res = db_to_aggregated_trades_by_agent(agent.guid, job_id)
-    quantity_bought_elec = 0.0
-    quantity_bought_heat = 0.0
-    quantity_sold_elec = 0.0
-    quantity_sold_heat = 0.0
-    sek_bought_for_elec = 0.0
-    sek_bought_for_heat = 0.0
-    sek_sold_for_elec = 0.0
-    sek_sold_for_heat = 0.0
+    results_dict: Dict[ResultsKey, float] = {}
     sek_tax_paid = 0.0
     sek_grid_fee_paid = 0.0
+    sek_price = {'sek_bougt_for_elec': 0.0, 'sek_sold_for_elec': 0.0,
+                 'sek_bougt_for_heat': 0.0, 'sek_sold_for_heat': 0.0}
+    res = db_to_aggregated_trades_by_agent(agent.guid, job_id)
     for elem in res:
         if (elem.resource == Resource.ELECTRICITY) & (elem.action == Action.BUY):
-            quantity_bought_elec = elem.sum_quantity_pre_loss
-            sek_bought_for_elec = elem.sum_total_bought_for
-            sek_tax_paid += elem.sum_tax_paid_for_quantities
-            sek_grid_fee_paid += elem.grid_fee_paid_for_quantity
+            results_dict, sek_price['sek_bougt_for_elec'], sek_tax_paid, sek_grid_fee_paid = \
+                extract_aggregated_trades(elem, results_dict, agent.guid,
+                                          ResultsKey.ELEC_BOUGHT, ResultsKey.AVG_BUY_PRICE_ELEC,
+                                          sek_tax_paid, sek_grid_fee_paid,
+                                          Resource.ELECTRICITY, Action.BUY)
         elif (elem.resource == Resource.ELECTRICITY) & (elem.action == Action.SELL):
-            quantity_sold_elec = elem.sum_quantity_post_loss
-            sek_sold_for_elec = elem.sum_total_sold_for
-            sek_tax_paid += elem.sum_tax_paid_for_quantities
-            sek_grid_fee_paid += elem.grid_fee_paid_for_quantity
+            results_dict, sek_price['sek_sold_for_elec'], sek_tax_paid, sek_grid_fee_paid = \
+                extract_aggregated_trades(elem, results_dict, agent.guid,
+                                          ResultsKey.ELEC_SOLD, ResultsKey.AVG_SELL_PRICE_ELEC,
+                                          sek_tax_paid, sek_grid_fee_paid,
+                                          Resource.ELECTRICITY, Action.SELL)
         elif (elem.resource == Resource.HEATING) & (elem.action == Action.BUY):
-            quantity_bought_heat = elem.sum_quantity_pre_loss
-            sek_bought_for_heat = elem.sum_total_bought_for
-            sek_tax_paid += elem.sum_tax_paid_for_quantities
-            sek_grid_fee_paid += elem.grid_fee_paid_for_quantity
+            results_dict, sek_price['sek_bougt_for_heat'], sek_tax_paid, sek_grid_fee_paid = \
+                extract_aggregated_trades(elem, results_dict, agent.guid,
+                                          ResultsKey.HEAT_BOUGHT, ResultsKey.AVG_BUY_PRICE_HEAT,
+                                          sek_tax_paid, sek_grid_fee_paid,
+                                          Resource.HEATING, Action.BUY)
         elif (elem.resource == Resource.HEATING) & (elem.action == Action.SELL):
-            quantity_sold_heat = elem.sum_quantity_post_loss
-            sek_sold_for_heat = elem.sum_total_sold_for
-            sek_tax_paid += elem.sum_tax_paid_for_quantities
-            sek_grid_fee_paid += elem.grid_fee_paid_for_quantity
-    sek_bought_for = sek_bought_for_heat + sek_bought_for_elec
-    sek_sold_for = sek_sold_for_heat + sek_sold_for_elec
-    sek_traded_for = sek_bought_for + sek_sold_for
+            results_dict, sek_price['sek_sold_for_heat'], sek_tax_paid, sek_grid_fee_paid = \
+                extract_aggregated_trades(elem, results_dict, agent.guid,
+                                          ResultsKey.HEAT_SOLD, ResultsKey.AVG_SELL_PRICE_HEAT,
+                                          sek_tax_paid, sek_grid_fee_paid,
+                                          Resource.HEATING, Action.SELL)
 
     if not isinstance(agent, GridAgent):
         ec_df = all_extra_costs.loc[all_extra_costs.agent == agent.guid]
@@ -87,6 +81,11 @@ def calc_basic_results_for_agent(agent: IAgent, job_id: str, all_extra_costs: pd
                                                                    exact_retail_heating_prices_by_year_and_month,
                                                                    exact_wholesale_heating_prices_by_year_and_month)
         total_saved = saved_on_buy + saved_on_sell - extra_costs_for_heat_cost_discr
+
+        sek_bought_for = sek_price['sek_bougt_for_heat'] + sek_price['sek_bougt_for_elec']
+        sek_sold_for = sek_price['sek_sold_for_heat'] + sek_price['sek_sold_for_elec']
+        sek_traded_for = sek_bought_for + sek_sold_for
+
         if sek_traded_for > 0:
             results_dict[ResultsKey.SAVING_ABS_GROSS] = total_saved
             results_dict[ResultsKey.SAVING_REL_GROSS] = 100.0 * total_saved / sek_traded_for
@@ -115,55 +114,7 @@ def calc_basic_results_for_agent(agent: IAgent, job_id: str, all_extra_costs: pd
             results_dict[ResultsKey.GRID_FEES_PAID] = sek_grid_fee_paid
             results_dict[ResultsKey.PROFIT_NET] = total_profit_net
 
-    print_message("For agent {} bought a total of {:.2f} kWh electricity.".format(agent.guid, quantity_bought_elec))
-    print_message("For agent {} bought a total of {:.2f} kWh heating.".format(agent.guid, quantity_bought_heat))
-    print_message("For agent {} sold a total of {:.2f} kWh electricity.".format(agent.guid, quantity_sold_elec))
-    print_message("For agent {} sold a total of {:.2f} kWh heating.".format(agent.guid, quantity_sold_heat))
-    results_dict[ResultsKey.ELEC_BOUGHT] = quantity_bought_elec
-    results_dict[ResultsKey.HEAT_BOUGHT] = quantity_bought_heat
-    results_dict[ResultsKey.ELEC_SOLD] = quantity_sold_elec
-    results_dict[ResultsKey.HEAT_SOLD] = quantity_sold_heat
-
-    if quantity_bought_elec > 0:
-        avg_buy_price_elec = sek_bought_for_elec / quantity_bought_elec
-        print_message("For agent {} average buy price for electricity was {:.3f} SEK/kWh".
-                      format(agent.guid, avg_buy_price_elec))
-        results_dict[ResultsKey.AVG_BUY_PRICE_ELEC] = avg_buy_price_elec
-    if quantity_bought_heat > 0:
-        avg_buy_price_heat = sek_bought_for_heat / quantity_bought_heat
-        print_message("For agent {} average buy price for heating was {:.3f} SEK/kWh".
-                      format(agent.guid, avg_buy_price_heat))
-        results_dict[ResultsKey.AVG_BUY_PRICE_HEAT] = avg_buy_price_heat
-    if quantity_sold_elec > 0:
-        avg_sell_price_elec = sek_sold_for_elec / quantity_sold_elec
-        print_message("For agent {} average sell price for electricity was {:.3f} SEK/kWh".
-                      format(agent.guid, avg_sell_price_elec))
-        results_dict[ResultsKey.AVG_SELL_PRICE_ELEC] = avg_sell_price_elec
-    if quantity_sold_heat > 0:
-        avg_sell_price_heat = sek_sold_for_heat / quantity_sold_heat
-        print_message("For agent {} average sell price for heating was {:.3f} SEK/kWh".
-                      format(agent.guid, avg_sell_price_heat))
-        results_dict[ResultsKey.AVG_SELL_PRICE_HEAT] = avg_sell_price_heat
     return results_dict
-
-
-def sum_total_bought_for(buy_trades: pd.DataFrame) -> float:
-    """
-    For BUY-trades, the buyer pays for the quantity before losses.
-    pandas can log a FutureWarning if trying to sum on an apply of an empty df, so if the length is 0, we just return
-    0 directly.
-    """
-    return buy_trades.apply(lambda x: x.quantity_pre_loss * x.price, axis=1).sum() if len(buy_trades) > 0 else 0.0
-
-
-def sum_total_sold_for(sell_trades: pd.DataFrame) -> float:
-    """
-    For SELL-trades, the seller gets paid for the quantity after losses.
-    These sums will already have deducted taxes and grid fees, that the seller is to pay.
-    pandas can log a FutureWarning if trying to sum on an apply of an empty df, so if the length is 0, we just return
-    0 directly.
-    """
-    return sell_trades.apply(lambda x: x.quantity_post_loss * x.price, axis=1).sum() if len(sell_trades) > 0 else 0.0
 
 
 def get_savings_vs_only_external(agent_guid: str, job_id: str,
@@ -206,3 +157,34 @@ def get_relevant_price(electricity_prices_by_period: Dict[datetime.datetime, flo
 
 def print_message(message: str):
     print(message)
+
+
+def extract_aggregated_trades(elem, results_dict: dict, agent_guid: str,
+                              quantity_key: ResultsKey, avg_key: ResultsKey,
+                              sek_tax_paid: float, sek_grid_fee_paid: float,
+                              resource: Resource, action: Action) \
+        -> Tuple[Dict[ResultsKey, float], float, float, float]:
+    if action == Action.BUY:
+        results_dict[quantity_key] = elem.sum_quantity_pre_loss
+        print_message("For agent {} bought a total of {:.2f} kWh {}.".format(agent_guid, results_dict[quantity_key],
+                                                                             resource.name.lower()))
+        sek = elem.sum_total_bought_for
+
+    elif action == Action.SELL:
+        results_dict[quantity_key] = elem.sum_quantity_post_loss
+        print_message("For agent {} sold a total of {:.2f} kWh {}.".format(agent_guid, results_dict[quantity_key],
+                                                                           resource.name.lower()))
+        sek = elem.sum_total_sold_for
+    
+    sek_tax_paid += elem.sum_tax_paid_for_quantities
+    sek_grid_fee_paid += elem.grid_fee_paid_for_quantity
+
+    if results_dict[quantity_key] > 0:
+        avg_price = sek / results_dict[quantity_key]
+        print_message("For agent {} average {} price for {:.3f} was {} SEK/kWh".
+                      format(agent_guid, action.name.lower(), avg_price, resource.name.lower()))
+        results_dict[avg_key] = avg_price
+    else:
+        results_dict[avg_key] = 0.0
+
+    return results_dict, sek, sek_tax_paid, sek_grid_fee_paid
