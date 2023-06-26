@@ -282,7 +282,12 @@ class TradingSimulator:
             self.progress_text.info("Formatting results...")
 
         logger.info('Creating extra_costs_df')
-        extra_costs_df = pd.DataFrame([x.to_series() for x in self.all_extra_costs]).sort_values(['period', 'agent'])
+        # this takes 2 minutes
+        extra_costs_df = pd.DataFrame.from_records(({'period': x.period,
+                                                     'agent': x.agent,
+                                                     'cost_type': x.cost_type,
+                                                     'cost': x.cost}
+                                                    for x in self.all_extra_costs)).sort_values(['period', 'agent'])
         self.progress.increase(0.05)
         self.progress.display()
 
