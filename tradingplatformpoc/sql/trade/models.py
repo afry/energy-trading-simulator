@@ -3,6 +3,7 @@ import datetime
 from pydantic.types import Optional
 
 from sqlalchemy import Column, DateTime, Enum, Integer
+from sqlalchemy.orm import column_property, declared_attr
 
 from sqlmodel import Field, SQLModel
 
@@ -83,3 +84,19 @@ class Trade(SQLModel, table=True):
         title='Grid fee paid',
         nullable=False
     )
+
+    @declared_attr
+    def tax_paid_for_quantity(self):
+        return column_property(self.quantity_post_loss * self.tax_paid)
+    
+    @declared_attr
+    def grid_fee_paid_for_quantity(self):
+        return column_property(self.quantity_post_loss * self.grid_fee_paid)
+    
+    @declared_attr
+    def total_bought_for(self):
+        return column_property(self.quantity_pre_loss * self.price)
+    
+    @declared_attr
+    def total_sold_for(self):
+        return column_property(self.quantity_post_loss * self.price)

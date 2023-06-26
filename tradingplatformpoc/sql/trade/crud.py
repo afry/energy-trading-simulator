@@ -4,15 +4,13 @@ from typing import Callable, Collection, Dict
 
 import pandas as pd
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from sqlmodel import Session
 
 from tradingplatformpoc.connection import session_scope
 from tradingplatformpoc.database import bulk_insert
 from tradingplatformpoc.market.trade import Trade
-# from tradingplatformpoc.market.bid import Action
-# from tradingplatformpoc.market.trade import Market
 from tradingplatformpoc.sql.trade.models import Trade as TableTrade
 
 
@@ -68,3 +66,22 @@ def trades_to_db(bids_dict: Dict[datetime.datetime, Collection[Trade]], job_id: 
                           grid_fee_paid=x.grid_fee_paid)
                for period, some_collection in bids_dict.items() for x in some_collection]
     bulk_insert(objects)
+
+
+def aggregated_trades_by_agent(source: str, job_id: str,
+                               session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope):
+    '''Fetches aggregated trades data from database for specified agent (source).'''
+    with session_generator() as db:
+        res = db.query(
+            TableTrade.resource.label('resource'),
+            TableTrade.action.label('action'),
+            func.sum(TableTrade.quantity_pre_loss).label('sum_quantity_pre_loss'),
+            func.sum(TableTrade.quantity_post_loss).label('sum_quantity_post_loss'),
+            func.sum(TableTrade.total_bought_for).label('sum_total_bought_for'),
+            func.sum(TableTrade.total_sold_for).label('sum_total_sold_for'),
+            func.sum(TableTrade.tax_paid_for_quantity).label('sum_tax_paid_for_quantities'),
+            func.sum(TableTrade.grid_fee_paid_for_quantity).label('grid_fee_paid_for_quantity')
+        ).filter(TableTrade.source == source, TableTrade.job_id == job_id)\
+         .group_by(TableTrade.resource, TableTrade.action).all()
+
+        return res

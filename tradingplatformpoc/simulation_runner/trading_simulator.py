@@ -298,7 +298,8 @@ class TradingSimulator:
         logger.info('Aggregating results per agent')
         if self.progress_text is not None:
             self.progress_text.info("Aggregating results per agent...")
-        results_by_agent = results_calculator.calc_basic_results(self.agents, all_trades_df, extra_costs_df,
+        results_by_agent = results_calculator.calc_basic_results(self.agents, self.job_id, all_trades_df,
+                                                                 extra_costs_df,
                                                                  self.exact_retail_electricity_prices_by_period,
                                                                  self.exact_wholesale_electricity_prices_by_period,
                                                                  exact_retail_heat_price_by_ym,
