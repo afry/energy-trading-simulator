@@ -2,9 +2,11 @@ import datetime
 
 from pydantic.types import Optional
 
-from sqlalchemy import Column, DateTime, Integer
+from sqlalchemy import Column, DateTime, Enum, Integer
 
 from sqlmodel import Field, SQLModel
+
+from tradingplatformpoc.market.extra_cost import ExtraCostType
 
 
 class ExtraCost(SQLModel, table=True):
@@ -32,11 +34,9 @@ class ExtraCost(SQLModel, table=True):
         title='Agent',
         nullable=False
     )
-    type: Optional[str] = Field(
-        primary_key=False,
-        default=None,
-        title='Type',
-        nullable=False
+    cost_type: Optional[str] = Field(
+        title='Cost type',
+        sa_column=Column(Enum(ExtraCostType), primary_key=False, default=None, nullable=False)
     )
     cost: Optional[float] = Field(
         primary_key=False,

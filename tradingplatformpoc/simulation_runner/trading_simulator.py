@@ -33,6 +33,7 @@ from tradingplatformpoc.simulation_runner.simulation_utils import \
     get_external_heating_prices, get_generated_mock_data, \
     get_quantity_heating_sold_by_external_grid, go_through_trades_metadata, net_bids_from_gross_bids
 from tradingplatformpoc.sql.bid.crud import bids_to_db, db_to_bid_df
+from tradingplatformpoc.sql.extra_cost.crud import db_to_extra_cost_df, extra_costs_to_db
 from tradingplatformpoc.sql.trade.crud import db_to_trade_df, trades_to_db
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, flatten_collection, \
     get_intersection
@@ -62,7 +63,6 @@ class TradingSimulator:
         self.clearing_prices_historical: Dict[datetime.datetime, Dict[Resource, float]] = {}
         self.storage_levels_dict: Dict[str, Dict[datetime.datetime, float]] = {}
         self.heat_pump_levels_dict: Dict[str, Dict[datetime.datetime, float]] = {}
-        self.all_extra_costs: List[ExtraCost] = []
         # Store the exact external prices, need them for some calculations
         self.exact_retail_electricity_prices_by_period: Dict[datetime.datetime, float] \
             = dict(zip(self.trading_periods, (0.0 for _ in self.trading_periods)))
@@ -155,6 +155,8 @@ class TradingSimulator:
         delete_from_db(self.job_id, 'Trade')
         logger.info('Deleting bids in db with job ID {}...'.format(self.job_id))
         delete_from_db(self.job_id, 'Bid')
+        logger.info('Deleting extra costs in db with job ID {}...'.format(self.job_id))
+        delete_from_db(self.job_id, 'ExtraCost')
 
         self.progress = Progress(progress_bar)
         self.progress_text = progress_text
@@ -181,6 +183,7 @@ class TradingSimulator:
                 = dict(zip(trading_periods_in_this_month, ([] for _ in trading_periods_in_this_month)))
             all_trades_dict_month: Dict[datetime.datetime, Collection[Trade]] \
                 = dict(zip(trading_periods_in_this_month, ([] for _ in trading_periods_in_this_month)))
+            all_extra_costs_month: List[ExtraCost] = []
 
             # Month loop
             for period in trading_periods_in_this_month:
@@ -243,14 +246,17 @@ class TradingSimulator:
                                                                                  period,
                                                                                  clearing_prices,
                                                                                  wholesale_prices)
+
                 self.exact_wholesale_electricity_prices_by_period[period] = wholesale_price_elec
                 self.exact_retail_electricity_prices_by_period[period] = retail_price_elec
-                self.all_extra_costs.extend(extra_costs)
+                all_extra_costs_month.extend(extra_costs)
 
             logger.info('Saving bids to db...')
             bids_to_db(all_bids_dict_month, self.job_id)
             logger.info('Saving trades to db...')
             trades_to_db(all_trades_dict_month, self.job_id)
+            logger.info('Saving extra costs to db...')
+            extra_costs_to_db(all_extra_costs_month, self.job_id)
 
         self.progress.increase(FRACTION_OF_CALC_TIME_FOR_1_MONTH_SIMULATED + 0.01)  # Final month
         self.progress.display()
@@ -276,25 +282,19 @@ class TradingSimulator:
                                                                       estimated_retail_heat_price_by_ym,
                                                                       estimated_wholesale_heat_price_by_ym,
                                                                       self.job_id)
-        self.all_extra_costs.extend(heat_cost_discr_corrections)
+        logger.info('Saving extra costs to db...')
+        extra_costs_to_db(heat_cost_discr_corrections, self.job_id)
 
         if self.progress_text is not None:
             self.progress_text.info("Formatting results...")
 
-        logger.info('Creating extra_costs_df')
-        # this takes 2 minutes
-        extra_costs_df = pd.DataFrame.from_records(({'period': x.period,
-                                                     'agent': x.agent,
-                                                     'cost_type': x.cost_type,
-                                                     'cost': x.cost}
-                                                    for x in self.all_extra_costs)).sort_values(['period', 'agent'])
         self.progress.increase(0.05)
         self.progress.display()
 
         logger.info('Aggregating results per agent')
         if self.progress_text is not None:
             self.progress_text.info("Aggregating results per agent...")
-        results_by_agent = results_calculator.calc_basic_results(self.agents, self.job_id, extra_costs_df,
+        results_by_agent = results_calculator.calc_basic_results(self.agents, self.job_id,
                                                                  self.exact_retail_electricity_prices_by_period,
                                                                  self.exact_wholesale_electricity_prices_by_period,
                                                                  exact_retail_heat_price_by_ym,
@@ -308,6 +308,8 @@ class TradingSimulator:
         self.progress.display()
         logger.info('Read bids from db...')
         all_bids_df = db_to_bid_df(self.job_id)
+        logger.info('Read extra costs from db...')
+        extra_costs_df = db_to_extra_cost_df(self.job_id).sort_values(['period', 'agent'])
 
         self.progress.final()
         self.progress.display()
@@ -332,5 +334,7 @@ class TradingSimulator:
         delete_from_db(self.job_id, 'Trade')
         logger.info('Deleting bids in db with job ID {}...'.format(self.job_id))
         delete_from_db(self.job_id, 'Bid')
+        logger.info('Deleting extra costs in db with job ID {}...'.format(self.job_id))
+        delete_from_db(self.job_id, 'ExtraCost')
 
         return sim_res
