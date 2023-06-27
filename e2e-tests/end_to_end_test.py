@@ -6,6 +6,7 @@ from tradingplatformpoc.app.app_inputs import read_config
 from tradingplatformpoc.constants import MOCK_DATA_PATH
 from tradingplatformpoc.market.bid import Action
 from tradingplatformpoc.simulation_runner.trading_simulator import TradingSimulator
+from tradingplatformpoc.sql.job.crud import delete_job
 from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES
 
 mock_datas_file_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
@@ -21,9 +22,8 @@ class Test(TestCase):
         amount of energy sold. Furthermore, it will look at monetary compensation, and make sure that the amounts paid
         and received by different actors all match up.
         """
-
         simulator = TradingSimulator('end_to_end_job_id', config_data, MOCK_DATA_PATH)
-        simulation_results = simulator.run()
+        simulation_results = simulator()
 
         for period in simulation_results.clearing_prices_historical.keys():
             trades_for_period = simulation_results.all_trades.loc[simulation_results.all_trades.period == period]
@@ -46,6 +46,8 @@ class Test(TestCase):
                 cost_for_agent = sum(get_costs_of_trades_for_agent(trades_for_agent)) + extra_costs_for_agent.cost.sum()
                 total_cost = total_cost + cost_for_agent
             self.assertAlmostEqual(0, total_cost)
+        
+        delete_job('end_to_end_job_id')
 
 
 def get_costs_of_trades_for_agent(trades_for_agent):

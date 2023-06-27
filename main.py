@@ -61,7 +61,10 @@ if __name__ == '__main__':
     logger.info("Running main with job ID {} and {} config.".format(args.job_id, args.config_name))
     create_db_and_tables()
     simulator = TradingSimulator(args.job_id, config_data, MOCK_DATA_PATH)
-    simulation_results = simulator.run()
-    logger.info("Finished running simulations. Will save simulations results as a pickle file.")
-    with open(results_path + 'simulation_results.pickle', 'wb') as destination:
-        pickle.dump(simulation_results, destination)
+    simulation_results = simulator()
+    if simulation_results is not None:
+        logger.info("Finished running simulations. Will save simulations results as a pickle file.")
+        with open(results_path + 'simulation_results.pickle', 'wb') as destination:
+            pickle.dump(simulation_results, destination)
+    else:
+        logger.info("Could not finish simulation.")

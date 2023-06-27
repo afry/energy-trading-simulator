@@ -18,6 +18,7 @@ from tradingplatformpoc.market.trade import Market, Trade
 from tradingplatformpoc.simulation_runner.simulation_utils import construct_df_from_datetime_dict, \
     get_external_heating_prices, get_quantity_heating_sold_by_external_grid
 from tradingplatformpoc.simulation_runner.trading_simulator import TradingSimulator
+from tradingplatformpoc.sql.job.crud import delete_job
 from tradingplatformpoc.trading_platform_utils import hourly_datetime_array_between
 
 
@@ -33,7 +34,11 @@ class Test(TestCase):
                        'AreaInfo': self.config['AreaInfo'],
                        'MockDataConstants': self.config['MockDataConstants']}
         with self.assertRaises(RuntimeError):
-            TradingSimulator('test_job_id', fake_config, MOCK_DATA_PATH)
+            simulator = TradingSimulator('test_job_id', fake_config, MOCK_DATA_PATH)
+            simulator.initialize_data()
+            simulator.initialize_agents()
+
+        delete_job('test_job_id')
 
     def test_get_quantity_heating_sold_by_external_grid(self):
         """Test that get_quantity_heating_sold_by_external_grid doesn't break when there are no external trades."""

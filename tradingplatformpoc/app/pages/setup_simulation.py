@@ -210,12 +210,14 @@ if run_sim:
     st.spinner("Running simulation")
 
     simulator = TradingSimulator('placeholder_job_id', read_config(), MOCK_DATA_PATH)
-    simulation_results = simulator.run(progress_bar, progress_text)
-
-    set_simulation_results(simulation_results)
-    st.session_state.simulation_results = simulation_results
-    logger.info("Simulation finished!")
-    progress_text.success('Simulation finished!')
-    results_button(results_download_button)
+    simulation_results = simulator(progress_bar, progress_text)
+    if simulation_results is not None:
+        set_simulation_results(simulation_results)
+        st.session_state.simulation_results = simulation_results
+        logger.info("Simulation finished!")
+        progress_text.success('Simulation finished!')
+        results_button(results_download_button)
+    else:
+        progress_text.error("Simulation could not finish!")
 
 st.write(footer.html, unsafe_allow_html=True)

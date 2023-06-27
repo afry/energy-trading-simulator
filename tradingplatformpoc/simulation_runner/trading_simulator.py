@@ -1,6 +1,7 @@
 import datetime
 import logging
-from typing import Any, Collection, Dict, List, Tuple, Union
+from time import perf_counter
+from typing import Any, Collection, Dict, List, Optional, Tuple, Union
 
 import pandas as pd
 
@@ -34,6 +35,7 @@ from tradingplatformpoc.simulation_runner.simulation_utils import \
     get_quantity_heating_sold_by_external_grid, go_through_trades_metadata, net_bids_from_gross_bids
 from tradingplatformpoc.sql.bid.crud import bids_to_db_objects, db_to_bid_df
 from tradingplatformpoc.sql.extra_cost.crud import db_to_extra_cost_df, extra_costs_to_db_objects
+from tradingplatformpoc.sql.job.crud import create_job, delete_job
 from tradingplatformpoc.sql.trade.crud import db_to_trade_df, get_total_grid_fee_paid_on_internal_trades, \
     get_total_tax_paid, trades_to_db_objects
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, flatten_collection, \
@@ -47,8 +49,31 @@ logger = logging.getLogger(__name__)
 class TradingSimulator:
     def __init__(self, job_id: str, config_data: Dict[str, Any], mock_datas_pickle_path: str):
         self.job_id = job_id
+        self.init_job_id_successful = create_job(self.job_id)
+
         self.config_data = config_data
         self.mock_datas_pickle_path = mock_datas_pickle_path
+
+    def __call__(self, progress_bar: Union[st.progress, None] = None,
+                 progress_text: Union[st.info, None] = None) -> Optional[SimulationResults]:
+        if self.init_job_id_successful:
+            try:
+                self.initialize_data()
+                self.agents, self.grid_agents = self.initialize_agents()
+                self.progress = Progress(progress_bar)
+                self.progress_text = progress_text
+                self.run()
+                return self.extract_results()
+            except Exception as e:
+                logger.exception(e)
+                delete_job(self.job_id)
+                return None
+        else:
+            return None
+
+    def initialize_data(self):
+        self.config_data = self.config_data
+        self.mock_datas_pickle_path = self.mock_datas_pickle_path
 
         # Initialize data store
         self.data_store_entity = DataStore.from_csv_files(config_area_info=self.config_data["AreaInfo"])
@@ -69,8 +94,6 @@ class TradingSimulator:
             = dict(zip(self.trading_periods, (0.0 for _ in self.trading_periods)))
         self.exact_wholesale_electricity_prices_by_period: Dict[datetime.datetime, float] \
             = dict(zip(self.trading_periods, (0.0 for _ in self.trading_periods)))
-
-        self.agents, self.grid_agents = self.initialize_agents()
 
     def initialize_agents(self) -> Tuple[List[IAgent], List[GridAgent]]:
         # Register all agents
@@ -140,8 +163,7 @@ class TradingSimulator:
 
         return agents, grid_agents
 
-    def run(self, progress_bar: Union[st.progress, None] = None,
-            progress_text: Union[st.info, None] = None) -> SimulationResults:
+    def run(self):
         """
         The core loop of the simulation, running through the desired time period and performing trades.
         @param progress_bar             A streamlit progress bar, used only when running simulations through the UI
@@ -156,8 +178,6 @@ class TradingSimulator:
         logger.info('Deleting extra costs in db with job ID {}...'.format(self.job_id))
         delete_from_db(self.job_id, 'ExtraCost')
 
-        self.progress = Progress(progress_bar)
-        self.progress_text = progress_text
         logger.info("Starting trading simulations")
 
         # Load generated mock data
@@ -252,8 +272,6 @@ class TradingSimulator:
         if self.progress_text is not None:
             self.progress_text.info("Simulated a full year, starting some calculations on district heating price...")
 
-        return self.extract_results()
-
     def extract_results(self) -> SimulationResults:
         """
         Simulations finished. Now, we need to go through and calculate the exact district heating price for each month
@@ -293,6 +311,7 @@ class TradingSimulator:
         self.progress.display()
 
         logger.info('Read trades from db...')
+        tic = perf_counter()
         all_trades_df = db_to_trade_df(self.job_id)
         self.progress.increase(0.005)
         self.progress.display()
@@ -300,6 +319,8 @@ class TradingSimulator:
         all_bids_df = db_to_bid_df(self.job_id)
         logger.info('Read extra costs from db...')
         extra_costs_df = db_to_extra_cost_df(self.job_id).sort_values(['period', 'agent'])
+        toc = perf_counter()
+        print(toc - tic)
 
         self.progress.final()
         self.progress.display()
