@@ -16,9 +16,10 @@ def calc_basic_results(agents: Iterable[IAgent], job_id: str,
                        exact_retail_heating_prices_by_year_and_month: Dict[Tuple[int, int], float],
                        exact_wholesale_heating_prices_by_year_and_month: Dict[Tuple[int, int], float]) -> \
         Dict[str, Dict[ResultsKey, float]]:
+    res = db_to_aggregated_trades_by_agent(job_id)
     results_by_agent = {}
     for agent in agents:
-        results_by_agent[agent.guid] = calc_basic_results_for_agent(agent, job_id,
+        results_by_agent[agent.guid] = calc_basic_results_for_agent(agent, res[agent.guid], job_id,
                                                                     exact_retail_electricity_prices_by_period,
                                                                     exact_wholesale_electricity_prices_by_period,
                                                                     exact_retail_heating_prices_by_year_and_month,
@@ -26,7 +27,7 @@ def calc_basic_results(agents: Iterable[IAgent], job_id: str,
     return results_by_agent
 
 
-def calc_basic_results_for_agent(agent: IAgent, job_id: str,
+def calc_basic_results_for_agent(agent: IAgent, res, job_id: str,
                                  exact_retail_electricity_prices_by_period: Dict[datetime.datetime, float],
                                  exact_wholesale_electricity_prices_by_period: Dict[datetime.datetime, float],
                                  exact_retail_heating_prices_by_year_and_month: Dict[Tuple[int, int], float],
@@ -41,7 +42,6 @@ def calc_basic_results_for_agent(agent: IAgent, job_id: str,
     sek_grid_fee_paid = 0.0
     sek_price = {'sek_bougt_for_elec': 0.0, 'sek_sold_for_elec': 0.0,
                  'sek_bougt_for_heat': 0.0, 'sek_sold_for_heat': 0.0}
-    res = db_to_aggregated_trades_by_agent(agent.guid, job_id)
     for elem in res:
         if (elem.resource == Resource.ELECTRICITY) & (elem.action == Action.BUY):
             results_dict, sek_price['sek_bougt_for_elec'], sek_tax_paid, sek_grid_fee_paid = \
@@ -69,6 +69,7 @@ def calc_basic_results_for_agent(agent: IAgent, job_id: str,
                                           Resource.HEATING, Action.SELL)
 
     if not isinstance(agent, GridAgent):
+        # TODO: Make into one call
         extra_costs_for_bad_bids, extra_costs_for_heat_cost_discr = \
             db_to_aggregated_extra_costs_by_agent(agent.guid, job_id)
 

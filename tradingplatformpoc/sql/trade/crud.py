@@ -72,12 +72,13 @@ def trades_to_db_objects(bids_dict: Dict[datetime.datetime, Collection[Trade]], 
     return objects
 
 
-def db_to_aggregated_trades_by_agent(source: str, job_id: str,
+def db_to_aggregated_trades_by_agent(job_id: str,
                                      session_generator: Callable[[], _GeneratorContextManager[Session]]
                                      = session_scope):
     '''Fetches aggregated trades data from database for specified agent (source).'''
     with session_generator() as db:
         res = db.query(
+            TableTrade.source.label('source'),
             TableTrade.resource.label('resource'),
             TableTrade.action.label('action'),
             func.sum(TableTrade.quantity_pre_loss).label('sum_quantity_pre_loss'),
@@ -86,10 +87,11 @@ def db_to_aggregated_trades_by_agent(source: str, job_id: str,
             func.sum(TableTrade.total_sold_for).label('sum_total_sold_for'),
             func.sum(TableTrade.tax_paid_for_quantity).label('sum_tax_paid_for_quantities'),
             func.sum(TableTrade.grid_fee_paid_for_quantity).label('grid_fee_paid_for_quantity')
-        ).filter(TableTrade.source == source, TableTrade.job_id == job_id)\
-         .group_by(TableTrade.resource, TableTrade.action).all()
+        ).filter(TableTrade.job_id == job_id)\
+         .group_by(TableTrade.source, TableTrade.resource, TableTrade.action).all()
 
-        return res
+        return dict((source, list(vals)) for source, vals in
+                    itertools.groupby(res, operator.itemgetter(0)))
 
 
 def db_to_trades_by_agent(source: str, job_id: str,
