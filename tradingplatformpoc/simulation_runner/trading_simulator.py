@@ -15,7 +15,7 @@ from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.agent.storage_agent import StorageAgent
 from tradingplatformpoc.data_store import DataStore
-from tradingplatformpoc.database import delete_from_db
+from tradingplatformpoc.database import bulk_insert, delete_from_db
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
 from tradingplatformpoc.generate_data.mock_data_generation_functions import get_elec_cons_key, \
@@ -32,10 +32,10 @@ from tradingplatformpoc.simulation_runner.progress import Progress
 from tradingplatformpoc.simulation_runner.simulation_utils import \
     get_external_heating_prices, get_generated_mock_data, \
     get_quantity_heating_sold_by_external_grid, go_through_trades_metadata, net_bids_from_gross_bids
-from tradingplatformpoc.sql.bid.crud import bids_to_db, db_to_bid_df
-from tradingplatformpoc.sql.extra_cost.crud import db_to_extra_cost_df, extra_costs_to_db
+from tradingplatformpoc.sql.bid.crud import bids_to_db_objects, db_to_bid_df
+from tradingplatformpoc.sql.extra_cost.crud import db_to_extra_cost_df, extra_costs_to_db_objects
 from tradingplatformpoc.sql.trade.crud import db_to_trade_df, get_total_grid_fee_paid_on_internal_trades, \
-    get_total_tax_paid, trades_to_db
+    get_total_tax_paid, trades_to_db_objects
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, flatten_collection, \
     get_intersection
 
@@ -242,13 +242,11 @@ class TradingSimulator:
                 self.exact_retail_electricity_prices_by_period[period] = retail_price_elec
                 all_extra_costs_month.extend(extra_costs)
 
-            logger.info('Saving bids to db...')
-            bids_to_db(all_bids_dict_month, self.job_id)
-            logger.info('Saving trades to db...')
-            trades_to_db(all_trades_dict_month, self.job_id)
-            logger.info('Saving extra costs to db...')
-            extra_costs_to_db(all_extra_costs_month, self.job_id)
-
+            logger.info('Saving to db...')
+            bid_objs = bids_to_db_objects(all_bids_dict_month, self.job_id)
+            trade_objs = trades_to_db_objects(all_trades_dict_month, self.job_id)
+            extra_cost_objs = extra_costs_to_db_objects(all_extra_costs_month, self.job_id)
+            bulk_insert(bid_objs + trade_objs + extra_cost_objs)
         self.progress.increase(FRACTION_OF_CALC_TIME_FOR_1_MONTH_SIMULATED + 0.01)  # Final month
         self.progress.display()
         if self.progress_text is not None:
@@ -274,8 +272,9 @@ class TradingSimulator:
                                                                       estimated_wholesale_heat_price_by_ym,
                                                                       self.job_id)
         logger.info('Saving extra costs to db...')
-        extra_costs_to_db(heat_cost_discr_corrections, self.job_id)
-
+        objs = extra_costs_to_db_objects(heat_cost_discr_corrections, self.job_id)
+        bulk_insert(objs)
+        
         if self.progress_text is not None:
             self.progress_text.info("Formatting results...")
 

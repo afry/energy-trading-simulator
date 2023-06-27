@@ -9,12 +9,11 @@ from sqlalchemy import select
 from sqlmodel import Session
 
 from tradingplatformpoc.connection import session_scope
-from tradingplatformpoc.database import bulk_insert
 from tradingplatformpoc.market.bid import NetBidWithAcceptanceStatus
 from tradingplatformpoc.sql.bid.models import Bid as TableBid
 
 
-def bids_to_db(trades_dict: Dict[datetime.datetime, Collection[NetBidWithAcceptanceStatus]], job_id: str):
+def bids_to_db_objects(trades_dict: Dict[datetime.datetime, Collection[NetBidWithAcceptanceStatus]], job_id: str):
     objects = [TableBid(period=period,
                         job_id=job_id,
                         source=x.source,
@@ -25,7 +24,7 @@ def bids_to_db(trades_dict: Dict[datetime.datetime, Collection[NetBidWithAccepta
                         price=x.price,
                         accepted_quantity=x.accepted_quantity)
                for period, some_collection in trades_dict.items() for x in some_collection]
-    bulk_insert(objects)
+    return objects
 
 
 def db_to_bid_df(job_id: str,

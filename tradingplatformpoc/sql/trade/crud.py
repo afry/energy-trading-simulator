@@ -11,7 +11,6 @@ from sqlalchemy import func, select
 from sqlmodel import Session
 
 from tradingplatformpoc.connection import session_scope
-from tradingplatformpoc.database import bulk_insert
 from tradingplatformpoc.market.bid import Action
 from tradingplatformpoc.market.trade import Trade
 from tradingplatformpoc.sql.trade.models import Trade as TableTrade
@@ -56,7 +55,7 @@ def db_to_trade_df(job_id: str,
                                            } for (trade, ) in trades])
 
 
-def trades_to_db(bids_dict: Dict[datetime.datetime, Collection[Trade]], job_id: str):
+def trades_to_db_objects(bids_dict: Dict[datetime.datetime, Collection[Trade]], job_id: str):
     objects = [TableTrade(period=period,
                           job_id=job_id,
                           source=x.source,
@@ -70,7 +69,7 @@ def trades_to_db(bids_dict: Dict[datetime.datetime, Collection[Trade]], job_id: 
                           tax_paid=x.tax_paid,
                           grid_fee_paid=x.grid_fee_paid)
                for period, some_collection in bids_dict.items() for x in some_collection]
-    bulk_insert(objects)
+    return objects
 
 
 def db_to_aggregated_trades_by_agent(source: str, job_id: str,

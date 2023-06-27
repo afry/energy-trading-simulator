@@ -8,19 +8,18 @@ from sqlalchemy import func, select
 from sqlmodel import Session
 
 from tradingplatformpoc.connection import session_scope
-from tradingplatformpoc.database import bulk_insert
 from tradingplatformpoc.market.extra_cost import ExtraCost, ExtraCostType
 from tradingplatformpoc.sql.extra_cost.models import ExtraCost as TableExtraCost
 
 
-def extra_costs_to_db(all_extra_costs_list: List[ExtraCost], job_id: str):
+def extra_costs_to_db_objects(all_extra_costs_list: List[ExtraCost], job_id: str):
     objects = [TableExtraCost(job_id=job_id,
                               period=x.period,
                               agent=x.agent,
                               cost_type=x.cost_type.name,
                               cost=x.cost)
                for x in all_extra_costs_list]
-    bulk_insert(objects)
+    return objects
 
 
 def db_to_extra_cost_df(job_id: str,
