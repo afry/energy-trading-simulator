@@ -50,13 +50,15 @@ if string_to_log_later is not None:
 # --- Define path to mock data
 mock_datas_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
 results_path = "./results/"
-config_data = read_config(name='default')
 parser = argparse.ArgumentParser()
 parser.add_argument("--job_id", dest="job_id", default="main_job_id", help="Job ID", type=str)
+parser.add_argument("--config", dest="config_name", default="default", help="Config name", type=str)
 args = parser.parse_args()
 
+config_data = read_config(name=args.config_name)
+
 if __name__ == '__main__':
-    logger.info("Running main with job ID {}".format(args.job_id))
+    logger.info("Running main with job ID {} and {} config.".format(args.job_id, args.config_name))
     create_db_and_tables()
     simulator = TradingSimulator(args.job_id, config_data, MOCK_DATA_PATH)
     simulation_results = simulator.run()
