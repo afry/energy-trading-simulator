@@ -1,4 +1,6 @@
 import datetime
+import itertools
+import operator
 from contextlib import _GeneratorContextManager
 from typing import Callable, Collection, Dict, Tuple
 
@@ -28,10 +30,12 @@ def heat_trades_from_db_for_periods(tradig_periods, job_id: str,
                                              TableTrade.market.label('market'))
                                       .where((TableTrade.job_id == job_id)
                                              & (TableTrade.period >= tradig_periods.min())
-                                             & (TableTrade.period < tradig_periods.max())
-                                             & (TableTrade.resource == 'HEATING'))).all()
+                                             & (TableTrade.period <= tradig_periods.max())
+                                             & (TableTrade.resource == 'HEATING'))
+                                      .order_by(TableTrade.period)).all()
 
-        return {period: [trade for trade in trades_for_month if trade.period == period] for period in tradig_periods}
+        return dict((period, list(vals)) for period, vals in
+                    itertools.groupby(trades_for_month, operator.itemgetter(0)))
 
 
 def db_to_trade_df(job_id: str,

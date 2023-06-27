@@ -235,15 +235,21 @@ def correct_for_exact_heating_price(trading_periods: pd.DatetimeIndex,
         trading_periods_in_this_month = trading_periods[(trading_periods.year == year)
                                                         & (trading_periods.month == month)]
         
+        exact_ext_retail_price = exact_retail_heating_prices_by_year_and_month[(year, month)]
+        exact_ext_wholesale_price = exact_wholesale_heating_prices_by_year_and_month[(year, month)]
+        est_ext_retail_price = estimated_retail_heating_prices_by_year_and_month[(year, month)]
+        est_ext_wholesale_price = estimated_wholesale_heating_prices_by_year_and_month[(year, month)]
+        
         heating_trades_for_month = heat_trades_from_db_for_periods(trading_periods_in_this_month, job_id)
+
         for period in trading_periods_in_this_month:
-            heating_trades = heating_trades_for_month[period]
+            # TODO: Can we have periods with no heating trades?
+            if period not in list(heating_trades_for_month.keys()):
+                heating_trades = []
+            else:
+                heating_trades = heating_trades_for_month[period]
             external_trade = get_external_trade_on_local_market(heating_trades)
             if external_trade is not None:
-                exact_ext_retail_price = exact_retail_heating_prices_by_year_and_month[(year, month)]
-                exact_ext_wholesale_price = exact_wholesale_heating_prices_by_year_and_month[(year, month)]
-                est_ext_retail_price = estimated_retail_heating_prices_by_year_and_month[(year, month)]
-                est_ext_wholesale_price = estimated_wholesale_heating_prices_by_year_and_month[(year, month)]
                 external_trade_quantity = external_trade.quantity_post_loss
                 if external_trade.action == Action.SELL:
                     internal_buy_trades = [x for x in heating_trades if (not x.by_external) & (x.action == Action.BUY)]
