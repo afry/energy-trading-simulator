@@ -1,4 +1,5 @@
 import datetime
+import gc
 import logging
 from typing import Any, Collection, Dict, List, Optional, Tuple, Union
 
@@ -39,6 +40,7 @@ from tradingplatformpoc.sql.trade.crud import db_to_trade_df, get_total_grid_fee
     get_total_tax_paid, trades_to_db_objects
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, flatten_collection, \
     get_intersection
+
 
 FRACTION_OF_CALC_TIME_FOR_1_MONTH_SIMULATED = 0.065  # TODO: Maybe should be dependent on # months
 
@@ -303,7 +305,10 @@ class TradingSimulator:
         logger.info('Saving extra costs to db...')
         objs = extra_costs_to_db_objects(heat_cost_discr_corrections, self.job_id)
         bulk_insert(objs)
-        
+        # we inserted this into the database, and it's big (2GB), so delete from RAM
+        del heat_cost_discr_corrections, objs
+        gc.collect()
+
         if self.progress_text is not None:
             self.progress_text.info("Formatting results...")
 

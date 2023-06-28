@@ -18,7 +18,6 @@ from tradingplatformpoc.app.app_functions import download_df_as_csv_button
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.generate_data.generate_mock_data import create_inputs_df
 from tradingplatformpoc.market.bid import Action, Resource
-from tradingplatformpoc.results.results_key import ResultsKey
 from tradingplatformpoc.results.simulation_results import SimulationResults
 
 
@@ -135,6 +134,7 @@ def construct_storage_level_chart(storage_levels_dict: Dict[datetime.datetime, f
         interactive(bind_y=False)
 
 
+# maybe we should move this to simulation_runner/trading_simulator
 def construct_prices_df(simulation_results: SimulationResults) -> pd.DataFrame:
     """Constructs a pandas DataFrame on the format which fits Altair, which we use for plots."""
     clearing_prices_df = pd.DataFrame.from_dict(simulation_results.clearing_prices_historical, orient='index')
@@ -172,18 +172,10 @@ def get_viewable_df(full_df: pd.DataFrame, key: str, value: Any, want_index: str
         cols_to_drop = []
     cols_to_drop.append(key)
     return full_df. \
-        loc[full_df[key] == value]. \
+        loc[full_df[key].values == value]. \
         drop(cols_to_drop, axis=1). \
         set_index([want_index]). \
         apply(lambda x: x.apply(lambda y: y.name) if isinstance(x.iloc[0], Enum) else x)
-
-
-def results_dict_to_df(raw_dict: Dict[ResultsKey, float]) -> pd.DataFrame:
-    """Converts the ResultsKey keys to strings, and then the dict to a pd.DataFrame since Streamlit likes that."""
-    df = pd.DataFrame.from_dict({k.value: v for (k, v) in raw_dict.items()}, orient='index')
-    df.rename({0: 'Value'}, axis=1, inplace=True)
-    formatted_df = df.style.format({'Value': '{:.2f}'.format})
-    return formatted_df
 
 
 def aggregated_taxes_and_fees_results_df() -> pd.DataFrame:
@@ -264,30 +256,11 @@ def aggregated_import_and_export_results_df_split_on_temperature() -> Dict[str, 
                                           resource_filename(app_constants.DATA_PATH, 'vetelangden_slim.csv'))
     
     temperature_df = df_inputs.to_pandas()[['datetime', 'temperature']]
-    temperature_df['above_1_degree'] = temperature_df['temperature'] >= 1.0
-
+    temperature_df['above_1_degree'] = temperature_df['temperature'].values >= 1.0
     period = st.session_state.simulation_results.all_trades.period
     temp_mask = pd.DataFrame(period).rename(columns={'period': 'datetime'}).merge(temperature_df, on='datetime',
                                                                                   how='left')['above_1_degree']
     return aggregated_import_and_export_results_df_split_on_mask(temp_mask, ['Above', 'Below'])
-
-
-def aggregated_import_and_export_results_df() -> pd.DataFrame:
-    """
-    Display total import and export for electricity and heat.
-    @return: Dataframe displaying total import and export of resources
-    """
-    rows = {'Electricity': Resource.ELECTRICITY, 'Heating': Resource.HEATING}
-    cols = {'Imported': Action.SELL, 'Exported': Action.BUY}
-
-    res_dict = {}
-    for colname, action in cols.items():
-        subdict = {}
-        for rowname, resource in rows.items():
-            subdict[rowname] = "{:.2f} kWh".format(get_total_import_export(resource, action))
-        res_dict[colname] = subdict
-
-    return pd.DataFrame.from_dict(res_dict)
 
 
 def aggregated_local_production_df() -> pd.DataFrame:
