@@ -24,6 +24,7 @@ python3.9:
     - pip install virtualenv
     - virtualenv venv
     - source venv/bin/activate
+    - sh load_env_vars.sh
   image: python:3.9-slim
   stage: test
   tags: [build, dev]
