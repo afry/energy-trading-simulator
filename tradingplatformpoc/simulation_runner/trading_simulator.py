@@ -1,6 +1,5 @@
 import datetime
 import logging
-from time import perf_counter
 from typing import Any, Collection, Dict, List, Optional, Tuple, Union
 
 import pandas as pd
@@ -58,12 +57,32 @@ class TradingSimulator:
                  progress_text: Union[st.info, None] = None) -> Optional[SimulationResults]:
         if self.init_job_id_successful:
             try:
+
+                # TODO: Fix this: Temporary - Just to make sure job_id is unique
+                logger.info('Deleting trades in db with job ID {}...'.format(self.job_id))
+                delete_from_db(self.job_id, 'Trade')
+                logger.info('Deleting bids in db with job ID {}...'.format(self.job_id))
+                delete_from_db(self.job_id, 'Bid')
+                logger.info('Deleting extra costs in db with job ID {}...'.format(self.job_id))
+                delete_from_db(self.job_id, 'ExtraCost')
+
                 self.initialize_data()
                 self.agents, self.grid_agents = self.initialize_agents()
                 self.progress = Progress(progress_bar)
                 self.progress_text = progress_text
                 self.run()
-                return self.extract_results()
+                results = self.extract_results()
+
+                # TODO: Fix this
+                logger.info('Deleting trades in db with job ID {}...'.format(self.job_id))
+                delete_from_db(self.job_id, 'Trade')
+                logger.info('Deleting bids in db with job ID {}...'.format(self.job_id))
+                delete_from_db(self.job_id, 'Bid')
+                logger.info('Deleting extra costs in db with job ID {}...'.format(self.job_id))
+                delete_from_db(self.job_id, 'ExtraCost')
+
+                return results
+
             except Exception as e:
                 logger.exception(e)
                 delete_job(self.job_id)
@@ -169,14 +188,6 @@ class TradingSimulator:
         @param progress_bar             A streamlit progress bar, used only when running simulations through the UI
         @param progress_text            A streamlit info field, used only when running simulations through the UI
         """
-
-        # TODO: Fix this: Temporary - Just to make sure job_id is unique
-        logger.info('Deleting trades in db with job ID {}...'.format(self.job_id))
-        delete_from_db(self.job_id, 'Trade')
-        logger.info('Deleting bids in db with job ID {}...'.format(self.job_id))
-        delete_from_db(self.job_id, 'Bid')
-        logger.info('Deleting extra costs in db with job ID {}...'.format(self.job_id))
-        delete_from_db(self.job_id, 'ExtraCost')
 
         logger.info("Starting trading simulations")
 
@@ -311,7 +322,6 @@ class TradingSimulator:
         self.progress.display()
 
         logger.info('Read trades from db...')
-        tic = perf_counter()
         all_trades_df = db_to_trade_df(self.job_id)
         self.progress.increase(0.005)
         self.progress.display()
@@ -319,8 +329,6 @@ class TradingSimulator:
         all_bids_df = db_to_bid_df(self.job_id)
         logger.info('Read extra costs from db...')
         extra_costs_df = db_to_extra_cost_df(self.job_id).sort_values(['period', 'agent'])
-        toc = perf_counter()
-        print(toc - tic)
 
         self.progress.final()
         self.progress.display()
@@ -343,12 +351,5 @@ class TradingSimulator:
                                     exact_wholesale_heating_prices_by_year_and_month=exact_wholesale_heat_price_by_ym,
                                     results_by_agent=results_by_agent
                                     )
-        
-        logger.info('Deleting trades in db with job ID {}...'.format(self.job_id))
-        delete_from_db(self.job_id, 'Trade')
-        logger.info('Deleting bids in db with job ID {}...'.format(self.job_id))
-        delete_from_db(self.job_id, 'Bid')
-        logger.info('Deleting extra costs in db with job ID {}...'.format(self.job_id))
-        delete_from_db(self.job_id, 'ExtraCost')
 
         return sim_res
