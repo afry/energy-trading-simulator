@@ -6,7 +6,7 @@ from st_pages import add_indentation, show_pages_from_config
 import streamlit as st
 
 from tradingplatformpoc.app import app_constants, footer
-from tradingplatformpoc.app.app_functions import results_button, set_max_width, set_simulation_results, \
+from tradingplatformpoc.app.app_functions import set_max_width, \
     update_multiselect_style
 from tradingplatformpoc.app.app_inputs import add_building_agent, add_grocery_store_agent, add_params_to_form, \
     add_pv_agent, add_storage_agent, agent_inputs, duplicate_agent, remove_agent, remove_all_building_agents
@@ -14,8 +14,7 @@ from tradingplatformpoc.config.access_config import fill_agents_with_defaults, f
     read_config, read_param_specs, set_config
 from tradingplatformpoc.config.screen_config import compare_pv_efficiency, config_data_json_screening, \
     display_diff_in_config
-from tradingplatformpoc.constants import MOCK_DATA_PATH
-from tradingplatformpoc.simulation_runner.trading_simulator import TradingSimulator
+from tradingplatformpoc.sql.config.crud import create_config_if_not_in_db
 
 logger = logging.getLogger(__name__)
 
@@ -24,21 +23,9 @@ add_indentation()
 
 set_max_width('1000px')  # This tab looks a bit daft when it is too wide, so limiting it here.
 
-run_sim = st.button("Click here to run simulation")
-progress_bar = st.progress(0.0)
-progress_text = st.info("")
-
-if not ('simulation_results' in st.session_state):
-    st.caption('Be aware that the download button returns last saved simulation '
-               'result which might be from another session.')
-
-results_download_button = st.empty()
-results_button(results_download_button)
-
 options = ['...input parameters through UI.', '...upload configuration file.']
 option_choosen = st.sidebar.selectbox('I want to...', options)
 
-st.markdown('---')
 config_container = st.container()
 with config_container:
     col_config, col_reset = st.columns([4, 1])
@@ -204,20 +191,14 @@ with config_container:
                        mime="text/json")
     st.markdown('---')
 
-if run_sim:
-    run_sim = False
-    logger.info("Running simulation")
-    st.spinner("Running simulation")
-
-    simulator = TradingSimulator('placeholder_job_id', read_config(), MOCK_DATA_PATH)
-    simulation_results = simulator(progress_bar, progress_text)
-    if simulation_results is not None:
-        set_simulation_results(simulation_results)
-        st.session_state.simulation_results = simulation_results
-        logger.info("Simulation finished!")
-        progress_text.success('Simulation finished!')
-        results_button(results_download_button)
-    else:
-        progress_text.error("Simulation could not finish!")
+config_form = st.form(key='Save config')
+config_name = config_form.text_input('Name', '')
+description = config_form.text_input('Description', '')
+config_submit = config_form.form_submit_button('Save configuration')
+if config_submit:
+    config_submit = False
+    create_config_if_not_in_db(read_config(), config_name, description)
+    logger.info("Saving configuration")
+    st.experimental_rerun()
 
 st.write(footer.html, unsafe_allow_html=True)

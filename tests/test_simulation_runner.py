@@ -18,6 +18,7 @@ from tradingplatformpoc.market.trade import Market, Trade
 from tradingplatformpoc.simulation_runner.simulation_utils import construct_df_from_datetime_dict, \
     get_external_heating_prices, get_quantity_heating_sold_by_external_grid
 from tradingplatformpoc.simulation_runner.trading_simulator import TradingSimulator
+from tradingplatformpoc.sql.config.crud import create_config_if_not_in_db
 from tradingplatformpoc.sql.job.crud import delete_job
 from tradingplatformpoc.trading_platform_utils import hourly_datetime_array_between
 
@@ -33,8 +34,9 @@ class Test(TestCase):
         fake_config = {'Agents': [agent for agent in self.config['Agents'] if agent['Type'] != 'GridAgent'],
                        'AreaInfo': self.config['AreaInfo'],
                        'MockDataConstants': self.config['MockDataConstants']}
+        create_config_if_not_in_db(fake_config, 'fake_config', 'Fake config for testing')
         with self.assertRaises(RuntimeError):
-            simulator = TradingSimulator('test_job_id', fake_config, MOCK_DATA_PATH)
+            simulator = TradingSimulator('fake_config', MOCK_DATA_PATH)
             simulator.initialize_data()
             simulator.initialize_agents()
 

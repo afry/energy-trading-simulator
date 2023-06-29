@@ -5,12 +5,15 @@ from typing import Callable
 
 import pytz
 
-from sqlalchemy import insert, select
+from sqlalchemy import delete, select
 
 from sqlmodel import Session
 
 from tradingplatformpoc.connection import session_scope
-from tradingplatformpoc.sql.job.models import Job
+from tradingplatformpoc.sql.bid.models import Bid as TableBid
+from tradingplatformpoc.sql.extra_cost.models import ExtraCost as TableExtraCost
+from tradingplatformpoc.sql.job.models import Job, JobCreate
+from tradingplatformpoc.sql.trade.models import Trade as TableTrade
 
 logger = logging.getLogger(__name__)
 
@@ -23,19 +26,26 @@ def get_all_job_ids_in_db(session_generator: Callable[[], _GeneratorContextManag
     #     ).distinct().all()
 
 
-def create_job(job_id: str,
-               session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope):
+def create_job(job: JobCreate, db: Session):
+    job_to_db = Job.from_orm(job)
+    db.add(job_to_db)
+    db.commit()
+    db.refresh(job_to_db)
+    return job_to_db
+
+
+def create_job_if_new_config(config_id: str,
+                             session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope):
     with session_generator() as db:
-        exists = db.execute(select(Job.id).where(Job.id == job_id)).first()
+        exists = get_job_id_for_config(config_id, db)
         if not exists:
-            db.execute(insert(Job).values(id=job_id, init_time=datetime.datetime.now(pytz.utc)))
-            db.commit()
-            logger.info('Job created with ID {}.'.format(job_id))
+            job_to_db = create_job(JobCreate(init_time=datetime.datetime.now(pytz.utc),
+                                             config_id=config_id), db=db)
+            logger.info('Job created with ID {}.'.format(job_to_db.id))
+            return job_to_db.id
         else:
-            logger.warning('Job ID {} invalid, already in database.'.format(job_id))
-            return False
-        exists = db.execute(select(Job.id).where(Job.id == job_id)).first()
-        return exists
+            logger.warning('A job for configuration ID {} already in database.'.format(config_id))
+            return None
 
 
 def delete_job(job_id: str,
@@ -45,7 +55,19 @@ def delete_job(job_id: str,
         if not job:
             logger.error('No job in database with ID {}'.format(job_id))
 
-        # TODO: Delete job AND ALL RELATED DATA if run not completed
-        
+        # TODO: Delete job AND ALL RELATED DATA if run not completed, exception handling
+        db.execute(delete(TableTrade).where(TableTrade.job_id == job_id))
+        db.execute(delete(TableBid).where(TableBid.job_id == job_id))
+        db.execute(delete(TableExtraCost).where(TableExtraCost.job_id == job_id))
+
         db.delete(job)
         db.commit()
+
+
+# TODO: If job for config exists show or delete and rerun
+def get_job_id_for_config(config_id: str, db: Session):
+    job_for_config = db.execute(select(Job.id).where(Job.config_id == config_id)).first()
+    if job_for_config:
+        return job_for_config.id
+    else:
+        None

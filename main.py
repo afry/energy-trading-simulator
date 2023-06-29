@@ -4,13 +4,14 @@ import pickle
 from logging.handlers import TimedRotatingFileHandler
 
 from pkg_resources import resource_filename
-from tradingplatformpoc.app.app_inputs import read_config
 import logging
 import sys
+from tradingplatformpoc.connection import SessionMaker
 from tradingplatformpoc.constants import MOCK_DATA_PATH
-from tradingplatformpoc.database import create_db_and_tables
+from tradingplatformpoc.database import create_db_and_tables, insert_default_config_into_db
 
 from tradingplatformpoc.simulation_runner.trading_simulator import TradingSimulator
+from tradingplatformpoc.sql.job.crud import delete_job, get_job_id_for_config
 
 # --- Read sys.argv to get logging level, if it is specified ---
 string_to_log_later = None
@@ -51,16 +52,20 @@ if string_to_log_later is not None:
 mock_datas_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
 results_path = "./results/"
 parser = argparse.ArgumentParser()
-parser.add_argument("--job_id", dest="job_id", default="main_job_id", help="Job ID", type=str)
-parser.add_argument("--config", dest="config_name", default="default", help="Config name", type=str)
+parser.add_argument("--config_id", dest="config_id", default="default",
+                    help="Config ID", type=str)
 args = parser.parse_args()
 
-config_data = read_config(name=args.config_name)
+# config_data = read_config(name=args.config_name)
 
 if __name__ == '__main__':
-    logger.info("Running main with job ID {} and {} config.".format(args.job_id, args.config_name))
+    logger.info("Running main with config {}.".format(args.config_id))
     create_db_and_tables()
-    simulator = TradingSimulator(args.job_id, config_data, MOCK_DATA_PATH)
+    insert_default_config_into_db()
+    with SessionMaker() as sess:
+        job_id = get_job_id_for_config('default', sess)
+    delete_job(job_id)
+    simulator = TradingSimulator(args.config_id, MOCK_DATA_PATH)
     simulation_results = simulator()
     if simulation_results is not None:
         logger.info("Finished running simulations. Will save simulations results as a pickle file.")

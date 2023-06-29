@@ -1,17 +1,24 @@
 import datetime
+import uuid
 from typing import Optional
 
-from sqlalchemy import Column, DateTime, String, func
+from sqlalchemy import Column, DateTime, func
 
 from sqlmodel import Field, SQLModel
+
+
+def uuid_as_str_generator() -> str:
+    return str(uuid.uuid4())
 
 
 class Job(SQLModel, table=True):
     __tablename__ = 'job'
 
-    id: str = Field(
-        title='Unique string ID',
-        sa_column=Column(String, autoincrement=False, primary_key=True, nullable=False)
+    id: Optional[str] = Field(
+        default_factory=uuid_as_str_generator,
+        primary_key=True,
+        title='Unique ID',
+        nullable=False
     )
     created_at: Optional[datetime.datetime] = Field(
         primary_key=False,
@@ -31,3 +38,13 @@ class Job(SQLModel, table=True):
         nullable=True,
         sa_column=Column(DateTime(timezone=True))
     )
+    config_id: Optional[str] = Field(
+        primary_key=False,
+        title='Configuration ID',
+        nullable=False
+    )
+
+
+class JobCreate(SQLModel):
+    init_time: datetime.datetime
+    config_id: str

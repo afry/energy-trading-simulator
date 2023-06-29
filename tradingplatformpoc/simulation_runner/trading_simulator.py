@@ -16,7 +16,7 @@ from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.agent.storage_agent import StorageAgent
 from tradingplatformpoc.data_store import DataStore
-from tradingplatformpoc.database import bulk_insert, delete_from_db
+from tradingplatformpoc.database import bulk_insert
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
 from tradingplatformpoc.generate_data.mock_data_generation_functions import get_elec_cons_key, \
@@ -34,8 +34,9 @@ from tradingplatformpoc.simulation_runner.simulation_utils import \
     get_external_heating_prices, get_generated_mock_data, \
     get_quantity_heating_sold_by_external_grid, go_through_trades_metadata, net_bids_from_gross_bids
 from tradingplatformpoc.sql.bid.crud import bids_to_db_objects, db_to_bid_df
+from tradingplatformpoc.sql.config.crud import read_config
 from tradingplatformpoc.sql.extra_cost.crud import db_to_extra_cost_df, extra_costs_to_db_objects
-from tradingplatformpoc.sql.job.crud import create_job, delete_job
+from tradingplatformpoc.sql.job.crud import create_job_if_new_config, delete_job
 from tradingplatformpoc.sql.trade.crud import db_to_trade_df, get_total_grid_fee_paid_on_internal_trades, \
     get_total_tax_paid, trades_to_db_objects
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, flatten_collection, \
@@ -48,25 +49,15 @@ logger = logging.getLogger(__name__)
 
 
 class TradingSimulator:
-    def __init__(self, job_id: str, config_data: Dict[str, Any], mock_datas_pickle_path: str):
-        self.job_id = job_id
-        self.init_job_id_successful = create_job(self.job_id)
-
-        self.config_data = config_data
+    def __init__(self, config_id: str, mock_datas_pickle_path: str):
+        self.job_id = create_job_if_new_config(config_id)
+        self.config_data: Dict[str, Any] = read_config(config_id)
         self.mock_datas_pickle_path = mock_datas_pickle_path
 
     def __call__(self, progress_bar: Union[st.progress, None] = None,
                  progress_text: Union[st.info, None] = None) -> Optional[SimulationResults]:
-        if self.init_job_id_successful:
+        if (self.job_id is not None) and (self.config_data is not None):
             try:
-
-                # TODO: Fix this: Temporary - Just to make sure job_id is unique
-                logger.info('Deleting trades in db with job ID {}...'.format(self.job_id))
-                delete_from_db(self.job_id, 'Trade')
-                logger.info('Deleting bids in db with job ID {}...'.format(self.job_id))
-                delete_from_db(self.job_id, 'Bid')
-                logger.info('Deleting extra costs in db with job ID {}...'.format(self.job_id))
-                delete_from_db(self.job_id, 'ExtraCost')
 
                 self.initialize_data()
                 self.agents, self.grid_agents = self.initialize_agents()
@@ -74,14 +65,6 @@ class TradingSimulator:
                 self.progress_text = progress_text
                 self.run()
                 results = self.extract_results()
-
-                # TODO: Fix this
-                logger.info('Deleting trades in db with job ID {}...'.format(self.job_id))
-                delete_from_db(self.job_id, 'Trade')
-                logger.info('Deleting bids in db with job ID {}...'.format(self.job_id))
-                delete_from_db(self.job_id, 'Bid')
-                logger.info('Deleting extra costs in db with job ID {}...'.format(self.job_id))
-                delete_from_db(self.job_id, 'ExtraCost')
 
                 return results
 
