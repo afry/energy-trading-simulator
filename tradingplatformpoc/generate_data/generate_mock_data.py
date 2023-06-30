@@ -672,6 +672,6 @@ if __name__ == '__main__':
     )
 
     # Open config file
-    config_from_file = read_config(name='default')
+    config_from_file = read_config()
 
     run(config_from_file)

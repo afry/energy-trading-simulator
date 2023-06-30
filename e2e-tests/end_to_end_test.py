@@ -10,7 +10,7 @@ from tradingplatformpoc.sql.job.crud import delete_job
 from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES
 
 mock_datas_file_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
-config_data = read_config(name='default')
+config_data = read_config()
 
 
 class Test(TestCase):

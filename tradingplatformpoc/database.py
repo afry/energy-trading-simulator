@@ -38,6 +38,6 @@ def delete_from_db(job_id: str, table_name: str,
 
 
 def insert_default_config_into_db():
-    config = read_config(name='default')
+    config = read_config()
 
     create_config_if_not_in_db(config, 'default', 'Default setup')

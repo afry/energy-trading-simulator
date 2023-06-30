@@ -25,7 +25,7 @@ from tradingplatformpoc.trading_platform_utils import hourly_datetime_array_betw
 
 class Test(TestCase):
     mock_datas_file_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
-    config = read_config(name='default')
+    config = read_config()
     empty_data_store = DataStore(utility_test_objects.AREA_INFO, pd.Series(dtype=float), pd.Series(dtype=float),
                                  pd.Series(dtype=float))
 
