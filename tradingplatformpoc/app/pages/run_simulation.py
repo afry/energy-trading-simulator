@@ -10,6 +10,7 @@ from tradingplatformpoc.constants import MOCK_DATA_PATH
 from tradingplatformpoc.simulation_runner.trading_simulator import TradingSimulator
 from tradingplatformpoc.sql.config.crud import get_all_config_ids_in_db_with_jobs, \
     get_all_config_ids_in_db_without_jobs, read_config
+from tradingplatformpoc.sql.job.crud import delete_job
 
 logger = logging.getLogger(__name__)
 
@@ -30,9 +31,34 @@ run_sim = st.button("Click to run simulation", disabled=(len(config_ids) == 0))
 progress_bar = st.progress(0.0)
 progress_text = st.info("")
 
-st.markdown('Scenarios already run')
-config_df = get_all_config_ids_in_db_with_jobs()
-st.dataframe(config_df)
+with st.expander('Scenarios already run'):
+    config_df = get_all_config_ids_in_db_with_jobs()
+    if not config_df.empty:
+        config_df['Delete'] = False
+        delete_runs_form = st.form(key='Delete runs form')
+        edited_df = delete_runs_form.data_editor(
+            config_df.set_index('Job ID'),
+            use_container_width=True,
+            key='delete_df',
+            column_config={
+                "Delete": st.column_config.CheckboxColumn(
+                    "Delete",
+                    help="Check the box if you want to delete the data for this run.",
+                    default=False,
+                )
+            },
+            hide_index=True,
+            disabled=["widgets"]
+        )
+        delete_runs_submit = delete_runs_form.form_submit_button(':red[DELETE DATA FOR SELECTED RUNS]')
+        if delete_runs_submit:
+            delete_runs_submit = False
+            if not edited_df[edited_df['Delete']].empty:
+                for job_id, _row in edited_df[edited_df['Delete']].iterrows():
+                    delete_job(job_id)
+                st.experimental_rerun()
+            else:
+                st.markdown('No runs selected to delete.')
 
 if not ('simulation_results' in st.session_state):
     st.caption('Be aware that the download button returns last saved simulation '
