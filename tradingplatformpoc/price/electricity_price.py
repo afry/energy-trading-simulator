@@ -1,5 +1,6 @@
 import datetime
 import logging
+from typing import Dict
 
 import pandas as pd
 
@@ -19,16 +20,15 @@ class ElectricityPrice(IPrice):
     elec_tax_internal: float  # SEK/kWh
     elec_grid_fee_internal: float  # SEK/kWh
 
-    def __init__(self, config_area_info: dict,
+    def __init__(self, config_area_info: Dict[str, float],
                  nordpool_data: pd.Series):
-        # TODO: Change from config_area_info
         super().__init__(Resource.ELECTRICITY)
+        self.nordpool_data = nordpool_data
         self.elec_wholesale_offset = config_area_info['ExternalElectricityWholesalePriceOffset']
         self.elec_tax = config_area_info["ElectricityTax"]
         self.elec_grid_fee = config_area_info["ElectricityGridFee"]
         self.elec_tax_internal = config_area_info["ElectricityTaxInternal"]
         self.elec_grid_fee_internal = config_area_info["ElectricityGridFeeInternal"]
-        self.nordpool_data = nordpool_data
 
     def get_nordpool_price_for_period(self, period: datetime.datetime):
         return self.nordpool_data.loc[period]

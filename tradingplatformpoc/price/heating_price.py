@@ -1,6 +1,7 @@
 import datetime
 import logging
 from calendar import isleap, monthrange
+from typing import Dict
 
 import numpy as np
 
@@ -173,16 +174,16 @@ def handle_no_consumption_when_calculating_heating_price(period):
 
 
 class HeatingPrice(IPrice):
+    all_external_heating_sells: pd.Series
     heating_wholesale_price_fraction: float
+    heat_transfer_loss_per_side: float
 
-    def __init__(self, config_area_info: dict):
-        # TODO: Change from config_area_info
+    def __init__(self, config_area_info: Dict[str, float]):
         super().__init__(Resource.HEATING)
+        self.all_external_heating_sells = pd.Series([], dtype=float, index=pd.to_datetime([], utc=True))
         self.heating_wholesale_price_fraction = config_area_info['ExternalHeatingWholesalePriceFraction']
         # Square root since it is added both to the BUY and the SELL side
         self.heat_transfer_loss_per_side = 1 - np.sqrt(1 - config_area_info["HeatTransferLoss"])
-        self.all_external_heating_sells = pd.Series(dtype=float)
-        self.all_external_heating_sells.index = pd.to_datetime(self.all_external_heating_sells.index, utc=True)
 
     def get_estimated_retail_price(self, period: datetime.datetime, include_tax: bool) -> float:
         """
