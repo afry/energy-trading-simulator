@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional, Union
 import altair as alt
 
 import pandas as pd
+from pandas.io.formats.style import Styler
 
 from pkg_resources import resource_filename
 
@@ -18,6 +19,7 @@ from tradingplatformpoc.app.app_functions import download_df_as_csv_button
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.generate_data.generate_mock_data import create_inputs_df
 from tradingplatformpoc.market.bid import Action, Resource
+from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.results.simulation_results import SimulationResults
 
 
@@ -143,21 +145,25 @@ def construct_prices_df(simulation_results: SimulationResults) -> pd.DataFrame:
     clearing_prices_df['Resource'] = clearing_prices_df['variable']
     clearing_prices_df.variable = app_constants.LOCAL_PRICE_STR
 
-    data_store_entity = simulation_results.data_store
-    nordpool_data = data_store_entity.nordpool_data
-    nordpool_data.name = 'value'
-    nordpool_data = nordpool_data.to_frame().reset_index()
-    nordpool_data['Resource'] = Resource.ELECTRICITY
-    nordpool_data.rename({'datetime': 'period'}, axis=1, inplace=True)
-    nordpool_data['period'] = pd.to_datetime(nordpool_data['period'])
-    retail_df = nordpool_data.copy()
-    gross_prices = data_store_entity.get_electricity_gross_retail_price_from_nordpool_price(retail_df['value'])
-    retail_df['value'] = data_store_entity.get_electricity_net_external_price(gross_prices)
-    retail_df['variable'] = app_constants.RETAIL_PRICE_STR
-    wholesale_df = nordpool_data.copy()
-    wholesale_df['value'] = data_store_entity.get_electricity_wholesale_price_from_nordpool_price(wholesale_df['value'])
-    wholesale_df['variable'] = app_constants.WHOLESALE_PRICE_STR
-    return pd.concat([clearing_prices_df, retail_df, wholesale_df])
+    pricing = simulation_results.pricing
+    elec_pricing = [p for p in pricing if p.resource == Resource.ELECTRICITY][0]
+    if isinstance(elec_pricing, ElectricityPrice):
+        nordpool_data = elec_pricing.nordpool_data
+        nordpool_data.name = 'value'
+        nordpool_data = nordpool_data.to_frame().reset_index()
+        nordpool_data['Resource'] = Resource.ELECTRICITY
+        nordpool_data.rename({'datetime': 'period'}, axis=1, inplace=True)
+        nordpool_data['period'] = pd.to_datetime(nordpool_data['period'])
+        retail_df = nordpool_data.copy()
+        gross_prices = elec_pricing.get_electricity_gross_retail_price_from_nordpool_price(retail_df['value'])
+        retail_df['value'] = elec_pricing.get_electricity_net_external_price(gross_prices)
+        retail_df['variable'] = app_constants.RETAIL_PRICE_STR
+        wholesale_df = nordpool_data.copy()
+        wholesale_df['value'] = elec_pricing.get_electricity_wholesale_price_from_nordpool_price(wholesale_df['value'])
+        wholesale_df['variable'] = app_constants.WHOLESALE_PRICE_STR
+        return pd.concat([clearing_prices_df, retail_df, wholesale_df])
+    else:
+        raise TypeError('Prices are not instance of ElectricityPrice!')
 
 
 # @st.cache_data
@@ -299,7 +305,7 @@ def results_by_agent_as_df() -> pd.DataFrame:
     return dfs
 
 
-def results_by_agent_as_df_with_highlight(df: pd.DataFrame, agent_chosen_guid: str) -> pd.io.formats.style.Styler:
+def results_by_agent_as_df_with_highlight(df: pd.DataFrame, agent_chosen_guid: str) -> Styler:
     formatted_df = df.style.set_properties(subset=[agent_chosen_guid], **{'background-color': 'lemonchiffon'}).\
         format('{:.2f}')
     return formatted_df
@@ -369,7 +375,7 @@ def altair_period_chart(df: pd.DataFrame, domain: List[str], range_color: List[s
 
 def display_df_and_make_downloadable(df: pd.DataFrame,
                                      file_name: str,
-                                     df_styled: Optional[pd.io.formats.style.Styler] = None,
+                                     df_styled: Optional[Styler] = None,
                                      height: Optional[int] = None):
     if df_styled is not None:
         st.dataframe(df_styled, height=height)

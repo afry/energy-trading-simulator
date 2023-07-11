@@ -5,10 +5,10 @@ from typing import Any, Dict, List, Tuple, Union
 import numpy as np
 
 from tradingplatformpoc.agent.iagent import IAgent
-from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
 from tradingplatformpoc.market.bid import Action, GrossBid, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.market.trade import Market, Trade, TradeMetadataKey
+from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.trading_platform_utils import minus_n_hours
 
 LOWEST_BID_QUANTITY = 0.001  # Bids with a lower quantity than this won't have any real effect, will only clog things up
@@ -24,7 +24,7 @@ class StorageAgent(IAgent):
     with a price which is equal to some percentile of X. Similarly, it will submit sell bids with a price equal to
     some (other, higher) percentile of X.
     """
-    data_store: DataStore
+    electricity_pricing: ElectricityPrice
     digital_twin: StorageDigitalTwin
     resource: Resource
     go_back_n_hours: int
@@ -34,9 +34,11 @@ class StorageAgent(IAgent):
     # there is even less than that available, will throw an error.
     need_at_least_n_hours: int
 
-    def __init__(self, data_store: DataStore, digital_twin: StorageDigitalTwin, resource: Resource,
+    def __init__(self, electricity_pricing: ElectricityPrice,
+                 digital_twin: StorageDigitalTwin, resource: Resource,
                  n_hours_to_look_back: int, buy_price_percentile: int, sell_price_percentile: int, guid="StorageAgent"):
-        super().__init__(guid, data_store)
+        super().__init__(guid)
+        self.electricity_pricing = electricity_pricing
         self.digital_twin = digital_twin
         self.resource = resource
         self.go_back_n_hours = n_hours_to_look_back
@@ -61,8 +63,8 @@ class StorageAgent(IAgent):
             clearing_prices_for_resource = {}
 
         # TODO: Only works for electricity!
-        nordpool_prices_last_n_hours_dict = self.data_store.get_nordpool_prices_last_n_hours_dict(period,
-                                                                                                  self.go_back_n_hours)
+        nordpool_prices_last_n_hours_dict = self.electricity_pricing.get_nordpool_prices_last_n_hours_dict(
+            period, self.go_back_n_hours)
         prices_last_n_hours = get_prices_last_n_hours(period, self.go_back_n_hours, clearing_prices_for_resource,
                                                       nordpool_prices_last_n_hours_dict)
         if len(prices_last_n_hours) < self.need_at_least_n_hours:
@@ -114,8 +116,8 @@ class StorageAgent(IAgent):
                 if actual_discharge_quantity > 0:
                     trades = [self.construct_elec_trade(Action.SELL, actual_discharge_quantity,
                                                         clearing_price, Market.LOCAL, period,
-                                                        tax_paid=self.data_store.elec_tax_internal,
-                                                        grid_fee_paid=self.data_store.elec_grid_fee_internal)]
+                                                        tax_paid=self.electricity_pricing.elec_tax_internal,
+                                                        grid_fee_paid=self.electricity_pricing.elec_grid_fee_internal)]
         return trades, {TradeMetadataKey.STORAGE_LEVEL: self.digital_twin.capacity_kwh}
 
     def calculate_buy_price(self, prices_last_n_hours: List[float]):
