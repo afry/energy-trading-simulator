@@ -29,9 +29,6 @@ class ElectricityPrice(IPrice):
         self.elec_grid_fee = config_area_info["ElectricityGridFee"]
         self.elec_tax_internal = config_area_info["ElectricityTaxInternal"]
         self.elec_grid_fee_internal = config_area_info["ElectricityGridFeeInternal"]
-
-    def get_nordpool_price_for_period(self, period: datetime.datetime):
-        return self.nordpool_data.loc[period]
     
     def get_estimated_retail_price(self, period: datetime.datetime,
                                    # resource: Resource,
@@ -122,6 +119,9 @@ class ElectricityPrice(IPrice):
         Wholesale price = Nordpool spot price + self.elec_wholesale_offset
         """
         return nordpool_price + self.elec_wholesale_offset
+    
+    def get_nordpool_price_for_period(self, period: datetime.datetime):
+        return self.nordpool_data.loc[period]
     
     def get_nordpool_prices_last_n_hours_dict(self, period: datetime.datetime, go_back_n_hours: int):
         mask = (self.nordpool_data.index < period) & \
