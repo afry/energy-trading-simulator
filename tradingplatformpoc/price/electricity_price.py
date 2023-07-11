@@ -1,6 +1,5 @@
 import datetime
 import logging
-from typing import Dict
 
 import pandas as pd
 
@@ -20,15 +19,15 @@ class ElectricityPrice(IPrice):
     elec_tax_internal: float  # SEK/kWh
     elec_grid_fee_internal: float  # SEK/kWh
 
-    def __init__(self, config_area_info: Dict[str, float],
-                 nordpool_data: pd.Series):
+    def __init__(self, elec_wholesale_offset: float, elec_tax: float, elec_grid_fee: float,
+                 elec_tax_internal: float, elec_grid_fee_internal: float, nordpool_data: pd.Series):
         super().__init__(Resource.ELECTRICITY)
         self.nordpool_data = nordpool_data
-        self.elec_wholesale_offset = config_area_info['ExternalElectricityWholesalePriceOffset']
-        self.elec_tax = config_area_info["ElectricityTax"]
-        self.elec_grid_fee = config_area_info["ElectricityGridFee"]
-        self.elec_tax_internal = config_area_info["ElectricityTaxInternal"]
-        self.elec_grid_fee_internal = config_area_info["ElectricityGridFeeInternal"]
+        self.elec_wholesale_offset = elec_wholesale_offset
+        self.elec_tax = elec_tax
+        self.elec_grid_fee = elec_grid_fee
+        self.elec_tax_internal = elec_tax_internal
+        self.elec_grid_fee_internal = elec_grid_fee_internal
     
     def get_estimated_retail_price(self, period: datetime.datetime,
                                    # resource: Resource,

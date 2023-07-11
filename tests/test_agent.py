@@ -41,8 +41,17 @@ tornet_household_elec_cons, coop_elec_cons, tornet_heat_cons, coop_heat_cons = r
 irradiation_data = pd.Series(irradiation_values, index=DATETIME_ARRAY)
 external_price_data = pd.Series(nordpool_values, index=DATETIME_ARRAY)
 
-heat_pricing: HeatingPrice = HeatingPrice(utility_test_objects.AREA_INFO)
-electricity_pricing: ElectricityPrice = ElectricityPrice(utility_test_objects.AREA_INFO, external_price_data)
+area_info = utility_test_objects.AREA_INFO
+heat_pricing: HeatingPrice = HeatingPrice(
+    heating_wholesale_price_fraction=area_info['ExternalHeatingWholesalePriceFraction'],
+    heat_transfer_loss=area_info["HeatTransferLoss"])
+electricity_pricing: ElectricityPrice = ElectricityPrice(
+    elec_wholesale_offset=area_info['ExternalElectricityWholesalePriceOffset'],
+    elec_tax=area_info["ElectricityTax"],
+    elec_grid_fee=area_info["ElectricityGridFee"],
+    elec_tax_internal=area_info["ElectricityTaxInternal"],
+    elec_grid_fee_internal=area_info["ElectricityGridFeeInternal"],
+    nordpool_data=external_price_data)
 
 
 class TestGridAgent(unittest.TestCase):

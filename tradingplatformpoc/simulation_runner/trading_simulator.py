@@ -46,9 +46,16 @@ class TradingSimulator:
         # Read data form files
         # TODO: To be changed
         external_price_data = read_nordpool_data()
-        self.heat_pricing: HeatingPrice = HeatingPrice(self.config_data['AreaInfo'])
-        self.electricity_pricing: ElectricityPrice = ElectricityPrice(self.config_data['AreaInfo'],
-                                                                      external_price_data)
+        self.heat_pricing: HeatingPrice = HeatingPrice(
+            heating_wholesale_price_fraction=self.config_data['AreaInfo']['ExternalHeatingWholesalePriceFraction'],
+            heat_transfer_loss=self.config_data['AreaInfo']["HeatTransferLoss"])
+        self.electricity_pricing: ElectricityPrice = ElectricityPrice(
+            elec_wholesale_offset=self.config_data['AreaInfo']['ExternalElectricityWholesalePriceOffset'],
+            elec_tax=self.config_data['AreaInfo']["ElectricityTax"],
+            elec_grid_fee=self.config_data['AreaInfo']["ElectricityGridFee"],
+            elec_tax_internal=self.config_data['AreaInfo']["ElectricityTaxInternal"],
+            elec_grid_fee_internal=self.config_data['AreaInfo']["ElectricityGridFeeInternal"],
+            nordpool_data=external_price_data)
 
         self.buildings_mock_data: pd.DataFrame = get_generated_mock_data(self.config_data, self.mock_datas_pickle_path)
 

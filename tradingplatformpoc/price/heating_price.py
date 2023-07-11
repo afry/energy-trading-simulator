@@ -1,7 +1,6 @@
 import datetime
 import logging
 from calendar import isleap, monthrange
-from typing import Dict
 
 import numpy as np
 
@@ -181,12 +180,12 @@ class HeatingPrice(IPrice):
     heating_wholesale_price_fraction: float
     heat_transfer_loss_per_side: float
 
-    def __init__(self, config_area_info: Dict[str, float]):
+    def __init__(self, heating_wholesale_price_fraction: float, heat_transfer_loss: float):
         super().__init__(Resource.HEATING)
         self.all_external_heating_sells = pd.Series([], dtype=float, index=pd.to_datetime([], utc=True))
-        self.heating_wholesale_price_fraction = config_area_info['ExternalHeatingWholesalePriceFraction']
+        self.heating_wholesale_price_fraction = heating_wholesale_price_fraction
         # Square root since it is added both to the BUY and the SELL side
-        self.heat_transfer_loss_per_side = 1 - np.sqrt(1 - config_area_info["HeatTransferLoss"])
+        self.heat_transfer_loss_per_side = 1 - np.sqrt(1 - heat_transfer_loss)
 
     def get_estimated_retail_price(self, period: datetime.datetime, include_tax: bool) -> float:
         """

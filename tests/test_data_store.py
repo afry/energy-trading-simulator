@@ -22,8 +22,17 @@ ONES_SERIES = pd.Series(np.ones(shape=len(DATETIME_ARRAY)), index=DATETIME_ARRAY
 
 external_price_data = ONES_SERIES * CONSTANT_NORDPOOL_PRICE
 
-heat_pricing = HeatingPrice(utility_test_objects.AREA_INFO),
-electricity_pricing = ElectricityPrice(utility_test_objects.AREA_INFO, external_price_data)
+area_info = utility_test_objects.AREA_INFO
+heat_pricing: HeatingPrice = HeatingPrice(
+    heating_wholesale_price_fraction=area_info['ExternalHeatingWholesalePriceFraction'],
+    heat_transfer_loss=area_info["HeatTransferLoss"])
+electricity_pricing: ElectricityPrice = ElectricityPrice(
+    elec_wholesale_offset=area_info['ExternalElectricityWholesalePriceOffset'],
+    elec_tax=area_info["ElectricityTax"],
+    elec_grid_fee=area_info["ElectricityGridFee"],
+    elec_tax_internal=area_info["ElectricityTaxInternal"],
+    elec_grid_fee_internal=area_info["ElectricityGridFeeInternal"],
+    nordpool_data=external_price_data)
 
 
 # TODO: Rename
@@ -46,16 +55,13 @@ class TestDataStore(TestCase):
         """
         Test that different tax rates and grid fees are reflected in the price we get from get_estimated_retail_price.
         """
-        config_area_2 = {"DefaultPVEfficiency": 0.165,
-                         "HeatTransferLoss": 0.05,
-                         "ElectricityTax": 1.5,
-                         "ElectricityGridFee": 0.5,
-                         "ElectricityTaxInternal": 0,
-                         "ElectricityGridFeeInternal": 0,
-                         "ExternalElectricityWholesalePriceOffset": 0.05,
-                         "ExternalHeatingWholesalePriceFraction": 0.5}
-
-        electricity_pricing_2: ElectricityPrice = ElectricityPrice(config_area_2, external_price_data)
+        electricity_pricing_2: ElectricityPrice = ElectricityPrice(
+            elec_wholesale_offset=0.05,
+            elec_tax=1.5,
+            elec_grid_fee=0.5,
+            elec_tax_internal=0,
+            elec_grid_fee_internal=0,
+            nordpool_data=external_price_data)
 
         # Comparing gross prices
         price_for_normal_ds = electricity_pricing.get_estimated_retail_price(FEB_1_1_AM, include_tax=False)
@@ -77,13 +83,17 @@ class TestDataStore(TestCase):
         self.assertIsInstance(data.index, DatetimeIndex)
 
     def test_add_external_heating_sell(self):
-        ds = HeatingPrice(config_area_info=utility_test_objects.AREA_INFO)
+        ds = HeatingPrice(
+            heating_wholesale_price_fraction=area_info['ExternalHeatingWholesalePriceFraction'],
+            heat_transfer_loss=area_info["HeatTransferLoss"])
         self.assertEqual(0, len(ds.all_external_heating_sells))
         ds.add_external_heating_sell(FEB_1_1_AM, 50.0)
         self.assertEqual(1, len(ds.all_external_heating_sells))
 
     def test_add_external_heating_sell_where_already_exists(self):
-        ds = HeatingPrice(config_area_info=utility_test_objects.AREA_INFO)
+        ds = HeatingPrice(
+            heating_wholesale_price_fraction=area_info['ExternalHeatingWholesalePriceFraction'],
+            heat_transfer_loss=area_info["HeatTransferLoss"])
         self.assertEqual(0, len(ds.all_external_heating_sells))
         ds.add_external_heating_sell(FEB_1_1_AM, 50.0)
         self.assertEqual(1, len(ds.all_external_heating_sells))
@@ -100,7 +110,9 @@ class TestDataStore(TestCase):
 
     def test_calculate_consumption_this_month(self):
         """Test basic functionality of calculate_consumption_this_month"""
-        ds = HeatingPrice(config_area_info=utility_test_objects.AREA_INFO)
+        ds = HeatingPrice(
+            heating_wholesale_price_fraction=area_info['ExternalHeatingWholesalePriceFraction'],
+            heat_transfer_loss=area_info["HeatTransferLoss"])
         ds.add_external_heating_sell(FEB_1_1_AM, 50)
         ds.add_external_heating_sell(datetime(2019, 3, 1, 1, tzinfo=timezone.utc), 100)
         self.assertAlmostEqual(50, ds.calculate_consumption_this_month(2019, 2))
@@ -108,7 +120,9 @@ class TestDataStore(TestCase):
 
     def test_get_exact_retail_price_heating(self):
         """Test basic functionality of get_exact_retail_price for HEATING"""
-        ds = HeatingPrice(config_area_info=utility_test_objects.AREA_INFO)
+        ds = HeatingPrice(
+            heating_wholesale_price_fraction=area_info['ExternalHeatingWholesalePriceFraction'],
+            heat_transfer_loss=area_info["HeatTransferLoss"])
         ds.add_external_heating_sell(datetime(2019, 2, 1, 1, tzinfo=timezone.utc), 100)
         ds.add_external_heating_sell(datetime(2019, 3, 1, 1, tzinfo=timezone.utc), 100)
         ds.add_external_heating_sell(datetime(2019, 3, 1, 2, tzinfo=timezone.utc), 140)

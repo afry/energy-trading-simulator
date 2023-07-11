@@ -26,10 +26,19 @@ ONES_SERIES = pd.Series(np.ones(shape=len(DATETIME_ARRAY)), index=DATETIME_ARRAY
 
 # Read CSV files
 external_price_data = read_nordpool_data()
-
-pricing: Dict[Resource, IPrice] \
-    = {Resource.HEATING: HeatingPrice(utility_test_objects.AREA_INFO),
-       Resource.ELECTRICITY: ElectricityPrice(utility_test_objects.AREA_INFO, external_price_data)}
+area_info = utility_test_objects.AREA_INFO
+pricing: Dict[Resource, IPrice] = {
+    Resource.HEATING: HeatingPrice(
+        heating_wholesale_price_fraction=area_info['ExternalHeatingWholesalePriceFraction'],
+        heat_transfer_loss=area_info["HeatTransferLoss"]),
+    Resource.ELECTRICITY: ElectricityPrice(
+        elec_wholesale_offset=area_info['ExternalElectricityWholesalePriceOffset'],
+        elec_tax=area_info["ElectricityTax"],
+        elec_grid_fee=area_info["ElectricityGridFee"],
+        elec_tax_internal=area_info["ElectricityTaxInternal"],
+        elec_grid_fee_internal=area_info["ElectricityGridFeeInternal"],
+        nordpool_data=external_price_data)
+}
 
 
 class TestMarketSolver(TestCase):
