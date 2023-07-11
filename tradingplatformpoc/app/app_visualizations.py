@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional, Union
 import altair as alt
 
 import pandas as pd
+from pandas.io.formats.style import Styler
 
 from pkg_resources import resource_filename
 
@@ -326,7 +327,7 @@ def results_by_agent_as_df() -> pd.DataFrame:
     return dfs
 
 
-def results_by_agent_as_df_with_highlight(df: pd.DataFrame, agent_chosen_guid: str) -> pd.io.formats.style.Styler:
+def results_by_agent_as_df_with_highlight(df: pd.DataFrame, agent_chosen_guid: str) -> Styler:
     formatted_df = df.style.set_properties(subset=[agent_chosen_guid], **{'background-color': 'lemonchiffon'}).\
         format('{:.2f}')
     return formatted_df
@@ -396,7 +397,7 @@ def altair_period_chart(df: pd.DataFrame, domain: List[str], range_color: List[s
 
 def display_df_and_make_downloadable(df: pd.DataFrame,
                                      file_name: str,
-                                     df_styled: Optional[pd.io.formats.style.Styler] = None,
+                                     df_styled: Optional[Styler] = None,
                                      height: Optional[int] = None):
     if df_styled is not None:
         st.dataframe(df_styled, height=height)
