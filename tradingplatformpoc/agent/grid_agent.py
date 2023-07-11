@@ -103,10 +103,7 @@ class GridAgent(IAgent):
         if sum_buys > sum_sells:
             deficit_in_market = sum_buys - sum_sells
             need_to_provide = deficit_in_market / (1 - self.resource_loss_per_side)
-            if isinstance(self.pricing, ElectricityPrice):
-                tax_to_pay = self.pricing.elec_tax
-            else:
-                tax_to_pay = 0.0
+            tax_to_pay = self.pricing.elec_tax if isinstance(self.pricing, ElectricityPrice) else 0.0
             trades_to_add.append(
                 Trade(Action.SELL, resource, need_to_provide, retail_price, self.guid, True, market, period,
                       loss=self.resource_loss_per_side,
