@@ -1,11 +1,12 @@
 import datetime
 from dataclasses import dataclass
-from typing import Any, Dict, List, Tuple
+from typing import Any, Collection, Dict, List, Tuple
 
 import pandas as pd
 
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.market.bid import Resource
+from tradingplatformpoc.price.iprice import IPrice
 from tradingplatformpoc.results.results_key import ResultsKey
 
 
@@ -19,7 +20,7 @@ class SimulationResults:
     heat_pump_levels_dict: Dict[str, Dict[datetime.datetime, float]]
     config_data: Dict[str, Any]
     agents: List[IAgent]
-    # data_store: DataStore
+    pricing: Collection[IPrice]
     grid_fees_paid_on_internal_trades: float
     tax_paid: float
     exact_retail_heating_prices_by_year_and_month: Dict[Tuple[int, int], float]

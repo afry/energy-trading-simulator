@@ -8,7 +8,7 @@ from pandas import DatetimeIndex
 
 from tests import utility_test_objects
 
-from tradingplatformpoc.data.data_series_from_file import read_electricitymap_data, read_nordpool_data
+from tradingplatformpoc.data.preproccessing import read_electricitymap_data
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
 from tradingplatformpoc.trading_platform_utils import hourly_datetime_array_between
@@ -20,8 +20,7 @@ DATETIME_ARRAY = hourly_datetime_array_between(datetime(2018, 12, 31, 23, tzinfo
 CONSTANT_NORDPOOL_PRICE = 0.6  # Doesn't matter what this is
 ONES_SERIES = pd.Series(np.ones(shape=len(DATETIME_ARRAY)), index=DATETIME_ARRAY)
 
-# Read CSV files
-external_price_data = read_nordpool_data()
+external_price_data = ONES_SERIES * CONSTANT_NORDPOOL_PRICE
 
 heat_pricing = HeatingPrice(utility_test_objects.AREA_INFO),
 electricity_pricing = ElectricityPrice(utility_test_objects.AREA_INFO, external_price_data)
@@ -59,11 +58,11 @@ class TestDataStore(TestCase):
         electricity_pricing_2: ElectricityPrice = ElectricityPrice(config_area_2, external_price_data)
 
         # Comparing gross prices
-        price_for_normal_ds = electricity_pricing_2.get_estimated_retail_price(FEB_1_1_AM, include_tax=False)
+        price_for_normal_ds = electricity_pricing.get_estimated_retail_price(FEB_1_1_AM, include_tax=False)
         self.assertAlmostEqual(0.73, price_for_normal_ds)
         self.assertAlmostEqual(1.1, electricity_pricing_2.get_estimated_retail_price(FEB_1_1_AM, include_tax=False))
         # Comparing net prices
-        price_for_normal_ds = electricity_pricing_2.get_estimated_retail_price(FEB_1_1_AM, include_tax=True)
+        price_for_normal_ds = electricity_pricing.get_estimated_retail_price(FEB_1_1_AM, include_tax=True)
         self.assertAlmostEqual(1.09, price_for_normal_ds)
         self.assertAlmostEqual(2.6, electricity_pricing_2.get_estimated_retail_price(FEB_1_1_AM, include_tax=True))
 

@@ -11,7 +11,7 @@ from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.agent.storage_agent import StorageAgent
-from tradingplatformpoc.data.data_series_from_file import read_energy_data, read_irradiation_data, read_nordpool_data
+from tradingplatformpoc.data.preproccessing import read_energy_data, read_irradiation_data, read_nordpool_data
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
 from tradingplatformpoc.generate_data.mock_data_generation_functions import get_elec_cons_key, \
@@ -45,11 +45,10 @@ class TradingSimulator:
 
         # Read data form files
         # TODO: To be changed
-        self.external_price_data = read_nordpool_data()
-
+        external_price_data = read_nordpool_data()
         self.heat_pricing: HeatingPrice = HeatingPrice(self.config_data['AreaInfo'])
         self.electricity_pricing: ElectricityPrice = ElectricityPrice(self.config_data['AreaInfo'],
-                                                                      self.external_price_data)
+                                                                      external_price_data)
 
         self.buildings_mock_data: pd.DataFrame = get_generated_mock_data(self.config_data, self.mock_datas_pickle_path)
 
@@ -99,7 +98,7 @@ class TradingSimulator:
                 hot_tap_water_cons_series = self.buildings_mock_data[get_hot_tap_water_cons_key(agent_name)]
 
                 # We're not currently supporting different temperatures of heating,
-                # it's just "heating" as a very simplified
+                # it's just "heating" as a very simplifiedS
                 # entity. Therefore we'll bunch them together here for now.
                 total_heat_cons_series = space_heat_cons_series + hot_tap_water_cons_series
 
@@ -302,7 +301,7 @@ class TradingSimulator:
                                     heat_pump_levels_dict=self.heat_pump_levels_dict,
                                     config_data=self.config_data,
                                     agents=self.agents,
-                                    # data_store=self.data_store_entity,
+                                    pricing=[self.heat_pricing, self.electricity_pricing],
                                     grid_fees_paid_on_internal_trades=self.grid_fees_paid_on_internal_trades,
                                     tax_paid=self.tax_paid,
                                     exact_retail_heating_prices_by_year_and_month=exact_retail_heat_price_by_ym,

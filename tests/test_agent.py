@@ -12,7 +12,7 @@ from tradingplatformpoc.agent.building_agent import BuildingAgent, construct_wor
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.agent.storage_agent import StorageAgent
-from tradingplatformpoc.data.data_series_from_file import read_energy_data, read_irradiation_data, read_nordpool_data
+from tradingplatformpoc.data.preproccessing import read_energy_data
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
 from tradingplatformpoc.market.bid import Action, NetBidWithAcceptanceStatus, Resource
@@ -38,8 +38,8 @@ carbon_values = np.ones(shape=len(DATETIME_ARRAY))
 
 # Read CSV files
 tornet_household_elec_cons, coop_elec_cons, tornet_heat_cons, coop_heat_cons = read_energy_data()
-irradiation_data = read_irradiation_data()
-external_price_data = read_nordpool_data()
+irradiation_data = pd.Series(irradiation_values, index=DATETIME_ARRAY)
+external_price_data = pd.Series(nordpool_values, index=DATETIME_ARRAY)
 
 heat_pricing: HeatingPrice = HeatingPrice(utility_test_objects.AREA_INFO)
 electricity_pricing: ElectricityPrice = ElectricityPrice(utility_test_objects.AREA_INFO, external_price_data)
