@@ -19,15 +19,16 @@ class GridAgent(IAgent):
     def __init__(self, pricing: Union[HeatingPrice, ElectricityPrice], resource: Resource,
                  max_transfer_per_hour=10000, guid="GridAgent"):
         super().__init__(guid)
-        self.pricing = pricing
         self.resource = resource
+        self.pricing = self._is_valid_pricing(pricing)
         self.max_transfer_per_hour = max_transfer_per_hour
-        if isinstance(self.pricing, HeatingPrice):
-            self.resource_loss_per_side = self.pricing.heat_transfer_loss_per_side
-        else:
-            self.resource_loss_per_side = 0.0
+        self.resource_loss_per_side = self.pricing.heat_transfer_loss_per_side if isinstance(self.pricing,
+                                                                                             HeatingPrice) else 0.0
         
-        # TODO: Validation that resource and pricing matches up
+    def _is_valid_pricing(self, pricing: Union[HeatingPrice, ElectricityPrice]):
+        if self.resource != pricing.resource:
+            raise ValueError("Resource and pricing resource for GridAgent does not match up!")
+        return pricing
 
     def make_bids(self, period: datetime.datetime, clearing_prices_historical: Union[Dict[datetime.datetime, Dict[
             Resource, float]], None] = None) -> List[GrossBid]:
