@@ -4,6 +4,8 @@ from unittest import TestCase
 
 import numpy as np
 
+import pandas as pd
+
 from pkg_resources import resource_filename
 
 from tradingplatformpoc.config.access_config import read_config
@@ -49,20 +51,18 @@ class Test(TestCase):
         prices, and warnings should be logged.
         """
         with self.assertLogs() as captured:
-            estimated_retail_heating_prices_by_year_and_month, \
-                estimated_wholesale_heating_prices_by_year_and_month, \
-                exact_retail_heating_prices_by_year_and_month, \
-                exact_wholesale_heating_prices_by_year_and_month = get_external_heating_prices(
-                    self.heat_pricing, hourly_datetime_array_between(
-                        datetime.datetime(2019, 2, 1), datetime.datetime(2019, 2, 2)))
+            heating_price_lst = get_external_heating_prices(self.heat_pricing,
+                                                            pd.DatetimeIndex([datetime.datetime(2019, 2, 1),
+                                                                              datetime.datetime(2019, 2, 2)]))
+        heating_prices = pd.DataFrame.from_records(heating_price_lst)
         self.assertTrue(len(captured.records) > 0)
         log_levels_captured = [rec.levelname for rec in captured.records]
         self.assertTrue('WARNING' in log_levels_captured)
-
-        self.assertTrue(np.isnan(exact_retail_heating_prices_by_year_and_month[(2019, 2)]))
-        self.assertTrue(np.isnan(exact_wholesale_heating_prices_by_year_and_month[(2019, 2)]))
-        self.assertFalse(np.isnan(estimated_retail_heating_prices_by_year_and_month[(2019, 2)]))
-        self.assertFalse(np.isnan(estimated_wholesale_heating_prices_by_year_and_month[(2019, 2)]))
+        entry = heating_prices[(heating_prices.year == 2019) & (heating_prices.month == 2)].iloc[0]
+        self.assertTrue(np.isnan(entry.exact_retail_price))
+        self.assertTrue(np.isnan(entry.exact_wholesale_price))
+        self.assertFalse(np.isnan(entry.estimated_retail_price))
+        self.assertFalse(np.isnan(entry.estimated_wholesale_price))
 
     def test_construct_df_from_datetime_dict(self):
         """

@@ -1,7 +1,7 @@
 import datetime
 import logging
 import pickle
-from typing import Any, Collection, Dict, List, Tuple, Union
+from typing import Any, Collection, Dict, List, Union
 
 import numpy as np
 
@@ -56,29 +56,19 @@ def go_through_trades_metadata(metadata: Dict[TradeMetadataKey, Any], period: da
                         format(metadata_key, metadata[metadata_key]))
 
 
-def get_external_heating_prices(heat_pricing: HeatingPrice, trading_periods: Collection[datetime.datetime]) -> \
-        Tuple[Dict[Tuple[int, int], float],
-              Dict[Tuple[int, int], float],
-              Dict[Tuple[int, int], float],
-              Dict[Tuple[int, int], float]]:
-    exact_retail_heating_prices_by_year_and_month: Dict[Tuple[int, int], float] = {}
-    exact_wholesale_heating_prices_by_year_and_month: Dict[Tuple[int, int], float] = {}
-    estimated_retail_heating_prices_by_year_and_month: Dict[Tuple[int, int], float] = {}
-    estimated_wholesale_heating_prices_by_year_and_month: Dict[Tuple[int, int], float] = {}
+def get_external_heating_prices(heat_pricing: HeatingPrice,
+                                trading_periods: Collection[datetime.datetime]) -> List[Dict[str, Any]]:
+    heating_price_by_ym_lst: List[Dict[str, Any]] = []
     for (year, month) in set([(dt.year, dt.month) for dt in trading_periods]):
         first_day_of_month = datetime.datetime(year, month, 1)  # Which day it is doesn't matter
-        exact_retail_heating_prices_by_year_and_month[(year, month)] = \
-            heat_pricing.get_exact_retail_price(first_day_of_month, include_tax=True)
-        exact_wholesale_heating_prices_by_year_and_month[(year, month)] = \
-            heat_pricing.get_exact_wholesale_price(first_day_of_month)
-        estimated_retail_heating_prices_by_year_and_month[(year, month)] = \
-            heat_pricing.get_estimated_retail_price(first_day_of_month, include_tax=True)
-        estimated_wholesale_heating_prices_by_year_and_month[(year, month)] = \
-            heat_pricing.get_estimated_wholesale_price(first_day_of_month)
-    return estimated_retail_heating_prices_by_year_and_month, \
-        estimated_wholesale_heating_prices_by_year_and_month, \
-        exact_retail_heating_prices_by_year_and_month, \
-        exact_wholesale_heating_prices_by_year_and_month
+        heating_price_by_ym_lst.append({
+            'year': year,
+            'month': month,
+            'exact_retail_price': heat_pricing.get_exact_retail_price(first_day_of_month, include_tax=True),
+            'exact_wholesale_price': heat_pricing.get_exact_wholesale_price(first_day_of_month),
+            'estimated_retail_price': heat_pricing.get_estimated_retail_price(first_day_of_month, include_tax=True),
+            'estimated_wholesale_price': heat_pricing.get_estimated_wholesale_price(first_day_of_month)})
+    return heating_price_by_ym_lst
 
 
 def get_generated_mock_data(config_data: dict, mock_datas_pickle_path: str) -> pd.DataFrame:

@@ -30,12 +30,15 @@ from tradingplatformpoc.price.heating_price import HeatingPrice
 from tradingplatformpoc.results import results_calculator
 from tradingplatformpoc.results.simulation_results import SimulationResults
 from tradingplatformpoc.simulation_runner.progress import Progress
-from tradingplatformpoc.simulation_runner.simulation_utils import \
-    get_external_heating_prices, get_generated_mock_data, \
-    get_quantity_heating_sold_by_external_grid, go_through_trades_metadata, net_bids_from_gross_bids
+from tradingplatformpoc.simulation_runner.simulation_utils import get_external_heating_prices, \
+    get_generated_mock_data, get_quantity_heating_sold_by_external_grid, go_through_trades_metadata, \
+    net_bids_from_gross_bids
 from tradingplatformpoc.sql.bid.crud import bids_to_db_objects, db_to_bid_df
+from tradingplatformpoc.sql.clearing_price.crud import clearing_prices_to_db_objects
 from tradingplatformpoc.sql.config.crud import read_config
 from tradingplatformpoc.sql.extra_cost.crud import db_to_extra_cost_df, extra_costs_to_db_objects
+from tradingplatformpoc.sql.heating_price.crud import db_to_heating_price_dicts,\
+    external_heating_prices_to_db_objects
 from tradingplatformpoc.sql.job.crud import create_job_if_new_config, delete_job
 from tradingplatformpoc.sql.trade.crud import db_to_trade_df, get_total_grid_fee_paid_on_internal_trades, \
     get_total_tax_paid, trades_to_db_objects
@@ -281,6 +284,9 @@ class TradingSimulator:
             bulk_insert(bid_objs + trade_objs + extra_cost_objs)
             self.progress.increase(frac_of_calc_time_for_batch_simulated)
             self.progress.display()
+        
+        clearing_prices_objs = clearing_prices_to_db_objects(self.clearing_prices_historical, self.job_id)
+        bulk_insert(clearing_prices_objs)
 
         if self.progress_text is not None:
             self.progress_text.info("Simulated a full year, starting some calculations on district heating price...")
@@ -290,18 +296,14 @@ class TradingSimulator:
         Simulations finished. Now, we need to go through and calculate the exact district heating price for each month
         """
         logger.info('Calculating external_heating_prices')
-        estimated_retail_heat_price_by_ym, \
-            estimated_wholesale_heat_price_by_ym, \
-            exact_retail_heat_price_by_ym, \
-            exact_wholesale_heat_price_by_ym = get_external_heating_prices(self.heat_pricing,
-                                                                           self.trading_periods)
+        heating_price_lst = get_external_heating_prices(self.heat_pricing, self.trading_periods)
+        heating_price_objs = external_heating_prices_to_db_objects(heating_price_lst, self.job_id)
+        bulk_insert(heating_price_objs)
 
         logger.info('Calculating heat_cost_discr_corrections')
+        heating_prices = pd.DataFrame.from_records(heating_price_lst)
         heat_cost_discr_corrections = correct_for_exact_heating_price(self.trading_periods,
-                                                                      exact_retail_heat_price_by_ym,
-                                                                      exact_wholesale_heat_price_by_ym,
-                                                                      estimated_retail_heat_price_by_ym,
-                                                                      estimated_wholesale_heat_price_by_ym,
+                                                                      heating_prices,
                                                                       self.job_id)
         logger.info('Saving extra costs to db...')
         objs = extra_costs_to_db_objects(heat_cost_discr_corrections, self.job_id)
@@ -319,6 +321,7 @@ class TradingSimulator:
         logger.info('Aggregating results per agent')
         if self.progress_text is not None:
             self.progress_text.info("Aggregating results per agent...")
+            exact_retail_heat_price_by_ym, exact_wholesale_heat_price_by_ym = db_to_heating_price_dicts(self.job_id)
         results_by_agent = results_calculator.calc_basic_results(self.agents, self.job_id,
                                                                  self.exact_retail_electricity_prices_by_period,
                                                                  self.exact_wholesale_electricity_prices_by_period,

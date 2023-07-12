@@ -254,18 +254,15 @@ class Test(TestCase):
         objs = trades_to_db_objects({self.some_datetime: trades}, self.job_id)
         bulk_insert(objs)
 
-        exact_retail_heating_prices_by_year_and_month = {(self.some_datetime.year, self.some_datetime.month):
-                                                         exact_retail_price}
-        exact_wholesale_heating_prices_by_year_and_month = {(self.some_datetime.year, self.some_datetime.month): np.nan}
-        estimated_retail_heating_prices_by_year_and_month = {
-            (self.some_datetime.year, self.some_datetime.month): est_retail_price}
-        estimated_wholesale_heating_prices_by_year_and_month = \
-            {(self.some_datetime.year, self.some_datetime.month): np.nan}
+        heating_prices = pd.DataFrame.from_records([{
+            'year': self.some_datetime.year,
+            'month': self.some_datetime.month,
+            'estimated_retail_price': est_retail_price,
+            'estimated_wholesale_price': np.nan,
+            'exact_retail_price': exact_retail_price,
+            'exact_wholesale_price': np.nan}])
         extra_costs = correct_for_exact_heating_price(pd.DatetimeIndex([self.some_datetime]),
-                                                      exact_retail_heating_prices_by_year_and_month,
-                                                      exact_wholesale_heating_prices_by_year_and_month,
-                                                      estimated_retail_heating_prices_by_year_and_month,
-                                                      estimated_wholesale_heating_prices_by_year_and_month,
+                                                      heating_prices,
                                                       self.job_id)
         self.assertEqual(1.5, [x.cost for x in extra_costs if x.agent == "Buyer1"][0])
         self.assertEqual(1.0, [x.cost for x in extra_costs if x.agent == "Buyer2"][0])
@@ -292,18 +289,15 @@ class Test(TestCase):
         objs = trades_to_db_objects({self.some_datetime: trades}, self.job_id)
         bulk_insert(objs)
 
-        exact_retail_heating_prices_by_year_and_month = {(self.some_datetime.year, self.some_datetime.month): np.nan}
-        exact_wholesale_heating_prices_by_year_and_month = {
-            (self.some_datetime.year, self.some_datetime.month): exact_wholesale_price}
-        estimated_retail_heating_prices_by_year_and_month = \
-            {(self.some_datetime.year, self.some_datetime.month): np.nan}
-        estimated_wholesale_heating_prices_by_year_and_month = {
-            (self.some_datetime.year, self.some_datetime.month): est_wholesale_price}
+        heating_prices = pd.DataFrame.from_records([{
+            'year': self.some_datetime.year,
+            'month': self.some_datetime.month,
+            'estimated_retail_price': np.nan,
+            'estimated_wholesale_price': est_wholesale_price,
+            'exact_retail_price': np.nan,
+            'exact_wholesale_price': exact_wholesale_price}])
         extra_costs = correct_for_exact_heating_price(pd.DatetimeIndex([self.some_datetime]),
-                                                      exact_retail_heating_prices_by_year_and_month,
-                                                      exact_wholesale_heating_prices_by_year_and_month,
-                                                      estimated_retail_heating_prices_by_year_and_month,
-                                                      estimated_wholesale_heating_prices_by_year_and_month,
+                                                      heating_prices,
                                                       self.job_id)
         self.assertEqual(1.5, [x.cost for x in extra_costs if x.agent == "Seller1"][0])
         self.assertEqual(1.0, [x.cost for x in extra_costs if x.agent == "Seller2"][0])
@@ -331,19 +325,15 @@ class Test(TestCase):
         objs = trades_to_db_objects({self.some_datetime: trades}, self.job_id)
         bulk_insert(objs)
 
-        exact_retail_heating_prices_by_year_and_month = {(self.some_datetime.year, self.some_datetime.month):
-                                                         exact_retail_price}
-        exact_wholesale_heating_prices_by_year_and_month = \
-            {(self.some_datetime.year, self.some_datetime.month): np.nan}
-        estimated_retail_heating_prices_by_year_and_month = {
-            (self.some_datetime.year, self.some_datetime.month): est_retail_price}
-        estimated_wholesale_heating_prices_by_year_and_month = \
-            {(self.some_datetime.year, self.some_datetime.month): np.nan}
+        heating_prices = pd.DataFrame.from_records([{
+            'year': self.some_datetime.year,
+            'month': self.some_datetime.month,
+            'estimated_retail_price': est_retail_price,
+            'estimated_wholesale_price': np.nan,
+            'exact_retail_price': exact_retail_price,
+            'exact_wholesale_price': np.nan}])
         extra_costs = correct_for_exact_heating_price(pd.DatetimeIndex([self.some_datetime]),
-                                                      exact_retail_heating_prices_by_year_and_month,
-                                                      exact_wholesale_heating_prices_by_year_and_month,
-                                                      estimated_retail_heating_prices_by_year_and_month,
-                                                      estimated_wholesale_heating_prices_by_year_and_month,
+                                                      heating_prices,
                                                       self.job_id)
         self.assertEqual(-1.5, [x.cost for x in extra_costs if x.agent == "Buyer1"][0])
         self.assertEqual(-1.0, [x.cost for x in extra_costs if x.agent == "Buyer2"][0])
@@ -375,19 +365,15 @@ class Test(TestCase):
         objs = trades_to_db_objects({self.some_datetime: trades}, self.job_id)
         bulk_insert(objs)
 
-        exact_retail_heating_prices_by_year_and_month = {(self.some_datetime.year, self.some_datetime.month):
-                                                         exact_retail_price}
-        exact_wholesale_heating_prices_by_year_and_month = \
-            {(self.some_datetime.year, self.some_datetime.month): np.nan}
-        estimated_retail_heating_prices_by_year_and_month = {
-            (self.some_datetime.year, self.some_datetime.month): est_retail_price}
-        estimated_wholesale_heating_prices_by_year_and_month = \
-            {(self.some_datetime.year, self.some_datetime.month): np.nan}
+        heating_prices = pd.DataFrame.from_records([{
+            'year': self.some_datetime.year,
+            'month': self.some_datetime.month,
+            'estimated_retail_price': est_retail_price,
+            'estimated_wholesale_price': np.nan,
+            'exact_retail_price': exact_retail_price,
+            'exact_wholesale_price': np.nan}])
         extra_costs = correct_for_exact_heating_price(pd.DatetimeIndex([self.some_datetime]),
-                                                      exact_retail_heating_prices_by_year_and_month,
-                                                      exact_wholesale_heating_prices_by_year_and_month,
-                                                      estimated_retail_heating_prices_by_year_and_month,
-                                                      estimated_wholesale_heating_prices_by_year_and_month,
+                                                      heating_prices,
                                                       self.job_id)
         self.assertEqual(187.5, [x.cost for x in extra_costs if x.agent == "Buyer1"][0])
         self.assertEqual(62.5, [x.cost for x in extra_costs if x.agent == "Buyer2"][0])
@@ -427,19 +413,15 @@ class Test(TestCase):
         # Total paid in 4.8, total paid out 5.1 estimated, discrepancy of 0.3.
         # Correcting for estimated - exact difference, grid is owed 3 * (0.75 - 0.5) = 0.75.
         # This cost is split proportionally between net consumers, Buyer1 and Buyer2.
-        exact_retail_heating_prices_by_year_and_month = {
-            (self.some_datetime.year, self.some_datetime.month): exact_retail_price}
-        exact_wholesale_heating_prices_by_year_and_month = {
-            (self.some_datetime.year, self.some_datetime.month): exact_ws_price}
-        estimated_retail_heating_prices_by_year_and_month = {
-            (self.some_datetime.year, self.some_datetime.month): est_retail_price}
-        estimated_wholesale_heating_prices_by_year_and_month = {
-            (self.some_datetime.year, self.some_datetime.month): est_ws_price}
+        heating_prices = pd.DataFrame.from_records([{
+            'year': self.some_datetime.year,
+            'month': self.some_datetime.month,
+            'estimated_retail_price': est_retail_price,
+            'estimated_wholesale_price': est_ws_price,
+            'exact_retail_price': exact_retail_price,
+            'exact_wholesale_price': exact_ws_price}])
         cost_discr_corrs = correct_for_exact_heating_price(pd.DatetimeIndex([self.some_datetime]),
-                                                           exact_retail_heating_prices_by_year_and_month,
-                                                           exact_wholesale_heating_prices_by_year_and_month,
-                                                           estimated_retail_heating_prices_by_year_and_month,
-                                                           estimated_wholesale_heating_prices_by_year_and_month,
+                                                           heating_prices,
                                                            self.job_id)
         self.assertAlmostEqual(0.375, [x.cost for x in cost_discr_corrs if x.agent == "Buyer1"][0], places=3)
         self.assertAlmostEqual(0.375, [x.cost for x in cost_discr_corrs if x.agent == "Buyer2"][0], places=3)
@@ -498,18 +480,16 @@ class Test(TestCase):
         # 0.02 - 0.02 = 0 so discrepancy is still 0.1.
         # Next, we look at bid inaccuracies. "Buyer2" was the only one who made an inaccurate bid, so she will take on
         # the full penalty of 0.1.
-        exact_retail_heating_prices_by_year_and_month = {(self.some_datetime.year, self.some_datetime.month): np.nan}
-        exact_wholesale_heating_prices_by_year_and_month = {
-            (self.some_datetime.year, self.some_datetime.month): exact_wholesale_price}
-        estimated_retail_heating_prices_by_year_and_month = {
-            (self.some_datetime.year, self.some_datetime.month): est_retail_price}
-        estimated_wholesale_heating_prices_by_year_and_month = {
-            (self.some_datetime.year, self.some_datetime.month): est_wholesale_price}
+        heating_prices = pd.DataFrame.from_records([{
+            'year': self.some_datetime.year,
+            'month': self.some_datetime.month,
+            'estimated_retail_price': est_retail_price,
+            'estimated_wholesale_price': est_wholesale_price,
+            'exact_retail_price': np.nan,
+            'exact_wholesale_price': exact_wholesale_price}])
+
         cost_discr_corrs = correct_for_exact_heating_price(pd.DatetimeIndex([self.some_datetime]),
-                                                           exact_retail_heating_prices_by_year_and_month,
-                                                           exact_wholesale_heating_prices_by_year_and_month,
-                                                           estimated_retail_heating_prices_by_year_and_month,
-                                                           estimated_wholesale_heating_prices_by_year_and_month,
+                                                           heating_prices,
                                                            self.job_id)
         self.assertAlmostEqual(0.02, [x.cost for x in cost_discr_corrs if x.agent == "Grid"][0], places=3)
         self.assertAlmostEqual(-0.02, [x.cost for x in cost_discr_corrs if x.agent == "Seller"][0], places=3)

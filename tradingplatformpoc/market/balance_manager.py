@@ -207,11 +207,7 @@ def get_actual_usage(trades_for_agent: List[Trade], agent_id: str) -> float:
 
 
 def correct_for_exact_heating_price(trading_periods: pd.DatetimeIndex,
-                                    exact_retail_heating_prices_by_year_and_month: Dict[Tuple[int, int], float],
-                                    exact_wholesale_heating_prices_by_year_and_month: Dict[Tuple[int, int], float],
-                                    estimated_retail_heating_prices_by_year_and_month: Dict[Tuple[int, int], float],
-                                    estimated_wholesale_heating_prices_by_year_and_month: Dict[
-                                        Tuple[int, int], float], job_id: str) -> List[ExtraCost]:
+                                    heating_prices: pd.DataFrame, job_id: str) -> List[ExtraCost]:
     """
     The price of external heating isn't known when making trades - it is only known after the month has concluded.
     If we for simplicity regard only the retail prices (external grid selling, and not buying), and we define:
@@ -228,17 +224,17 @@ def correct_for_exact_heating_price(trading_periods: pd.DatetimeIndex,
     """
 
     extra_costs: List[ExtraCost] = []
-
     for year, month in pd.unique(trading_periods.map(lambda x: (x.year, x.month))):
 
         # Periods
         trading_periods_in_this_month = trading_periods[(trading_periods.year == year)
                                                         & (trading_periods.month == month)]
-        
-        exact_ext_retail_price = exact_retail_heating_prices_by_year_and_month[(year, month)]
-        exact_ext_wholesale_price = exact_wholesale_heating_prices_by_year_and_month[(year, month)]
-        est_ext_retail_price = estimated_retail_heating_prices_by_year_and_month[(year, month)]
-        est_ext_wholesale_price = estimated_wholesale_heating_prices_by_year_and_month[(year, month)]
+        heatin_prices_for_year_and_month = heating_prices[(heating_prices.month == month)
+                                                          & (heating_prices.year == year)].iloc[0]
+        exact_ext_retail_price = heatin_prices_for_year_and_month.exact_retail_price
+        exact_ext_wholesale_price = heatin_prices_for_year_and_month.exact_wholesale_price
+        est_ext_retail_price = heatin_prices_for_year_and_month.estimated_retail_price
+        est_ext_wholesale_price = heatin_prices_for_year_and_month.estimated_wholesale_price
         
         heating_trades_for_month = heat_trades_from_db_for_periods(trading_periods_in_this_month, job_id)
 
