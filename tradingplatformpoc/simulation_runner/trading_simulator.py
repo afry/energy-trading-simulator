@@ -1,6 +1,7 @@
 import datetime
 import gc
 import logging
+import math
 from typing import Any, Collection, Dict, List, Optional, Tuple, Union
 
 import pandas as pd
@@ -41,8 +42,6 @@ from tradingplatformpoc.sql.trade.crud import db_to_trade_df, get_total_grid_fee
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, flatten_collection, \
     get_intersection
 
-
-FRACTION_OF_CALC_TIME_FOR_1_MONTH_SIMULATED = 0.065  # TODO: Maybe should be dependent on # months
 
 logger = logging.getLogger(__name__)
 
@@ -92,7 +91,8 @@ class TradingSimulator:
 
         self.buildings_mock_data: pd.DataFrame = get_generated_mock_data(self.config_data, self.mock_datas_pickle_path)
         self.trading_periods = pd.DatetimeIndex(get_intersection(self.buildings_mock_data.index.tolist(),
-                                                self.electricity_pricing.get_external_price_data_datetimes()))
+                                                self.electricity_pricing.get_external_price_data_datetimes()))\
+            .sort_values()
 
         self.clearing_prices_historical: Dict[datetime.datetime, Dict[Resource, float]] = {}
         self.storage_levels_dict: Dict[str, Dict[datetime.datetime, float]] = {}
@@ -179,40 +179,46 @@ class TradingSimulator:
 
         return agents, grid_agents
 
-    def run(self):
+    def run(self, number_of_batches=5):
         """
         The core loop of the simulation, running through the desired time period and performing trades.
         @param progress_bar             A streamlit progress bar, used only when running simulations through the UI
         @param progress_text            A streamlit info field, used only when running simulations through the UI
         """
 
+        # Increase of progress bar per batch
+        frac_of_calc_time_for_batch_simulated = 0.8 / number_of_batches
+
         logger.info("Starting trading simulations")
+        self.progress.increase(0.005)
 
         # Load generated mock data
         if self.progress_text is not None:
             self.progress_text.info("Generating data...")
 
-        # Main loop
-        for year, month in pd.unique(self.trading_periods.map(lambda x: (x.year, x.month_name()))):
-            info_string = "Simulations entering {}".format(month)
-            logger.info(info_string)
-            self.progress.increase(FRACTION_OF_CALC_TIME_FOR_1_MONTH_SIMULATED)
-            self.progress.display()
-            if self.progress_text is not None:
-                self.progress_text.info(info_string + "...")
+        number_of_trading_periods = len(self.trading_periods)
+        batch_size = math.ceil(number_of_trading_periods / number_of_batches)
+        # Loop over batches
+        for batch_number in range(number_of_batches):
+            logger.info("Simulating batch number {} of {}".format(batch_number, number_of_batches))
+            # Periods in batch
+            trading_periods_in_this_batch = self.trading_periods[
+                batch_number * batch_size:min((batch_number + 1) * batch_size, number_of_trading_periods)]
 
-            # Periods
-            trading_periods_in_this_month = self.trading_periods[(self.trading_periods.year == year)
-                                                                 & (self.trading_periods.month_name() == month)]
+            all_bids_dict_batch: Dict[datetime.datetime, Collection[NetBidWithAcceptanceStatus]] \
+                = dict(zip(trading_periods_in_this_batch, ([] for _ in trading_periods_in_this_batch)))
+            all_trades_dict_batch: Dict[datetime.datetime, Collection[Trade]] \
+                = dict(zip(trading_periods_in_this_batch, ([] for _ in trading_periods_in_this_batch)))
+            all_extra_costs_batch: List[ExtraCost] = []
 
-            all_bids_dict_month: Dict[datetime.datetime, Collection[NetBidWithAcceptanceStatus]] \
-                = dict(zip(trading_periods_in_this_month, ([] for _ in trading_periods_in_this_month)))
-            all_trades_dict_month: Dict[datetime.datetime, Collection[Trade]] \
-                = dict(zip(trading_periods_in_this_month, ([] for _ in trading_periods_in_this_month)))
-            all_extra_costs_month: List[ExtraCost] = []
+            # Loop over periods i batch
+            for period in trading_periods_in_this_batch:
+                if period.day == period.hour == 1:
+                    info_string = "Simulations entering {:%B}".format(period)
+                    logger.info(info_string)
+                    if self.progress_text is not None:
+                        self.progress_text.info(info_string + "...")
 
-            # Month loop
-            for period in trading_periods_in_this_month:
                 # Get all bids
                 bids = [agent.make_bids(period, self.clearing_prices_historical) for agent in self.agents]
 
@@ -226,7 +232,7 @@ class TradingSimulator:
                 clearing_prices, bids_with_acceptance_status = market_solver.resolve_bids(period, net_bids)
                 self.clearing_prices_historical[period] = clearing_prices
 
-                all_bids_dict_month[period] = bids_with_acceptance_status
+                all_bids_dict_batch[period] = bids_with_acceptance_status
 
                 # Send clearing price back to agents, allow them to "make trades", i.e. decide if they want to buy/sell
                 # energy, from/to either the local market or directly from/to the external grid.
@@ -249,7 +255,7 @@ class TradingSimulator:
                                                                                    clearing_prices)
                                                       for ga in self.grid_agents])
                 all_trades_for_period = trades_excl_external + external_trades
-                all_trades_dict_month[period] = all_trades_for_period
+                all_trades_dict_batch[period] = all_trades_for_period
 
                 external_heating_sell_quantity = get_quantity_heating_sold_by_external_grid(external_trades)
                 self.heat_pricing.add_external_heating_sell(period, external_heating_sell_quantity)
@@ -266,15 +272,16 @@ class TradingSimulator:
 
                 self.exact_wholesale_electricity_prices_by_period[period] = wholesale_price_elec
                 self.exact_retail_electricity_prices_by_period[period] = retail_price_elec
-                all_extra_costs_month.extend(extra_costs)
+                all_extra_costs_batch.extend(extra_costs)
 
             logger.info('Saving to db...')
-            bid_objs = bids_to_db_objects(all_bids_dict_month, self.job_id)
-            trade_objs = trades_to_db_objects(all_trades_dict_month, self.job_id)
-            extra_cost_objs = extra_costs_to_db_objects(all_extra_costs_month, self.job_id)
+            bid_objs = bids_to_db_objects(all_bids_dict_batch, self.job_id)
+            trade_objs = trades_to_db_objects(all_trades_dict_batch, self.job_id)
+            extra_cost_objs = extra_costs_to_db_objects(all_extra_costs_batch, self.job_id)
             bulk_insert(bid_objs + trade_objs + extra_cost_objs)
-        self.progress.increase(FRACTION_OF_CALC_TIME_FOR_1_MONTH_SIMULATED + 0.01)  # Final month
-        self.progress.display()
+            self.progress.increase(frac_of_calc_time_for_batch_simulated)
+            self.progress.display()
+
         if self.progress_text is not None:
             self.progress_text.info("Simulated a full year, starting some calculations on district heating price...")
 
