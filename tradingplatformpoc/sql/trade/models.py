@@ -30,11 +30,11 @@ class Trade(SQLModel, table=True):
         nullable=True,
         sa_column=Column(DateTime(timezone=True))
     )
-    action: Optional[str] = Field(
+    action: Optional[Action] = Field(
         title='Action',
         sa_column=Column(Enum(Action), primary_key=False, default=None, nullable=False)
     )
-    resource: Optional[str] = Field(
+    resource: Optional[Resource] = Field(
         title='Resource',
         sa_column=Column(Enum(Resource), primary_key=False, default=None, nullable=False)
     )
@@ -68,7 +68,7 @@ class Trade(SQLModel, table=True):
         title='Trade by external market',
         nullable=False
     )
-    market: Optional[str] = Field(
+    market: Optional[Market] = Field(
         title='Market',
         sa_column=Column(Enum(Market), primary_key=False, default=None, nullable=False)
     )

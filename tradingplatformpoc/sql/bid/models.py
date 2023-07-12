@@ -28,11 +28,11 @@ class Bid(SQLModel, table=True):
         nullable=True,
         sa_column=Column(DateTime(timezone=True))
     )
-    action: Optional[str] = Field(
+    action: Optional[Action] = Field(
         title='Action',
         sa_column=Column(Enum(Action), primary_key=False, default=None, nullable=False)
     )
-    resource: Optional[str] = Field(
+    resource: Optional[Resource] = Field(
         title='Resource',
         sa_column=Column(Enum(Resource), primary_key=False, default=None, nullable=False)
     )

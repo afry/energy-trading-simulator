@@ -1,3 +1,4 @@
+import logging
 from contextlib import _GeneratorContextManager
 from typing import Callable
 
@@ -12,10 +13,13 @@ from tradingplatformpoc.sql.config.crud import create_config_if_not_in_db
 from tradingplatformpoc.sql.extra_cost.models import ExtraCost as TableExtraCost
 from tradingplatformpoc.sql.trade.models import Trade as TableTrade
 
+logger = logging.getLogger(__name__)
+
 
 def create_db_and_tables():
     # SQLModel.metadata.drop_all(db_engine)
     SQLModel.metadata.create_all(db_engine)
+    logger.info('Creating db and tables')
 
 
 def bulk_insert(objects: list,

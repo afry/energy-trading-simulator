@@ -18,8 +18,8 @@ def bids_to_db_objects(trades_dict: Dict[datetime.datetime, Collection[NetBidWit
                         job_id=job_id,
                         source=x.source,
                         by_external=x.by_external,
-                        action=x.action.name,
-                        resource=x.resource.name,
+                        action=x.action,
+                        resource=x.resource,
                         quantity=x.quantity,
                         price=x.price,
                         accepted_quantity=x.accepted_quantity)
