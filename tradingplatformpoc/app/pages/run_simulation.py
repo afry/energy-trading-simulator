@@ -22,43 +22,50 @@ set_max_width('1000px')  # This tab looks a bit daft when it is too wide, so lim
 config_ids = get_all_config_ids_in_db_without_jobs()
 choosen_config_id = st.selectbox('Choose a configurationt to run', config_ids)
 if len(config_ids) > 0:
-    with st.expander('Configuration :blue[{}] in JSON format'.format(choosen_config_id)):
+    with st.expander('Configuration *{}* in JSON format'.format(choosen_config_id)):
         st.json(read_config(choosen_config_id), expanded=True)
 else:
     st.markdown('Set up a configuration in **Setup simulation**')
 
-run_sim = st.button("Click to run simulation", disabled=(len(config_ids) == 0))
+run_sim = st.button("**CLICK TO RUN SIMULATION FOR *{}***".format(choosen_config_id),
+                    disabled=(len(config_ids) == 0),
+                    help='Click this button to start a simulation '
+                    'run with the specified configuration: *{}*'.format(choosen_config_id),
+                    type='primary')
+
 progress_bar = st.progress(0.0)
 progress_text = st.info("")
 
-with st.expander('Scenarios already run'):
-    config_df = get_all_config_ids_in_db_with_jobs()
-    if not config_df.empty:
-        config_df['Delete'] = False
-        delete_runs_form = st.form(key='Delete runs form')
-        edited_df = delete_runs_form.data_editor(
-            config_df.set_index('Job ID'),
-            use_container_width=True,
-            key='delete_df',
-            column_config={
-                "Delete": st.column_config.CheckboxColumn(
-                    "Delete",
-                    help="Check the box if you want to delete the data for this run.",
-                    default=False,
-                )
-            },
-            hide_index=True,
-            disabled=["widgets"]
-        )
-        delete_runs_submit = delete_runs_form.form_submit_button(':red[DELETE DATA FOR SELECTED RUNS]')
-        if delete_runs_submit:
-            delete_runs_submit = False
-            if not edited_df[edited_df['Delete']].empty:
-                for job_id, _row in edited_df[edited_df['Delete']].iterrows():
-                    delete_job(job_id)
-                st.experimental_rerun()
-            else:
-                st.markdown('No runs selected to delete.')
+st.subheader('Jobs')
+config_df = get_all_config_ids_in_db_with_jobs()
+if not config_df.empty:
+    config_df['Delete'] = False
+    delete_runs_form = st.form(key='Delete runs form')
+    edited_df = delete_runs_form.data_editor(
+        config_df.set_index('Job ID'),
+        # use_container_width=True, # Caused shaking
+        key='delete_df',
+        column_config={
+            "Delete": st.column_config.CheckboxColumn(
+                "Delete",
+                help="Check the box if you want to delete the data for this run.",
+                default=False,
+            )
+        },
+        hide_index=True,
+        disabled=["widgets"]
+    )
+    delete_runs_submit = delete_runs_form.form_submit_button('**DELETE DATA FOR SELECTED RUNS**',
+                                                             help='IMPORTANT: Clicking this button '
+                                                             'will delete selected jobs and all associated data.')
+    if delete_runs_submit:
+        delete_runs_submit = False
+        if not edited_df[edited_df['Delete']].empty:
+            for job_id, _row in edited_df[edited_df['Delete']].iterrows():
+                delete_job(job_id)
+            st.experimental_rerun()
+        else:
+            st.markdown('No runs selected to delete.')
 
 if not ('simulation_results' in st.session_state):
     st.caption('Be aware that the download button returns last saved simulation '
