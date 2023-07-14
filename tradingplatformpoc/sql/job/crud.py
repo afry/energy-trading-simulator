@@ -71,3 +71,26 @@ def get_job_id_for_config(config_id: str, db: Session):
         return job_for_config.id
     else:
         None
+
+
+def update_job_with_end_time(job_id: str,
+                             session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope):
+    with session_generator() as db:
+        job_to_update = db.get(Job, job_id)
+
+        if not job_to_update:
+            # TODO: raise exception
+            logger.error('No job to update in database with ID {}'.format(job_id))
+
+        job_to_update.end_time = datetime.datetime.now(pytz.utc)
+
+        db.add(job_to_update)
+        db.commit()
+        db.refresh(job_to_update)
+
+
+def get_all_ongoing_jobs(session_generator: Callable[[], _GeneratorContextManager[Session]]
+                         = session_scope):
+    with session_generator() as db:
+        res = db.query(Job.config_id).filter(Job.init_time.is_not(None), Job.end_time.is_(None)).all()
+        return [config_id for (config_id,) in res]

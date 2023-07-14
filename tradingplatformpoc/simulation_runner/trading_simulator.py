@@ -39,7 +39,7 @@ from tradingplatformpoc.sql.config.crud import read_config
 from tradingplatformpoc.sql.extra_cost.crud import db_to_extra_cost_df, extra_costs_to_db_objects
 from tradingplatformpoc.sql.heating_price.crud import db_to_heating_price_dicts,\
     external_heating_prices_to_db_objects
-from tradingplatformpoc.sql.job.crud import create_job_if_new_config, delete_job
+from tradingplatformpoc.sql.job.crud import create_job_if_new_config, delete_job, update_job_with_end_time
 from tradingplatformpoc.sql.trade.crud import db_to_trade_df, get_total_grid_fee_paid_on_internal_trades, \
     get_total_tax_paid, trades_to_db_objects
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, flatten_collection, \
@@ -66,7 +66,7 @@ class TradingSimulator:
                 self.progress_text = progress_text
                 self.run()
                 results = self.extract_results()
-
+                update_job_with_end_time(self.job_id)
                 return results
 
             except Exception as e:
@@ -321,7 +321,7 @@ class TradingSimulator:
         logger.info('Aggregating results per agent')
         if self.progress_text is not None:
             self.progress_text.info("Aggregating results per agent...")
-            exact_retail_heat_price_by_ym, exact_wholesale_heat_price_by_ym = db_to_heating_price_dicts(self.job_id)
+        exact_retail_heat_price_by_ym, exact_wholesale_heat_price_by_ym = db_to_heating_price_dicts(self.job_id)
         results_by_agent = results_calculator.calc_basic_results(self.agents, self.job_id,
                                                                  self.exact_retail_electricity_prices_by_period,
                                                                  self.exact_wholesale_electricity_prices_by_period,

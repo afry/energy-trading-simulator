@@ -104,7 +104,8 @@ def get_all_config_ids_in_db_with_jobs(session_generator: Callable[[], _Generato
     with session_generator() as db:
         res = db.execute(select(Job, Config.description).join(Config, Job.config_id == Config.id)).all()
         return pd.DataFrame.from_records([{'Job ID': job.id, 'Config ID': job.config_id, 'Description': desc,
-                                           'Start time': job.init_time} for (job, desc) in res])
+                                           'Start time': job.init_time, 'End time': job.end_time}
+                                         for (job, desc) in res])
 
 
 def get_all_config_ids_in_db(session_generator: Callable[[], _GeneratorContextManager[Session]]
