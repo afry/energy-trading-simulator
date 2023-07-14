@@ -1,5 +1,5 @@
 import datetime
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from sqlalchemy import Column, DateTime, String, func
 from sqlalchemy.dialects.postgresql import JSONB
@@ -25,9 +25,9 @@ class Config(SQLModel, table=True):
         nullable=False,
         sa_column=Column(DateTime(timezone=True), server_default=func.now())
     )
-    agents: Optional[list] = Field(
+    agents_spec: Optional[Dict[str, str]] = Field(
         primary_key=False,
-        title="Agents",
+        title="Agents names and ids",
         nullable=True,
         sa_column=Column(JSONB(none_as_null=True))
     )
@@ -48,6 +48,6 @@ class Config(SQLModel, table=True):
 class ConfigCreate(SQLModel):
     id: str
     description: str
-    agents: list
-    area_info: dict
-    mock_data_constants: dict
+    agents_spec: Dict[str, str]
+    area_info: Dict[str, Any]
+    mock_data_constants: Dict[str, Any]
