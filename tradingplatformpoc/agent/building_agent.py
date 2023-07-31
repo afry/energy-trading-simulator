@@ -10,8 +10,8 @@ from tradingplatformpoc import trading_platform_utils
 from tradingplatformpoc.agent.iagent import IAgent, get_price_and_market_to_use_when_buying, \
     get_price_and_market_to_use_when_selling
 from tradingplatformpoc.data_store import DataStore
+from tradingplatformpoc.digitaltwin.heat_pump import HeatPump
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
-from tradingplatformpoc.heat_pump import HeatPump
 from tradingplatformpoc.market.bid import Action, GrossBid, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.market.trade import Trade, TradeMetadataKey
 from tradingplatformpoc.trading_platform_utils import minus_n_hours
