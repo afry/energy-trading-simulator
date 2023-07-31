@@ -9,10 +9,10 @@ import pandas as pd
 from tests import utility_test_objects
 
 from tradingplatformpoc import data_store
+from tradingplatformpoc.agent.battery_agent import BatteryAgent
 from tradingplatformpoc.agent.building_agent import BuildingAgent, construct_workloads_data
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
-from tradingplatformpoc.agent.storage_agent import BatteryAgent
 from tradingplatformpoc.digitaltwin.battery import Battery
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.market.bid import Action, NetBidWithAcceptanceStatus, Resource
