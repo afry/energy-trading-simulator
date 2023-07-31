@@ -140,7 +140,7 @@ class TestMarketSolver(TestCase):
     def test_resolve_bids_with_local_surplus(self):
         """Test that the clearing price is calculated correctly when there is a local surplus."""
         bids = [GrossBid(Action.BUY, Resource.ELECTRICITY, 192.76354849517332, math.inf, 'BuildingAgent', False),
-                GrossBid(Action.SELL, Resource.ELECTRICITY, 100, 0.46069, 'BatteryStorageAgent', False),
+                GrossBid(Action.SELL, Resource.ELECTRICITY, 100, 0.46069, 'BatteryAgent', False),
                 GrossBid(Action.SELL, Resource.ELECTRICITY, 275.3113968, 0.46069, 'PVAgent', False),
                 GrossBid(Action.BUY, Resource.ELECTRICITY, 100.8875027389364, math.inf, 'GroceryStoreAgent', False),
                 GrossBid(Action.SELL, Resource.ELECTRICITY, 10000, 0.89069, 'ElectricityGridAgent', True)]

@@ -13,7 +13,7 @@ from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
-from tradingplatformpoc.agent.storage_agent import StorageAgent
+from tradingplatformpoc.agent.storage_agent import BatteryAgent
 from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.digitaltwin.battery import Battery
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
@@ -110,13 +110,12 @@ class TradingSimulator:
                                             guid=agent_name, nbr_heat_pumps=agent["NumberHeatPumps"],
                                             coeff_of_perf=agent["COP"]))
 
-            elif agent_type == "StorageAgent":
+            elif agent_type == "BatteryAgent":
                 storage_digital_twin = Battery(max_capacity_kwh=agent["Capacity"],
                                                max_charge_rate_fraction=agent["ChargeRate"],
                                                max_discharge_rate_fraction=agent["DischargeRate"],
                                                discharging_efficiency=agent["RoundTripEfficiency"])
-                agents.append(StorageAgent(self.data_store_entity, storage_digital_twin,
-                                           resource=Resource[agent["Resource"]],
+                agents.append(BatteryAgent(self.data_store_entity, storage_digital_twin,
                                            n_hours_to_look_back=agent["NHoursBack"],
                                            buy_price_percentile=agent["BuyPricePercentile"],
                                            sell_price_percentile=agent["SellPricePercentile"],

@@ -5,7 +5,7 @@ import pandas as pd
 
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
-from tradingplatformpoc.agent.storage_agent import StorageAgent
+from tradingplatformpoc.agent.storage_agent import BatteryAgent
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.market.extra_cost import ExtraCostType
 from tradingplatformpoc.results.results_key import ResultsKey
@@ -84,7 +84,7 @@ def calc_basic_results_for_agent(agent: IAgent, all_trades: pd.DataFrame, all_ex
         results_dict[ResultsKey.SAVING_REL_NET] = 100.0 * (total_saved - extra_costs_for_bad_bids) / sek_traded_for
         results_dict[ResultsKey.PENALTIES_BID_INACCURACY] = extra_costs_for_bad_bids
 
-        if isinstance(agent, StorageAgent):
+        if isinstance(agent, BatteryAgent):
             total_profit_gross = sek_sold_for - sek_bought_for + sek_tax_paid + sek_grid_fee_paid
             total_profit_net = sek_sold_for - sek_bought_for
             print_message("For agent {} total profit was {:.2f} SEK before taxes and grid fees".

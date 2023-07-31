@@ -16,7 +16,7 @@ LOWEST_BID_QUANTITY = 0.001  # Bids with a lower quantity than this won't have a
 logger = logging.getLogger(__name__)
 
 
-class StorageAgent(IAgent):
+class BatteryAgent(IAgent):
     """The agent for a storage actor. Can only store energy of one 'type', i.e. Resource.
 
     The storage agent currently works on the logic that it tries to buy when energy is cheap, and sell when it is
@@ -26,7 +26,7 @@ class StorageAgent(IAgent):
     """
     data_store: DataStore
     digital_twin: Battery
-    resource: Resource
+    resource: Resource = Resource.ELECTRICITY
     go_back_n_hours: int
     if_lower_than_this_percentile_then_buy: int
     if_higher_than_this_percentile_then_sell: int
@@ -34,15 +34,14 @@ class StorageAgent(IAgent):
     # there is even less than that available, will throw an error.
     need_at_least_n_hours: int
 
-    def __init__(self, data_store: DataStore, digital_twin: Battery, resource: Resource,
-                 n_hours_to_look_back: int, buy_price_percentile: int, sell_price_percentile: int, guid="StorageAgent"):
+    def __init__(self, data_store: DataStore, digital_twin: Battery,
+                 n_hours_to_look_back: int, buy_price_percentile: int, sell_price_percentile: int, guid="BatteryAgent"):
         super().__init__(guid, data_store)
         self.digital_twin = digital_twin
-        self.resource = resource
         self.go_back_n_hours = n_hours_to_look_back
         # Upper and lower thresholds
         if sell_price_percentile < buy_price_percentile:
-            logger.warning('In StorageAgent, sell_price_percentile should be higher than buy_price_percentile, but had '
+            logger.warning('In BatteryAgent, sell_price_percentile should be higher than buy_price_percentile, but had '
                            'buy_price_percentile={} and sell_price_percentile={}'.format(buy_price_percentile,
                                                                                          sell_price_percentile))
         self.if_lower_than_this_percentile_then_buy = buy_price_percentile
@@ -56,7 +55,7 @@ class StorageAgent(IAgent):
         if clearing_prices_historical is not None:
             clearing_prices_for_resource = self.get_clearing_prices_for_resource(dict(clearing_prices_historical))
         else:
-            logger.warning('No historical clearing prices were provided to StorageAgent! Will use Nordpool spot '
+            logger.warning('No historical clearing prices were provided to BatteryAgent! Will use Nordpool spot '
                            'prices instead.')
             clearing_prices_for_resource = {}
 
@@ -66,7 +65,7 @@ class StorageAgent(IAgent):
         prices_last_n_hours = get_prices_last_n_hours(period, self.go_back_n_hours, clearing_prices_for_resource,
                                                       nordpool_prices_last_n_hours_dict)
         if len(prices_last_n_hours) < self.need_at_least_n_hours:
-            raise RuntimeError("StorageAgent '{}' needed at least {} hours of historical prices to function, but was "
+            raise RuntimeError("BatteryAgent '{}' needed at least {} hours of historical prices to function, but was "
                                "only provided with {} hours.".
                                format(self.guid, self.need_at_least_n_hours, len(prices_last_n_hours)))
 
