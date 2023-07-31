@@ -1,12 +1,12 @@
 from unittest import TestCase
 
-from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
+from tradingplatformpoc.digitaltwin.battery_digital_twin import BatteryDigitalTwin
 
 
-class TestStorageDigitalTwin(TestCase):
+class TestBatteryDigitalTwin(TestCase):
 
     def setUp(self):
-        self.storage_digital_twin = StorageDigitalTwin(max_capacity_kwh=100.0, max_charge_rate_fraction=0.25,
+        self.storage_digital_twin = BatteryDigitalTwin(max_capacity_kwh=100.0, max_charge_rate_fraction=0.25,
                                                        max_discharge_rate_fraction=0.2, start_capacity_kwh=6,
                                                        discharging_efficiency=0.93)
 

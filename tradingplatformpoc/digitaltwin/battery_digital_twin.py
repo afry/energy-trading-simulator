@@ -1,7 +1,7 @@
 from tradingplatformpoc.digitaltwin.idigital_twin import IDigitalTwin
 
 
-class StorageDigitalTwin(IDigitalTwin):
+class BatteryDigitalTwin(IDigitalTwin):
 
     def __init__(self, max_capacity_kwh: float,
                  max_charge_rate_fraction: float,

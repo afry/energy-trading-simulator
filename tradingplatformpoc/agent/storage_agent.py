@@ -6,7 +6,7 @@ import numpy as np
 
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.data_store import DataStore
-from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
+from tradingplatformpoc.digitaltwin.battery_digital_twin import BatteryDigitalTwin
 from tradingplatformpoc.market.bid import Action, GrossBid, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.market.trade import Market, Trade, TradeMetadataKey
 from tradingplatformpoc.trading_platform_utils import minus_n_hours
@@ -25,7 +25,7 @@ class StorageAgent(IAgent):
     some (other, higher) percentile of X.
     """
     data_store: DataStore
-    digital_twin: StorageDigitalTwin
+    digital_twin: BatteryDigitalTwin
     resource: Resource
     go_back_n_hours: int
     if_lower_than_this_percentile_then_buy: int
@@ -34,7 +34,7 @@ class StorageAgent(IAgent):
     # there is even less than that available, will throw an error.
     need_at_least_n_hours: int
 
-    def __init__(self, data_store: DataStore, digital_twin: StorageDigitalTwin, resource: Resource,
+    def __init__(self, data_store: DataStore, digital_twin: BatteryDigitalTwin, resource: Resource,
                  n_hours_to_look_back: int, buy_price_percentile: int, sell_price_percentile: int, guid="StorageAgent"):
         super().__init__(guid, data_store)
         self.digital_twin = digital_twin

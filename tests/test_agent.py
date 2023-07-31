@@ -13,8 +13,8 @@ from tradingplatformpoc.agent.building_agent import BuildingAgent, construct_wor
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.agent.storage_agent import StorageAgent
+from tradingplatformpoc.digitaltwin.battery_digital_twin import BatteryDigitalTwin
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
-from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
 from tradingplatformpoc.market.bid import Action, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.market.trade import Market, Trade
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, hourly_datetime_array_between
@@ -191,7 +191,7 @@ class TestGridAgent(unittest.TestCase):
 
 
 class TestStorageAgent(unittest.TestCase):
-    twin = StorageDigitalTwin(max_capacity_kwh=1000, max_charge_rate_fraction=0.1, max_discharge_rate_fraction=0.1,
+    twin = BatteryDigitalTwin(max_capacity_kwh=1000, max_charge_rate_fraction=0.1, max_discharge_rate_fraction=0.1,
                               discharging_efficiency=0.93)
     battery_agent = StorageAgent(data_store_entity, twin, Resource.ELECTRICITY, 168, 20, 80)
 
@@ -208,7 +208,7 @@ class TestStorageAgent(unittest.TestCase):
     def test_make_bids_when_nonempty(self):
         """Test that StorageAgent make_bids method returns 2 bids, when the digital twin's capacity is neither full nor
         empty."""
-        non_empty_twin = StorageDigitalTwin(max_capacity_kwh=1000, max_charge_rate_fraction=0.1,
+        non_empty_twin = BatteryDigitalTwin(max_capacity_kwh=1000, max_charge_rate_fraction=0.1,
                                             max_discharge_rate_fraction=0.1, discharging_efficiency=0.93,
                                             start_capacity_kwh=500)
         ba = StorageAgent(data_store_entity, non_empty_twin, Resource.ELECTRICITY, 168, 20, 80)
@@ -217,7 +217,7 @@ class TestStorageAgent(unittest.TestCase):
 
     def test_make_bids_when_full(self):
         """Test that StorageAgent make_bids method only returns 1 bid, when the digital twin's capacity is full."""
-        full_twin = StorageDigitalTwin(max_capacity_kwh=1000, max_charge_rate_fraction=0.1,
+        full_twin = BatteryDigitalTwin(max_capacity_kwh=1000, max_charge_rate_fraction=0.1,
                                        max_discharge_rate_fraction=0.1, discharging_efficiency=0.93,
                                        start_capacity_kwh=1000)
         ba = StorageAgent(data_store_entity, full_twin, Resource.ELECTRICITY, 168, 20, 80)
