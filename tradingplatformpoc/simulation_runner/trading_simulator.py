@@ -15,7 +15,7 @@ from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.agent.storage_agent import StorageAgent
 from tradingplatformpoc.data_store import DataStore
-from tradingplatformpoc.digitaltwin.battery_digital_twin import BatteryDigitalTwin
+from tradingplatformpoc.digitaltwin.battery import Battery
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.generate_data.mock_data_generation_functions import get_elec_cons_key, \
     get_hot_tap_water_cons_key, get_space_heat_cons_key
@@ -111,10 +111,10 @@ class TradingSimulator:
                                             coeff_of_perf=agent["COP"]))
 
             elif agent_type == "StorageAgent":
-                storage_digital_twin = BatteryDigitalTwin(max_capacity_kwh=agent["Capacity"],
-                                                          max_charge_rate_fraction=agent["ChargeRate"],
-                                                          max_discharge_rate_fraction=agent["DischargeRate"],
-                                                          discharging_efficiency=agent["RoundTripEfficiency"])
+                storage_digital_twin = Battery(max_capacity_kwh=agent["Capacity"],
+                                               max_charge_rate_fraction=agent["ChargeRate"],
+                                               max_discharge_rate_fraction=agent["DischargeRate"],
+                                               discharging_efficiency=agent["RoundTripEfficiency"])
                 agents.append(StorageAgent(self.data_store_entity, storage_digital_twin,
                                            resource=Resource[agent["Resource"]],
                                            n_hours_to_look_back=agent["NHoursBack"],
