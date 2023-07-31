@@ -21,7 +21,6 @@ class Battery:
         @param start_is_charging: If the storage unit is in charging or discharging mode on startup (some storage units,
             such as a hydrogen storage, may take some time to transition from charging to discharging mode).
         """
-        super().__init__()
         self.max_capacity_kwh = max_capacity_kwh
         self.max_charge_rate_fraction = max_charge_rate_fraction
         self.max_discharge_rate_fraction = max_discharge_rate_fraction

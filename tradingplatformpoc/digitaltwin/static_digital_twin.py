@@ -20,7 +20,6 @@ class StaticDigitalTwin:
 
     def __init__(self, electricity_usage: pd.Series = None, heating_usage: pd.Series = None,
                  electricity_production: pd.Series = None, heating_production: pd.Series = None):
-        super().__init__()
         self.electricity_usage = electricity_usage
         self.heating_usage = heating_usage
         self.electricity_production = electricity_production
