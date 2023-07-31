@@ -259,7 +259,6 @@ class TradingSimulator:
             self.progress_text.info("Formatting results...")
 
         logger.info('Creating extra_costs_df')
-        # this takes 2 minutes
         extra_costs_df = pd.DataFrame.from_records(({'period': x.period,
                                                      'agent': x.agent,
                                                      'cost_type': x.cost_type,
