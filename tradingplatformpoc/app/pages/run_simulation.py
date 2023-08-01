@@ -1,13 +1,13 @@
 import logging
+import threading
 
 from st_pages import add_indentation, show_pages_from_config
 
 import streamlit as st
+from streamlit.runtime.scriptrunner import add_script_run_ctx
 
 from tradingplatformpoc.app import footer
-from tradingplatformpoc.app.app_functions import results_button, set_max_width, set_simulation_results
-from tradingplatformpoc.constants import MOCK_DATA_PATH
-from tradingplatformpoc.simulation_runner.trading_simulator import TradingSimulator
+from tradingplatformpoc.app.app_functions import run_simulation, set_max_width
 from tradingplatformpoc.sql.config.crud import get_all_config_ids_in_db_with_jobs, \
     get_all_config_ids_in_db_without_jobs, read_config
 from tradingplatformpoc.sql.job.crud import delete_job
@@ -32,9 +32,6 @@ run_sim = st.button("**CLICK TO RUN SIMULATION FOR *{}***".format(choosen_config
                     help='Click this button to start a simulation '
                     'run with the specified configuration: *{}*'.format(choosen_config_id),
                     type='primary')
-
-progress_bar = st.progress(0.0)
-progress_text = st.info("")
 
 st.subheader('Jobs')
 config_df = get_all_config_ids_in_db_with_jobs()
@@ -67,28 +64,26 @@ if not config_df.empty:
         else:
             st.markdown('No runs selected to delete.')
 
-if not ('simulation_results' in st.session_state):
-    st.caption('Be aware that the download button returns last saved simulation '
-               'result which might be from another session.')
+# if not ('simulation_results' in st.session_state):
+#     st.caption('Be aware that the download button returns last saved simulation '
+#                'result which might be from another session.')
 
-results_download_button = st.empty()
-results_button(results_download_button)
+# results_download_button = st.empty()
+# results_button(results_download_button)
 
 if run_sim:
     run_sim = False
-    logger.info("Running simulation")
-    st.spinner("Running simulation")
+    t = threading.Thread(name='run_' + choosen_config_id, target=run_simulation, args=(choosen_config_id,))
+    add_script_run_ctx(t)
+    t.start()
+    st.experimental_rerun()
 
-    simulator = TradingSimulator(choosen_config_id, MOCK_DATA_PATH)
-    simulation_results = simulator(progress_bar, progress_text)
-    if simulation_results is not None:
-        set_simulation_results(simulation_results)
-        st.session_state.simulation_results = simulation_results
-        logger.info("Simulation finished!")
-        progress_text.success('Simulation finished!')
-        results_button(results_download_button)
-    else:
-        progress_text.error("Simulation could not finish!")
-        # TODO: Delete job ID
+# TODO: Add functionality to schedule removal of potential uncompleted jobs
 
+currently_running = [thread for thread in threading.enumerate()
+                     if (('run_' in thread.name) and (thread.is_alive()))]
+if len(currently_running) > 0:
+    st.markdown('Active jobs:')
+    for thread in currently_running:
+        st.info("Running job for config: {}".format(thread.name[4:]))
 st.write(footer.html, unsafe_allow_html=True)

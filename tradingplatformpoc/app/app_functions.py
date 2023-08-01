@@ -1,4 +1,5 @@
 import datetime
+import logging
 import os
 import pickle
 from typing import Tuple
@@ -9,7 +10,12 @@ import streamlit as st
 
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.compress import bz2_compress_pickle, bz2_decompress_pickle
+from tradingplatformpoc.constants import MOCK_DATA_PATH
 from tradingplatformpoc.results.simulation_results import SimulationResults
+from tradingplatformpoc.simulation_runner.trading_simulator import TradingSimulator
+
+
+logger = logging.getLogger(__name__)
 
 
 # ------------------------------------- Save result functions ---------------------------------
@@ -88,3 +94,19 @@ def update_multiselect_style():
         """,
         unsafe_allow_html=True,
     )
+
+
+def run_simulation(choosen_config_id: str):
+    logger.info("Running simulation")
+    simulator = TradingSimulator(choosen_config_id, MOCK_DATA_PATH)
+    simulation_results = simulator()
+    if simulation_results is not None:
+        set_simulation_results(simulation_results)
+        st.session_state.simulation_results = simulation_results
+        logger.info("Simulation finished!")
+        st.success('Simulation finished!')
+        # results_button(results_download_button)
+    else:
+        logger.error("Simulation could not finish!")
+        # TODO: Delete job ID
+        st.error("Simulation could not finish!")
