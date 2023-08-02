@@ -27,7 +27,8 @@ if len(config_ids) > 0:
 else:
     st.markdown('Set up a configuration in **Setup simulation**')
 
-run_sim = st.button("**CLICK TO RUN SIMULATION FOR *{}***".format(choosen_config_id),
+run_sim = st.button("**CLICK TO RUN SIMULATION FOR *{}***".format(choosen_config_id)
+                    if choosen_config_id is not None else "**CLICK TO RUN SIMULATION**",
                     disabled=(len(config_ids) == 0),
                     help='Click this button to start a simulation '
                     'run with the specified configuration: *{}*'.format(choosen_config_id),
@@ -64,26 +65,21 @@ if not config_df.empty:
         else:
             st.markdown('No runs selected to delete.')
 
-# if not ('simulation_results' in st.session_state):
-#     st.caption('Be aware that the download button returns last saved simulation '
-#                'result which might be from another session.')
-
-# results_download_button = st.empty()
-# results_button(results_download_button)
-
 if run_sim:
-    run_sim = False
     t = threading.Thread(name='run_' + choosen_config_id, target=run_simulation, args=(choosen_config_id,))
     add_script_run_ctx(t)
     t.start()
+    run_sim = False
     st.experimental_rerun()
 
 # TODO: Add functionality to schedule removal of potential uncompleted jobs
 
-currently_running = [thread for thread in threading.enumerate()
+# Display currently running jobs
+currently_running = [thread.name[4:] for thread in threading.enumerate()
                      if (('run_' in thread.name) and (thread.is_alive()))]
 if len(currently_running) > 0:
     st.markdown('Active jobs:')
-    for thread in currently_running:
-        st.info("Running job for config: {}".format(thread.name[4:]))
+    for active_cid in currently_running:
+        st.info("Running job for config: {}".format(active_cid))
+
 st.write(footer.html, unsafe_allow_html=True)
