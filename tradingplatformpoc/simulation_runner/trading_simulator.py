@@ -35,7 +35,7 @@ from tradingplatformpoc.sql.bid.crud import bids_to_db_objects, db_to_bid_df
 from tradingplatformpoc.sql.clearing_price.crud import clearing_prices_to_db_objects
 from tradingplatformpoc.sql.config.crud import read_config
 from tradingplatformpoc.sql.extra_cost.crud import db_to_extra_cost_df, extra_costs_to_db_objects
-from tradingplatformpoc.sql.heating_price.crud import db_to_heating_price_dicts,\
+from tradingplatformpoc.sql.heating_price.crud import db_to_heating_price_dicts, \
     external_heating_prices_to_db_objects
 from tradingplatformpoc.sql.job.crud import create_job_if_new_config, delete_job, update_job_with_end_time
 from tradingplatformpoc.sql.trade.crud import db_to_trade_df, get_total_grid_fee_paid_on_internal_trades, \
