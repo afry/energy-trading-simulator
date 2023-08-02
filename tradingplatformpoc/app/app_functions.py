@@ -99,14 +99,7 @@ def update_multiselect_style():
 def run_simulation(choosen_config_id: str):
     logger.info("Running simulation")
     simulator = TradingSimulator(choosen_config_id, MOCK_DATA_PATH)
-    simulation_results = simulator()
-    if simulation_results is not None:
-        set_simulation_results(simulation_results)
-        st.session_state.simulation_results = simulation_results
-        logger.info("Simulation finished!")
-        st.success('Simulation finished!')
-        # results_button(results_download_button)
-    else:
-        logger.error("Simulation could not finish!")
-        # TODO: Delete job ID
-        st.error("Simulation could not finish!")
+    simulator()
+    # TODO: Functionality to shut down job
+    # TODO: Delete job is not finnished?
+    # TODO: Add functionality to schedule removal of potential uncompleted jobs

@@ -72,8 +72,6 @@ if run_sim:
     run_sim = False
     st.experimental_rerun()
 
-# TODO: Add functionality to schedule removal of potential uncompleted jobs
-
 # Display currently running jobs
 currently_running = [thread.name[4:] for thread in threading.enumerate()
                      if (('run_' in thread.name) and (thread.is_alive()))]
