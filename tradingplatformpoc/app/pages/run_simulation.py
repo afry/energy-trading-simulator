@@ -1,5 +1,4 @@
 import logging
-import threading
 
 from st_pages import add_indentation, show_pages_from_config
 
@@ -7,7 +6,7 @@ import streamlit as st
 from streamlit.runtime.scriptrunner import add_script_run_ctx
 
 from tradingplatformpoc.app import footer
-from tradingplatformpoc.app.app_functions import run_simulation, set_max_width
+from tradingplatformpoc.app.app_functions import StoppableThread, get_running_threads, run_simulation, set_max_width
 from tradingplatformpoc.app.app_visualizations import color_in
 from tradingplatformpoc.sql.config.crud import get_all_config_ids_in_db_with_jobs, \
     get_all_config_ids_in_db_without_jobs, read_config
@@ -36,7 +35,7 @@ run_sim = st.button("**CLICK TO RUN SIMULATION FOR *{}***".format(choosen_config
                     type='primary')
 
 if run_sim:
-    t = threading.Thread(name='run_' + choosen_config_id, target=run_simulation, args=(choosen_config_id,))
+    t = StoppableThread(name='run_' + choosen_config_id, target=run_simulation, args=(choosen_config_id,))
     add_script_run_ctx(t)
     t.start()
     run_sim = False
@@ -45,13 +44,13 @@ if run_sim:
 
 st.subheader('Jobs')
 config_df = get_all_config_ids_in_db_with_jobs()
-currently_running = [thread.name[4:] for thread in threading.enumerate()
-                     if (('run_' in thread.name) and (thread.is_alive()))]
+
 if not config_df.empty:
     config_df['Delete'] = False
     # config_df['Delete'] = config_df['Delete'].astype(bool)
     config_df['Status'] = 'Could not finnish'
-    config_df.loc[config_df['Config ID'].isin(currently_running), 'Status'] = 'Running'
+    config_df.loc[config_df['Config ID'].isin([thread.name[4:] for thread in get_running_threads()]),
+                  'Status'] = 'Running'
     config_df.loc[config_df['End time'].notna(), 'Status'] = 'Completed'
     config_df_styled = config_df.style.applymap(color_in, subset=['Status'])\
         .set_properties(**{'background-color': '#f5f5f5'}, subset=['Status', 'Config ID'])
@@ -78,7 +77,11 @@ if not config_df.empty:
         delete_runs_submit = False
         if not edited_df[edited_df['Delete']].empty:
             for _i, row in edited_df[edited_df['Delete']].iterrows():
-                delete_job(row['Job ID'])
+                active = [thread for thread in get_running_threads() if thread.name == 'run_' + row['Config ID']]
+                if len(active) == 0:
+                    delete_job(row['Job ID'])
+                else:
+                    active[0].stop_it()
             st.experimental_rerun()
         else:
             st.markdown('No runs selected to delete.')

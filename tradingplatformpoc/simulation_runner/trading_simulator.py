@@ -2,6 +2,7 @@ import datetime
 import gc
 import logging
 import math
+import threading
 from typing import Any, Collection, Dict, List, Optional, Tuple
 
 import pandas as pd
@@ -178,7 +179,7 @@ class TradingSimulator:
 
         return agents, grid_agents
 
-    def run(self, number_of_batches=5):
+    def run(self, number_of_batches: int = 5):
         """
         The core loop of the simulation, running through the desired time period and performing trades.
         """
@@ -196,6 +197,9 @@ class TradingSimulator:
         batch_size = math.ceil(number_of_trading_periods / number_of_batches)
         # Loop over batches
         for batch_number in range(number_of_batches):
+            if threading.current_thread().is_stopped():
+                logger.error('Simulation stopped by event.')
+                raise Exception("Simulation stopped by event.")
             logger.info("Simulating batch number {} of {}".format(batch_number, number_of_batches))
             # Periods in batch
             trading_periods_in_this_batch = self.trading_periods[
