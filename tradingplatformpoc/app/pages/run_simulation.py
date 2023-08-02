@@ -6,7 +6,8 @@ import streamlit as st
 from streamlit.runtime.scriptrunner import add_script_run_ctx
 
 from tradingplatformpoc.app import footer
-from tradingplatformpoc.app.app_functions import StoppableThread, get_running_threads, run_simulation, set_max_width
+from tradingplatformpoc.app.app_functions import run_simulation, set_max_width
+from tradingplatformpoc.app.app_threading import StoppableThread, get_running_threads
 from tradingplatformpoc.app.app_visualizations import color_in
 from tradingplatformpoc.sql.config.crud import get_all_config_ids_in_db_with_jobs, \
     get_all_config_ids_in_db_without_jobs, read_config
