@@ -12,6 +12,7 @@ from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.agent.storage_agent import StorageAgent
+from tradingplatformpoc.app.app_threading import StoppableThread
 from tradingplatformpoc.data.preproccessing import read_energy_data, read_irradiation_data, read_nordpool_data
 from tradingplatformpoc.database import bulk_insert
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
@@ -197,9 +198,11 @@ class TradingSimulator:
         batch_size = math.ceil(number_of_trading_periods / number_of_batches)
         # Loop over batches
         for batch_number in range(number_of_batches):
-            if threading.current_thread().is_stopped():
-                logger.error('Simulation stopped by event.')
-                raise Exception("Simulation stopped by event.")
+            current_thread = threading.current_thread()
+            if isinstance(current_thread, StoppableThread):
+                if current_thread.is_stopped():
+                    logger.error('Simulation stopped by event.')
+                    raise Exception("Simulation stopped by event.")
             logger.info("Simulating batch number {} of {}".format(batch_number, number_of_batches))
             # Periods in batch
             trading_periods_in_this_batch = self.trading_periods[
