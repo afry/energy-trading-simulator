@@ -8,6 +8,7 @@ from streamlit.runtime.scriptrunner import add_script_run_ctx
 
 from tradingplatformpoc.app import footer
 from tradingplatformpoc.app.app_functions import run_simulation, set_max_width
+from tradingplatformpoc.app.app_visualizations import color_in
 from tradingplatformpoc.sql.config.crud import get_all_config_ids_in_db_with_jobs, \
     get_all_config_ids_in_db_without_jobs, read_config
 from tradingplatformpoc.sql.job.crud import delete_job
@@ -34,14 +35,30 @@ run_sim = st.button("**CLICK TO RUN SIMULATION FOR *{}***".format(choosen_config
                     'run with the specified configuration: *{}*'.format(choosen_config_id),
                     type='primary')
 
+if run_sim:
+    t = threading.Thread(name='run_' + choosen_config_id, target=run_simulation, args=(choosen_config_id,))
+    add_script_run_ctx(t)
+    t.start()
+    run_sim = False
+    st.experimental_rerun()
+
+
 st.subheader('Jobs')
 config_df = get_all_config_ids_in_db_with_jobs()
+currently_running = [thread.name[4:] for thread in threading.enumerate()
+                     if (('run_' in thread.name) and (thread.is_alive()))]
 if not config_df.empty:
     config_df['Delete'] = False
+    # config_df['Delete'] = config_df['Delete'].astype(bool)
+    config_df['Status'] = 'Could not finnish'
+    config_df.loc[config_df['Config ID'].isin(currently_running), 'Status'] = 'Running'
+    config_df.loc[config_df['End time'].notna(), 'Status'] = 'Completed'
+    config_df_styled = config_df.style.applymap(color_in, subset=['Status'])\
+        .set_properties(**{'background-color': '#f5f5f5'}, subset=['Status', 'Config ID'])
     delete_runs_form = st.form(key='Delete runs form')
     edited_df = delete_runs_form.data_editor(
-        config_df.set_index('Job ID'),
-        # use_container_width=True, # Caused shaking
+        config_df_styled,
+        # use_container_width=True,  # Caused shaking before
         key='delete_df',
         column_config={
             "Delete": st.column_config.CheckboxColumn(
@@ -50,8 +67,9 @@ if not config_df.empty:
                 default=False,
             )
         },
+        column_order=['Status', 'Config ID', 'Start time', 'End time', 'Description', 'Job ID', 'Delete'],
         hide_index=True,
-        disabled=["widgets"]
+        disabled=['Status', 'Config ID', 'Start time', 'End time', 'Description', 'Job ID']
     )
     delete_runs_submit = delete_runs_form.form_submit_button('**DELETE DATA FOR SELECTED RUNS**',
                                                              help='IMPORTANT: Clicking this button '
@@ -59,25 +77,10 @@ if not config_df.empty:
     if delete_runs_submit:
         delete_runs_submit = False
         if not edited_df[edited_df['Delete']].empty:
-            for job_id, _row in edited_df[edited_df['Delete']].iterrows():
-                delete_job(job_id)
+            for i, row in edited_df[edited_df['Delete']].iterrows():
+                delete_job(row['Job ID'])
             st.experimental_rerun()
         else:
             st.markdown('No runs selected to delete.')
-
-if run_sim:
-    t = threading.Thread(name='run_' + choosen_config_id, target=run_simulation, args=(choosen_config_id,))
-    add_script_run_ctx(t)
-    t.start()
-    run_sim = False
-    st.experimental_rerun()
-
-# Display currently running jobs
-currently_running = [thread.name[4:] for thread in threading.enumerate()
-                     if (('run_' in thread.name) and (thread.is_alive()))]
-if len(currently_running) > 0:
-    st.markdown('Active jobs:')
-    for active_cid in currently_running:
-        st.info("Running job for config: {}".format(active_cid))
 
 st.write(footer.html, unsafe_allow_html=True)

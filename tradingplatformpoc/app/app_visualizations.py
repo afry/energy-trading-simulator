@@ -383,3 +383,13 @@ def display_df_and_make_downloadable(df: pd.DataFrame,
         st.dataframe(df, height=height)
 
     download_df_as_csv_button(df, file_name, include_index=True)
+
+
+def color_in(val):
+    if 'Running' in val:
+        color = '#f7a34f'
+    elif 'Completed' in val:
+        color = '#5eab7e'
+    else:
+        color = '#f01d5c'
+    return 'color: %s' % color
