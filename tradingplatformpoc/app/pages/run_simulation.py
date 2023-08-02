@@ -67,7 +67,7 @@ if not config_df.empty:
                 default=False,
             )
         },
-        column_order=['Status', 'Config ID', 'Start time', 'End time', 'Description', 'Job ID', 'Delete'],
+        column_order=['Status', 'Config ID', 'Start time', 'End time', 'Description', 'Delete', 'Job ID'],
         hide_index=True,
         disabled=['Status', 'Config ID', 'Start time', 'End time', 'Description', 'Job ID']
     )
@@ -77,7 +77,7 @@ if not config_df.empty:
     if delete_runs_submit:
         delete_runs_submit = False
         if not edited_df[edited_df['Delete']].empty:
-            for i, row in edited_df[edited_df['Delete']].iterrows():
+            for _i, row in edited_df[edited_df['Delete']].iterrows():
                 delete_job(row['Job ID'])
             st.experimental_rerun()
         else:
