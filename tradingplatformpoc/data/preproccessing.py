@@ -4,6 +4,8 @@ import pandas as pd
 
 from pkg_resources import resource_filename
 
+# This file contains functions used for reading data from files.
+
 
 def read_electricitymap_data(data_path: str = "tradingplatformpoc.data",
                              electricitymap_file: str = "electricity_co2equivalents_year2019.csv"
