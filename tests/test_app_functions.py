@@ -122,13 +122,6 @@ class TestAppFunctions(TestCase):
                          config_data_agent_screening({'Agents': [{**mock_grid_he,
                                                                   **{'ThisIsNotAValidAgentParameter': 0.0}},
                                                                  mock_grid_el, mock_pv]}))
-        
-        # TODO: This can be removed when heating is implemented for StorageAgent
-        self.assertEqual("Resource HEATING is not yet availible for agent ThermalStorageAgent.",
-                         config_data_agent_screening({'Agents': [{'Type': 'StorageAgent',
-                                                                  'Name': 'ThermalStorageAgent',
-                                                                  'Resource': 'HEATING'},
-                                                                 mock_pv, mock_grid_el, mock_grid_he]}))
 
         # TransferRate of Storage Agent min value: 0.0
         mock_grid_he['TransferRate'] = -0.1
