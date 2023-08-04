@@ -59,11 +59,10 @@ def add_building_agent():
     })
 
 
-def add_storage_agent():
+def add_battery_agent():
     add_agent({
-        "Type": "StorageAgent",
-        "Resource": "ELECTRICITY",
-        **read_agent_defaults("StorageAgent", read_agent_specs())
+        "Type": "BatteryAgent",
+        **read_agent_defaults("BatteryAgent", read_agent_specs())
     })
 
 
@@ -96,11 +95,6 @@ def agent_inputs(agent, new: bool = False):
         agent['Resource'] = form.selectbox('Resource', options=ALL_IMPLEMENTED_RESOURCES_STR,
                                            key='ResourceSelectBox' + agent['Name'],
                                            index=ALL_IMPLEMENTED_RESOURCES_STR.index(agent['Resource']))
-    elif agent['Type'] == 'StorageAgent':
-        # TODO: options should be ALL_IMPLEMENTED_RESOURCES_STR when HEATING is implemented for StorageAgent
-        agent['Resource'] = form.selectbox('Resource', options=['ELECTRICITY'],
-                                           key='ResourceSelectBox' + agent['Name'],
-                                           index=['ELECTRICITY'].index(agent['Resource']))
 
     # Parameters
     agent_specs = read_agent_specs()
