@@ -54,14 +54,14 @@ def delete_job(job_id: str,
         job = db.get(Job, job_id)
         if not job:
             logger.error('No job in database with ID {}'.format(job_id))
+        else:
+            # TODO: Delete job AND ALL RELATED DATA if run not completed, exception handling
+            db.execute(delete(TableTrade).where(TableTrade.job_id == job_id))
+            db.execute(delete(TableBid).where(TableBid.job_id == job_id))
+            db.execute(delete(TableExtraCost).where(TableExtraCost.job_id == job_id))
 
-        # TODO: Delete job AND ALL RELATED DATA if run not completed, exception handling
-        db.execute(delete(TableTrade).where(TableTrade.job_id == job_id))
-        db.execute(delete(TableBid).where(TableBid.job_id == job_id))
-        db.execute(delete(TableExtraCost).where(TableExtraCost.job_id == job_id))
-
-        db.delete(job)
-        db.commit()
+            db.delete(job)
+            db.commit()
 
 
 # TODO: If job for config exists show or delete and rerun

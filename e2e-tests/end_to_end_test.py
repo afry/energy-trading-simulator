@@ -2,11 +2,15 @@ from unittest import TestCase
 
 from pkg_resources import resource_filename
 
-from tradingplatformpoc.app.app_inputs import read_config
+from tradingplatformpoc.config.access_config import read_config
 from tradingplatformpoc.constants import MOCK_DATA_PATH
 from tradingplatformpoc.market.bid import Action
 from tradingplatformpoc.simulation_runner.trading_simulator import TradingSimulator
+from tradingplatformpoc.sql.clearing_price.crud import get_periods_from_clearing_prices
+from tradingplatformpoc.sql.config.crud import create_config_if_not_in_db
+from tradingplatformpoc.sql.extra_cost.crud import db_to_extra_cost_df
 from tradingplatformpoc.sql.job.crud import delete_job
+from tradingplatformpoc.sql.trade.crud import db_to_trade_df
 from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES
 
 mock_datas_file_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
@@ -22,13 +26,17 @@ class Test(TestCase):
         amount of energy sold. Furthermore, it will look at monetary compensation, and make sure that the amounts paid
         and received by different actors all match up.
         """
-        simulator = TradingSimulator('end_to_end_job_id', config_data, MOCK_DATA_PATH)
-        simulation_results = simulator()
+        delete_job('end_to_end_job_id')
+        create_config_if_not_in_db(config_data, 'end_to_end_job_id', 'Default setup')
+        simulator = TradingSimulator('end_to_end_job_id', MOCK_DATA_PATH)
+        simulator()
 
-        for period in simulation_results.clearing_prices_historical.keys():
-            trades_for_period = simulation_results.all_trades.loc[simulation_results.all_trades.period == period]
-            extra_costs_for_period = simulation_results.all_extra_costs.loc[simulation_results.all_extra_costs.period
-                                                                            == period]
+        all_trades = db_to_trade_df('end_to_end_job_id')
+        all_extra_costs = db_to_extra_cost_df('end_to_end_job_id')
+
+        for period in get_periods_from_clearing_prices('end_to_end_job_id'):
+            trades_for_period = all_trades.loc[all_trades.period == period]
+            extra_costs_for_period = all_extra_costs.loc[all_extra_costs.period == period]
             for resource in ALL_IMPLEMENTED_RESOURCES:
                 trades_for_period_and_resource = trades_for_period.loc[trades_for_period.resource == resource]
                 energy_bought_kwh = sum(trades_for_period_and_resource.loc[trades_for_period_and_resource.action
