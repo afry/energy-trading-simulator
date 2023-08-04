@@ -3,19 +3,22 @@ import logging
 import pickle
 from typing import Any, Collection, Dict, List, Tuple, Union
 
+import numpy as np
+
 import pandas as pd
 
-from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.generate_data import generate_mock_data
 from tradingplatformpoc.generate_data.mock_data_generation_functions import MockDataKey, get_all_building_agents
 from tradingplatformpoc.market.bid import Action, GrossBid, NetBid, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.market.trade import Trade, TradeMetadataKey
+from tradingplatformpoc.price.electricity_price import ElectricityPrice
+from tradingplatformpoc.price.heating_price import HeatingPrice
 from tradingplatformpoc.trading_platform_utils import add_to_nested_dict
 
 logger = logging.getLogger(__name__)
 
 
-def net_bids_from_gross_bids(gross_bids: List[GrossBid], data_store_entity: DataStore) -> List[NetBid]:
+def net_bids_from_gross_bids(gross_bids: List[GrossBid], electricty_pricing: ElectricityPrice) -> List[NetBid]:
     """
     Add in internal tax and internal grid fee for internal SELL bids (for electricity, heating is not taxed).
     Note: External electricity bids already have grid fee
@@ -24,10 +27,10 @@ def net_bids_from_gross_bids(gross_bids: List[GrossBid], data_store_entity: Data
     for bid in gross_bids:
         if bid.action == Action.SELL and bid.resource == Resource.ELECTRICITY:
             if bid.by_external:
-                net_price = data_store_entity.get_electricity_net_external_price(bid.price)
+                net_price = electricty_pricing.get_electricity_net_external_price(bid.price)
                 net_bids.append(NetBid.from_gross_bid(bid, net_price))
             else:
-                net_price = data_store_entity.get_electricity_net_internal_price(bid.price)
+                net_price = electricty_pricing.get_electricity_net_internal_price(bid.price)
                 net_bids.append(NetBid.from_gross_bid(bid, net_price))
         else:
             net_bids.append(NetBid.from_gross_bid(bid, bid.price))
@@ -53,7 +56,7 @@ def go_through_trades_metadata(metadata: Dict[TradeMetadataKey, Any], period: da
                         format(metadata_key, metadata[metadata_key]))
 
 
-def get_external_heating_prices(data_store_entity: DataStore, trading_periods: Collection[datetime.datetime]) -> \
+def get_external_heating_prices(heat_pricing: HeatingPrice, trading_periods: Collection[datetime.datetime]) -> \
         Tuple[Dict[Tuple[int, int], float],
               Dict[Tuple[int, int], float],
               Dict[Tuple[int, int], float],
@@ -65,13 +68,13 @@ def get_external_heating_prices(data_store_entity: DataStore, trading_periods: C
     for (year, month) in set([(dt.year, dt.month) for dt in trading_periods]):
         first_day_of_month = datetime.datetime(year, month, 1)  # Which day it is doesn't matter
         exact_retail_heating_prices_by_year_and_month[(year, month)] = \
-            data_store_entity.get_exact_retail_price(first_day_of_month, Resource.HEATING, include_tax=True)
+            heat_pricing.get_exact_retail_price(first_day_of_month, include_tax=True)
         exact_wholesale_heating_prices_by_year_and_month[(year, month)] = \
-            data_store_entity.get_exact_wholesale_price(first_day_of_month, Resource.HEATING)
+            heat_pricing.get_exact_wholesale_price(first_day_of_month)
         estimated_retail_heating_prices_by_year_and_month[(year, month)] = \
-            data_store_entity.get_estimated_retail_price(first_day_of_month, Resource.HEATING, include_tax=True)
+            heat_pricing.get_estimated_retail_price(first_day_of_month, include_tax=True)
         estimated_wholesale_heating_prices_by_year_and_month[(year, month)] = \
-            data_store_entity.get_estimated_wholesale_price(first_day_of_month, Resource.HEATING)
+            heat_pricing.get_estimated_wholesale_price(first_day_of_month)
     return estimated_retail_heating_prices_by_year_and_month, \
         estimated_wholesale_heating_prices_by_year_and_month, \
         exact_retail_heating_prices_by_year_and_month, \
@@ -112,3 +115,23 @@ def construct_df_from_datetime_dict(some_dict: Union[Dict[datetime.datetime, Col
     logger.info('Constructing dataframe from datetime dict')
     return pd.DataFrame([x.to_dict_with_period(period) for period, some_collection in some_dict.items()
                          for x in some_collection])
+
+
+def get_local_price_if_exists_else_external_estimate(period: datetime.datetime, clearing_prices_historical:
+                                                     Union[Dict[datetime.datetime, Dict[Resource, float]], None],
+                                                     pricing: Collection[Union[ElectricityPrice, HeatingPrice]]
+                                                     ) -> Dict[Resource, float]:
+    to_return = {}
+
+    if clearing_prices_historical is not None:
+        clearing_prices = dict(clearing_prices_historical)
+        if period in clearing_prices:
+            to_return = clearing_prices[period].copy()  # Copy to avoid modifying clearing_prices_historical
+    for pricing_for_resource in pricing:
+        if (pricing_for_resource.resource not in to_return) or (to_return[pricing_for_resource.resource] is None)\
+           or (np.isnan(to_return[pricing_for_resource.resource])):
+            logger.debug('For period {}, resource {}, no historical clearing prices available, will use external '
+                         'prices instead.'.format(period, pricing_for_resource.resource))
+            to_return[pricing_for_resource.resource] = pricing_for_resource.get_estimated_retail_price(period,
+                                                                                                       include_tax=True)
+    return to_return

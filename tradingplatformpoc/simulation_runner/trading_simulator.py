@@ -4,17 +4,14 @@ from typing import Any, Collection, Dict, List, Tuple, Union
 
 import pandas as pd
 
-from pkg_resources import resource_filename
-
 import streamlit as st
 
-from tradingplatformpoc import data_store
 from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.agent.storage_agent import StorageAgent
-from tradingplatformpoc.data_store import DataStore
+from tradingplatformpoc.data.preproccessing import read_energy_data, read_irradiation_data, read_nordpool_data
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
 from tradingplatformpoc.generate_data.mock_data_generation_functions import get_elec_cons_key, \
@@ -25,6 +22,8 @@ from tradingplatformpoc.market.balance_manager import correct_for_exact_heating_
 from tradingplatformpoc.market.bid import GrossBid, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.market.extra_cost import ExtraCost
 from tradingplatformpoc.market.trade import Trade
+from tradingplatformpoc.price.electricity_price import ElectricityPrice
+from tradingplatformpoc.price.heating_price import HeatingPrice
 from tradingplatformpoc.results import results_calculator
 from tradingplatformpoc.results.simulation_results import SimulationResults
 from tradingplatformpoc.simulation_runner.progress import Progress
@@ -44,16 +43,24 @@ class TradingSimulator:
         self.config_data = config_data
         self.mock_datas_pickle_path = mock_datas_pickle_path
 
-        # Initialize data store
-        self.data_store_entity = DataStore.from_csv_files(config_area_info=self.config_data["AreaInfo"])
-
-        # Specify path for CSV files from which to take some mock data (currently only for grocery store)
-        self.energy_data_csv_path = resource_filename("tradingplatformpoc.data", "full_mock_energy_data.csv")
+        # Read data form files
+        # TODO: To be changed
+        external_price_data = read_nordpool_data()
+        self.heat_pricing: HeatingPrice = HeatingPrice(
+            heating_wholesale_price_fraction=self.config_data['AreaInfo']['ExternalHeatingWholesalePriceFraction'],
+            heat_transfer_loss=self.config_data['AreaInfo']["HeatTransferLoss"])
+        self.electricity_pricing: ElectricityPrice = ElectricityPrice(
+            elec_wholesale_offset=self.config_data['AreaInfo']['ExternalElectricityWholesalePriceOffset'],
+            elec_tax=self.config_data['AreaInfo']["ElectricityTax"],
+            elec_grid_fee=self.config_data['AreaInfo']["ElectricityGridFee"],
+            elec_tax_internal=self.config_data['AreaInfo']["ElectricityTaxInternal"],
+            elec_grid_fee_internal=self.config_data['AreaInfo']["ElectricityGridFeeInternal"],
+            nordpool_data=external_price_data)
 
         self.buildings_mock_data: pd.DataFrame = get_generated_mock_data(self.config_data, self.mock_datas_pickle_path)
 
         self.trading_periods = get_intersection(self.buildings_mock_data.index.tolist(),
-                                                self.data_store_entity.get_nordpool_data_datetimes())
+                                                self.electricity_pricing.get_external_price_data_datetimes())
 
         self.clearing_prices_historical: Dict[datetime.datetime, Dict[Resource, float]] = {}
         self.all_trades_dict: Dict[datetime.datetime, Collection[Trade]] \
@@ -80,16 +87,16 @@ class TradingSimulator:
         agents: List[IAgent] = []
         grid_agents: List[GridAgent] = []
 
-        # Read energy CSV file
-        tornet_household_elec_cons, coop_elec_cons, tornet_heat_cons, coop_heat_cons = \
-            data_store.read_energy_data(self.energy_data_csv_path)
+        # Read CSV files
+        tornet_household_elec_cons, coop_elec_cons, tornet_heat_cons, coop_heat_cons = read_energy_data()
+        irradiation_data = read_irradiation_data()
 
         for agent in self.config_data["Agents"]:
             agent_type = agent["Type"]
             agent_name = agent['Name']
 
             if agent_type in ["BuildingAgent", "PVAgent", "GroceryStoreAgent"]:
-                pv_prod_series = calculate_solar_prod(self.data_store_entity.irradiation_data,
+                pv_prod_series = calculate_solar_prod(irradiation_data,
                                                       agent['PVArea'],
                                                       agent['PVEfficiency'])
             if agent_type == "BuildingAgent":
@@ -98,7 +105,7 @@ class TradingSimulator:
                 hot_tap_water_cons_series = self.buildings_mock_data[get_hot_tap_water_cons_key(agent_name)]
 
                 # We're not currently supporting different temperatures of heating,
-                # it's just "heating" as a very simplified
+                # it's just "heating" as a very simplifiedS
                 # entity. Therefore we'll bunch them together here for now.
                 total_heat_cons_series = space_heat_cons_series + hot_tap_water_cons_series
 
@@ -106,7 +113,9 @@ class TradingSimulator:
                                                           electricity_production=pv_prod_series,
                                                           heating_usage=total_heat_cons_series)
 
-                agents.append(BuildingAgent(data_store=self.data_store_entity, digital_twin=building_digital_twin,
+                agents.append(BuildingAgent(heat_pricing=self.heat_pricing,
+                                            electricity_pricing=self.electricity_pricing,
+                                            digital_twin=building_digital_twin,
                                             guid=agent_name, nbr_heat_pumps=agent["NumberHeatPumps"],
                                             coeff_of_perf=agent["COP"]))
 
@@ -115,7 +124,7 @@ class TradingSimulator:
                                                           max_charge_rate_fraction=agent["ChargeRate"],
                                                           max_discharge_rate_fraction=agent["DischargeRate"],
                                                           discharging_efficiency=agent["RoundTripEfficiency"])
-                agents.append(StorageAgent(self.data_store_entity, storage_digital_twin,
+                agents.append(StorageAgent(self.electricity_pricing, storage_digital_twin,
                                            resource=Resource[agent["Resource"]],
                                            n_hours_to_look_back=agent["NHoursBack"],
                                            buy_price_percentile=agent["BuyPricePercentile"],
@@ -123,16 +132,22 @@ class TradingSimulator:
                                            guid=agent_name))
             elif agent_type == "PVAgent":
                 pv_digital_twin = StaticDigitalTwin(electricity_production=pv_prod_series)
-                agents.append(PVAgent(self.data_store_entity, pv_digital_twin, guid=agent_name))
+                agents.append(PVAgent(self.electricity_pricing, pv_digital_twin, guid=agent_name))
             elif agent_type == "GroceryStoreAgent":
                 grocery_store_digital_twin = StaticDigitalTwin(electricity_usage=coop_elec_cons,
                                                                heating_usage=coop_heat_cons,
                                                                electricity_production=pv_prod_series)
-                agents.append(BuildingAgent(data_store=self.data_store_entity, digital_twin=grocery_store_digital_twin,
+                agents.append(BuildingAgent(heat_pricing=self.heat_pricing,
+                                            electricity_pricing=self.electricity_pricing,
+                                            digital_twin=grocery_store_digital_twin,
                                             guid=agent_name))
             elif agent_type == "GridAgent":
-                grid_agent = GridAgent(self.data_store_entity, Resource[agent["Resource"]],
-                                       max_transfer_per_hour=agent["TransferRate"], guid=agent_name)
+                if Resource[agent["Resource"]] == Resource.ELECTRICITY:
+                    grid_agent = GridAgent(self.electricity_pricing, Resource[agent["Resource"]],
+                                           max_transfer_per_hour=agent["TransferRate"], guid=agent_name)
+                elif Resource[agent["Resource"]] == Resource.HEATING:
+                    grid_agent = GridAgent(self.heat_pricing, Resource[agent["Resource"]],
+                                           max_transfer_per_hour=agent["TransferRate"], guid=agent_name)
                 agents.append(grid_agent)
                 grid_agents.append(grid_agent)
 
@@ -175,7 +190,7 @@ class TradingSimulator:
             bids_flat: List[GrossBid] = flatten_collection(bids)
 
             # Add in tax and grid fee for SELL bids (for electricity, heating is not taxed)
-            net_bids = net_bids_from_gross_bids(bids_flat, self.data_store_entity)
+            net_bids = net_bids_from_gross_bids(bids_flat, self.electricity_pricing)
 
             # Resolve bids
             clearing_prices, bids_with_acceptance_status = market_solver.resolve_bids(period, net_bids)
@@ -213,14 +228,12 @@ class TradingSimulator:
             self.tax_paid = self.tax_paid + tax_paid_period
 
             external_heating_sell_quantity = get_quantity_heating_sold_by_external_grid(external_trades)
-            self.data_store_entity.add_external_heating_sell(period, external_heating_sell_quantity)
+            self.heat_pricing.add_external_heating_sell(period, external_heating_sell_quantity)
 
-            wholesale_price_elec = self.data_store_entity.get_exact_wholesale_price(period, Resource.ELECTRICITY)
-            retail_price_elec = self.data_store_entity.get_exact_retail_price(period, Resource.ELECTRICITY,
-                                                                              include_tax=True)
+            wholesale_price_elec = self.electricity_pricing.get_exact_wholesale_price(period)
+            retail_price_elec = self.electricity_pricing.get_exact_retail_price(period, include_tax=True)
             wholesale_prices = {Resource.ELECTRICITY: wholesale_price_elec,
-                                Resource.HEATING: self.data_store_entity
-                                .get_estimated_wholesale_price(period, Resource.HEATING)}
+                                Resource.HEATING: self.heat_pricing.get_estimated_wholesale_price(period)}
             extra_costs = balance_manager.calculate_penalty_costs_for_period(bids_with_acceptance_status,
                                                                              all_trades_for_period,
                                                                              period,
@@ -245,7 +258,8 @@ class TradingSimulator:
         estimated_retail_heat_price_by_ym, \
             estimated_wholesale_heat_price_by_ym, \
             exact_retail_heat_price_by_ym, \
-            exact_wholesale_heat_price_by_ym = get_external_heating_prices(self.data_store_entity, self.trading_periods)
+            exact_wholesale_heat_price_by_ym = get_external_heating_prices(self.heat_pricing,
+                                                                           self.trading_periods)
 
         logger.info('Calculating heat_cost_discr_corrections')
         heat_cost_discr_corrections = correct_for_exact_heating_price(self.trading_periods, self.all_trades_dict,
@@ -293,7 +307,7 @@ class TradingSimulator:
                                     heat_pump_levels_dict=self.heat_pump_levels_dict,
                                     config_data=self.config_data,
                                     agents=self.agents,
-                                    data_store=self.data_store_entity,
+                                    pricing=[self.heat_pricing, self.electricity_pricing],
                                     grid_fees_paid_on_internal_trades=self.grid_fees_paid_on_internal_trades,
                                     tax_paid=self.tax_paid,
                                     exact_retail_heating_prices_by_year_and_month=exact_retail_heat_price_by_ym,
