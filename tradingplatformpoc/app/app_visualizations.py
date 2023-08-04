@@ -19,6 +19,7 @@ from tradingplatformpoc.app.app_functions import download_df_as_csv_button
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.generate_data.generate_mock_data import create_inputs_df
 from tradingplatformpoc.market.bid import Action, Resource
+from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.results.results_key import ResultsKey
 from tradingplatformpoc.results.simulation_results import SimulationResults
 
@@ -144,21 +145,25 @@ def construct_prices_df(simulation_results: SimulationResults) -> pd.DataFrame:
     clearing_prices_df['Resource'] = clearing_prices_df['variable']
     clearing_prices_df.variable = app_constants.LOCAL_PRICE_STR
 
-    data_store_entity = simulation_results.data_store
-    nordpool_data = data_store_entity.nordpool_data
-    nordpool_data.name = 'value'
-    nordpool_data = nordpool_data.to_frame().reset_index()
-    nordpool_data['Resource'] = Resource.ELECTRICITY
-    nordpool_data.rename({'datetime': 'period'}, axis=1, inplace=True)
-    nordpool_data['period'] = pd.to_datetime(nordpool_data['period'])
-    retail_df = nordpool_data.copy()
-    gross_prices = data_store_entity.get_electricity_gross_retail_price_from_nordpool_price(retail_df['value'])
-    retail_df['value'] = data_store_entity.get_electricity_net_external_price(gross_prices)
-    retail_df['variable'] = app_constants.RETAIL_PRICE_STR
-    wholesale_df = nordpool_data.copy()
-    wholesale_df['value'] = data_store_entity.get_electricity_wholesale_price_from_nordpool_price(wholesale_df['value'])
-    wholesale_df['variable'] = app_constants.WHOLESALE_PRICE_STR
-    return pd.concat([clearing_prices_df, retail_df, wholesale_df])
+    pricing = simulation_results.pricing
+    elec_pricing = [p for p in pricing if p.resource == Resource.ELECTRICITY][0]
+    if isinstance(elec_pricing, ElectricityPrice):
+        nordpool_data = elec_pricing.nordpool_data
+        nordpool_data.name = 'value'
+        nordpool_data = nordpool_data.to_frame().reset_index()
+        nordpool_data['Resource'] = Resource.ELECTRICITY
+        nordpool_data.rename({'datetime': 'period'}, axis=1, inplace=True)
+        nordpool_data['period'] = pd.to_datetime(nordpool_data['period'])
+        retail_df = nordpool_data.copy()
+        gross_prices = elec_pricing.get_electricity_gross_retail_price_from_nordpool_price(retail_df['value'])
+        retail_df['value'] = elec_pricing.get_electricity_net_external_price(gross_prices)
+        retail_df['variable'] = app_constants.RETAIL_PRICE_STR
+        wholesale_df = nordpool_data.copy()
+        wholesale_df['value'] = elec_pricing.get_electricity_wholesale_price_from_nordpool_price(wholesale_df['value'])
+        wholesale_df['variable'] = app_constants.WHOLESALE_PRICE_STR
+        return pd.concat([clearing_prices_df, retail_df, wholesale_df])
+    else:
+        raise TypeError('Prices are not instance of ElectricityPrice!')
 
 
 # @st.cache_data
@@ -213,7 +218,7 @@ def get_total_import_export(resource: Resource, action: Action,
     if mask is not None:
         conditions = (conditions & mask)
 
-    return st.session_state.simulation_results.all_trades.loc[conditions].quantity_post_loss.sum()
+    return st.session_state.simulation_results.all_trades.loc[conditions].quantity_post_loss.to_numpy().sum()
 
 
 def aggregated_import_and_export_results_df_split_on_mask(mask: pd.DataFrame,

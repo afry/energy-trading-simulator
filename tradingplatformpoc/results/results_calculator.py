@@ -45,24 +45,26 @@ def calc_basic_results_for_agent(agent: IAgent, all_trades: pd.DataFrame, all_ex
     elec_sell_trades = trades_df.loc[(trades_df.action == Action.SELL) & (trades_df.resource == Resource.ELECTRICITY)]
     heat_sell_trades = trades_df.loc[(trades_df.action == Action.SELL) & (trades_df.resource == Resource.HEATING)]
 
-    quantity_bought_elec = elec_buy_trades.quantity_pre_loss.sum()
-    quantity_bought_heat = heat_buy_trades.quantity_pre_loss.sum()
-    quantity_sold_elec = elec_sell_trades.quantity_post_loss.sum()
-    quantity_sold_heat = heat_sell_trades.quantity_post_loss.sum()
+    quantity_bought_elec = elec_buy_trades.quantity_pre_loss.to_numpy().sum()
+    quantity_bought_heat = heat_buy_trades.quantity_pre_loss.to_numpy().sum()
+    quantity_sold_elec = elec_sell_trades.quantity_post_loss.to_numpy().sum()
+    quantity_sold_heat = heat_sell_trades.quantity_post_loss.to_numpy().sum()
     sek_bought_for_elec = sum_total_bought_for(elec_buy_trades)
     sek_bought_for_heat = sum_total_bought_for(heat_buy_trades)
     sek_sold_for_elec = sum_total_sold_for(elec_sell_trades)
     sek_sold_for_heat = sum_total_sold_for(heat_sell_trades)
-    sek_tax_paid = trades_df.apply(lambda x: x.quantity_post_loss * x.tax_paid, axis=1).sum()
-    sek_grid_fee_paid = trades_df.apply(lambda x: x.quantity_post_loss * x.grid_fee_paid, axis=1).sum()
+    sek_tax_paid = pd.eval("trades_df.quantity_post_loss * trades_df.tax_paid").to_numpy().sum()
+    sek_grid_fee_paid = pd.eval("trades_df.quantity_post_loss * trades_df.grid_fee_paid").to_numpy().sum()
     sek_bought_for = sek_bought_for_heat + sek_bought_for_elec
     sek_sold_for = sek_sold_for_heat + sek_sold_for_elec
     sek_traded_for = sek_bought_for + sek_sold_for
 
     if not isinstance(agent, GridAgent):
         ec_df = all_extra_costs.loc[all_extra_costs.agent == agent.guid]
-        extra_costs_for_bad_bids = ec_df.loc[ec_df.cost_type.apply(lambda x: x.is_for_bid_inaccuracy())].cost.sum()
-        extra_costs_for_heat_cost_discr = ec_df.loc[ec_df.cost_type == ExtraCostType.HEAT_EXT_COST_CORR].cost.sum()
+        extra_costs_for_bad_bids = ec_df.loc[ec_df.cost_type.apply(lambda x: x.is_for_bid_inaccuracy())] \
+            .cost.to_numpy().sum()
+        extra_costs_for_heat_cost_discr = ec_df.loc[ec_df.cost_type == ExtraCostType.HEAT_EXT_COST_CORR] \
+            .cost.to_numpy().sum()
 
         saved_on_buy, saved_on_sell = get_savings_vs_only_external(trades_df,
                                                                    exact_retail_electricity_prices_by_period,
@@ -136,7 +138,8 @@ def sum_total_bought_for(buy_trades: pd.DataFrame) -> float:
     pandas can log a FutureWarning if trying to sum on an apply of an empty df, so if the length is 0, we just return
     0 directly.
     """
-    return buy_trades.apply(lambda x: x.quantity_pre_loss * x.price, axis=1).sum() if len(buy_trades) > 0 else 0.0
+    return pd.eval("buy_trades.quantity_pre_loss * buy_trades.price").to_numpy().sum() \
+        if len(buy_trades) > 0 else 0.0
 
 
 def sum_total_sold_for(sell_trades: pd.DataFrame) -> float:
@@ -146,7 +149,8 @@ def sum_total_sold_for(sell_trades: pd.DataFrame) -> float:
     pandas can log a FutureWarning if trying to sum on an apply of an empty df, so if the length is 0, we just return
     0 directly.
     """
-    return sell_trades.apply(lambda x: x.quantity_post_loss * x.price, axis=1).sum() if len(sell_trades) > 0 else 0.0
+    return pd.eval("sell_trades.quantity_post_loss * sell_trades.price").to_numpy().sum() \
+        if len(sell_trades) > 0 else 0.0
 
 
 def get_savings_vs_only_external(trades_for_agent: pd.DataFrame,

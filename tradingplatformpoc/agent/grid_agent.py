@@ -3,9 +3,10 @@ import logging
 from typing import Any, Dict, Iterable, List, Tuple, Union
 
 from tradingplatformpoc.agent.iagent import IAgent
-from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.market.bid import Action, GrossBid, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.market.trade import Market, Trade, TradeMetadataKey
+from tradingplatformpoc.price.electricity_price import ElectricityPrice
+from tradingplatformpoc.price.heating_price import HeatingPrice
 
 logger = logging.getLogger(__name__)
 
@@ -13,19 +14,27 @@ logger = logging.getLogger(__name__)
 class GridAgent(IAgent):
     resource: Resource
     max_transfer_per_hour: float
+    pricing: Union[HeatingPrice, ElectricityPrice]
 
-    def __init__(self, data_store: DataStore, resource: Resource, max_transfer_per_hour=10000, guid="GridAgent"):
-        super().__init__(guid, data_store)
+    def __init__(self, pricing: Union[HeatingPrice, ElectricityPrice], resource: Resource,
+                 max_transfer_per_hour=10000, guid="GridAgent"):
+        super().__init__(guid)
         self.resource = resource
+        self.pricing = self._is_valid_pricing(pricing)
         self.max_transfer_per_hour = max_transfer_per_hour
-        self.resource_loss_per_side = (data_store.heat_transfer_loss_per_side if self.resource == Resource.HEATING
-                                       else 0)
+        self.resource_loss_per_side = self.pricing.heat_transfer_loss_per_side if isinstance(self.pricing,
+                                                                                             HeatingPrice) else 0.0
+        
+    def _is_valid_pricing(self, pricing: Union[HeatingPrice, ElectricityPrice]):
+        if self.resource != pricing.resource:
+            raise ValueError("Resource and pricing resource for GridAgent does not match up!")
+        return pricing
 
     def make_bids(self, period: datetime.datetime, clearing_prices_historical: Union[Dict[datetime.datetime, Dict[
             Resource, float]], None] = None) -> List[GrossBid]:
         # Submit a bid to sell energy
         # Get the retail price, taxes will be added later
-        retail_price = self.data_store.get_estimated_retail_price(period, self.resource, include_tax=False)
+        retail_price = self.pricing.get_estimated_retail_price(period, include_tax=False)
         # Sell up to self.max_transfer_per_hour kWh
         bid_to_sell = self.construct_gross_bid(Action.SELL, self.resource, self.max_transfer_per_hour, retail_price)
         # Note: In FED, this agent also submits a BUY bid at "wholesale price". To implement this, we'd need a way
@@ -69,8 +78,8 @@ class GridAgent(IAgent):
         trades_for_period_resource = [trade for trade in trades_for_this_resource if trade.period == period]
         # Using "estimated" price here rather than "exact", so we're gonna have to calculate the difference between
         # them, and who pays that, at a later stage
-        retail_price = self.data_store.get_estimated_retail_price(period, self.resource, include_tax=True)
-        wholesale_price = self.data_store.get_estimated_wholesale_price(period, self.resource)
+        retail_price = self.pricing.get_estimated_retail_price(period, include_tax=True)
+        wholesale_price = self.pricing.get_estimated_wholesale_price(period)
 
         self.calculate_external_trades_for_resource_and_market(Market.LOCAL, period, self.resource,
                                                                trades_for_period_resource, trades_to_add,
@@ -94,7 +103,7 @@ class GridAgent(IAgent):
         if sum_buys > sum_sells:
             deficit_in_market = sum_buys - sum_sells
             need_to_provide = deficit_in_market / (1 - self.resource_loss_per_side)
-            tax_to_pay = self.data_store.elec_tax if resource == Resource.ELECTRICITY else 0
+            tax_to_pay = self.pricing.elec_tax if isinstance(self.pricing, ElectricityPrice) else 0.0
             trades_to_add.append(
                 Trade(Action.SELL, resource, need_to_provide, retail_price, self.guid, True, market, period,
                       loss=self.resource_loss_per_side,

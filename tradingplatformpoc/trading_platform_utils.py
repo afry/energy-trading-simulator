@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta
 from typing import Any, Collection, Dict, List
 
@@ -10,6 +11,8 @@ from tradingplatformpoc.market.bid import Resource
 ALL_IMPLEMENTED_RESOURCES = [Resource.ELECTRICITY, Resource.HEATING]
 ALL_IMPLEMENTED_RESOURCES_STR = [res.name for res in ALL_IMPLEMENTED_RESOURCES]
 ALL_AGENT_TYPES = ["BuildingAgent", "PVAgent", "BatteryAgent", "GridAgent", "GroceryStoreAgent"]
+
+logger = logging.getLogger(__name__)
 
 
 def minus_n_hours(t1: datetime, n_hours: int):

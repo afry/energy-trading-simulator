@@ -4,17 +4,13 @@ from unittest import TestCase
 
 import numpy as np
 
-import pandas as pd
-
 from pkg_resources import resource_filename
-
-from tests import utility_test_objects
 
 from tradingplatformpoc.config.access_config import read_config
 from tradingplatformpoc.constants import MOCK_DATA_PATH
-from tradingplatformpoc.data_store import DataStore
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.market.trade import Market, Trade
+from tradingplatformpoc.price.heating_price import HeatingPrice
 from tradingplatformpoc.simulation_runner.simulation_utils import construct_df_from_datetime_dict, \
     get_external_heating_prices, get_quantity_heating_sold_by_external_grid
 from tradingplatformpoc.simulation_runner.trading_simulator import TradingSimulator
@@ -24,8 +20,9 @@ from tradingplatformpoc.trading_platform_utils import hourly_datetime_array_betw
 class Test(TestCase):
     mock_datas_file_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
     config = read_config(name='default')
-    empty_data_store = DataStore(utility_test_objects.AREA_INFO, pd.Series(dtype=float), pd.Series(dtype=float),
-                                 pd.Series(dtype=float))
+    heat_pricing: HeatingPrice = HeatingPrice(
+        heating_wholesale_price_fraction=config['AreaInfo']['ExternalHeatingWholesalePriceFraction'],
+        heat_transfer_loss=config['AreaInfo']["HeatTransferLoss"])
 
     def test_initialize_agents(self):
         """Test that an error is thrown if no GridAgents are initialized."""
@@ -49,7 +46,7 @@ class Test(TestCase):
                 estimated_wholesale_heating_prices_by_year_and_month, \
                 exact_retail_heating_prices_by_year_and_month, \
                 exact_wholesale_heating_prices_by_year_and_month = get_external_heating_prices(
-                    self.empty_data_store, hourly_datetime_array_between(
+                    self.heat_pricing, hourly_datetime_array_between(
                         datetime.datetime(2019, 2, 1), datetime.datetime(2019, 2, 2)))
         self.assertTrue(len(captured.records) > 0)
         log_levels_captured = [rec.levelname for rec in captured.records]
