@@ -38,5 +38,17 @@ def db_to_bid_df(job_id: str,
                                            'price': bid.price,
                                            'source': bid.source,
                                            'by_external': bid.by_external,
-                                           'accepted_quantity': bid.quantity
                                            } for (bid, ) in bids])
+
+
+def db_to_bid_df_for_agent(job_id: str, agent_guid: str, session_generator: Callable[[],
+                           _GeneratorContextManager[Session]] = session_scope) -> pd.DataFrame:
+    with session_generator() as db:
+        bids = db.query(TableBid).filter(TableBid.source == agent_guid, TableBid.job_id == job_id).all()
+
+        return pd.DataFrame.from_records([{'period': bid.period,
+                                           'action': bid.action,
+                                           'resource': bid.resource,
+                                           'quantity': bid.quantity,
+                                           'price': bid.price,
+                                           } for bid in bids])
