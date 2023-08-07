@@ -312,7 +312,7 @@ def results_by_agent_as_df_with_highlight(df: pd.DataFrame, agent_chosen_guid: s
 
 
 def construct_traded_amount_by_agent_chart(agent_chosen_guid: str,
-                                           full_df: pd.DataFrame) -> alt.Chart:
+                                           agent_trade_df: pd.DataFrame) -> alt.Chart:
     """
     Plot amount of electricity and heating sold and bought.
     @param agent_chosen_guid: Name of chosen agent
@@ -333,14 +333,12 @@ def construct_traded_amount_by_agent_chart(agent_chosen_guid: str,
                             {'title': 'Amount of heating sold', 'color_num': 3,
                             'resource': Resource.HEATING, 'action': Action.SELL}]
 
-    full_df = full_df.loc[full_df['source'] == agent_chosen_guid].drop(['by_external'], axis=1)
-
     for elem in plot_lst:
-        mask = (full_df.resource.values == elem['resource']) & (full_df.action.values == elem['action'])
-        if not full_df.loc[mask].empty:
+        mask = (agent_trade_df.resource.values == elem['resource']) & (agent_trade_df.action.values == elem['action'])
+        if not agent_trade_df.loc[mask].empty:
             
-            df = pd.concat((df, pd.DataFrame({'period': full_df.loc[mask].period,
-                                              'value': full_df.loc[mask].quantity_post_loss,
+            df = pd.concat((df, pd.DataFrame({'period': agent_trade_df.loc[mask].period,
+                                              'value': agent_trade_df.loc[mask].quantity_post_loss,
                                               'variable': elem['title']})))
 
             domain.append(elem['title'])
