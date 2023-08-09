@@ -1,6 +1,6 @@
 import datetime
 import math
-from unittest import TestCase
+from unittest import TestCase, mock
 
 import numpy as np
 
@@ -8,18 +8,15 @@ import pandas as pd
 
 import pytz
 
-from tradingplatformpoc.database import bulk_insert, delete_from_db
 from tradingplatformpoc.market.balance_manager import calculate_penalty_costs_for_period_and_resource, \
     correct_for_exact_heating_price
 from tradingplatformpoc.market.bid import Action, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.market.trade import Market, Trade
-from tradingplatformpoc.sql.trade.crud import trades_to_db_objects
 
 
-class Test(TestCase):
+class TestBalanceManager(TestCase):
     some_datetime = datetime.datetime(2019, 1, 2, tzinfo=pytz.utc)
     default_heat_wholesale_price = 1.5
-    job_id = 'test_id'
 
     def test_calculate_costs_local_surplus_becomes_deficit(self):
         """
@@ -249,10 +246,6 @@ class Test(TestCase):
             Trade(Action.SELL, Resource.HEATING, 10, est_retail_price, "Grid", True, Market.LOCAL, self.some_datetime),
             Trade(Action.BUY, Resource.HEATING, 6, est_retail_price, "Buyer1", False, Market.LOCAL, self.some_datetime),
             Trade(Action.BUY, Resource.HEATING, 4, est_retail_price, "Buyer2", False, Market.LOCAL, self.some_datetime)]
-        
-        delete_from_db(self.job_id, 'Trade')
-        objs = trades_to_db_objects({self.some_datetime: trades}, self.job_id)
-        bulk_insert(objs)
 
         heating_prices = pd.DataFrame.from_records([{
             'year': self.some_datetime.year,
@@ -261,12 +254,14 @@ class Test(TestCase):
             'estimated_wholesale_price': np.nan,
             'exact_retail_price': exact_retail_price,
             'exact_wholesale_price': np.nan}])
-        extra_costs = correct_for_exact_heating_price(pd.DatetimeIndex([self.some_datetime]),
-                                                      heating_prices,
-                                                      self.job_id)
+
+        # TODO: Here we use trades, but what is really returned is List[RowProxy]. Fix this?
+        with mock.patch('tradingplatformpoc.market.balance_manager.heat_trades_from_db_for_periods',
+                        return_value={self.some_datetime: trades}):
+            extra_costs = correct_for_exact_heating_price(
+                pd.DatetimeIndex([self.some_datetime]), heating_prices, None)
         self.assertEqual(1.5, [x.cost for x in extra_costs if x.agent == "Buyer1"][0])
         self.assertEqual(1.0, [x.cost for x in extra_costs if x.agent == "Buyer2"][0])
-        delete_from_db(self.job_id, 'Trade')
 
     def test_correct_for_exact_heating_price_external_buy(self):
         """
@@ -284,10 +279,6 @@ class Test(TestCase):
                   self.some_datetime),
             Trade(Action.SELL, Resource.HEATING, 4, est_wholesale_price, "Seller2", False, Market.LOCAL,
                   self.some_datetime)]
-        
-        delete_from_db(self.job_id, 'Trade')
-        objs = trades_to_db_objects({self.some_datetime: trades}, self.job_id)
-        bulk_insert(objs)
 
         heating_prices = pd.DataFrame.from_records([{
             'year': self.some_datetime.year,
@@ -296,13 +287,13 @@ class Test(TestCase):
             'estimated_wholesale_price': est_wholesale_price,
             'exact_retail_price': np.nan,
             'exact_wholesale_price': exact_wholesale_price}])
-        extra_costs = correct_for_exact_heating_price(pd.DatetimeIndex([self.some_datetime]),
-                                                      heating_prices,
-                                                      self.job_id)
+        
+        with mock.patch('tradingplatformpoc.market.balance_manager.heat_trades_from_db_for_periods',
+                        return_value={self.some_datetime: trades}):
+            extra_costs = correct_for_exact_heating_price(
+                pd.DatetimeIndex([self.some_datetime]), heating_prices, None)
         self.assertEqual(1.5, [x.cost for x in extra_costs if x.agent == "Seller1"][0])
         self.assertEqual(1.0, [x.cost for x in extra_costs if x.agent == "Seller2"][0])
-
-        delete_from_db(self.job_id, 'Trade')
 
     def test_correct_for_exact_heating_price_external_sell_lower_price(self):
         """
@@ -320,10 +311,6 @@ class Test(TestCase):
                   self.some_datetime),
             Trade(Action.BUY, Resource.HEATING, 4, est_retail_price, "Buyer2", False, Market.LOCAL,
                   self.some_datetime)]
-        
-        delete_from_db(self.job_id, 'Trade')
-        objs = trades_to_db_objects({self.some_datetime: trades}, self.job_id)
-        bulk_insert(objs)
 
         heating_prices = pd.DataFrame.from_records([{
             'year': self.some_datetime.year,
@@ -332,13 +319,13 @@ class Test(TestCase):
             'estimated_wholesale_price': np.nan,
             'exact_retail_price': exact_retail_price,
             'exact_wholesale_price': np.nan}])
-        extra_costs = correct_for_exact_heating_price(pd.DatetimeIndex([self.some_datetime]),
-                                                      heating_prices,
-                                                      self.job_id)
+        
+        with mock.patch('tradingplatformpoc.market.balance_manager.heat_trades_from_db_for_periods',
+                        return_value={self.some_datetime: trades}):
+            extra_costs = correct_for_exact_heating_price(
+                pd.DatetimeIndex([self.some_datetime]), heating_prices, None)
         self.assertEqual(-1.5, [x.cost for x in extra_costs if x.agent == "Buyer1"][0])
         self.assertEqual(-1.0, [x.cost for x in extra_costs if x.agent == "Buyer2"][0])
-
-        delete_from_db(self.job_id, 'Trade')
 
     def test_correct_for_exact_heating_price_with_local_producer(self):
         """
@@ -360,10 +347,6 @@ class Test(TestCase):
                   self.some_datetime),
             Trade(Action.SELL, Resource.HEATING, 200, est_retail_price, "Seller", False, Market.LOCAL,
                   self.some_datetime)]
-        
-        delete_from_db(self.job_id, 'Trade')
-        objs = trades_to_db_objects({self.some_datetime: trades}, self.job_id)
-        bulk_insert(objs)
 
         heating_prices = pd.DataFrame.from_records([{
             'year': self.some_datetime.year,
@@ -372,13 +355,14 @@ class Test(TestCase):
             'estimated_wholesale_price': np.nan,
             'exact_retail_price': exact_retail_price,
             'exact_wholesale_price': np.nan}])
-        extra_costs = correct_for_exact_heating_price(pd.DatetimeIndex([self.some_datetime]),
-                                                      heating_prices,
-                                                      self.job_id)
+        
+        # TODO: Here we use trades, but what is really returned is List[RowProxy]. Fix this?
+        with mock.patch('tradingplatformpoc.market.balance_manager.heat_trades_from_db_for_periods',
+                        return_value={self.some_datetime: trades}):
+            extra_costs = correct_for_exact_heating_price(
+                pd.DatetimeIndex([self.some_datetime]), heating_prices, None)
         self.assertEqual(187.5, [x.cost for x in extra_costs if x.agent == "Buyer1"][0])
         self.assertEqual(62.5, [x.cost for x in extra_costs if x.agent == "Buyer2"][0])
-
-        delete_from_db(self.job_id, 'Trade')
 
     def test_calculate_heating_costs_two_steps(self):
         """
@@ -401,10 +385,6 @@ class Test(TestCase):
             Trade(Action.BUY, Resource.HEATING, 6, est_ws_price, "Buyer1", False, Market.LOCAL, self.some_datetime),
             Trade(Action.BUY, Resource.HEATING, 6, est_ws_price, "Buyer2", False, Market.LOCAL, self.some_datetime),
             Trade(Action.SELL, Resource.HEATING, 9, est_ws_price, "Seller", False, Market.LOCAL, self.some_datetime)]
-        
-        delete_from_db(self.job_id, 'Trade')
-        objs = trades_to_db_objects({self.some_datetime: trades}, self.job_id)
-        bulk_insert(objs)
 
         # Buyer1 pays 6*0.4 = 2.4
         # Buyer2 pays 6*0.4 = 2.4
@@ -420,9 +400,12 @@ class Test(TestCase):
             'estimated_wholesale_price': est_ws_price,
             'exact_retail_price': exact_retail_price,
             'exact_wholesale_price': exact_ws_price}])
-        cost_discr_corrs = correct_for_exact_heating_price(pd.DatetimeIndex([self.some_datetime]),
-                                                           heating_prices,
-                                                           self.job_id)
+        
+        # TODO: Here we use trades, but what is really returned is List[RowProxy]. Fix this?
+        with mock.patch('tradingplatformpoc.market.balance_manager.heat_trades_from_db_for_periods',
+                        return_value={self.some_datetime: trades}):
+            cost_discr_corrs = correct_for_exact_heating_price(
+                pd.DatetimeIndex([self.some_datetime]), heating_prices, None)
         self.assertAlmostEqual(0.375, [x.cost for x in cost_discr_corrs if x.agent == "Buyer1"][0], places=3)
         self.assertAlmostEqual(0.375, [x.cost for x in cost_discr_corrs if x.agent == "Buyer2"][0], places=3)
         self.assertAlmostEqual(-0.75, [x.cost for x in cost_discr_corrs if x.agent == "Grid"][0], places=3)
@@ -437,8 +420,6 @@ class Test(TestCase):
         self.assertAlmostEqual(0.1, cost_to_be_paid_by_agent["Seller"], places=3)
 
         # These two steps are independent of each other, so doesn't matter which one is done first
-
-        delete_from_db(self.job_id, 'Trade')
 
     def test_calculate_heating_costs_two_steps_external_sell(self):
         """
@@ -464,10 +445,6 @@ class Test(TestCase):
                   self.some_datetime),
             Trade(Action.SELL, Resource.HEATING, 9, est_retail_price, "Seller", False, Market.LOCAL,
                   self.some_datetime)]
-        
-        delete_from_db(self.job_id, 'Trade')
-        objs = trades_to_db_objects({self.some_datetime: trades}, self.job_id)
-        bulk_insert(objs)
 
         # Buyer2 turned out to only need 2, so 1 had to get sold to grid, at a lower price
         # Buyer1 pays 6*0.5 = 3.0
@@ -488,9 +465,11 @@ class Test(TestCase):
             'exact_retail_price': np.nan,
             'exact_wholesale_price': exact_wholesale_price}])
 
-        cost_discr_corrs = correct_for_exact_heating_price(pd.DatetimeIndex([self.some_datetime]),
-                                                           heating_prices,
-                                                           self.job_id)
+        # TODO: Here we use trades, but what is really returned is List[RowProxy]. Fix this?
+        with mock.patch('tradingplatformpoc.market.balance_manager.heat_trades_from_db_for_periods',
+                        return_value={self.some_datetime: trades}):
+            cost_discr_corrs = correct_for_exact_heating_price(
+                pd.DatetimeIndex([self.some_datetime]), heating_prices, None)
         self.assertAlmostEqual(0.02, [x.cost for x in cost_discr_corrs if x.agent == "Grid"][0], places=3)
         self.assertAlmostEqual(-0.02, [x.cost for x in cost_discr_corrs if x.agent == "Seller"][0], places=3)
 
@@ -501,5 +480,3 @@ class Test(TestCase):
                                                                                    est_wholesale_price)
         self.assertEqual(1, len(cost_to_be_paid_by_agent))
         self.assertAlmostEqual(0.1, cost_to_be_paid_by_agent["Buyer2"], places=3)
-
-        delete_from_db(self.job_id, 'Trade')

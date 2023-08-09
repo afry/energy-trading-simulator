@@ -86,21 +86,16 @@ def config_data_agent_screening(config_data: dict) -> Optional[str]:
 
     # Make sure no agents are passed with unknown type
     for agent in config_data['Agents']:
-        if agent['Type'] not in ['BuildingAgent', 'StorageAgent', 'PVAgent', 'GridAgent', 'GroceryStoreAgent']:
+        if agent['Type'] not in ['BuildingAgent', 'BatteryAgent', 'PVAgent', 'GridAgent', 'GroceryStoreAgent']:
             return 'Agent {} provided with unrecognized \'Type\' {}.'.format(agent['Name'], agent['Type'])
         
         # Check if resource is valid
-        if agent['Type'] in ['StorageAgent', 'GridAgent']:
+        if agent['Type'] == 'GridAgent':
             if 'Resource' not in agent.keys():
                 return "No specified resource for agent {}.".format(agent['Name'])
 
             if not agent['Resource'] in ALL_IMPLEMENTED_RESOURCES_STR:
                 return "Resource {} is not in availible for agent {}.".format(agent['Resource'], agent['Name'])
-            
-            # TODO: This can be removed when heating is implemented for StorageAgent
-            if agent['Type'] == 'StorageAgent':
-                if not agent['Resource'] == 'ELECTRICITY':
-                    return "Resource {} is not yet availible for agent {}.".format(agent['Resource'], agent['Name'])
         
     # Needs exactly two GridAgents, one for each resource
     if 'GridAgent' not in [agent['Type'] for agent in config_data['Agents']]:

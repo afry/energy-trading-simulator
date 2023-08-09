@@ -210,7 +210,7 @@ def get_total_import_export(resource: Resource, action: Action,
     if mask is not None:
         conditions = (conditions & mask)
 
-    return st.session_state.simulation_results.all_trades.loc[conditions].quantity_post_loss.sum()
+    return st.session_state.simulation_results.all_trades.loc[conditions].quantity_post_loss.to_numpy().sum()
 
 
 def aggregated_import_and_export_results_df_split_on_mask(mask: pd.DataFrame,

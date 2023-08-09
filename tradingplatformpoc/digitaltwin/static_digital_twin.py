@@ -2,7 +2,6 @@ import logging
 
 import pandas as pd
 
-from tradingplatformpoc.digitaltwin.idigital_twin import IDigitalTwin
 from tradingplatformpoc.market.bid import Resource
 
 logger = logging.getLogger(__name__)
@@ -12,7 +11,7 @@ def get_value_or_zero(period, series: pd.Series):
     return 0 if series is None else series.loc[period]
 
 
-class StaticDigitalTwin(IDigitalTwin):
+class StaticDigitalTwin:
     """
     A static digital twin is a representation of a physical asset where energy production and consumption are "static",
     i.e. are defined when initializing the digital twin, and never change after that.
@@ -21,7 +20,6 @@ class StaticDigitalTwin(IDigitalTwin):
 
     def __init__(self, electricity_usage: pd.Series = None, heating_usage: pd.Series = None,
                  electricity_production: pd.Series = None, heating_production: pd.Series = None):
-        super().__init__()
         self.electricity_usage = electricity_usage
         self.heating_usage = heating_usage
         self.electricity_production = electricity_production
