@@ -17,9 +17,13 @@ logger = logging.getLogger(__name__)
 
 
 def create_db_and_tables():
-    # SQLModel.metadata.drop_all(db_engine)
     SQLModel.metadata.create_all(db_engine)
     logger.info('Creating db and tables')
+
+
+def drop_db_and_tables():
+    SQLModel.metadata.drop_all(db_engine)
+    logger.info('Dropping db and tables')
 
 
 def bulk_insert(objects: list,
