@@ -1,7 +1,7 @@
 import logging
 from collections import Counter
 from contextlib import _GeneratorContextManager
-from typing import Callable, List
+from typing import Callable, Dict, List
 
 import pandas as pd
 
@@ -99,8 +99,16 @@ def get_all_config_ids_in_db_without_jobs(session_generator: Callable[[], _Gener
         return [config_id for (config_id,) in res]
     
 
-def get_all_config_ids_in_db_with_jobs(session_generator: Callable[[], _GeneratorContextManager[Session]]
-                                       = session_scope):
+def get_all_job_config_id_pairs_in_db(session_generator: Callable[[], _GeneratorContextManager[Session]]
+                                      = session_scope) -> Dict[str, str]:
+    with session_generator() as db:
+        res = db.execute(select(Config.id.label('config_id'), Job.id.label('job_id'))
+                         .join(Config, Job.config_id == Config.id)).all()
+        return {elem.config_id: elem.job_id for elem in res}
+
+
+def get_all_config_ids_in_db_with_jobs_df(session_generator: Callable[[], _GeneratorContextManager[Session]]
+                                          = session_scope):
     with session_generator() as db:
         res = db.execute(select(Job, Config.description).join(Config, Job.config_id == Config.id)).all()
         return pd.DataFrame.from_records([{'Job ID': job.id, 'Config ID': job.config_id, 'Description': desc,

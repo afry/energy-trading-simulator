@@ -8,7 +8,7 @@ from tradingplatformpoc.app import footer
 from tradingplatformpoc.app.app_functions import results_button, set_max_width, set_simulation_results
 from tradingplatformpoc.constants import MOCK_DATA_PATH
 from tradingplatformpoc.simulation_runner.trading_simulator import TradingSimulator
-from tradingplatformpoc.sql.config.crud import get_all_config_ids_in_db_with_jobs, \
+from tradingplatformpoc.sql.config.crud import get_all_config_ids_in_db_with_jobs_df, \
     get_all_config_ids_in_db_without_jobs, read_config
 from tradingplatformpoc.sql.job.crud import delete_job
 
@@ -37,7 +37,7 @@ progress_bar = st.progress(0.0)
 progress_text = st.info("")
 
 st.subheader('Jobs')
-config_df = get_all_config_ids_in_db_with_jobs()
+config_df = get_all_config_ids_in_db_with_jobs_df()
 if not config_df.empty:
     config_df['Delete'] = False
     delete_runs_form = st.form(key='Delete runs form')
