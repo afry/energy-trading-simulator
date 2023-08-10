@@ -1,7 +1,6 @@
 
 import datetime
-from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import altair as alt
 
@@ -15,7 +14,6 @@ import streamlit as st
 from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app import app_constants
-from tradingplatformpoc.app.app_functions import download_df_as_csv_button
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.generate_data.generate_mock_data import create_inputs_df
 from tradingplatformpoc.market.bid import Action, Resource
@@ -164,24 +162,6 @@ def construct_prices_df(simulation_results: SimulationResults) -> pd.DataFrame:
         return pd.concat([clearing_prices_df, retail_df, wholesale_df])
     else:
         raise TypeError('Prices are not instance of ElectricityPrice!')
-
-
-# @st.cache_data
-def get_viewable_df(full_df: pd.DataFrame, key: str, value: Any, want_index: str,
-                    cols_to_drop: Union[None, List[str]] = None) -> pd.DataFrame:
-    """
-    Will filter on the given key-value pair, drop the key and cols_to_drop columns, set want_index as index, and
-    finally transform all Enums so that only their name is kept (i.e. 'Action.BUY' becomes 'BUY', which Streamlit can
-    serialize.
-    """
-    if cols_to_drop is None:
-        cols_to_drop = []
-    cols_to_drop.append(key)
-    return full_df. \
-        loc[full_df[key].values == value]. \
-        drop(cols_to_drop, axis=1). \
-        set_index([want_index]). \
-        apply(lambda x: x.apply(lambda y: y.name) if isinstance(x.iloc[0], Enum) else x)
 
 
 def aggregated_taxes_and_fees_results_df() -> pd.DataFrame:
@@ -334,10 +314,11 @@ def construct_traded_amount_by_agent_chart(agent_chosen_guid: str,
                             'resource': Resource.HEATING, 'action': Action.SELL}]
 
     for elem in plot_lst:
-        mask = (agent_trade_df.resource.values == elem['resource']) & (agent_trade_df.action.values == elem['action'])
+        mask = (agent_trade_df.resource.values == elem['resource'].name) \
+            & (agent_trade_df.action.values == elem['action'].name)
         if not agent_trade_df.loc[mask].empty:
             
-            df = pd.concat((df, pd.DataFrame({'period': agent_trade_df.loc[mask].period,
+            df = pd.concat((df, pd.DataFrame({'period': agent_trade_df.loc[mask].index,
                                               'value': agent_trade_df.loc[mask].quantity_post_loss,
                                               'variable': elem['title']})))
 
@@ -369,15 +350,3 @@ def altair_period_chart(df: pd.DataFrame, domain: List[str], range_color: List[s
                         alt.Tooltip(field='variable', title='Variable'),
                         alt.Tooltip(field='value', title='Value')]). \
         add_selection(selection).interactive(bind_y=False)
-
-
-def display_df_and_make_downloadable(df: pd.DataFrame,
-                                     file_name: str,
-                                     df_styled: Optional[Styler] = None,
-                                     height: Optional[int] = None):
-    if df_styled is not None:
-        st.dataframe(df_styled, height=height)
-    else:
-        st.dataframe(df, height=height)
-
-    download_df_as_csv_button(df, file_name, include_index=True)

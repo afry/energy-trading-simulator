@@ -41,14 +41,21 @@ def db_to_bid_df(job_id: str,
                                            } for (bid, ) in bids])
 
 
-def db_to_bid_df_for_agent(job_id: str, agent_guid: str, session_generator: Callable[[],
-                           _GeneratorContextManager[Session]] = session_scope) -> pd.DataFrame:
+def db_to_viewable_bid_df_for_agent(job_id: str, agent_guid: str,
+                                    session_generator: Callable[[], _GeneratorContextManager[Session]]
+                                    = session_scope) -> pd.DataFrame:
+    """
+    Fetches bids data from database for specified agent (agent_guid) and changes to a df.
+    """
     with session_generator() as db:
         bids = db.query(TableBid).filter(TableBid.source == agent_guid, TableBid.job_id == job_id).all()
 
-        return pd.DataFrame.from_records([{'period': bid.period,
-                                           'action': bid.action,
-                                           'resource': bid.resource,
-                                           'quantity': bid.quantity,
-                                           'price': bid.price,
-                                           } for bid in bids])
+        if len(bids) > 0:
+            return pd.DataFrame.from_records([{'period': bid.period,
+                                               'action': bid.action.name,
+                                               'resource': bid.resource.name,
+                                               'quantity': bid.quantity,
+                                               'price': bid.price,
+                                               } for bid in bids], index='period')
+        else:
+            return pd.DataFrame(columns=['period', 'action', 'resource', 'quantity', 'price'])
