@@ -14,11 +14,11 @@ import streamlit as st
 from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app import app_constants
+from tradingplatformpoc.data.preproccessing import read_nordpool_data
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.generate_data.generate_mock_data import create_inputs_df
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
-from tradingplatformpoc.results.simulation_results import SimulationResults
 
 
 def get_price_df_when_local_price_inbetween(prices_df: pd.DataFrame, resource: Resource) -> pd.DataFrame:
@@ -133,33 +133,31 @@ def construct_storage_level_chart(storage_levels: pd.DataFrame) -> alt.Chart:
 
 
 # maybe we should move this to simulation_runner/trading_simulator
-def construct_prices_df(simulation_results: SimulationResults) -> pd.DataFrame:
-    """Constructs a pandas DataFrame on the format which fits Altair, which we use for plots."""
-    clearing_prices_df = pd.DataFrame.from_dict(simulation_results.clearing_prices_historical, orient='index')
-    clearing_prices_df.index.set_names('period', inplace=True)
-    clearing_prices_df = clearing_prices_df.reset_index().melt('period')
-    clearing_prices_df['Resource'] = clearing_prices_df['variable']
-    clearing_prices_df.variable = app_constants.LOCAL_PRICE_STR
+def construct_combined_price_df(local_price_df: pd.DataFrame, config_data: dict) -> pd.DataFrame:
 
-    pricing = simulation_results.pricing
-    elec_pricing = [p for p in pricing if p.resource == Resource.ELECTRICITY][0]
-    if isinstance(elec_pricing, ElectricityPrice):
-        nordpool_data = elec_pricing.nordpool_data
-        nordpool_data.name = 'value'
-        nordpool_data = nordpool_data.to_frame().reset_index()
-        nordpool_data['Resource'] = Resource.ELECTRICITY
-        nordpool_data.rename({'datetime': 'period'}, axis=1, inplace=True)
-        nordpool_data['period'] = pd.to_datetime(nordpool_data['period'])
-        retail_df = nordpool_data.copy()
-        gross_prices = elec_pricing.get_electricity_gross_retail_price_from_nordpool_price(retail_df['value'])
-        retail_df['value'] = elec_pricing.get_electricity_net_external_price(gross_prices)
-        retail_df['variable'] = app_constants.RETAIL_PRICE_STR
-        wholesale_df = nordpool_data.copy()
-        wholesale_df['value'] = elec_pricing.get_electricity_wholesale_price_from_nordpool_price(wholesale_df['value'])
-        wholesale_df['variable'] = app_constants.WHOLESALE_PRICE_STR
-        return pd.concat([clearing_prices_df, retail_df, wholesale_df])
-    else:
-        raise TypeError('Prices are not instance of ElectricityPrice!')
+    # TODO: Improve this
+    elec_pricing: ElectricityPrice = ElectricityPrice(
+        elec_wholesale_offset=config_data['AreaInfo']['ExternalElectricityWholesalePriceOffset'],
+        elec_tax=config_data['AreaInfo']["ElectricityTax"],
+        elec_grid_fee=config_data['AreaInfo']["ElectricityGridFee"],
+        elec_tax_internal=config_data['AreaInfo']["ElectricityTaxInternal"],
+        elec_grid_fee_internal=config_data['AreaInfo']["ElectricityGridFeeInternal"],
+        nordpool_data=read_nordpool_data())
+
+    nordpool_data = elec_pricing.nordpool_data
+    nordpool_data.name = 'value'
+    nordpool_data = nordpool_data.to_frame().reset_index()
+    nordpool_data['Resource'] = Resource.ELECTRICITY
+    nordpool_data.rename({'datetime': 'period'}, axis=1, inplace=True)
+    nordpool_data['period'] = pd.to_datetime(nordpool_data['period'])
+    retail_df = nordpool_data.copy()
+    gross_prices = elec_pricing.get_electricity_gross_retail_price_from_nordpool_price(retail_df['value'])
+    retail_df['value'] = elec_pricing.get_electricity_net_external_price(gross_prices)
+    retail_df['variable'] = app_constants.RETAIL_PRICE_STR
+    wholesale_df = nordpool_data.copy()
+    wholesale_df['value'] = elec_pricing.get_electricity_wholesale_price_from_nordpool_price(wholesale_df['value'])
+    wholesale_df['variable'] = app_constants.WHOLESALE_PRICE_STR
+    return pd.concat([local_price_df, retail_df, wholesale_df])
 
 
 def aggregated_taxes_and_fees_results_df() -> pd.DataFrame:
