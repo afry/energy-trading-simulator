@@ -10,9 +10,11 @@ from tradingplatformpoc.app.app_inputs import get_agent
 from tradingplatformpoc.app.app_visualizations import construct_building_with_heat_pump_chart, \
     construct_storage_level_chart, construct_traded_amount_by_agent_chart, \
     results_by_agent_as_df, results_by_agent_as_df_with_highlight
+from tradingplatformpoc.market.trade import TradeMetadataKey
 from tradingplatformpoc.sql.bid.crud import db_to_viewable_bid_df_for_agent
 from tradingplatformpoc.sql.config.crud import get_all_agents_in_config
 from tradingplatformpoc.sql.extra_cost.crud import db_to_viewable_extra_costs_df_by_agent
+from tradingplatformpoc.sql.level.crud import db_to_viewable_level_df_by_agent
 from tradingplatformpoc.sql.trade.crud import db_to_viewable_trade_df_by_agent
 
 TABLE_HEIGHT: int = 563
@@ -62,6 +64,13 @@ if 'choosen_id_to_view' in st.session_state.keys() and st.session_state.choosen_
             st.dataframe(extra_costs_df.replace(float('inf'), 'inf'), height=TABLE_HEIGHT)
             download_df_as_csv_button(extra_costs_df, "extra_costs_for_agent_" + agent_chosen_guid,
                                       include_index=True)
+    levels_df = db_to_viewable_level_df_by_agent(job_id=st.session_state.choosen_id_to_view['job_id'],
+                                                 agent_guid=agent_chosen_guid,
+                                                 level_type=TradeMetadataKey.STORAGE_LEVEL.name)
+    if not levels_df.empty:
+        with st.expander('Charging level over time for ' + agent_chosen_guid + ':'):
+            storage_chart = construct_storage_level_chart(levels_df)
+            st.altair_chart(storage_chart, use_container_width=True, theme=None)
 
 if 'simulation_results' in st.session_state:
 
@@ -71,12 +80,6 @@ if 'simulation_results' in st.session_state:
     # extracosts
 
     agent_chosen = get_agent(st.session_state.simulation_results.agents, agent_chosen_guid)
-
-    if agent_chosen_guid in st.session_state.simulation_results.storage_levels_dict:
-        with st.expander('Charging level over time for ' + agent_chosen_guid + ':'):
-            storage_chart = construct_storage_level_chart(
-                st.session_state.simulation_results.storage_levels_dict[agent_chosen_guid])
-            st.altair_chart(storage_chart, use_container_width=True, theme=None)
 
     if isinstance(agent_chosen, BuildingAgent) or isinstance(agent_chosen, PVAgent):
         # Any building agent with a StaticDigitalTwin

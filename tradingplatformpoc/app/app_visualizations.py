@@ -123,14 +123,12 @@ def construct_building_with_heat_pump_chart(agent_chosen: Union[BuildingAgent, P
     return alt.layer(heat_pump_area, energy_multiline).resolve_scale(y='independent')
 
 
-def construct_storage_level_chart(storage_levels_dict: Dict[datetime.datetime, float]) -> alt.Chart:
-    storage_levels = pd.DataFrame.from_dict(storage_levels_dict, orient='index').reset_index()
-    storage_levels.columns = ['period', 'capacity_kwh']
-    return alt.Chart(storage_levels).mark_line(). \
+def construct_storage_level_chart(storage_levels: pd.DataFrame) -> alt.Chart:
+    return alt.Chart(storage_levels.reset_index()).mark_line(). \
         encode(x=alt.X('period', axis=alt.Axis(title='Period (UTC)'), scale=alt.Scale(type="utc")),
-               y=alt.Y('capacity_kwh', axis=alt.Axis(title='Capacity [kWh]')),
+               y=alt.Y('level', axis=alt.Axis(title='Capacity [kWh]')),
                tooltip=[alt.Tooltip(field='period', title='Period', type='temporal', format='%Y-%m-%d %H:%M'),
-                        alt.Tooltip(field='capacity_kwh', title='Capacity [kWh]')]). \
+                        alt.Tooltip(field='level', title='Capacity [kWh]')]). \
         interactive(bind_y=False)
 
 
