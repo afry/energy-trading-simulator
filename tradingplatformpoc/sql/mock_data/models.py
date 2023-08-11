@@ -36,9 +36,9 @@ class MockData(SQLModel, table=True):
         nullable=True,
         sa_column=Column(JSONB(none_as_null=True))
     )
-    mock_data: Optional[bytearray] = Field(
-        primary_key=False,
-        title="Mock data for agent",
-        nullable=True,
-        sa_column=Column(bytearray)
-    )
+    # mock_data: Optional[bytearray] = Field(
+    #     primary_key=False,
+    #     title="Mock data for agent",
+    #     nullable=True,
+    #     sa_column=Column(bytearray)
+    # )

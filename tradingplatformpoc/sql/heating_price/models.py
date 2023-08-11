@@ -6,7 +6,7 @@ from sqlmodel import Field, SQLModel
 
 
 class HeatingPrice(SQLModel, table=True):
-    __tablename__ = 'exact_electricity_price'
+    __tablename__ = 'heating_price'
 
     id: Optional[int] = Field(
         title='Unique integer ID',
