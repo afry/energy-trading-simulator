@@ -160,14 +160,14 @@ def construct_combined_price_df(local_price_df: pd.DataFrame, config_data: dict)
     return pd.concat([local_price_df, retail_df, wholesale_df])
 
 
-def aggregated_taxes_and_fees_results_df() -> pd.DataFrame:
+def aggregated_taxes_and_fees_results_df(tax_paid: float, grid_fees_paid_on_internal_trades: float) -> pd.DataFrame:
     """
-    @return: Dataframe displaying total taxes and fees extracted from simulation results.
+    @return: Dataframe displaying total taxes and fees.
     """
-    return pd.DataFrame(index=["Taxes paid on internal trades", "Grid fees paid on internal trades"],
+    return pd.DataFrame(index=["Taxes paid", "Grid fees paid on internal trades"],
                         columns=['Total'],
-                        data=["{:.2f} SEK".format(st.session_state.simulation_results.tax_paid),
-                              "{:.2f} SEK".format(st.session_state.simulation_results.grid_fees_paid_on_internal_trades)
+                        data=["{:.2f} SEK".format(tax_paid),
+                              "{:.2f} SEK".format(grid_fees_paid_on_internal_trades)
                               ])
 
 
