@@ -15,7 +15,7 @@ from tradingplatformpoc.config.access_config import fill_agents_with_defaults, f
 from tradingplatformpoc.config.screen_config import compare_pv_efficiency, config_data_json_screening, \
     display_diff_in_config
 from tradingplatformpoc.sql.config.crud import create_config_if_not_in_db, get_all_config_ids_in_db, \
-    get_all_configs_in_db
+    read_description
 from tradingplatformpoc.sql.config.crud import read_config
 
 logger = logging.getLogger(__name__)
@@ -29,30 +29,24 @@ set_max_width('1000px')  # This tab looks a bit daft when it is too wide, so lim
 options = ['...input parameters through UI.', '...upload configuration file.']
 option_choosen = st.sidebar.selectbox('I want to...', options)
 
-st.markdown("**Existing configurations**")
-st.dataframe(get_all_configs_in_db(), use_container_width=True, hide_index=True)
-
-st.markdown('---')
-st.markdown('**Choose a configuration to use as base**')
-config_ids = get_all_config_ids_in_db()
-
-choosen_config_id = st.selectbox('Choose a configuration to start from.', config_ids)
-
-if len(config_ids) > 0:
-    st.caption('Show choosen base configuration.')
-    with st.expander('Configuration :blue[{}] in JSON format'.format(choosen_config_id)):
-        st.json(read_config(choosen_config_id), expanded=True)
-
 st.markdown('On this page you can create new scenario configurations to run simulations for. '
             'Start by selecting a configuration to compare against. '
             'If you click on the *set*-button below, then the *current* configuration is changed to '
-            'the choosen base configuration above. '
-            'The current configuration can then be customized by changing parameters in the '
+            'the choosen existing configuration. '
+            'This existing configuration can then be customized by changing parameters in the '
             'forms under **Create new configuration**.')
 
-reset_config_button = st.button(label=":red[Set configuration to **{}**]".format(choosen_config_id),
+config_ids = get_all_config_ids_in_db()
+choosen_config_id = st.selectbox('Choose an existing configuration.', config_ids)
+
+if len(config_ids) > 0:
+    with st.expander('Choosen existing configuration :blue[{}] in JSON format'.format(choosen_config_id)):
+        st.write('**Configuration description**: ', read_description(choosen_config_id))
+        st.json(read_config(choosen_config_id), expanded=True)
+
+reset_config_button = st.button(label="SET CONFIGURATION TO **{}**".format(choosen_config_id),
                                 help="Click here to DELETE custom configuration and reset configuration to "
-                                "choosen base configuration",
+                                "choosen base configuration", type='primary',
                                 disabled=(option_choosen == options[1]))
 
 if ('config_data' not in st.session_state) or (reset_config_button):
