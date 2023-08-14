@@ -1,4 +1,5 @@
 import logging
+
 import pandas as pd
 
 from st_pages import add_indentation, show_pages_from_config
