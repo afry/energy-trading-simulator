@@ -1,4 +1,5 @@
 import logging
+import pandas as pd
 
 from st_pages import add_indentation, show_pages_from_config
 
@@ -44,6 +45,7 @@ if run_sim:
 
 
 st.subheader('Jobs')
+st.caption('This table is not automatically updated. Reload page in order to see latest informtion.')
 config_df = get_all_config_ids_in_db_with_jobs()
 
 if not config_df.empty:
@@ -86,5 +88,8 @@ if not config_df.empty:
             st.experimental_rerun()
         else:
             st.markdown('No runs selected to delete.')
+else:
+    st.dataframe(pd.DataFrame(columns=['Status', 'Config ID', 'Start time', 'End time', 'Description', 'Job ID']),
+                 hide_index=True, use_container_width=True)
 
 st.write(footer.html, unsafe_allow_html=True)
