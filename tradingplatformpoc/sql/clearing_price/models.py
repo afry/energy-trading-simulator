@@ -12,23 +12,23 @@ from tradingplatformpoc.market.bid import Resource
 class ClearingPrice(SQLModel, table=True):
     __tablename__ = 'clearing_price'
 
-    id: Optional[int] = Field(
+    id: int = Field(
         title='Unique integer ID',
         sa_column=Column(Integer, autoincrement=True, primary_key=True, nullable=False)
     )
-    job_id: Optional[str] = Field(
+    job_id: str = Field(
         primary_key=False,
         default=None,
         title='Unique job ID',
         nullable=False
     )
-    period: Optional[datetime.datetime] = Field(
+    period: datetime.datetime = Field(
         primary_key=False,
         title="Period",
-        nullable=True,
+        nullable=False,
         sa_column=Column(DateTime(timezone=True))
     )
-    resource: Optional[Resource] = Field(
+    resource: Resource = Field(
         title='Resource',
         sa_column=Column(Enum(Resource), primary_key=False, default=None, nullable=False)
     )
@@ -36,5 +36,5 @@ class ClearingPrice(SQLModel, table=True):
         primary_key=False,
         default=None,
         title='Price',
-        nullable=False
+        nullable=True
     )

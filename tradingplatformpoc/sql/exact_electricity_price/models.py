@@ -10,31 +10,31 @@ from sqlmodel import Field, SQLModel
 class ExactElectricityPrice(SQLModel, table=True):
     __tablename__ = 'exact_electricity_price'
 
-    id: Optional[int] = Field(
+    id: int = Field(
         title='Unique integer ID',
         sa_column=Column(Integer, autoincrement=True, primary_key=True, nullable=False)
     )
-    job_id: Optional[str] = Field(
+    job_id: str = Field(
         primary_key=False,
         default=None,
         title='Unique job ID',
         nullable=False
     )
-    period: Optional[datetime.datetime] = Field(
+    period: datetime.datetime = Field(
         primary_key=False,
         title="Period",
-        nullable=True,
+        nullable=False,
         sa_column=Column(DateTime(timezone=True))
     )
     retail_price: Optional[float] = Field(
         primary_key=False,
         default=None,
         title='Retail price',
-        nullable=False
+        nullable=True
     )
     wholesale_price: Optional[float] = Field(
         primary_key=False,
         default=None,
         title='Wholesale price',
-        nullable=False
+        nullable=True
     )
