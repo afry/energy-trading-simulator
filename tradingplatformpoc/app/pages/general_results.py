@@ -25,13 +25,13 @@ if 'choosen_id_to_view' in st.session_state.keys() and st.session_state.choosen_
     col_tax, col_fee = st.columns(2)
     with col_tax:
         st.metric(label="Total tax paid",
-                  value="{:.2f} SEK".format(get_total_tax_paid(
+                  value="{:,.2f} SEK".format(get_total_tax_paid(
                         job_id=st.session_state.choosen_id_to_view['job_id'])),
                   help="Tax paid includes taxes that the ElectricityGridAgent "
                        "are to pay, on sales to the microgrid.")
     with col_fee:
         st.metric(label="Total grid fees paid on internal trades",
-                  value="{:.2f} SEK".format(get_total_grid_fee_paid_on_internal_trades(
+                  value="{:,.2f} SEK".format(get_total_grid_fee_paid_on_internal_trades(
                         job_id=st.session_state.choosen_id_to_view['job_id'])))
 
     tab_price_graph, tab_price_table = st.tabs(['Graph', 'Table'])
