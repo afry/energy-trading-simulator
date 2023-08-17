@@ -7,16 +7,16 @@ from typing import Any, Collection, Dict, List, Optional, Tuple
 
 import pandas as pd
 
+from tradingplatformpoc.agent.battery_agent import BatteryAgent
 from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
-from tradingplatformpoc.agent.storage_agent import StorageAgent
 from tradingplatformpoc.app.app_threading import StoppableThread
 from tradingplatformpoc.data.preproccessing import read_energy_data, read_irradiation_data, read_nordpool_data
 from tradingplatformpoc.database import bulk_insert
+from tradingplatformpoc.digitaltwin.battery import Battery
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
-from tradingplatformpoc.digitaltwin.storage_digital_twin import StorageDigitalTwin
 from tradingplatformpoc.generate_data.mock_data_generation_functions import get_elec_cons_key, \
     get_hot_tap_water_cons_key, get_space_heat_cons_key
 from tradingplatformpoc.market import balance_manager
@@ -24,7 +24,7 @@ from tradingplatformpoc.market import market_solver
 from tradingplatformpoc.market.balance_manager import correct_for_exact_heating_price
 from tradingplatformpoc.market.bid import GrossBid, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.market.extra_cost import ExtraCost
-from tradingplatformpoc.market.trade import Trade
+from tradingplatformpoc.market.trade import Trade, TradeMetadataKey
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
 from tradingplatformpoc.results import results_calculator
@@ -40,6 +40,7 @@ from tradingplatformpoc.sql.extra_cost.crud import db_to_extra_cost_df, extra_co
 from tradingplatformpoc.sql.heating_price.crud import db_to_heating_price_dicts, \
     external_heating_prices_to_db_objects
 from tradingplatformpoc.sql.job.crud import create_job_if_new_config, delete_job, update_job_with_end_time
+from tradingplatformpoc.sql.level.crud import levels_to_db_objects
 from tradingplatformpoc.sql.trade.crud import db_to_trade_df, get_total_grid_fee_paid_on_internal_trades, \
     get_total_tax_paid, trades_to_db_objects
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, flatten_collection, \
@@ -142,13 +143,12 @@ class TradingSimulator:
                                             guid=agent_name, nbr_heat_pumps=agent["NumberHeatPumps"],
                                             coeff_of_perf=agent["COP"]))
 
-            elif agent_type == "StorageAgent":
-                storage_digital_twin = StorageDigitalTwin(max_capacity_kwh=agent["Capacity"],
-                                                          max_charge_rate_fraction=agent["ChargeRate"],
-                                                          max_discharge_rate_fraction=agent["DischargeRate"],
-                                                          discharging_efficiency=agent["RoundTripEfficiency"])
-                agents.append(StorageAgent(self.electricity_pricing, storage_digital_twin,
-                                           resource=Resource[agent["Resource"]],
+            elif agent_type == "BatteryAgent":
+                storage_digital_twin = Battery(max_capacity_kwh=agent["Capacity"],
+                                               max_charge_rate_fraction=agent["ChargeRate"],
+                                               max_discharge_rate_fraction=agent["DischargeRate"],
+                                               discharging_efficiency=agent["RoundTripEfficiency"])
+                agents.append(BatteryAgent(self.electricity_pricing, storage_digital_twin,
                                            n_hours_to_look_back=agent["NHoursBack"],
                                            buy_price_percentile=agent["BuyPricePercentile"],
                                            sell_price_percentile=agent["SellPricePercentile"],
@@ -284,7 +284,11 @@ class TradingSimulator:
             self.progress.display()
         
         clearing_prices_objs = clearing_prices_to_db_objects(self.clearing_prices_historical, self.job_id)
-        bulk_insert(clearing_prices_objs)
+        heat_pump_level_objs = levels_to_db_objects(self.heat_pump_levels_dict,
+                                                    TradeMetadataKey.HEAT_PUMP_WORKLOAD.name, self.job_id)
+        storage_level_objs = levels_to_db_objects(self.storage_levels_dict,
+                                                  TradeMetadataKey.STORAGE_LEVEL.name, self.job_id)
+        bulk_insert(clearing_prices_objs + heat_pump_level_objs + storage_level_objs)
 
         logger.info("Finished simulating trades, beginning calculations on district heating price...")
 

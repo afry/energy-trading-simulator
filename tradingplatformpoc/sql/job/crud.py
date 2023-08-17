@@ -10,9 +10,14 @@ from sqlalchemy import delete, select
 from sqlmodel import Session
 
 from tradingplatformpoc.connection import session_scope
+from tradingplatformpoc.sql.agent_in_job.models import AgentInJob
 from tradingplatformpoc.sql.bid.models import Bid as TableBid
+from tradingplatformpoc.sql.clearing_price.models import ClearingPrice
+from tradingplatformpoc.sql.exact_electricity_price.models import ExactElectricityPrice
 from tradingplatformpoc.sql.extra_cost.models import ExtraCost as TableExtraCost
+from tradingplatformpoc.sql.heating_price.models import HeatingPrice as TableHeatingPrice
 from tradingplatformpoc.sql.job.models import Job, JobCreate
+from tradingplatformpoc.sql.level.models import Level
 from tradingplatformpoc.sql.trade.models import Trade as TableTrade
 
 logger = logging.getLogger(__name__)
@@ -54,14 +59,19 @@ def delete_job(job_id: str,
         job = db.get(Job, job_id)
         if not job:
             logger.error('No job in database with ID {}'.format(job_id))
+        else:
+            # Delete job AND ALL RELATED DATA
+            db.execute(delete(AgentInJob).where(AgentInJob.job_id == job_id))
+            db.execute(delete(TableBid).where(TableBid.job_id == job_id))
+            db.execute(delete(ClearingPrice).where(ClearingPrice.job_id == job_id))
+            db.execute(delete(ExactElectricityPrice).where(ExactElectricityPrice.job_id == job_id))
+            db.execute(delete(TableExtraCost).where(TableExtraCost.job_id == job_id))
+            db.execute(delete(TableHeatingPrice).where(TableHeatingPrice.job_id == job_id))
+            db.execute(delete(Level).where(Level.job_id == job_id))
+            db.execute(delete(TableTrade).where(TableTrade.job_id == job_id))
 
-        # TODO: Delete job AND ALL RELATED DATA if run not completed, exception handling
-        db.execute(delete(TableTrade).where(TableTrade.job_id == job_id))
-        db.execute(delete(TableBid).where(TableBid.job_id == job_id))
-        db.execute(delete(TableExtraCost).where(TableExtraCost.job_id == job_id))
-
-        db.delete(job)
-        db.commit()
+            db.delete(job)
+            db.commit()
 
 
 # TODO: If job for config exists show or delete and rerun

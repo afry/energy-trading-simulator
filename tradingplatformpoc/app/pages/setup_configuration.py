@@ -8,8 +8,8 @@ import streamlit as st
 from tradingplatformpoc.app import app_constants, footer
 from tradingplatformpoc.app.app_functions import set_max_width, \
     update_multiselect_style
-from tradingplatformpoc.app.app_inputs import add_building_agent, add_grocery_store_agent, add_params_to_form, \
-    add_pv_agent, add_storage_agent, agent_inputs, duplicate_agent, remove_agent, remove_all_building_agents
+from tradingplatformpoc.app.app_inputs import add_battery_agent, add_building_agent, add_grocery_store_agent, \
+    add_params_to_form, add_pv_agent, agent_inputs, duplicate_agent, remove_agent, remove_all_building_agents
 from tradingplatformpoc.config.access_config import fill_agents_with_defaults, fill_with_default_params, \
     read_param_specs
 from tradingplatformpoc.config.screen_config import compare_pv_efficiency, config_data_json_screening, \
@@ -136,14 +136,14 @@ if option_choosen == options[0]:
             st.markdown('Select the type of the agent to add '
                         'from the drop down list, and modify the pre-selected parameter values. '
                         'Click on **Save** to create agent.')
-            agent_type_options = ['BuildingAgent', 'GroceryStoreAgent', 'StorageAgent', 'PVAgent']
+            agent_type_options = ['BuildingAgent', 'GroceryStoreAgent', 'BatteryAgent', 'PVAgent']
             choosen_agent_type = st.selectbox('Add new agent of type:', options=agent_type_options)
             if choosen_agent_type == 'BuildingAgent':
                 add_building_agent()
             elif choosen_agent_type == 'GroceryStoreAgent':
                 add_grocery_store_agent()
-            elif choosen_agent_type == 'StorageAgent':
-                add_storage_agent()
+            elif choosen_agent_type == 'BatteryAgent':
+                add_battery_agent()
             elif choosen_agent_type == 'PVAgent':
                 add_pv_agent()
             if 'agents_added' in st.session_state.keys() and st.session_state.agents_added:

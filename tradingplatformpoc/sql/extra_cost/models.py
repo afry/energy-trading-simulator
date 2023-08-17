@@ -12,29 +12,29 @@ from tradingplatformpoc.market.extra_cost import ExtraCostType
 class ExtraCost(SQLModel, table=True):
     __tablename__ = 'extra_cost'
 
-    id: Optional[int] = Field(
+    id: int = Field(
         title='Unique integer ID',
         sa_column=Column(Integer, autoincrement=True, primary_key=True, nullable=False)
     )
-    job_id: Optional[str] = Field(
+    job_id: str = Field(
         primary_key=False,
         default=None,
         title='Unique job ID',
         nullable=False
     )
-    period: Optional[datetime.datetime] = Field(
+    period: datetime.datetime = Field(
         primary_key=False,
         title="Period",
         nullable=True,
         sa_column=Column(DateTime(timezone=True))
     )
-    agent: Optional[str] = Field(
+    agent: str = Field(
         primary_key=False,
         default=None,
         title='Agent',
         nullable=False
     )
-    cost_type: Optional[str] = Field(
+    cost_type: str = Field(
         title='Cost type',
         sa_column=Column(Enum(ExtraCostType), primary_key=False, default=None, nullable=False)
     )
@@ -42,5 +42,5 @@ class ExtraCost(SQLModel, table=True):
         primary_key=False,
         default=None,
         title='Level',
-        nullable=False
+        nullable=True
     )

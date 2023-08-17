@@ -12,7 +12,7 @@ from tradingplatformpoc.sql.job.models import uuid_as_str_generator
 class Agent(SQLModel, table=True):
     __tablename__ = 'agent'
 
-    id: Optional[str] = Field(
+    id: str = Field(
         default_factory=uuid_as_str_generator,
         primary_key=True,
         title='Unique ID',

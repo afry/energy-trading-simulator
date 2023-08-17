@@ -14,31 +14,31 @@ from tradingplatformpoc.market.trade import Market
 class Trade(SQLModel, table=True):
     __tablename__ = 'trade'
 
-    id: Optional[int] = Field(
+    id: int = Field(
         title='Unique integer ID',
         sa_column=Column(Integer, autoincrement=True, primary_key=True, nullable=False)
     )
-    job_id: Optional[str] = Field(
+    job_id: str = Field(
         primary_key=False,
         default=None,
         title='Unique job ID',
         nullable=False
     )
-    period: Optional[datetime.datetime] = Field(
+    period: datetime.datetime = Field(
         primary_key=False,
         title="Period",
-        nullable=True,
+        nullable=False,
         sa_column=Column(DateTime(timezone=True))
     )
-    action: Optional[Action] = Field(
+    action: Action = Field(
         title='Action',
         sa_column=Column(Enum(Action), primary_key=False, default=None, nullable=False)
     )
-    resource: Optional[Resource] = Field(
+    resource: Resource = Field(
         title='Resource',
         sa_column=Column(Enum(Resource), primary_key=False, default=None, nullable=False)
     )
-    quantity_pre_loss: Optional[float] = Field(
+    quantity_pre_loss: float = Field(
         primary_key=False,
         default=None,
         title='Quantity pre loss',
@@ -48,27 +48,27 @@ class Trade(SQLModel, table=True):
         primary_key=False,
         default=None,
         title='Quantity post loss',
-        nullable=False
+        nullable=True
     )
     price: Optional[float] = Field(
         primary_key=False,
         default=None,
         title='Price',
-        nullable=False
+        nullable=True
     )
-    source: Optional[str] = Field(
+    source: str = Field(
         primary_key=False,
         default=None,
         title='Source',
         nullable=False
     )
-    by_external: Optional[bool] = Field(
+    by_external: bool = Field(
         primary_key=False,
         default=None,
         title='Trade by external market',
         nullable=False
     )
-    market: Optional[Market] = Field(
+    market: Market = Field(
         title='Market',
         sa_column=Column(Enum(Market), primary_key=False, default=None, nullable=False)
     )
@@ -76,13 +76,13 @@ class Trade(SQLModel, table=True):
         primary_key=False,
         default=None,
         title='Tax paid',
-        nullable=False
+        nullable=True
     )
     grid_fee_paid: Optional[float] = Field(
         primary_key=False,
         default=None,
         title='Grid fee paid',
-        nullable=False
+        nullable=True
     )
 
     @declared_attr

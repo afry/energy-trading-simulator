@@ -17,7 +17,7 @@ class Config(SQLModel, table=True):
     description: Optional[str] = Field(
         primary_key=False,
         title='Description of configuration',
-        nullable=False
+        nullable=True
     )
     created_at: Optional[datetime.datetime] = Field(
         primary_key=False,

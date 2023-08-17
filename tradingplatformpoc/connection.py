@@ -1,35 +1,31 @@
 import logging
-import os
 from contextlib import contextmanager
-from pathlib import Path
 from typing import Generator
-
-from dotenv import load_dotenv
 
 import sqlalchemy.orm as sa_orm
 
 from sqlmodel import Session, create_engine
 
-dotenv_path = Path('.env')
-load_dotenv(dotenv_path=dotenv_path)
-
-DB_URI = f"postgresql+psycopg2://{os.getenv('PG_USER')}:{os.getenv('PG_PASSWORD')}@{os.getenv('PG_HOST')}/{os.getenv('PG_DATABASE')}"  # noqa: E501
-
-db_engine = create_engine(
-    DB_URI,
-    echo=False,
-    pool_pre_ping=True,
-    connect_args={'options': '-csearch_path={}'.format('simulation')}
-)
-
-SessionMaker = sa_orm.sessionmaker(bind=db_engine, class_=Session)
+from tradingplatformpoc.settings import settings
 
 logger = logging.getLogger(__name__)
 
+DB_URI = f"postgresql+psycopg2://{settings.DB_USER}:{settings.DB_PASSWORD}@{settings.DB_HOST}/{settings.DB_DATABASE}"  # noqa: E501
 
-def get_session():
-    with Session(db_engine) as session:
-        yield session
+
+def create_db_engine(db_uri: str):
+    return create_engine(
+        db_uri,
+        echo=False,
+        pool_pre_ping=True,
+        connect_args={'options': '-csearch_path={}'.format('simulation')}
+    )
+
+
+db_engine = create_db_engine(DB_URI)
+
+
+SessionMaker = sa_orm.sessionmaker(class_=Session, bind=db_engine)
 
 
 @contextmanager

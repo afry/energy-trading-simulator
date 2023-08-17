@@ -9,7 +9,7 @@ from sqlmodel import Field, SQLModel
 class AgentInJob(SQLModel, table=True):
     __tablename__ = 'agents'
 
-    id: Optional[int] = Field(
+    id: int = Field(
         title='Unique integer ID',
         sa_column=Column(Integer, autoincrement=True, primary_key=True, nullable=False)
     )

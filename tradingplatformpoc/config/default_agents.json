@@ -220,9 +220,8 @@
 		"COP": 4.6
 	},
 	{
-		"Type": "StorageAgent",
-		"Name": "BatteryStorageAgent1",
-		"Resource": "ELECTRICITY",
+		"Type": "BatteryAgent",
+		"Name": "BatteryAgent1",
 		"Capacity": 1000,
 		"ChargeRate": 0.4,
 		"DischargeRate": 0.4,

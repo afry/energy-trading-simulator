@@ -14,7 +14,7 @@ def uuid_as_str_generator() -> str:
 class Job(SQLModel, table=True):
     __tablename__ = 'job'
 
-    id: Optional[str] = Field(
+    id: str = Field(
         default_factory=uuid_as_str_generator,
         primary_key=True,
         title='Unique ID',
@@ -38,7 +38,7 @@ class Job(SQLModel, table=True):
         nullable=True,
         sa_column=Column(DateTime(timezone=True))
     )
-    config_id: Optional[str] = Field(
+    config_id: str = Field(
         primary_key=False,
         title='Configuration ID',
         nullable=False

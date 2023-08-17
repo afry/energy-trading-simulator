@@ -1,7 +1,6 @@
 
 import datetime
-from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import altair as alt
 
@@ -15,12 +14,11 @@ import streamlit as st
 from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app import app_constants
-from tradingplatformpoc.app.app_functions import download_df_as_csv_button
+from tradingplatformpoc.data.preproccessing import read_nordpool_data
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.generate_data.generate_mock_data import create_inputs_df
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
-from tradingplatformpoc.results.simulation_results import SimulationResults
 
 
 def get_price_df_when_local_price_inbetween(prices_df: pd.DataFrame, resource: Resource) -> pd.DataFrame:
@@ -125,73 +123,51 @@ def construct_building_with_heat_pump_chart(agent_chosen: Union[BuildingAgent, P
     return alt.layer(heat_pump_area, energy_multiline).resolve_scale(y='independent')
 
 
-def construct_storage_level_chart(storage_levels_dict: Dict[datetime.datetime, float]) -> alt.Chart:
-    storage_levels = pd.DataFrame.from_dict(storage_levels_dict, orient='index').reset_index()
-    storage_levels.columns = ['period', 'capacity_kwh']
-    return alt.Chart(storage_levels).mark_line(). \
+def construct_storage_level_chart(storage_levels: pd.DataFrame) -> alt.Chart:
+    return alt.Chart(storage_levels.reset_index()).mark_line(). \
         encode(x=alt.X('period', axis=alt.Axis(title='Period (UTC)'), scale=alt.Scale(type="utc")),
-               y=alt.Y('capacity_kwh', axis=alt.Axis(title='Capacity [kWh]')),
+               y=alt.Y('level', axis=alt.Axis(title='Capacity [kWh]')),
                tooltip=[alt.Tooltip(field='period', title='Period', type='temporal', format='%Y-%m-%d %H:%M'),
-                        alt.Tooltip(field='capacity_kwh', title='Capacity [kWh]')]). \
+                        alt.Tooltip(field='level', title='Capacity [kWh]')]). \
         interactive(bind_y=False)
 
 
 # maybe we should move this to simulation_runner/trading_simulator
-def construct_prices_df(simulation_results: SimulationResults) -> pd.DataFrame:
-    """Constructs a pandas DataFrame on the format which fits Altair, which we use for plots."""
-    clearing_prices_df = pd.DataFrame.from_dict(simulation_results.clearing_prices_historical, orient='index')
-    clearing_prices_df.index.set_names('period', inplace=True)
-    clearing_prices_df = clearing_prices_df.reset_index().melt('period')
-    clearing_prices_df['Resource'] = clearing_prices_df['variable']
-    clearing_prices_df.variable = app_constants.LOCAL_PRICE_STR
+def construct_combined_price_df(local_price_df: pd.DataFrame, config_data: dict) -> pd.DataFrame:
 
-    pricing = simulation_results.pricing
-    elec_pricing = [p for p in pricing if p.resource == Resource.ELECTRICITY][0]
-    if isinstance(elec_pricing, ElectricityPrice):
-        nordpool_data = elec_pricing.nordpool_data
-        nordpool_data.name = 'value'
-        nordpool_data = nordpool_data.to_frame().reset_index()
-        nordpool_data['Resource'] = Resource.ELECTRICITY
-        nordpool_data.rename({'datetime': 'period'}, axis=1, inplace=True)
-        nordpool_data['period'] = pd.to_datetime(nordpool_data['period'])
-        retail_df = nordpool_data.copy()
-        gross_prices = elec_pricing.get_electricity_gross_retail_price_from_nordpool_price(retail_df['value'])
-        retail_df['value'] = elec_pricing.get_electricity_net_external_price(gross_prices)
-        retail_df['variable'] = app_constants.RETAIL_PRICE_STR
-        wholesale_df = nordpool_data.copy()
-        wholesale_df['value'] = elec_pricing.get_electricity_wholesale_price_from_nordpool_price(wholesale_df['value'])
-        wholesale_df['variable'] = app_constants.WHOLESALE_PRICE_STR
-        return pd.concat([clearing_prices_df, retail_df, wholesale_df])
-    else:
-        raise TypeError('Prices are not instance of ElectricityPrice!')
+    # TODO: Improve this
+    elec_pricing: ElectricityPrice = ElectricityPrice(
+        elec_wholesale_offset=config_data['AreaInfo']['ExternalElectricityWholesalePriceOffset'],
+        elec_tax=config_data['AreaInfo']["ElectricityTax"],
+        elec_grid_fee=config_data['AreaInfo']["ElectricityGridFee"],
+        elec_tax_internal=config_data['AreaInfo']["ElectricityTaxInternal"],
+        elec_grid_fee_internal=config_data['AreaInfo']["ElectricityGridFeeInternal"],
+        nordpool_data=read_nordpool_data())
+
+    nordpool_data = elec_pricing.nordpool_data
+    nordpool_data.name = 'value'
+    nordpool_data = nordpool_data.to_frame().reset_index()
+    nordpool_data['Resource'] = Resource.ELECTRICITY
+    nordpool_data.rename({'datetime': 'period'}, axis=1, inplace=True)
+    nordpool_data['period'] = pd.to_datetime(nordpool_data['period'])
+    retail_df = nordpool_data.copy()
+    gross_prices = elec_pricing.get_electricity_gross_retail_price_from_nordpool_price(retail_df['value'])
+    retail_df['value'] = elec_pricing.get_electricity_net_external_price(gross_prices)
+    retail_df['variable'] = app_constants.RETAIL_PRICE_STR
+    wholesale_df = nordpool_data.copy()
+    wholesale_df['value'] = elec_pricing.get_electricity_wholesale_price_from_nordpool_price(wholesale_df['value'])
+    wholesale_df['variable'] = app_constants.WHOLESALE_PRICE_STR
+    return pd.concat([local_price_df, retail_df, wholesale_df])
 
 
-# @st.cache_data
-def get_viewable_df(full_df: pd.DataFrame, key: str, value: Any, want_index: str,
-                    cols_to_drop: Union[None, List[str]] = None) -> pd.DataFrame:
+def aggregated_taxes_and_fees_results_df(tax_paid: float, grid_fees_paid_on_internal_trades: float) -> pd.DataFrame:
     """
-    Will filter on the given key-value pair, drop the key and cols_to_drop columns, set want_index as index, and
-    finally transform all Enums so that only their name is kept (i.e. 'Action.BUY' becomes 'BUY', which Streamlit can
-    serialize.
+    @return: Dataframe displaying total taxes and fees.
     """
-    if cols_to_drop is None:
-        cols_to_drop = []
-    cols_to_drop.append(key)
-    return full_df. \
-        loc[full_df[key].values == value]. \
-        drop(cols_to_drop, axis=1). \
-        set_index([want_index]). \
-        apply(lambda x: x.apply(lambda y: y.name) if isinstance(x.iloc[0], Enum) else x)
-
-
-def aggregated_taxes_and_fees_results_df() -> pd.DataFrame:
-    """
-    @return: Dataframe displaying total taxes and fees extracted from simulation results.
-    """
-    return pd.DataFrame(index=["Taxes paid on internal trades", "Grid fees paid on internal trades"],
+    return pd.DataFrame(index=["Taxes paid", "Grid fees paid on internal trades"],
                         columns=['Total'],
-                        data=["{:.2f} SEK".format(st.session_state.simulation_results.tax_paid),
-                              "{:.2f} SEK".format(st.session_state.simulation_results.grid_fees_paid_on_internal_trades)
+                        data=["{:.2f} SEK".format(tax_paid),
+                              "{:.2f} SEK".format(grid_fees_paid_on_internal_trades)
                               ])
 
 
@@ -210,7 +186,7 @@ def get_total_import_export(resource: Resource, action: Action,
     if mask is not None:
         conditions = (conditions & mask)
 
-    return st.session_state.simulation_results.all_trades.loc[conditions].quantity_post_loss.sum()
+    return st.session_state.simulation_results.all_trades.loc[conditions].quantity_post_loss.to_numpy().sum()
 
 
 def aggregated_import_and_export_results_df_split_on_mask(mask: pd.DataFrame,
@@ -312,7 +288,7 @@ def results_by_agent_as_df_with_highlight(df: pd.DataFrame, agent_chosen_guid: s
 
 
 def construct_traded_amount_by_agent_chart(agent_chosen_guid: str,
-                                           full_df: pd.DataFrame) -> alt.Chart:
+                                           agent_trade_df: pd.DataFrame) -> alt.Chart:
     """
     Plot amount of electricity and heating sold and bought.
     @param agent_chosen_guid: Name of chosen agent
@@ -333,14 +309,13 @@ def construct_traded_amount_by_agent_chart(agent_chosen_guid: str,
                             {'title': 'Amount of heating sold', 'color_num': 3,
                             'resource': Resource.HEATING, 'action': Action.SELL}]
 
-    full_df = full_df.loc[full_df['source'] == agent_chosen_guid].drop(['by_external'], axis=1)
-
     for elem in plot_lst:
-        mask = (full_df.resource.values == elem['resource']) & (full_df.action.values == elem['action'])
-        if not full_df.loc[mask].empty:
+        mask = (agent_trade_df.resource.values == elem['resource'].name) \
+            & (agent_trade_df.action.values == elem['action'].name)
+        if not agent_trade_df.loc[mask].empty:
             
-            df = pd.concat((df, pd.DataFrame({'period': full_df.loc[mask].period,
-                                              'value': full_df.loc[mask].quantity_post_loss,
+            df = pd.concat((df, pd.DataFrame({'period': agent_trade_df.loc[mask].index,
+                                              'value': agent_trade_df.loc[mask].quantity_post_loss,
                                               'variable': elem['title']})))
 
             domain.append(elem['title'])
@@ -371,18 +346,6 @@ def altair_period_chart(df: pd.DataFrame, domain: List[str], range_color: List[s
                         alt.Tooltip(field='variable', title='Variable'),
                         alt.Tooltip(field='value', title='Value')]). \
         add_selection(selection).interactive(bind_y=False)
-
-
-def display_df_and_make_downloadable(df: pd.DataFrame,
-                                     file_name: str,
-                                     df_styled: Optional[Styler] = None,
-                                     height: Optional[int] = None):
-    if df_styled is not None:
-        st.dataframe(df_styled, height=height)
-    else:
-        st.dataframe(df, height=height)
-
-    download_df_as_csv_button(df, file_name, include_index=True)
 
 
 def color_in(val):

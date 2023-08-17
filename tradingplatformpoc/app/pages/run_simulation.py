@@ -11,8 +11,8 @@ from tradingplatformpoc.app import footer
 from tradingplatformpoc.app.app_functions import run_simulation, set_max_width
 from tradingplatformpoc.app.app_threading import StoppableThread, get_running_threads
 from tradingplatformpoc.app.app_visualizations import color_in
-from tradingplatformpoc.sql.config.crud import get_all_config_ids_in_db_with_jobs, \
-    get_all_config_ids_in_db_without_jobs, read_config
+from tradingplatformpoc.sql.config.crud import \
+    get_all_config_ids_in_db_with_jobs_df, get_all_config_ids_in_db_without_jobs, read_config
 from tradingplatformpoc.sql.job.crud import delete_job
 
 logger = logging.getLogger(__name__)
@@ -47,8 +47,7 @@ if run_sim:
 
 st.subheader('Jobs')
 st.caption('This table is not automatically updated. Reload page in order to see latest informtion.')
-config_df = get_all_config_ids_in_db_with_jobs()
-
+config_df = get_all_config_ids_in_db_with_jobs_df()
 if not config_df.empty:
     config_df['Delete'] = False
     # config_df['Delete'] = config_df['Delete'].astype(bool)

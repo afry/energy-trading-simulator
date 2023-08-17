@@ -29,9 +29,7 @@ class ElectricityPrice(IPrice):
         self.elec_tax_internal = elec_tax_internal
         self.elec_grid_fee_internal = elec_grid_fee_internal
     
-    def get_estimated_retail_price(self, period: datetime.datetime,
-                                   # resource: Resource,
-                                   include_tax: bool) -> float:
+    def get_estimated_retail_price(self, period: datetime.datetime, include_tax: bool) -> float:
         """
         Returns the price at which the external grid operator is believed to be willing to sell energy, in SEK/kWh.
         For some energy carriers the price may be known, but for others it may in fact be set after the fact. That is
@@ -45,9 +43,7 @@ class ElectricityPrice(IPrice):
         else:
             return gross_price
 
-    def get_estimated_wholesale_price(self, period: datetime.datetime  # ,
-                                      # resource: Resource
-                                      ) -> float:
+    def get_estimated_wholesale_price(self, period: datetime.datetime) -> float:
         """
         Returns the price at which the external grid operator is believed to be willing to buy energy, in SEK/kWh.
         For some energy carriers the price may be known, but for others it may in fact be set after the fact. That is
@@ -55,9 +51,7 @@ class ElectricityPrice(IPrice):
         """
         return self.get_electricity_wholesale_price(period)
 
-    def get_exact_retail_price(self, period: datetime.datetime,
-                               # resource: Resource,
-                               include_tax: bool) -> float:
+    def get_exact_retail_price(self, period: datetime.datetime, include_tax: bool) -> float:
         """Returns the price at which the external grid operator is willing to sell energy, in SEK/kWh"""
         gross_price = self.get_electricity_gross_retail_price(period)
         if include_tax:
@@ -65,9 +59,7 @@ class ElectricityPrice(IPrice):
         else:
             return gross_price
 
-    def get_exact_wholesale_price(self, period: datetime.datetime,
-                                  # resource: Resource
-                                  ) -> float:
+    def get_exact_wholesale_price(self, period: datetime.datetime) -> float:
         """Returns the price at which the external grid operator is willing to buy energy, in SEK/kWh"""
 
         return self.get_electricity_wholesale_price(period)

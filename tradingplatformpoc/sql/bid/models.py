@@ -12,31 +12,31 @@ from tradingplatformpoc.market.bid import Action, Resource
 class Bid(SQLModel, table=True):
     __tablename__ = 'bid'
 
-    id: Optional[int] = Field(
+    id: int = Field(
         title='Unique integer ID',
         sa_column=Column(Integer, autoincrement=True, primary_key=True, nullable=False)
     )
-    job_id: Optional[str] = Field(
+    job_id: str = Field(
         primary_key=False,
         default=None,
         title='Unique job ID',
         nullable=False
     )
-    period: Optional[datetime.datetime] = Field(
+    period: datetime.datetime = Field(
         primary_key=False,
         title="Period",
-        nullable=True,
+        nullable=False,
         sa_column=Column(DateTime(timezone=True))
     )
-    action: Optional[Action] = Field(
+    action: Action = Field(
         title='Action',
         sa_column=Column(Enum(Action), primary_key=False, default=None, nullable=False)
     )
-    resource: Optional[Resource] = Field(
+    resource: Resource = Field(
         title='Resource',
         sa_column=Column(Enum(Resource), primary_key=False, default=None, nullable=False)
     )
-    quantity: Optional[float] = Field(
+    quantity: float = Field(
         primary_key=False,
         default=None,
         title='Accepted quantity',
@@ -46,15 +46,15 @@ class Bid(SQLModel, table=True):
         primary_key=False,
         default=None,
         title='Price',
-        nullable=False
+        nullable=True
     )
-    source: Optional[str] = Field(
+    source: str = Field(
         primary_key=False,
         default=None,
         title='Source',
         nullable=False
     )
-    by_external: Optional[bool] = Field(
+    by_external: bool = Field(
         primary_key=False,
         default=None,
         title='Trade by external market',

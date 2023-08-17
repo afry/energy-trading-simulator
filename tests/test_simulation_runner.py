@@ -1,6 +1,7 @@
 # import datetime
 import datetime
-from unittest import TestCase
+import os
+from unittest import TestCase, mock
 
 import numpy as np
 
@@ -16,30 +17,44 @@ from tradingplatformpoc.price.heating_price import HeatingPrice
 from tradingplatformpoc.simulation_runner.simulation_utils import construct_df_from_datetime_dict, \
     get_external_heating_prices, get_quantity_heating_sold_by_external_grid
 from tradingplatformpoc.simulation_runner.trading_simulator import TradingSimulator
-from tradingplatformpoc.sql.config.crud import create_config_if_not_in_db
-from tradingplatformpoc.sql.job.crud import delete_job
 from tradingplatformpoc.trading_platform_utils import hourly_datetime_array_between
 
 
 class Test(TestCase):
-    mock_datas_file_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
-    config = read_config()
-    heat_pricing: HeatingPrice = HeatingPrice(
-        heating_wholesale_price_fraction=config['AreaInfo']['ExternalHeatingWholesalePriceFraction'],
-        heat_transfer_loss=config['AreaInfo']["HeatTransferLoss"])
+
+    @classmethod
+    def setUpClass(cls):
+        cls.env_patcher = mock.patch.dict(os.environ, {"ENV": "test"})
+        cls.env_patcher.start()
+
+        super().setUpClass()
+
+        cls.mock_datas_file_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
+        cls.config = read_config()
+        cls.heat_pricing: HeatingPrice = HeatingPrice(
+            heating_wholesale_price_fraction=cls.config['AreaInfo']['ExternalHeatingWholesalePriceFraction'],
+            heat_transfer_loss=cls.config['AreaInfo']["HeatTransferLoss"])
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+
+        cls.env_patcher.stop()
 
     def test_initialize_agents(self):
         """Test that an error is thrown if no GridAgents are initialized."""
         fake_config = {'Agents': [agent for agent in self.config['Agents'] if agent['Type'] != 'GridAgent'],
                        'AreaInfo': self.config['AreaInfo'],
                        'MockDataConstants': self.config['MockDataConstants']}
-        create_config_if_not_in_db(fake_config, 'fake_config', 'Fake config for testing')
-        with self.assertRaises(RuntimeError):
-            simulator = TradingSimulator('fake_config', MOCK_DATA_PATH)
-            simulator.initialize_data()
-            simulator.initialize_agents()
 
-        delete_job('test_job_id')
+        with (mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.create_job_if_new_config',
+                         return_value='fake_job_id'),
+              mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.read_config',
+                         return_value=fake_config)):
+            with self.assertRaises(RuntimeError):
+                simulator = TradingSimulator('fake_config', MOCK_DATA_PATH)
+                simulator.initialize_data()
+                simulator.initialize_agents()
 
     def test_get_quantity_heating_sold_by_external_grid(self):
         """Test that get_quantity_heating_sold_by_external_grid doesn't break when there are no external trades."""
