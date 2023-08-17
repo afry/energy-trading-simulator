@@ -69,7 +69,7 @@ if __name__ == '__main__':
 
         **Navigate** by using the sidebar menu to either
         - *Setup simulation*: Run simulation for custom configuration.
-        - *Load results*: View uploaded simulation results.
+        - *View results*: View simulation results.
 
         """
     )
