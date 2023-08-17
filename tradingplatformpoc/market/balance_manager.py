@@ -229,12 +229,12 @@ def correct_for_exact_heating_price(trading_periods: pd.DatetimeIndex,
         # Periods
         trading_periods_in_this_month = trading_periods[(trading_periods.year == year)
                                                         & (trading_periods.month == month)]
-        heatin_prices_for_year_and_month = heating_prices[(heating_prices.month == month)
-                                                          & (heating_prices.year == year)].iloc[0]
-        exact_ext_retail_price = heatin_prices_for_year_and_month.exact_retail_price
-        exact_ext_wholesale_price = heatin_prices_for_year_and_month.exact_wholesale_price
-        est_ext_retail_price = heatin_prices_for_year_and_month.estimated_retail_price
-        est_ext_wholesale_price = heatin_prices_for_year_and_month.estimated_wholesale_price
+        heating_prices_for_year_and_month = heating_prices[(heating_prices.month == month)
+                                                           & (heating_prices.year == year)].iloc[0]
+        exact_ext_retail_price = heating_prices_for_year_and_month.exact_retail_price
+        exact_ext_wholesale_price = heating_prices_for_year_and_month.exact_wholesale_price
+        est_ext_retail_price = heating_prices_for_year_and_month.estimated_retail_price
+        est_ext_wholesale_price = heating_prices_for_year_and_month.estimated_wholesale_price
         
         heating_trades_for_month = heat_trades_from_db_for_periods(trading_periods_in_this_month, job_id)
 

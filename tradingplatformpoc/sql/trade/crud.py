@@ -16,7 +16,7 @@ from tradingplatformpoc.market.trade import Trade
 from tradingplatformpoc.sql.trade.models import Trade as TableTrade
 
 
-def heat_trades_from_db_for_periods(tradig_periods, job_id: str,
+def heat_trades_from_db_for_periods(trading_periods, job_id: str,
                                     session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope)\
         -> Dict[datetime.datetime, Dict]:
     with session_generator() as db:
@@ -28,8 +28,8 @@ def heat_trades_from_db_for_periods(tradig_periods, job_id: str,
                                              TableTrade.by_external.label('by_external'),
                                              TableTrade.market.label('market'))
                                       .where((TableTrade.job_id == job_id)
-                                             & (TableTrade.period >= tradig_periods.min())
-                                             & (TableTrade.period <= tradig_periods.max())
+                                             & (TableTrade.period >= trading_periods.min())
+                                             & (TableTrade.period <= trading_periods.max())
                                              & (TableTrade.resource == 'HEATING'))
                                       .order_by(TableTrade.period)).all()
 

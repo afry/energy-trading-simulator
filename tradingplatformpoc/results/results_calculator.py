@@ -40,11 +40,11 @@ def calc_basic_results_for_agent(agent: IAgent, res, job_id: str,
     results_dict: Dict[ResultsKey, float] = {}
     sek_tax_paid = 0.0
     sek_grid_fee_paid = 0.0
-    sek_price = {'sek_bougt_for_elec': 0.0, 'sek_sold_for_elec': 0.0,
+    sek_price = {'sek_bought_for_elec': 0.0, 'sek_sold_for_elec': 0.0,
                  'sek_bougt_for_heat': 0.0, 'sek_sold_for_heat': 0.0}
     for elem in res:
         if (elem.resource == Resource.ELECTRICITY) & (elem.action == Action.BUY):
-            results_dict, sek_price['sek_bougt_for_elec'], sek_tax_paid, sek_grid_fee_paid = \
+            results_dict, sek_price['sek_bought_for_elec'], sek_tax_paid, sek_grid_fee_paid = \
                 extract_aggregated_trades(elem, results_dict, agent.guid,
                                           ResultsKey.ELEC_BOUGHT, ResultsKey.AVG_BUY_PRICE_ELEC,
                                           sek_tax_paid, sek_grid_fee_paid,
@@ -80,7 +80,7 @@ def calc_basic_results_for_agent(agent: IAgent, res, job_id: str,
                                                                    exact_wholesale_heating_prices_by_year_and_month)
         total_saved = saved_on_buy + saved_on_sell - extra_costs_for_heat_cost_discr
 
-        sek_bought_for = sek_price['sek_bougt_for_heat'] + sek_price['sek_bougt_for_elec']
+        sek_bought_for = sek_price['sek_bougt_for_heat'] + sek_price['sek_bought_for_elec']
         sek_sold_for = sek_price['sek_sold_for_heat'] + sek_price['sek_sold_for_elec']
         sek_traded_for = sek_bought_for + sek_sold_for
 
