@@ -51,7 +51,7 @@ config_df = get_all_config_ids_in_db_with_jobs_df()
 if not config_df.empty:
     config_df['Delete'] = False
     # config_df['Delete'] = config_df['Delete'].astype(bool)
-    config_df['Status'] = 'Could not finnish'
+    config_df['Status'] = 'Could not finish'
     config_df.loc[config_df['Config ID'].isin([thread.name[4:] for thread in get_running_threads()]),
                   'Status'] = 'Running'
     config_df.loc[config_df['End time'].notna(), 'Status'] = 'Completed'
