@@ -354,5 +354,7 @@ class TradingSimulator:
                                     exact_wholesale_heating_prices_by_year_and_month=exact_wholesale_heat_price_by_ym,
                                     results_by_agent=results_by_agent
                                     )
+        
+        logger.info('Simulation finished!')
 
         return sim_res
