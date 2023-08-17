@@ -144,3 +144,6 @@ def get_all_agents_in_config(config_id: str,
     with session_generator() as db:
         res = db.execute(select(Config.agents_spec).where(Config.id == config_id)).first()
         return res[0] if res is not None else None
+
+
+# TODO: Add function to delete config
