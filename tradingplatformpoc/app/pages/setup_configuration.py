@@ -6,7 +6,7 @@ from st_pages import add_indentation, show_pages_from_config
 import streamlit as st
 
 from tradingplatformpoc.app import app_constants, footer
-from tradingplatformpoc.app.app_functions import set_max_width, \
+from tradingplatformpoc.app.app_functions import cleanup_config_naming, config_naming_is_valid, set_max_width, \
     update_multiselect_style
 from tradingplatformpoc.app.app_inputs import add_battery_agent, add_building_agent, add_grocery_store_agent, \
     add_params_to_form, add_pv_agent, agent_inputs, duplicate_agent, remove_agent, remove_all_building_agents
@@ -214,15 +214,23 @@ with config_container:
                     st.markdown(s)
 
 config_form = st.form(key='Save config')
-config_name = config_form.text_input('Name', '')
-description = config_form.text_input('Description', '')
+config_name = config_form.text_input('Name', '', max_chars=15,
+                                     help="Name should consist only of letters, and it can not be empty.")
+description = config_form.text_input('Description', '', max_chars=40)
 config_submit = config_form.form_submit_button('SAVE CONFIGURATION', type='primary')
 if config_submit:
     config_submit = False
-    config_created = create_config_if_not_in_db(st.session_state.config_data, config_name, description)
-    if config_created['created']:
-        st.success(config_created['message'])
+    if not config_naming_is_valid(config_name):
+        st.error("Provide a valid name!")
+    elif not config_naming_is_valid(description):
+        st.error("Provide a valid description!")
     else:
-        st.warning(config_created['message'])
+        config_name, description = cleanup_config_naming(config_name, description)
+        config_created = create_config_if_not_in_db(st.session_state.config_data, config_name, description)
+        if config_created['created']:
+            st.success(config_created['message'])
+        else:
+            st.warning(config_created['message'])
+
 
 st.write(footer.html, unsafe_allow_html=True)

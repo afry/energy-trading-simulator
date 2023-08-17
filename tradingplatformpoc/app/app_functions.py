@@ -103,3 +103,18 @@ def run_simulation(choosen_config_id: str):
     # TODO: Functionality to shut down job
     # TODO: Delete job is not finnished?
     # TODO: Add functionality to schedule removal of potential uncompleted jobs
+
+    
+def cleanup_config_naming(name: str, description: str) -> Tuple[str, str]:
+    """
+    Checks that the name and description of the config is valid.
+    """
+    name = name.lower().strip().replace(' ', '_')
+    description = description.lower().strip().capitalize()
+    if not description[-1] == ".":
+        description = description + "."
+    return name, description
+
+
+def config_naming_is_valid(name: str) -> bool:
+    return name.replace(' ', '').isalpha() and (len(name.replace(' ', '')) > 0)
