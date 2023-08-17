@@ -117,7 +117,7 @@ def get_total_tax_paid(job_id: str,
             func.sum(TableTrade.tax_paid_for_quantity).label('sum_tax_paid_for_quantities'),
         ).filter(TableTrade.action == Action.SELL, TableTrade.job_id == job_id).first()
 
-        return res.sum_tax_paid_for_quantities or 0.0
+        return res.sum_tax_paid_for_quantities if res.sum_tax_paid_for_quantities is not None else 0.0
 
 
 def get_total_grid_fee_paid_on_internal_trades(job_id: str,
@@ -129,4 +129,4 @@ def get_total_grid_fee_paid_on_internal_trades(job_id: str,
         ).filter(TableTrade.action == Action.SELL, TableTrade.by_external.is_(False),
                  TableTrade.job_id == job_id).first()
 
-        return res.sum_grid_fee_paid_for_quantities or 0.0
+        return res.sum_grid_fee_paid_for_quantities if res.sum_grid_fee_paid_for_quantities is not None else 0.0
