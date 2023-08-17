@@ -17,7 +17,7 @@ from tradingplatformpoc.sql.extra_cost.crud import db_to_viewable_extra_costs_df
 from tradingplatformpoc.sql.level.crud import db_to_viewable_level_df_by_agent
 from tradingplatformpoc.sql.trade.crud import db_to_viewable_trade_df_by_agent
 
-TABLE_HEIGHT: int = 563
+TABLE_HEIGHT: int = 300
 
 show_pages_from_config("tradingplatformpoc/app/pages_config/pages_subpages.toml")
 add_indentation()
