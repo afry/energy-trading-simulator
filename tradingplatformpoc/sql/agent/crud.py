@@ -40,7 +40,7 @@ def check_if_agent_in_db(agent_config: Dict[str, Any],
         agents_in_db = db.execute(select(Agent.id.label('id'),
                                          Agent.agent_config.label('config'))).all()
         for agent_in_db in agents_in_db:
-            symmetric_diff = set(agent_config.items()) ^ set(agent_in_db.config.items())
+            symmetric_diff = set(agent_config.items()).symmetric_difference(set(agent_in_db.config.items()))
             if len(symmetric_diff) == 0:
                 logger.info('Agent found in db with id {}'.format(agent_in_db.id))
                 return agent_in_db.id
