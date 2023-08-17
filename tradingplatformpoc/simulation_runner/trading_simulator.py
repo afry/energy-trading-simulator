@@ -286,7 +286,7 @@ class TradingSimulator:
         clearing_prices_objs = clearing_prices_to_db_objects(self.clearing_prices_historical, self.job_id)
         bulk_insert(clearing_prices_objs)
 
-        logger.info("Simulated a full year, starting some calculations on district heating price...")
+        logger.info("Finished simulating trades, beginning calculations on district heating price...")
 
     def extract_results(self) -> SimulationResults:
         """
