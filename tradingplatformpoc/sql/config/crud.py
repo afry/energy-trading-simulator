@@ -90,6 +90,13 @@ def read_config(config_id: str,
         else:
             logger.error('Configuration with ID {} not found.'.format(config_id))
             return None
+        
+
+def read_description(config_id: str,
+                     session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope):
+    with session_generator() as db:
+        res = db.execute(select(Config.description).where(Config.id == config_id)).first()
+        return res[0] if res is not None else None
 
 
 def get_all_config_ids_in_db_without_jobs(session_generator: Callable[[], _GeneratorContextManager[Session]]
@@ -123,14 +130,6 @@ def get_all_config_ids_in_db(session_generator: Callable[[], _GeneratorContextMa
         return [config_id for (config_id,) in res]
 
 
-def get_all_configs_in_db(session_generator: Callable[[], _GeneratorContextManager[Session]]
-                          = session_scope):
-    with session_generator() as db:
-        res = db.execute(select(Config, Job.init_time).outerjoin(Job, Job.config_id == Config.id)).all()
-        return pd.DataFrame.from_records([{'Config ID': config.id, 'Description': config.description,
-                                           'Start time': init_time} for (config, init_time) in res])
-
-
 def check_if_id_in_db(config_id: str,
                       session_generator: Callable[[], _GeneratorContextManager[Session]]
                       = session_scope):
@@ -145,3 +144,6 @@ def get_all_agents_in_config(config_id: str,
     with session_generator() as db:
         res = db.execute(select(Config.agents_spec).where(Config.id == config_id)).first()
         return res[0] if res is not None else None
+
+
+# TODO: Add function to delete config

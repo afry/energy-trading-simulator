@@ -15,7 +15,7 @@ from tradingplatformpoc.config.access_config import fill_agents_with_defaults, f
 from tradingplatformpoc.config.screen_config import compare_pv_efficiency, config_data_json_screening, \
     display_diff_in_config
 from tradingplatformpoc.sql.config.crud import create_config_if_not_in_db, get_all_config_ids_in_db, \
-    get_all_configs_in_db
+    read_description
 from tradingplatformpoc.sql.config.crud import read_config
 
 logger = logging.getLogger(__name__)
@@ -29,42 +29,46 @@ set_max_width('1000px')  # This tab looks a bit daft when it is too wide, so lim
 options = ['...input parameters through UI.', '...upload configuration file.']
 option_choosen = st.sidebar.selectbox('I want to...', options)
 
-st.markdown("**Existing configurations**")
-st.dataframe(get_all_configs_in_db(), use_container_width=True, hide_index=True)
-
-st.markdown('---')
-st.markdown('**Choose a configuration to use as base**')
-config_ids = get_all_config_ids_in_db()
-
-choosen_config_id = st.selectbox('Choose a configuration to start from.', config_ids)
-
-if len(config_ids) > 0:
-    st.caption('Show choosen base configuration.')
-    with st.expander('Configuration :blue[{}] in JSON format'.format(choosen_config_id)):
-        st.json(read_config(choosen_config_id), expanded=True)
-
 st.markdown('On this page you can create new scenario configurations to run simulations for. '
             'Start by selecting a configuration to compare against. '
             'If you click on the *set*-button below, then the *current* configuration is changed to '
-            'the choosen base configuration above. '
-            'The current configuration can then be customized by changing parameters in the '
+            'the choosen existing configuration. '
+            'This existing configuration can then be customized by changing parameters in the '
             'forms under **Create new configuration**.')
 
-reset_config_button = st.button(label=":red[Set configuration to **{}**]".format(choosen_config_id),
+st.divider()
+
+config_ids = get_all_config_ids_in_db()
+choosen_config_id = st.selectbox('Choose an existing configuration.', config_ids)
+
+if len(config_ids) > 0:
+    with st.expander('Choosen existing configuration :blue[{}]'.format(choosen_config_id)):
+        st.write('**Configuration description**: ', read_description(choosen_config_id))
+        st.markdown("##")
+        # Button to export config to a JSON file
+        st.download_button(label="Export *" + choosen_config_id + "* config to JSON",
+                           data=json.dumps(read_config(choosen_config_id)),
+                           file_name="trading-platform-poc-config-" + choosen_config_id + ".json",
+                           mime="text/json", help="Click button below to download the " + choosen_config_id
+                           + " configuration to a JSON-file.")
+        st.markdown("#")
+        st.json(read_config(choosen_config_id), expanded=True)
+
+reset_config_button = st.button(label="SET CONFIGURATION TO **{}**".format(choosen_config_id),
                                 help="Click here to DELETE custom configuration and reset configuration to "
-                                "choosen base configuration",
+                                "choosen base configuration", type='primary',
                                 disabled=(option_choosen == options[1]))
 
-if ('config_data' not in st.session_state) or (reset_config_button):
+if ('config_data' not in st.session_state.keys()) or (reset_config_button):
     reset_config_button = False
     st.session_state.config_data = read_config(choosen_config_id)
 
 st.markdown('---')
+st.markdown("**Create new configuration**")
 
 config_container = st.container()
 
-st.markdown('---')
-st.markdown("**Create new configuration**")
+st.markdown('#')
 
 comp_pveff = compare_pv_efficiency(st.session_state.config_data)
 if comp_pveff is not None:
@@ -192,7 +196,15 @@ if option_choosen == options[1]:
 with config_container:
     coljson, coltext = st.columns([2, 1])
     with coljson:
-        with st.expander('Current configuration in JSON format'):
+        with st.expander('Current configuration'):
+            # Button to export config to a JSON file
+            st.download_button(label="Export *current* config to JSON", data=json.dumps(st.session_state.config_data),
+                               file_name="trading-platform-poc-config-current.json",
+                               mime="text/json", help="Click button below to download the current experiment "
+                               "configuration to a JSON-file, which you can later "
+                               "upload to re-use this configuration without having to do over "
+                               "any changes you have made so far.")
+            st.markdown("#")
             st.json(st.session_state.config_data, expanded=True)
     with coltext:
         with st.expander('Configuration changes from default'):
@@ -201,17 +213,10 @@ with config_container:
                 for s in str_to_disp:
                     st.markdown(s)
 
-    st.write("Click button below to download the current experiment configuration to a JSON-file, which you can later "
-             "upload to re-use this configuration without having to do over any changes you have made so far.")
-    # Button to export config to a JSON file
-    st.download_button(label="Export to JSON", data=json.dumps(st.session_state.config_data),
-                       file_name="trading-platform-poc-config.json",
-                       mime="text/json")
-
 config_form = st.form(key='Save config')
 config_name = config_form.text_input('Name', '')
 description = config_form.text_input('Description', '')
-config_submit = config_form.form_submit_button('Save configuration')
+config_submit = config_form.form_submit_button('SAVE CONFIGURATION', type='primary')
 if config_submit:
     config_submit = False
     config_created = create_config_if_not_in_db(st.session_state.config_data, config_name, description)

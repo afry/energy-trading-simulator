@@ -1,15 +1,18 @@
 import logging
 
+import pandas as pd
+
 from st_pages import add_indentation, show_pages_from_config
 
 import streamlit as st
+from streamlit.runtime.scriptrunner import add_script_run_ctx
 
 from tradingplatformpoc.app import footer
-from tradingplatformpoc.app.app_functions import results_button, set_max_width, set_simulation_results
-from tradingplatformpoc.constants import MOCK_DATA_PATH
-from tradingplatformpoc.simulation_runner.trading_simulator import TradingSimulator
-from tradingplatformpoc.sql.config.crud import get_all_config_ids_in_db_with_jobs_df, \
-    get_all_config_ids_in_db_without_jobs, read_config
+from tradingplatformpoc.app.app_functions import run_simulation, set_max_width
+from tradingplatformpoc.app.app_threading import StoppableThread, get_running_threads
+from tradingplatformpoc.app.app_visualizations import color_in
+from tradingplatformpoc.sql.config.crud import \
+    get_all_config_ids_in_db_with_jobs_df, get_all_config_ids_in_db_without_jobs, read_config
 from tradingplatformpoc.sql.job.crud import delete_job
 
 logger = logging.getLogger(__name__)
@@ -27,23 +30,37 @@ if len(config_ids) > 0:
 else:
     st.markdown('Set up a configuration in **Setup simulation**')
 
-run_sim = st.button("**CLICK TO RUN SIMULATION FOR *{}***".format(choosen_config_id),
+run_sim = st.button("**CLICK TO RUN SIMULATION FOR *{}***".format(choosen_config_id)
+                    if choosen_config_id is not None else "**CLICK TO RUN SIMULATION**",
                     disabled=(len(config_ids) == 0),
                     help='Click this button to start a simulation '
                     'run with the specified configuration: *{}*'.format(choosen_config_id),
                     type='primary')
 
-progress_bar = st.progress(0.0)
-progress_text = st.info("")
+if run_sim:
+    t = StoppableThread(name='run_' + choosen_config_id, target=run_simulation, args=(choosen_config_id,))
+    add_script_run_ctx(t)
+    t.start()
+    run_sim = False
+    st.experimental_rerun()
+
 
 st.subheader('Jobs')
+st.caption('This table is not automatically updated. Reload page in order to see latest informtion.')
 config_df = get_all_config_ids_in_db_with_jobs_df()
 if not config_df.empty:
     config_df['Delete'] = False
+    # config_df['Delete'] = config_df['Delete'].astype(bool)
+    config_df['Status'] = 'Could not finish'
+    config_df.loc[config_df['Config ID'].isin([thread.name[4:] for thread in get_running_threads()]),
+                  'Status'] = 'Running'
+    config_df.loc[config_df['End time'].notna(), 'Status'] = 'Completed'
+    config_df_styled = config_df.style.applymap(color_in, subset=['Status'])\
+        .set_properties(**{'background-color': '#f5f5f5'}, subset=['Status', 'Config ID'])
     delete_runs_form = st.form(key='Delete runs form')
     edited_df = delete_runs_form.data_editor(
-        config_df.set_index('Job ID'),
-        # use_container_width=True, # Caused shaking
+        config_df_styled,
+        # use_container_width=True,  # Caused shaking before
         key='delete_df',
         column_config={
             "Delete": st.column_config.CheckboxColumn(
@@ -52,8 +69,9 @@ if not config_df.empty:
                 default=False,
             )
         },
+        column_order=['Status', 'Config ID', 'Start time', 'End time', 'Description', 'Delete', 'Job ID'],
         hide_index=True,
-        disabled=["widgets"]
+        disabled=['Status', 'Config ID', 'Start time', 'End time', 'Description', 'Job ID']
     )
     delete_runs_submit = delete_runs_form.form_submit_button('**DELETE DATA FOR SELECTED RUNS**',
                                                              help='IMPORTANT: Clicking this button '
@@ -61,34 +79,17 @@ if not config_df.empty:
     if delete_runs_submit:
         delete_runs_submit = False
         if not edited_df[edited_df['Delete']].empty:
-            for job_id, _row in edited_df[edited_df['Delete']].iterrows():
-                delete_job(job_id)
+            for _i, row in edited_df[edited_df['Delete']].iterrows():
+                active = [thread for thread in get_running_threads() if thread.name == 'run_' + row['Config ID']]
+                if len(active) == 0:
+                    delete_job(row['Job ID'])
+                else:
+                    active[0].stop_it()
             st.experimental_rerun()
         else:
             st.markdown('No runs selected to delete.')
-
-if not ('simulation_results' in st.session_state):
-    st.caption('Be aware that the download button returns last saved simulation '
-               'result which might be from another session.')
-
-results_download_button = st.empty()
-results_button(results_download_button)
-
-if run_sim:
-    run_sim = False
-    logger.info("Running simulation")
-    st.spinner("Running simulation")
-
-    simulator = TradingSimulator(choosen_config_id, MOCK_DATA_PATH)
-    simulation_results = simulator(progress_bar, progress_text)
-    if simulation_results is not None:
-        set_simulation_results(simulation_results)
-        st.session_state.simulation_results = simulation_results
-        logger.info("Simulation finished!")
-        progress_text.success('Simulation finished!')
-        results_button(results_download_button)
-    else:
-        progress_text.error("Simulation could not finish!")
-        # TODO: Delete job ID
+else:
+    st.dataframe(pd.DataFrame(columns=['Status', 'Config ID', 'Start time', 'End time', 'Description', 'Job ID']),
+                 hide_index=True, use_container_width=True)
 
 st.write(footer.html, unsafe_allow_html=True)

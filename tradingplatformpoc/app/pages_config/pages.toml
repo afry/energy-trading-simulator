@@ -3,8 +3,8 @@ path = "app.py"
 name = "Start"
 
 [[pages]]
-path = "tradingplatformpoc/app/pages/setup_simulation.py"
-name = "Setup simulation"
+path = "tradingplatformpoc/app/pages/setup_configuration.py"
+name = "Setup configuration"
 
 [[pages]]
 path = "tradingplatformpoc/app/pages/run_simulation.py"

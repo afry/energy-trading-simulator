@@ -2,17 +2,17 @@ import datetime
 import gc
 import logging
 import math
-from typing import Any, Collection, Dict, List, Optional, Tuple, Union
+import threading
+from typing import Any, Collection, Dict, List, Optional, Tuple
 
 import pandas as pd
-
-import streamlit as st
 
 from tradingplatformpoc.agent.battery_agent import BatteryAgent
 from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
+from tradingplatformpoc.app.app_threading import StoppableThread
 from tradingplatformpoc.data.preproccessing import read_energy_data, read_irradiation_data, read_nordpool_data
 from tradingplatformpoc.database import bulk_insert
 from tradingplatformpoc.digitaltwin.battery import Battery
@@ -56,15 +56,13 @@ class TradingSimulator:
         self.config_data: Dict[str, Any] = read_config(config_id)
         self.mock_datas_pickle_path = mock_datas_pickle_path
 
-    def __call__(self, progress_bar: Union[st.progress, None] = None,
-                 progress_text: Union[st.info, None] = None) -> Optional[SimulationResults]:
+    def __call__(self) -> Optional[SimulationResults]:
         if (self.job_id is not None) and (self.config_data is not None):
             try:
 
                 self.initialize_data()
                 self.agents, self.grid_agents = self.initialize_agents()
-                self.progress = Progress(progress_bar)
-                self.progress_text = progress_text
+                self.progress = Progress()
                 self.run()
                 results = self.extract_results()
                 update_job_with_end_time(self.job_id)
@@ -182,11 +180,9 @@ class TradingSimulator:
 
         return agents, grid_agents
 
-    def run(self, number_of_batches=5):
+    def run(self, number_of_batches: int = 5):
         """
         The core loop of the simulation, running through the desired time period and performing trades.
-        @param progress_bar             A streamlit progress bar, used only when running simulations through the UI
-        @param progress_text            A streamlit info field, used only when running simulations through the UI
         """
 
         # Increase of progress bar per batch
@@ -196,13 +192,17 @@ class TradingSimulator:
         self.progress.increase(0.005)
 
         # Load generated mock data
-        if self.progress_text is not None:
-            self.progress_text.info("Generating data...")
+        logger.info("Generating data...")
 
         number_of_trading_periods = len(self.trading_periods)
         batch_size = math.ceil(number_of_trading_periods / number_of_batches)
         # Loop over batches
         for batch_number in range(number_of_batches):
+            current_thread = threading.current_thread()
+            if isinstance(current_thread, StoppableThread):
+                if current_thread.is_stopped():
+                    logger.error('Simulation stopped by event.')
+                    raise Exception("Simulation stopped by event.")
             logger.info("Simulating batch number {} of {}".format(batch_number, number_of_batches))
             # Periods in batch
             trading_periods_in_this_batch = self.trading_periods[
@@ -219,8 +219,6 @@ class TradingSimulator:
                 if period.day == period.hour == 1:
                     info_string = "Simulations entering {:%B}".format(period)
                     logger.info(info_string)
-                    if self.progress_text is not None:
-                        self.progress_text.info(info_string + "...")
 
                 # Get all bids
                 bids = [agent.make_bids(period, self.clearing_prices_historical) for agent in self.agents]
@@ -292,8 +290,7 @@ class TradingSimulator:
                                                   TradeMetadataKey.STORAGE_LEVEL.name, self.job_id)
         bulk_insert(clearing_prices_objs + heat_pump_level_objs + storage_level_objs)
 
-        if self.progress_text is not None:
-            self.progress_text.info("Simulated a full year, starting some calculations on district heating price...")
+        logger.info("Finished simulating trades, beginning calculations on district heating price...")
 
     def extract_results(self) -> SimulationResults:
         """
@@ -316,15 +313,12 @@ class TradingSimulator:
         del heat_cost_discr_corrections, objs
         gc.collect()
 
-        if self.progress_text is not None:
-            self.progress_text.info("Formatting results...")
+        logger.info("Formatting results...")
 
         self.progress.increase(0.05)
         self.progress.display()
 
         logger.info('Aggregating results per agent')
-        if self.progress_text is not None:
-            self.progress_text.info("Aggregating results per agent...")
         exact_retail_heat_price_by_ym, exact_wholesale_heat_price_by_ym = db_to_heating_price_dicts(self.job_id)
         results_by_agent = results_calculator.calc_basic_results(self.agents, self.job_id,
                                                                  self.exact_retail_electricity_prices_by_period,
@@ -364,5 +358,7 @@ class TradingSimulator:
                                     exact_wholesale_heating_prices_by_year_and_month=exact_wholesale_heat_price_by_ym,
                                     results_by_agent=results_by_agent
                                     )
+        
+        logger.info('Simulation finished!')
 
         return sim_res

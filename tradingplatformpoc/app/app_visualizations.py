@@ -346,3 +346,13 @@ def altair_period_chart(df: pd.DataFrame, domain: List[str], range_color: List[s
                         alt.Tooltip(field='variable', title='Variable'),
                         alt.Tooltip(field='value', title='Value')]). \
         add_selection(selection).interactive(bind_y=False)
+
+
+def color_in(val):
+    if 'Running' in val:
+        color = '#f7a34f'
+    elif 'Completed' in val:
+        color = '#5eab7e'
+    else:
+        color = '#f01d5c'
+    return 'color: %s' % color
