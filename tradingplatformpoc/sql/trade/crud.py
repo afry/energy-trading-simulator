@@ -97,7 +97,7 @@ def db_to_aggregated_trades_by_agent(job_id: str,
 def db_to_trades_by_agent(source: str, job_id: str,
                           session_generator: Callable[[], _GeneratorContextManager[Session]]
                           = session_scope) -> pd.DataFrame:
-    '''Fetches trades data from database for specified agent (source).'''
+    # Fetches trades data from database for specified agent (source).
     with session_generator() as db:
         trades = db.execute(select(TableTrade.period.label('period'),
                                    TableTrade.action.label('action').label('action'),
@@ -107,6 +107,31 @@ def db_to_trades_by_agent(source: str, job_id: str,
                                    TableTrade.price.label('price'))
                             .where((TableTrade.job_id == job_id) & (TableTrade.source == source))).all()
         return trades
+    
+
+def db_to_viewable_trade_df_by_agent(job_id: str, agent_guid: str,
+                                     session_generator: Callable[[], _GeneratorContextManager[Session]]
+                                     = session_scope):
+    """
+    Fetches trades data from database for specified agent (agent_guid) and changes to a df.
+    """
+    with session_generator() as db:
+        trades = db.query(TableTrade).filter(TableTrade.source == agent_guid, TableTrade.job_id == job_id).all()
+
+        if len(trades) > 0:
+            return pd.DataFrame.from_records([{'period': trade.period,
+                                               'action': trade.action.name,
+                                               'resource': trade.resource.name,
+                                               'market': trade.market.name,
+                                               'quantity_pre_loss': trade.quantity_pre_loss,
+                                               'quantity_post_loss': trade.quantity_post_loss,
+                                               'price': trade.price,
+                                               'tax_paid': trade.tax_paid,
+                                               'grid_fee_paid': trade.grid_fee_paid
+                                               } for trade in trades], index='period')
+        else:
+            return pd.DataFrame(columns=['period', 'action', 'resource', 'market', 'quantity_pre_loss',
+                                         'quantity_post_loss', 'price', 'tax_paid', 'grid_fee_paid'])
 
 
 def get_total_tax_paid(job_id: str,
