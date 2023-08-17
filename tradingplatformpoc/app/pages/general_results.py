@@ -1,14 +1,11 @@
 import logging
-import time
 
 from st_pages import add_indentation, show_pages_from_config
 
 import streamlit as st
 
 from tradingplatformpoc.app import footer
-from tradingplatformpoc.app.app_visualizations import aggregated_import_and_export_results_df_split_on_period, \
-    aggregated_import_and_export_results_df_split_on_temperature, aggregated_local_production_df, \
-    construct_combined_price_df, construct_price_chart, \
+from tradingplatformpoc.app.app_visualizations import construct_combined_price_df, construct_price_chart, \
     get_price_df_when_local_price_inbetween
 from tradingplatformpoc.market.bid import Resource
 from tradingplatformpoc.sql.clearing_price.crud import db_to_construct_local_prices_df
@@ -57,34 +54,35 @@ if 'choosen_id_to_view' in st.session_state.keys() and st.session_state.choosen_
             st.dataframe(get_price_df_when_local_price_inbetween(st.session_state.combined_price_df,
                                                                  Resource.ELECTRICITY))
 
-if 'simulation_results' in st.session_state:
+# TODO: Update graphs to work with results taken from database
+# if 'simulation_results' in st.session_state:
 
-    t_start = time.time()
+#     t_start = time.time()
 
-    with st.expander('Total imported and exported electricity and heating:'):
-        imp_exp_period_dict = aggregated_import_and_export_results_df_split_on_period()
-        imp_exp_temp_dict = aggregated_import_and_export_results_df_split_on_temperature()
-        col1, col2 = st.columns(2)
-        col1.header('Imported')
-        col2.header("Exported")
-        st.caption("Split on period of year:")
-        col1, col2 = st.columns(2)
-        col1.dataframe(imp_exp_period_dict['Imported'])
-        col2.dataframe(imp_exp_period_dict['Exported'])
-        st.caption("Split on temperature above or below 1 degree Celsius:")
-        col1, col2 = st.columns(2)
-        col1.dataframe(imp_exp_temp_dict['Imported'])
-        col2.dataframe(imp_exp_temp_dict['Exported'])
+#     with st.expander('Total imported and exported electricity and heating:'):
+#         imp_exp_period_dict = aggregated_import_and_export_results_df_split_on_period()
+#         imp_exp_temp_dict = aggregated_import_and_export_results_df_split_on_temperature()
+#         col1, col2 = st.columns(2)
+#         col1.header('Imported')
+#         col2.header("Exported")
+#         st.caption("Split on period of year:")
+#         col1, col2 = st.columns(2)
+#         col1.dataframe(imp_exp_period_dict['Imported'])
+#         col2.dataframe(imp_exp_period_dict['Exported'])
+#         st.caption("Split on temperature above or below 1 degree Celsius:")
+#         col1, col2 = st.columns(2)
+#         col1.dataframe(imp_exp_temp_dict['Imported'])
+#         col2.dataframe(imp_exp_temp_dict['Exported'])
 
-    with st.expander('Total of locally produced heating and electricity:'):
-        loc_prod = aggregated_local_production_df()
-        st.dataframe(loc_prod)
-        st.caption("Total amount of heating produced by local heat pumps "
-                   + "and total amount of locally produced electricity.")
-    t_end = time.time()
-    logger.info('Time to display aggregated results: {:.3f} seconds'.format(t_end - t_start))
+#     with st.expander('Total of locally produced heating and electricity:'):
+#         loc_prod = aggregated_local_production_df()
+#         st.dataframe(loc_prod)
+#         st.caption("Total amount of heating produced by local heat pumps "
+#                    + "and total amount of locally produced electricity.")
+#     t_end = time.time()
+#     logger.info('Time to display aggregated results: {:.3f} seconds'.format(t_end - t_start))
             
 else:
-    st.write('Run simulations and load data first!')
+    st.write("There's no results to view yet.")
 
 st.write(footer.html, unsafe_allow_html=True)

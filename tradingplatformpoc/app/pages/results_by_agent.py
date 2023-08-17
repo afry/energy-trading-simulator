@@ -2,14 +2,10 @@ from st_pages import add_indentation, show_pages_from_config
 
 import streamlit as st
 
-from tradingplatformpoc.agent.building_agent import BuildingAgent
-from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app import footer
 from tradingplatformpoc.app.app_functions import download_df_as_csv_button
-from tradingplatformpoc.app.app_inputs import get_agent
-from tradingplatformpoc.app.app_visualizations import construct_building_with_heat_pump_chart, \
-    construct_storage_level_chart, construct_traded_amount_by_agent_chart, \
-    results_by_agent_as_df, results_by_agent_as_df_with_highlight
+from tradingplatformpoc.app.app_visualizations import construct_storage_level_chart, \
+    construct_traded_amount_by_agent_chart
 from tradingplatformpoc.market.trade import TradeMetadataKey
 from tradingplatformpoc.sql.bid.crud import db_to_viewable_bid_df_for_agent
 from tradingplatformpoc.sql.config.crud import get_all_agents_in_config
@@ -72,31 +68,27 @@ if 'choosen_id_to_view' in st.session_state.keys() and st.session_state.choosen_
             storage_chart = construct_storage_level_chart(levels_df)
             st.altair_chart(storage_chart, use_container_width=True, theme=None)
 
-if 'simulation_results' in st.session_state:
+# TODO: Update graphs to work with results taken from database
+# if 'simulation_results' in st.session_state:
 
-    # all code taken from this point
-    # bids
-    # trades
-    # extracosts
+#     agent_chosen = get_agent(st.session_state.simulation_results.agents, agent_chosen_guid)
 
-    agent_chosen = get_agent(st.session_state.simulation_results.agents, agent_chosen_guid)
+#     if isinstance(agent_chosen, BuildingAgent) or isinstance(agent_chosen, PVAgent):
+#         # Any building agent with a StaticDigitalTwin
+#         with st.expander('Energy production/consumption'):
+#             hp_chart = construct_building_with_heat_pump_chart(agent_chosen, st.session_state.
+#                                                                simulation_results.heat_pump_levels_dict)
+#             st.altair_chart(hp_chart, use_container_width=True, theme=None)
+#             st.write("Click on a variable to highlight it.")
 
-    if isinstance(agent_chosen, BuildingAgent) or isinstance(agent_chosen, PVAgent):
-        # Any building agent with a StaticDigitalTwin
-        with st.expander('Energy production/consumption'):
-            hp_chart = construct_building_with_heat_pump_chart(agent_chosen, st.session_state.
-                                                               simulation_results.heat_pump_levels_dict)
-            st.altair_chart(hp_chart, use_container_width=True, theme=None)
-            st.write("Click on a variable to highlight it.")
+#     st.subheader('Aggregated results')
 
-    st.subheader('Aggregated results')
-
-    results_by_agent_df = results_by_agent_as_df()
-    results_by_agent_df_styled = results_by_agent_as_df_with_highlight(results_by_agent_df, agent_chosen_guid)
-    st.dataframe(results_by_agent_df_styled, height=TABLE_HEIGHT)
-    download_df_as_csv_button(results_by_agent_df, "results_by_agent_all_agents", include_index=True)
+#     results_by_agent_df = results_by_agent_as_df()
+#     results_by_agent_df_styled = results_by_agent_as_df_with_highlight(results_by_agent_df, agent_chosen_guid)
+#     st.dataframe(results_by_agent_df_styled, height=TABLE_HEIGHT)
+#     download_df_as_csv_button(results_by_agent_df, "results_by_agent_all_agents", include_index=True)
 
 else:
-    st.write('Run simulations and load data first!')
+    st.write("There's no results to view yet.")
 
 st.write(footer.html, unsafe_allow_html=True)
