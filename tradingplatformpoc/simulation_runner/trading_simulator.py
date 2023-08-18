@@ -3,7 +3,7 @@ import gc
 import logging
 import math
 import threading
-from typing import Any, Collection, Dict, List, Optional, Tuple
+from typing import Any, Collection, Dict, List, Tuple
 
 import pandas as pd
 
@@ -27,22 +27,18 @@ from tradingplatformpoc.market.extra_cost import ExtraCost
 from tradingplatformpoc.market.trade import Trade, TradeMetadataKey
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
-from tradingplatformpoc.results import results_calculator
-from tradingplatformpoc.results.simulation_results import SimulationResults
 from tradingplatformpoc.simulation_runner.progress import Progress
 from tradingplatformpoc.simulation_runner.simulation_utils import get_external_heating_prices, \
     get_generated_mock_data, get_quantity_heating_sold_by_external_grid, go_through_trades_metadata, \
     net_bids_from_gross_bids
-from tradingplatformpoc.sql.bid.crud import bids_to_db_objects, db_to_bid_df
+from tradingplatformpoc.sql.bid.crud import bids_to_db_objects
 from tradingplatformpoc.sql.clearing_price.crud import clearing_prices_to_db_objects
 from tradingplatformpoc.sql.config.crud import read_config
-from tradingplatformpoc.sql.extra_cost.crud import db_to_extra_cost_df, extra_costs_to_db_objects
-from tradingplatformpoc.sql.heating_price.crud import db_to_heating_price_dicts, \
-    external_heating_prices_to_db_objects
+from tradingplatformpoc.sql.extra_cost.crud import extra_costs_to_db_objects
+from tradingplatformpoc.sql.heating_price.crud import external_heating_prices_to_db_objects
 from tradingplatformpoc.sql.job.crud import create_job_if_new_config, delete_job, update_job_with_end_time
 from tradingplatformpoc.sql.level.crud import levels_to_db_objects
-from tradingplatformpoc.sql.trade.crud import db_to_trade_df, get_total_grid_fee_paid_on_internal_trades, \
-    get_total_tax_paid, trades_to_db_objects
+from tradingplatformpoc.sql.trade.crud import trades_to_db_objects
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, flatten_collection, \
     get_intersection
 
@@ -56,7 +52,7 @@ class TradingSimulator:
         self.config_data: Dict[str, Any] = read_config(config_id)
         self.mock_datas_pickle_path = mock_datas_pickle_path
 
-    def __call__(self) -> Optional[SimulationResults]:
+    def __call__(self):
         if (self.job_id is not None) and (self.config_data is not None):
             try:
 
@@ -292,7 +288,7 @@ class TradingSimulator:
 
         logger.info("Finished simulating trades, beginning calculations on district heating price...")
 
-    def extract_results(self) -> SimulationResults:
+    def extract_results(self):
         """
         Simulations finished. Now, we need to go through and calculate the exact district heating price for each month
         """
@@ -313,52 +309,52 @@ class TradingSimulator:
         del heat_cost_discr_corrections, objs
         gc.collect()
 
-        logger.info("Formatting results...")
+        # logger.info("Formatting results...")
 
-        self.progress.increase(0.05)
-        self.progress.display()
+        # self.progress.increase(0.05)
+        # self.progress.display()
 
-        logger.info('Aggregating results per agent')
-        exact_retail_heat_price_by_ym, exact_wholesale_heat_price_by_ym = db_to_heating_price_dicts(self.job_id)
-        results_by_agent = results_calculator.calc_basic_results(self.agents, self.job_id,
-                                                                 self.exact_retail_electricity_prices_by_period,
-                                                                 self.exact_wholesale_electricity_prices_by_period,
-                                                                 exact_retail_heat_price_by_ym,
-                                                                 exact_wholesale_heat_price_by_ym)
-        self.progress.increase(0.005)
-        self.progress.display()
+        # logger.info('Aggregating results per agent')
+        # exact_retail_heat_price_by_ym, exact_wholesale_heat_price_by_ym = db_to_heating_price_dicts(self.job_id)
+        # results_by_agent = results_calculator.calc_basic_results(self.agents, self.job_id,
+        #                                                          self.exact_retail_electricity_prices_by_period,
+        #                                                          self.exact_wholesale_electricity_prices_by_period,
+        #                                                          exact_retail_heat_price_by_ym,
+        #                                                          exact_wholesale_heat_price_by_ym)
+        # self.progress.increase(0.005)
+        # self.progress.display()
 
-        logger.info('Read trades from db...')
-        all_trades_df = db_to_trade_df(self.job_id)
-        self.progress.increase(0.005)
-        self.progress.display()
-        logger.info('Read bids from db...')
-        all_bids_df = db_to_bid_df(self.job_id)
-        logger.info('Read extra costs from db...')
-        extra_costs_df = db_to_extra_cost_df(self.job_id).sort_values(['period', 'agent'])
+        # logger.info('Read trades from db...')
+        # all_trades_df = db_to_trade_df(self.job_id)
+        # self.progress.increase(0.005)
+        # self.progress.display()
+        # logger.info('Read bids from db...')
+        # all_bids_df = db_to_bid_df(self.job_id)
+        # logger.info('Read extra costs from db...')
+        # extra_costs_df = db_to_extra_cost_df(self.job_id).sort_values(['period', 'agent'])
 
-        self.progress.final()
-        self.progress.display()
+        # self.progress.final()
+        # self.progress.display()
 
-        tax_paid = get_total_tax_paid(self.job_id)
-        grid_fees_paid_on_internal_trades = get_total_grid_fee_paid_on_internal_trades(self.job_id)
+        # tax_paid = get_total_tax_paid(self.job_id)
+        # grid_fees_paid_on_internal_trades = get_total_grid_fee_paid_on_internal_trades(self.job_id)
 
-        sim_res = SimulationResults(clearing_prices_historical=self.clearing_prices_historical,
-                                    all_trades=all_trades_df,
-                                    all_extra_costs=extra_costs_df,
-                                    all_bids=all_bids_df,
-                                    storage_levels_dict=self.storage_levels_dict,
-                                    heat_pump_levels_dict=self.heat_pump_levels_dict,
-                                    config_data=self.config_data,
-                                    agents=self.agents,
-                                    pricing=[self.heat_pricing, self.electricity_pricing],
-                                    grid_fees_paid_on_internal_trades=grid_fees_paid_on_internal_trades,
-                                    tax_paid=tax_paid,
-                                    exact_retail_heating_prices_by_year_and_month=exact_retail_heat_price_by_ym,
-                                    exact_wholesale_heating_prices_by_year_and_month=exact_wholesale_heat_price_by_ym,
-                                    results_by_agent=results_by_agent
-                                    )
+        # sim_res = SimulationResults(clearing_prices_historical=self.clearing_prices_historical,
+        #                             all_trades=all_trades_df,
+        #                             all_extra_costs=extra_costs_df,
+        #                             all_bids=all_bids_df,
+        #                             storage_levels_dict=self.storage_levels_dict,
+        #                             heat_pump_levels_dict=self.heat_pump_levels_dict,
+        #                             config_data=self.config_data,
+        #                             agents=self.agents,
+        #                             pricing=[self.heat_pricing, self.electricity_pricing],
+        #                             grid_fees_paid_on_internal_trades=grid_fees_paid_on_internal_trades,
+        #                             tax_paid=tax_paid,
+        #                             exact_retail_heating_prices_by_year_and_month=exact_retail_heat_price_by_ym,
+        #                             exact_wholesale_heating_prices_by_year_and_month=exact_wholesale_heat_price_by_ym,
+        #                             results_by_agent=results_by_agent
+        #                             )
         
         logger.info('Simulation finished!')
 
-        return sim_res
+        # return sim_res
