@@ -58,6 +58,7 @@ build:
     - docker:dind
   script:
     - docker build -t tppoc-app .
+    - docker tag tppoc-app jonstakapoccontainerregistry.azurecr.io/tppoc-app:latest
     - docker tag tppoc-app jonstakapoccontainerregistry.azurecr.io/tppoc-app:$CI_COMMIT_TAG
     - docker login jonstakapoccontainerregistry.azurecr.io -u $AZURE_APP_ID -p $AZURE_PASSWORD
     - docker push -a jonstakapoccontainerregistry.azurecr.io/tppoc-app # Push all tags
