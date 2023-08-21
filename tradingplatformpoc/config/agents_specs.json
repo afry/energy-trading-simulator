@@ -62,7 +62,7 @@
             "disabled_cond": {"NumberHeatPumps": 0}
         }
     },
-    "StorageAgent": {
+    "BatteryAgent": {
         "Capacity": {
             "display": "Capacity",
             "min_value": 0.0,
@@ -92,7 +92,7 @@
             "min_value": 1,
             "max_value": 8760,
             "default_value": 168,
-            "help": "Used in the current StorageAgent strategy: The agent will use the prices from NHoursBack to form an opinion on what its asking prices should be for upcoming periods",
+            "help": "Used in the current BatteryAgent strategy: The agent will use the prices from NHoursBack to form an opinion on what its asking prices should be for upcoming periods",
             "type": "int"
         },
         "BuyPricePercentile": {
@@ -101,7 +101,7 @@
             "max_value": 100.0,
             "step": 1.0,
             "default_value": 20,
-            "help": "Used in the current StorageAgent strategy: The agent will look at historical prices, as specified above, and set its buy-bid asking price to be this percentile of those historical prices",
+            "help": "Used in the current BatteryAgent strategy: The agent will look at historical prices, as specified above, and set its buy-bid asking price to be this percentile of those historical prices",
             "type": "float"
         },
         "SellPricePercentile": {
@@ -110,7 +110,7 @@
             "max_value": 100.0,
             "step": 1.0,
             "default_value": 80,
-            "help": "Used in the current StorageAgent strategy: The agent will look at historical prices, as specified above, and set its sell-bid asking price to be this percentile of those historical prices. SellPricePercentile must be bigger than BuyPricePercentile",
+            "help": "Used in the current BatteryAgent strategy: The agent will look at historical prices, as specified above, and set its sell-bid asking price to be this percentile of those historical prices. SellPricePercentile must be bigger than BuyPricePercentile",
             "type": "float"
         },
         "DischargeRate": {

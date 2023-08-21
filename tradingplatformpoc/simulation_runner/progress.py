@@ -1,12 +1,11 @@
-from typing import Union
+import logging
 
-import streamlit as st
+logger = logging.getLogger(__name__)
 
 
 class Progress:
-    def __init__(self, progress_bar: Union[st.progress, None] = None):
+    def __init__(self):
         self.frac_complete = 0.0
-        self.progress_bar = progress_bar
 
     def get_process(self):
         return self.frac_complete
@@ -23,5 +22,4 @@ class Progress:
 
     def display(self):
         frac_complete = self.get_process()
-        if self.progress_bar is not None:
-            self.progress_bar.progress(frac_complete)
+        logger.info('Approx. frac complete {}'.format(frac_complete))

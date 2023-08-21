@@ -9,26 +9,32 @@ import numpy as np
 from tradingplatformpoc import trading_platform_utils
 from tradingplatformpoc.agent.iagent import IAgent, get_price_and_market_to_use_when_buying, \
     get_price_and_market_to_use_when_selling
-from tradingplatformpoc.data_store import DataStore
+from tradingplatformpoc.digitaltwin.heat_pump import HeatPump
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
-from tradingplatformpoc.heat_pump import HeatPump
 from tradingplatformpoc.market.bid import Action, GrossBid, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.market.trade import Trade, TradeMetadataKey
-from tradingplatformpoc.trading_platform_utils import minus_n_hours
+from tradingplatformpoc.price.electricity_price import ElectricityPrice
+from tradingplatformpoc.price.heating_price import HeatingPrice
+from tradingplatformpoc.simulation_runner.simulation_utils import get_local_price_if_exists_else_external_estimate
 
 logger = logging.getLogger(__name__)
 
 
 class BuildingAgent(IAgent):
 
+    heat_pricing: HeatingPrice
+    electricity_pricing: ElectricityPrice
     digital_twin: StaticDigitalTwin
     n_heat_pumps: int
     workloads_data: OrderedDict[int, Tuple[float, float]]  # Keys should be strictly increasing
     allow_sell_heat: bool
 
-    def __init__(self, data_store: DataStore, digital_twin: StaticDigitalTwin, nbr_heat_pumps: int = 0,
+    def __init__(self, heat_pricing: HeatingPrice, electricity_pricing: ElectricityPrice,
+                 digital_twin: StaticDigitalTwin, nbr_heat_pumps: int = 0,
                  coeff_of_perf: Optional[float] = None, guid="BuildingAgent"):
-        super().__init__(guid, data_store)
+        super().__init__(guid)
+        self.heat_pricing = heat_pricing
+        self.electricity_pricing = electricity_pricing
         self.digital_twin = digital_twin
         self.n_heat_pumps = nbr_heat_pumps
         self.workloads_data = construct_workloads_data(coeff_of_perf, nbr_heat_pumps)
@@ -38,14 +44,14 @@ class BuildingAgent(IAgent):
             Resource, float]], None] = None) -> List[GrossBid]:
         # The building should make a bid for purchasing energy, or selling if it has a surplus
         prev_period = trading_platform_utils.minus_n_hours(period, 1)
-        prev_prices = self.data_store.get_local_price_if_exists_else_external_estimate(prev_period,
-                                                                                       clearing_prices_historical)
+        prev_prices = get_local_price_if_exists_else_external_estimate(
+            prev_period, clearing_prices_historical, [self.electricity_pricing, self.heat_pricing])
         return self.make_bids_with_heat_pump(period, prev_prices[Resource.ELECTRICITY],
                                              prev_prices[Resource.HEATING])
 
     def make_prognosis(self, period: datetime.datetime, resource: Resource) -> float:
         # The building should make a prognosis for how much energy will be required
-        prev_trading_period = minus_n_hours(period, 1)
+        prev_trading_period = trading_platform_utils.minus_n_hours(period, 1)
         try:
             electricity_demand_prev = self.digital_twin.get_consumption(prev_trading_period, resource)
             electricity_prod_prev = self.digital_twin.get_production(prev_trading_period, resource)
@@ -64,10 +70,14 @@ class BuildingAgent(IAgent):
                                          accepted_bids_for_agent: List[NetBidWithAcceptanceStatus]) -> \
             Tuple[List[Trade], Dict[TradeMetadataKey, Any]]:
         trades = []
-        elec_retail_price = self.data_store.get_estimated_retail_price(period, Resource.ELECTRICITY, True)
-        elec_wholesale_price = self.data_store.get_estimated_wholesale_price(period, Resource.ELECTRICITY)
-        heat_retail_price = self.data_store.get_estimated_retail_price(period, Resource.HEATING, True)
-        heat_wholesale_price = self.data_store.get_estimated_wholesale_price(period, Resource.HEATING)
+        elec_retail_price = self.electricity_pricing.\
+            get_estimated_retail_price(period, True)
+        elec_wholesale_price = self.electricity_pricing.\
+            get_estimated_wholesale_price(period)
+        heat_retail_price = self.heat_pricing.\
+            get_estimated_retail_price(period, True)
+        heat_wholesale_price = self.heat_pricing.\
+            get_estimated_wholesale_price(period)
 
         elec_net_consumption_pred = self.make_prognosis(period, Resource.ELECTRICITY)
         heat_net_consumption_pred = self.make_prognosis(period, Resource.HEATING)
@@ -98,21 +108,24 @@ class BuildingAgent(IAgent):
             # the internal electricity tax, and the internal grid fee
             trades.append(self.construct_elec_trade(Action.SELL, -elec_net_consumption_incl_pump,
                                                     price_to_use, market_to_use, period,
-                                                    tax_paid=self.data_store.elec_tax_internal,
-                                                    grid_fee_paid=self.data_store.elec_grid_fee_internal))
+                                                    tax_paid=self.electricity_pricing.elec_tax_internal,
+                                                    grid_fee_paid=self.electricity_pricing
+                                                    .elec_grid_fee_internal))
         if heat_net_consumption_incl_pump > 0:
             # Positive net consumption, so need to buy heating
             price_to_use, market_to_use = get_price_and_market_to_use_when_buying(heat_clearing_price,
                                                                                   heat_retail_price)
             trades.append(self.construct_buy_heat_trade(heat_net_consumption_incl_pump,
-                                                        price_to_use, market_to_use, period))
+                                                        price_to_use, market_to_use, period,
+                                                        self.heat_pricing.heat_transfer_loss_per_side))
         elif heat_net_consumption_incl_pump < 0:
             # Negative net consumption, meaning there is a surplus, which the agent will sell
             if self.allow_sell_heat:
                 price_to_use, market_to_use = get_price_and_market_to_use_when_selling(heat_clearing_price,
                                                                                        heat_wholesale_price)
                 trades.append(self.construct_sell_heat_trade(-heat_net_consumption_incl_pump,
-                                                             price_to_use, market_to_use, period))
+                                                             price_to_use, market_to_use, period,
+                                                             self.heat_pricing.heat_transfer_loss_per_side))
             else:
                 logger.debug('For period {}, had excess heat of {:.2f} kWh, but could not sell that surplus. This heat '
                              'will be seen as having effectively vanished'.
@@ -147,14 +160,16 @@ class BuildingAgent(IAgent):
             # What price to use here? The predicted local clearing price, or the external grid wholesale price?
             # Going with the latter
             bids.append(self.construct_elec_bid(Action.SELL, -elec_net_consumption_incl_pump,
-                                                self.get_external_grid_buy_price(period, Resource.ELECTRICITY)))
+                                                self.electricity_pricing.get_external_grid_buy_price(period)))
         if heat_net_consumption_incl_pump > 0:
-            bids.append(self.construct_buy_heat_bid(heat_net_consumption_incl_pump, math.inf))
+            bids.append(self.construct_buy_heat_bid(heat_net_consumption_incl_pump, math.inf,
+                                                    self.heat_pricing.heat_transfer_loss_per_side))
             # This demand must be fulfilled - therefore price is inf
         elif heat_net_consumption_incl_pump < 0 and self.allow_sell_heat:
             # What price to use here? The predicted local clearing price, or the external grid wholesale price?
             # External grid may not want to buy heat at all, so going with the former, for now.
-            bids.append(self.construct_sell_heat_bid(-heat_net_consumption_incl_pump, pred_heat_price))
+            bids.append(self.construct_sell_heat_bid(-heat_net_consumption_incl_pump, pred_heat_price,
+                                                     self.heat_pricing.heat_transfer_loss_per_side))
         return bids
     
     def calculate_optimal_workload(self, elec_net_consumption: float, heat_net_consumption: float,
@@ -165,7 +180,7 @@ class BuildingAgent(IAgent):
         sold.
         """
         # Gross price, since we are interested in calculating our potential profit
-        elec_sell_price = self.data_store.get_electricity_gross_internal_price(pred_elec_price)
+        elec_sell_price = self.electricity_pricing.get_electricity_gross_internal_price(pred_elec_price)
         heat_sell_price = pred_heat_price if self.allow_sell_heat else 0
 
         # Converting workload ordered dict into numpy array for faster computing

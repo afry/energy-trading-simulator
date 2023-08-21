@@ -6,16 +6,17 @@ from st_pages import add_indentation, show_pages_from_config
 import streamlit as st
 
 from tradingplatformpoc.app import app_constants, footer
-from tradingplatformpoc.app.app_functions import results_button, set_max_width, set_simulation_results, \
+from tradingplatformpoc.app.app_functions import cleanup_config_naming, config_naming_is_valid, set_max_width, \
     update_multiselect_style
-from tradingplatformpoc.app.app_inputs import add_building_agent, add_grocery_store_agent, add_params_to_form, \
-    add_pv_agent, add_storage_agent, agent_inputs, duplicate_agent, remove_agent, remove_all_building_agents
-from tradingplatformpoc.config.access_config import fill_agents_with_defaults, fill_with_default_params, get_config, \
-    read_config, read_param_specs, set_config
+from tradingplatformpoc.app.app_inputs import add_battery_agent, add_building_agent, add_grocery_store_agent, \
+    add_params_to_form, add_pv_agent, agent_inputs, duplicate_agent, remove_agent, remove_all_building_agents
+from tradingplatformpoc.config.access_config import fill_agents_with_defaults, fill_with_default_params, \
+    read_param_specs
 from tradingplatformpoc.config.screen_config import compare_pv_efficiency, config_data_json_screening, \
     display_diff_in_config
-from tradingplatformpoc.constants import MOCK_DATA_PATH
-from tradingplatformpoc.simulation_runner.trading_simulator import TradingSimulator
+from tradingplatformpoc.sql.config.crud import create_config_if_not_in_db, get_all_config_ids_in_db, \
+    read_description
+from tradingplatformpoc.sql.config.crud import read_config
 
 logger = logging.getLogger(__name__)
 
@@ -24,40 +25,52 @@ add_indentation()
 
 set_max_width('1000px')  # This tab looks a bit daft when it is too wide, so limiting it here.
 
-run_sim = st.button("Click here to run simulation")
-progress_bar = st.progress(0.0)
-progress_text = st.info("")
-
-if not ('simulation_results' in st.session_state):
-    st.caption('Be aware that the download button returns last saved simulation '
-               'result which might be from another session.')
-
-results_download_button = st.empty()
-results_button(results_download_button)
 
 options = ['...input parameters through UI.', '...upload configuration file.']
 option_choosen = st.sidebar.selectbox('I want to...', options)
 
+st.markdown('On this page you can create new scenario configurations to run simulations for. '
+            'Start by selecting a configuration to compare against. '
+            'If you click on the *set*-button below, then the *current* configuration is changed to '
+            'the choosen existing configuration. '
+            'This existing configuration can then be customized by changing parameters in the '
+            'forms under **Create new configuration**.')
+
+st.divider()
+
+config_ids = get_all_config_ids_in_db()
+choosen_config_id = st.selectbox('Choose an existing configuration.', config_ids)
+
+if len(config_ids) > 0:
+    with st.expander('Choosen existing configuration :blue[{}]'.format(choosen_config_id)):
+        st.write('**Configuration description**: ', read_description(choosen_config_id))
+        st.markdown("##")
+        # Button to export config to a JSON file
+        st.download_button(label="Export *" + choosen_config_id + "* config to JSON",
+                           data=json.dumps(read_config(choosen_config_id)),
+                           file_name="trading-platform-poc-config-" + choosen_config_id + ".json",
+                           mime="text/json", help="Click button below to download the " + choosen_config_id
+                           + " configuration to a JSON-file.")
+        st.markdown("#")
+        st.json(read_config(choosen_config_id), expanded=True)
+
+reset_config_button = st.button(label="SET CONFIGURATION TO **{}**".format(choosen_config_id),
+                                help="Click here to DELETE custom configuration and reset configuration to "
+                                "choosen base configuration", type='primary',
+                                disabled=(option_choosen == options[1]))
+
+if ('config_data' not in st.session_state.keys()) or (reset_config_button):
+    reset_config_button = False
+    st.session_state.config_data = read_config(choosen_config_id)
+
 st.markdown('---')
+st.markdown("**Create new configuration**")
+
 config_container = st.container()
-with config_container:
-    col_config, col_reset = st.columns([4, 1])
-    with col_reset:
-        reset_config_button = st.button(label=":red[Reset configuration]",
-                                        help="Click here to DELETE custom configuration and reset configuration"
-                                        " to default values and agents.", disabled=(option_choosen == options[1]))
-    with col_config:
-        # Saving the config to file on-change. That way changes won't get lost
-        current_config, message = get_config(reset_config_button)
-        st.markdown(message)
-        st.session_state.config_data = current_config
-    # st.markdown('*If you wish to save your configuration for '
-    #             'another session, use the **Export to JSON**-button below.*')
-    # st.markdown('---')
 
-st.markdown("**Change configuration**")
+st.markdown('#')
 
-comp_pveff = compare_pv_efficiency(read_config())
+comp_pveff = compare_pv_efficiency(st.session_state.config_data)
 if comp_pveff is not None:
     st.info(comp_pveff)
 # TODO: Button for setting all PVEfficiency params to same value
@@ -82,7 +95,6 @@ if option_choosen == options[0]:
             submit_area_form = area_form.form_submit_button("Save area info")
             if submit_area_form:
                 submit_area_form = False
-                set_config(st.session_state.config_data)
 
         with mock_data_constants_tab:
             # st.markdown("**Data simulation parameters for digital twin:**")  # ---------------
@@ -91,7 +103,6 @@ if option_choosen == options[0]:
             submit_mdc_form = mdc_form.form_submit_button("Save mock data generation constants")
             if submit_mdc_form:
                 submit_mdc_form = False
-                set_config(st.session_state.config_data)
 
     # ------------------- Start agents -------------------
     with st.expander("Agents"):
@@ -125,14 +136,14 @@ if option_choosen == options[0]:
             st.markdown('Select the type of the agent to add '
                         'from the drop down list, and modify the pre-selected parameter values. '
                         'Click on **Save** to create agent.')
-            agent_type_options = ['BuildingAgent', 'GroceryStoreAgent', 'StorageAgent', 'PVAgent']
+            agent_type_options = ['BuildingAgent', 'GroceryStoreAgent', 'BatteryAgent', 'PVAgent']
             choosen_agent_type = st.selectbox('Add new agent of type:', options=agent_type_options)
             if choosen_agent_type == 'BuildingAgent':
                 add_building_agent()
             elif choosen_agent_type == 'GroceryStoreAgent':
                 add_grocery_store_agent()
-            elif choosen_agent_type == 'StorageAgent':
-                add_storage_agent()
+            elif choosen_agent_type == 'BatteryAgent':
+                add_battery_agent()
             elif choosen_agent_type == 'PVAgent':
                 add_pv_agent()
             if 'agents_added' in st.session_state.keys() and st.session_state.agents_added:
@@ -180,42 +191,46 @@ if option_choosen == options[1]:
             st.stop()
         uploaded_config = fill_with_default_params(uploaded_config)
         uploaded_config = fill_agents_with_defaults(uploaded_config)
-        set_config(uploaded_config)
         st.info("Using configuration from uploaded file.")
 
-st.markdown('---')
 with config_container:
     coljson, coltext = st.columns([2, 1])
     with coljson:
-        with st.expander('Current configuration in JSON format'):
-            st.json(read_config(), expanded=True)
+        with st.expander('Current configuration'):
+            # Button to export config to a JSON file
+            st.download_button(label="Export *current* config to JSON", data=json.dumps(st.session_state.config_data),
+                               file_name="trading-platform-poc-config-current.json",
+                               mime="text/json", help="Click button below to download the current experiment "
+                               "configuration to a JSON-file, which you can later "
+                               "upload to re-use this configuration without having to do over "
+                               "any changes you have made so far.")
+            st.markdown("#")
+            st.json(st.session_state.config_data, expanded=True)
     with coltext:
         with st.expander('Configuration changes from default'):
-            str_to_disp = display_diff_in_config(read_config(name='default'), read_config())
+            str_to_disp = display_diff_in_config(read_config(choosen_config_id), st.session_state.config_data)
             if len(str_to_disp) > 1:
                 for s in str_to_disp:
                     st.markdown(s)
 
-    st.write("Click button below to download the current experiment configuration to a JSON-file, which you can later "
-             "upload to re-use this configuration without having to do over any changes you have made so far.")
-    # Button to export config to a JSON file
-    st.download_button(label="Export to JSON", data=json.dumps(read_config()),
-                       file_name="trading-platform-poc-config.json",
-                       mime="text/json")
-    st.markdown('---')
+config_form = st.form(key='Save config')
+config_name = config_form.text_input('Name', '', max_chars=15,
+                                     help="Name should consist only of letters, and it can not be empty.")
+description = config_form.text_input('Description', '', max_chars=40)
+config_submit = config_form.form_submit_button('SAVE CONFIGURATION', type='primary')
+if config_submit:
+    config_submit = False
+    if not config_naming_is_valid(config_name):
+        st.error("Provide a valid name!")
+    elif not config_naming_is_valid(description):
+        st.error("Provide a valid description!")
+    else:
+        config_name, description = cleanup_config_naming(config_name, description)
+        config_created = create_config_if_not_in_db(st.session_state.config_data, config_name, description)
+        if config_created['created']:
+            st.success(config_created['message'])
+        else:
+            st.warning(config_created['message'])
 
-if run_sim:
-    run_sim = False
-    logger.info("Running simulation")
-    st.spinner("Running simulation")
-
-    simulator = TradingSimulator(read_config(), MOCK_DATA_PATH)
-    simulation_results = simulator.run(progress_bar, progress_text)
-
-    set_simulation_results(simulation_results)
-    st.session_state.simulation_results = simulation_results
-    logger.info("Simulation finished!")
-    progress_text.success('Simulation finished!')
-    results_button(results_download_button)
 
 st.write(footer.html, unsafe_allow_html=True)

@@ -3,7 +3,7 @@ from typing import Any, Dict, Iterable
 import streamlit as st
 
 from tradingplatformpoc.agent.iagent import IAgent
-from tradingplatformpoc.config.access_config import read_agent_defaults, read_agent_specs, read_config, set_config
+from tradingplatformpoc.config.access_config import read_agent_defaults, read_agent_specs
 from tradingplatformpoc.trading_platform_utils import ALL_AGENT_TYPES, ALL_IMPLEMENTED_RESOURCES_STR, get_if_exists_else
 
 
@@ -12,7 +12,6 @@ def remove_agent(some_agent: Dict[str, Any]):
         st.error('Not allowed to remove GridAgent!')
     else:
         st.session_state.config_data['Agents'].remove(some_agent)
-        set_config(st.session_state.config_data)
 
 
 def duplicate_agent(some_agent: Dict[str, Any]):
@@ -21,7 +20,7 @@ def duplicate_agent(some_agent: Dict[str, Any]):
     it to the session_state list of agents.
     """
     new_agent = some_agent.copy()
-    current_config = read_config()
+    current_config = st.session_state.config_data
     all_agent_names = [agent['Name'] for agent in current_config['Agents']]
     n_copies_existing = 1
     while n_copies_existing:
@@ -32,13 +31,11 @@ def duplicate_agent(some_agent: Dict[str, Any]):
         else:
             n_copies_existing += 1
     st.session_state.config_data['Agents'].append(new_agent)
-    set_config(st.session_state.config_data)
 
 
 def remove_all_building_agents():
     st.session_state.config_data['Agents'] = [agent for agent in st.session_state.config_data['Agents']
                                               if agent['Type'] != 'BuildingAgent']
-    set_config(st.session_state.config_data)
 
 
 def add_agent(new_agent: Dict[str, Any]):
@@ -48,7 +45,7 @@ def add_agent(new_agent: Dict[str, Any]):
     The first will be named 'New[insert agent type]1', the second 'New[insert agent type]2' etc.
     """
 
-    current_config = read_config()
+    current_config = st.session_state.config_data
     name_str = "New" + new_agent['Type']
     number_of_existing_new_agents = len([agent for agent in current_config['Agents'] if name_str in agent['Name']])
     new_agent["Name"] = name_str + str(number_of_existing_new_agents + 1)
@@ -62,11 +59,10 @@ def add_building_agent():
     })
 
 
-def add_storage_agent():
+def add_battery_agent():
     add_agent({
-        "Type": "StorageAgent",
-        "Resource": "ELECTRICITY",
-        **read_agent_defaults("StorageAgent", read_agent_specs())
+        "Type": "BatteryAgent",
+        **read_agent_defaults("BatteryAgent", read_agent_specs())
     })
 
 
@@ -99,11 +95,6 @@ def agent_inputs(agent, new: bool = False):
         agent['Resource'] = form.selectbox('Resource', options=ALL_IMPLEMENTED_RESOURCES_STR,
                                            key='ResourceSelectBox' + agent['Name'],
                                            index=ALL_IMPLEMENTED_RESOURCES_STR.index(agent['Resource']))
-    elif agent['Type'] == 'StorageAgent':
-        # TODO: options should be ALL_IMPLEMENTED_RESOURCES_STR when HEATING is implemented for StorageAgent
-        agent['Resource'] = form.selectbox('Resource', options=['ELECTRICITY'],
-                                           key='ResourceSelectBox' + agent['Name'],
-                                           index=['ELECTRICITY'].index(agent['Resource']))
 
     # Parameters
     agent_specs = read_agent_specs()
@@ -134,7 +125,6 @@ def agent_inputs(agent, new: bool = False):
             st.session_state.config_data['Agents'].append(agent)
             # To keep track of if the success text should be displayed
             st.session_state.agents_added = True
-        set_config(st.session_state.config_data)
         st.experimental_rerun()
 
 
@@ -145,7 +135,7 @@ def get_agent(all_agents: Iterable[IAgent], agent_chosen_guid: str) -> IAgent:
 
 def add_params_to_form(form, param_spec_dict: dict, info_type: str):
     """Populate parameter forms."""
-    current_config = read_config()
+    current_config = st.session_state.config_data
     for key, val in param_spec_dict[info_type].items():
         params = {k: v for k, v in val.items() if k not in ['display', 'default']}
         st.session_state.config_data[info_type][key] = form.number_input(

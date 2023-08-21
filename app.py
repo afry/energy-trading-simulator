@@ -9,6 +9,8 @@ import sys
 import streamlit as st
 from st_pages import show_pages_from_config, add_indentation
 
+from tradingplatformpoc.database import create_db_and_tables, insert_default_config_into_db
+
 # Note: To debug a streamlit script, see https://stackoverflow.com/a/60172283
 
 # This would be neat, but haven't been able to get it to work
@@ -50,6 +52,8 @@ logger = logging.getLogger(__name__)
 if string_to_log_later is not None:
     logger.info(string_to_log_later)
 
+create_db_and_tables()
+insert_default_config_into_db()
 
 if __name__ == '__main__':
 
@@ -65,7 +69,7 @@ if __name__ == '__main__':
 
         **Navigate** by using the sidebar menu to either
         - *Setup simulation*: Run simulation for custom configuration.
-        - *Load results*: View uploaded simulation results.
+        - *View results*: View simulation results.
 
         """
     )
