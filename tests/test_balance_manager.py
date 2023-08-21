@@ -457,11 +457,11 @@ class TestBalanceManager(TestCase):
         # TODO: Here we use trades, but what is really returned is List[RowProxy]. Fix this?
         with mock.patch('tradingplatformpoc.market.balance_manager.heat_trades_from_db_for_periods',
                         return_value={self.some_datetime: trades}):
-            cost_discr_corrs = correct_for_exact_heating_price(
+            cost_discrepancy_correction = correct_for_exact_heating_price(
                 pd.DatetimeIndex([self.some_datetime]), heating_prices, None)
-        self.assertAlmostEqual(0.375, [x.cost for x in cost_discr_corrs if x.agent == "Buyer1"][0], places=3)
-        self.assertAlmostEqual(0.375, [x.cost for x in cost_discr_corrs if x.agent == "Buyer2"][0], places=3)
-        self.assertAlmostEqual(-0.75, [x.cost for x in cost_discr_corrs if x.agent == "Grid"][0], places=3)
+        self.assertAlmostEqual(0.375, [x.cost for x in cost_discrepancy_correction if x.agent == "Buyer1"][0], places=3)
+        self.assertAlmostEqual(0.375, [x.cost for x in cost_discrepancy_correction if x.agent == "Buyer2"][0], places=3)
+        self.assertAlmostEqual(-0.75, [x.cost for x in cost_discrepancy_correction if x.agent == "Grid"][0], places=3)
 
         # Step 2
         cost_to_be_paid_by_agent = calculate_penalty_costs_for_period_and_resource(bids,
