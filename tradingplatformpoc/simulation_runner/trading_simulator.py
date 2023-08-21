@@ -109,7 +109,7 @@ class TradingSimulator:
 
         # Read CSV files
         tornet_household_elec_cons, coop_elec_cons, tornet_heat_cons, coop_heat_cons = read_energy_data()
-        irradiation_data = read_irradiation_data()
+        irradiation_data = read_irradiation_data().set_index('datetime').squeeze()
 
         for agent in self.config_data["Agents"]:
             agent_type = agent["Type"]

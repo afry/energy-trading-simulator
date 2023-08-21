@@ -8,8 +8,6 @@ from typing import Any, Callable, Dict, Iterable, Tuple, Union
 
 import numpy as np
 
-import pandas as pd
-
 from pkg_resources import resource_filename
 
 import polars as pl
@@ -18,6 +16,7 @@ from statsmodels.regression.linear_model import RegressionResultsWrapper
 
 from tradingplatformpoc.compress import bz2_decompress_pickle
 from tradingplatformpoc.config.access_config import read_config
+from tradingplatformpoc.data.preproccessing import create_inputs_df_for_mock_data_generation
 from tradingplatformpoc.generate_data import commercial_heating_model
 from tradingplatformpoc.generate_data.mock_data_generation_functions import MockDataKey, get_all_building_agents, \
     get_commercial_electricity_consumption_hourly_factor, get_commercial_heating_consumption_hourly_factor, \
@@ -72,9 +71,7 @@ def run(config_data: Dict[str, Any]) -> Dict[MockDataKey, pl.DataFrame]:
         logger.debug('Model loaded')
 
         # Read in-data: Temperature and timestamps
-        df_inputs, df_irrd = create_inputs_df(resource_filename(DATA_PATH, 'temperature_vetelangden.csv'),
-                                              resource_filename(DATA_PATH, 'varberg_irradiation_W_m2_h.csv'),
-                                              resource_filename(DATA_PATH, 'vetelangden_slim.csv'))
+        df_inputs = create_inputs_df_for_mock_data_generation()
 
         logger.debug('Input dataframes created')
         output_per_building = pl.DataFrame({'datetime': df_inputs['datetime']})
@@ -284,90 +281,6 @@ def calculate_adjustment_for_energy_prev(model: RegressionResultsWrapper, energy
         model.params['np.where(np.isnan(energy_prev), 0, np.minimum(energy_prev, 0.3))'] * np.minimum(energy_prev,
                                                                                                       0.3) + \
         model.params['np.where(np.isnan(energy_prev), 0, np.minimum(energy_prev, 0.7))'] * np.minimum(energy_prev, 0.7)
-
-
-def create_inputs_df(temperature_csv_path: str, irradiation_csv_path: str, heating_csv_path: str) -> \
-        Tuple[pl.DataFrame, pl.DataFrame]:
-    """
-    Create pl.DataFrames with certain columns that are needed to predict from the household electricity linear model.
-    Will start reading CSVs as pd.DataFrames, since pandas is better at handling time zones, and then convert to polars.
-    @param temperature_csv_path: Path to a CSV-file with datetime-stamps and temperature readings, in degrees C.
-    @param irradiation_csv_path: Path to a CSV-file with datetime-stamps and solar irradiance readings, in W/m2.
-    @param heating_csv_path: Path to a CSV-file with datetime-stamps and heating energy readings, in kW.
-    @return: Two pl.DataFrames:
-        The first one contains date/time-related columns, as well as outdoor temperature readings and heating energy
-            demand data from Vetelangden. This dataframe will be used to simulate electricity and heat demands.
-        The second one contains irradiation data, which is used to estimate PV production.
-    """
-    df_temp = pd.read_csv(temperature_csv_path, names=['datetime', 'temperature'],
-                          delimiter=';', header=0)
-    df_temp['datetime'] = pd.to_datetime(df_temp['datetime'])
-    # The input is in local time, with NA for the times that "don't exist" due to daylight savings time
-    df_temp['datetime'] = df_temp['datetime'].dt.tz_localize('Europe/Stockholm', nonexistent='NaT', ambiguous='NaT')
-    # Now, remove the rows where datetime is NaT (the values there are NA anyway)
-    df_temp = df_temp.loc[~df_temp['datetime'].isnull()]
-    # Finally, convert to UTC
-    df_temp['datetime'] = df_temp['datetime'].dt.tz_convert('UTC')
-
-    df_irrd = pd.read_csv(irradiation_csv_path)
-    df_irrd['datetime'] = pd.to_datetime(df_irrd['datetime'], utc=True)
-    # This irradiation data is in UTC, so we don't need to convert it.
-
-    df_inputs = df_temp.merge(df_irrd)
-    # In case there are any missing values
-    df_inputs[['temperature', 'irradiation']] = df_inputs[['temperature', 'irradiation']].interpolate(method='linear')
-    df_inputs['hour_of_day'] = df_inputs['datetime'].dt.hour + 1
-    df_inputs['day_of_week'] = df_inputs['datetime'].dt.dayofweek + 1
-    df_inputs['day_of_month'] = df_inputs['datetime'].dt.day
-    df_inputs['month_of_year'] = df_inputs['datetime'].dt.month
-    df_inputs['major_holiday'] = df_inputs['datetime'].apply(lambda dt: is_major_holiday_sweden(dt))
-    df_inputs['pre_major_holiday'] = df_inputs['datetime'].apply(lambda dt: is_day_before_major_holiday_sweden(dt))
-    df_inputs.set_index('datetime', inplace=True)
-
-    df_heat = pd.read_csv(heating_csv_path, names=['datetime', 'rad_energy', 'hw_energy'], header=0)
-    df_heat['datetime'] = pd.to_datetime(df_heat['datetime'])
-    # The input is in local time, a bit unclear about times that "don't exist" when DST starts, or "exist twice" when
-    # DST ends - will remove such rows, they have some NAs and stuff anyway
-    df_heat['datetime'] = df_heat['datetime'].dt.tz_localize('Europe/Stockholm', nonexistent='NaT', ambiguous='NaT')
-    df_heat = df_heat.loc[~df_heat['datetime'].isnull()]
-    # Finally, convert to UTC
-    df_heat['datetime'] = df_heat['datetime'].dt.tz_convert('UTC')
-
-    df_heat.set_index('datetime', inplace=True)
-
-    df_inputs = df_inputs.merge(df_heat, left_index=True, right_index=True)
-
-    return pl.from_pandas(df_inputs.reset_index()), pl.from_pandas(df_irrd)
-
-
-def is_major_holiday_sweden(timestamp: pd.Timestamp) -> bool:
-    swedish_time = timestamp.tz_convert("Europe/Stockholm")
-    month_of_year = swedish_time.month
-    day_of_month = swedish_time.day
-    # Major holidays will naturally have a big impact on household electricity usage patterns, with people not working
-    # etc. Included here are: Christmas eve, Christmas day, Boxing day, New years day, epiphany, 1 may, national day.
-    # Some moveable ones not included (Easter etc)
-    return ((month_of_year == 12) & (day_of_month == 24)) | \
-           ((month_of_year == 12) & (day_of_month == 25)) | \
-           ((month_of_year == 12) & (day_of_month == 26)) | \
-           ((month_of_year == 1) & (day_of_month == 1)) | \
-           ((month_of_year == 1) & (day_of_month == 6)) | \
-           ((month_of_year == 5) & (day_of_month == 1)) | \
-           ((month_of_year == 6) & (day_of_month == 6))
-
-
-def is_day_before_major_holiday_sweden(timestamp: pd.Timestamp) -> bool:
-    swedish_time = timestamp.tz_convert("Europe/Stockholm")
-    month_of_year = swedish_time.month
-    day_of_month = swedish_time.day
-    # Major holidays will naturally have a big impact on household electricity usage patterns, with people not working
-    # etc. Included here are:
-    # Day before christmas eve, New years eve, day before epiphany, Valborg, day before national day.
-    return ((month_of_year == 12) & (day_of_month == 23)) | \
-           ((month_of_year == 12) & (day_of_month == 31)) | \
-           ((month_of_year == 1) & (day_of_month == 5)) | \
-           ((month_of_year == 4) & (day_of_month == 30)) | \
-           ((month_of_year == 6) & (day_of_month == 5))
 
 
 def scale_energy_consumption(unscaled_simulated_values_kwh: pl.LazyFrame, m2: float,
