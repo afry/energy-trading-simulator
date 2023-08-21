@@ -16,7 +16,8 @@ from statsmodels.regression.linear_model import RegressionResultsWrapper
 
 from tradingplatformpoc.compress import bz2_decompress_pickle
 from tradingplatformpoc.config.access_config import read_config
-from tradingplatformpoc.data.preproccessing import create_inputs_df_for_mock_data_generation
+from tradingplatformpoc.data.preproccessing import create_inputs_df_for_mock_data_generation, \
+    read_heating_data, read_irradiation_data, read_temperature_data
 from tradingplatformpoc.generate_data import commercial_heating_model
 from tradingplatformpoc.generate_data.mock_data_generation_functions import MockDataKey, get_all_building_agents, \
     get_commercial_electricity_consumption_hourly_factor, get_commercial_heating_consumption_hourly_factor, \
@@ -71,7 +72,11 @@ def run(config_data: Dict[str, Any]) -> Dict[MockDataKey, pl.DataFrame]:
         logger.debug('Model loaded')
 
         # Read in-data: Temperature and timestamps
-        df_inputs = create_inputs_df_for_mock_data_generation()
+        df_inputs = create_inputs_df_for_mock_data_generation(
+            read_temperature_data(),
+            read_irradiation_data(),
+            read_heating_data()
+        )
 
         logger.debug('Input dataframes created')
         output_per_building = pl.DataFrame({'datetime': df_inputs['datetime']})

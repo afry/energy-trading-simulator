@@ -2,9 +2,9 @@ import numpy as np
 
 import pandas as pd
 
-import polars as pl
-
 from pkg_resources import resource_filename
+
+import polars as pl
 
 # This file contains functions used for reading and preprocessing data from files.
 
@@ -100,9 +100,10 @@ def read_heating_data(data_path: str = "tradingplatformpoc.data",
 # ----------------------------------------------------------------------------------------------------------------------
 
 def create_inputs_df_for_mock_data_generation(
-        df_temp: pd.DataFrame = read_temperature_data(),
-        df_irrd: pd.DataFrame = read_irradiation_data(),
-        df_heat: pd.DataFrame = read_heating_data()) -> pl.DataFrame:
+        df_temp: pd.DataFrame,
+        df_irrd: pd.DataFrame,
+        df_heat: pd.DataFrame
+) -> pl.DataFrame:
     """
     Create pl.DataFrames with certain columns that are needed to predict from the household electricity linear model.
     Will start reading CSVs as pd.DataFrames, since pandas is better at handling time zones, and then convert to polars.
