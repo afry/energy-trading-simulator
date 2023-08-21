@@ -1,6 +1,5 @@
 # import datetime
 import datetime
-import os
 from unittest import TestCase, mock
 
 import numpy as np
@@ -22,24 +21,11 @@ from tradingplatformpoc.trading_platform_utils import hourly_datetime_array_betw
 
 class Test(TestCase):
 
-    @classmethod
-    def setUpClass(cls):
-        cls.env_patcher = mock.patch.dict(os.environ, {"ENV": "test"})
-        cls.env_patcher.start()
-
-        super().setUpClass()
-
-        cls.mock_datas_file_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
-        cls.config = read_config()
-        cls.heat_pricing: HeatingPrice = HeatingPrice(
-            heating_wholesale_price_fraction=cls.config['AreaInfo']['ExternalHeatingWholesalePriceFraction'],
-            heat_transfer_loss=cls.config['AreaInfo']["HeatTransferLoss"])
-
-    @classmethod
-    def tearDownClass(cls):
-        super().tearDownClass()
-
-        cls.env_patcher.stop()
+    mock_datas_file_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
+    config = read_config()
+    heat_pricing: HeatingPrice = HeatingPrice(
+        heating_wholesale_price_fraction=config['AreaInfo']['ExternalHeatingWholesalePriceFraction'],
+        heat_transfer_loss=config['AreaInfo']["HeatTransferLoss"])
 
     def test_initialize_agents(self):
         """Test that an error is thrown if no GridAgents are initialized."""
