@@ -21,7 +21,7 @@ different configurations.
 """
 
 # Open config file
-config_data = read_config(name='default')
+config_data = read_config()
 residential_building_agents, total_gross_floor_area = get_all_building_agents(config_data["Agents"])
 # The residential building agents in the current config:
 current_config_rbas = frozenset(residential_building_agents)

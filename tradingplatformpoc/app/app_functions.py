@@ -1,4 +1,5 @@
 import datetime
+import logging
 import os
 import pickle
 from typing import Tuple
@@ -9,7 +10,12 @@ import streamlit as st
 
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.compress import bz2_compress_pickle, bz2_decompress_pickle
+from tradingplatformpoc.constants import MOCK_DATA_PATH
 from tradingplatformpoc.results.simulation_results import SimulationResults
+from tradingplatformpoc.simulation_runner.trading_simulator import TradingSimulator
+
+
+logger = logging.getLogger(__name__)
 
 
 # ------------------------------------- Save result functions ---------------------------------
@@ -88,3 +94,27 @@ def update_multiselect_style():
         """,
         unsafe_allow_html=True,
     )
+
+
+def run_simulation(choosen_config_id: str):
+    logger.info("Running simulation")
+    simulator = TradingSimulator(choosen_config_id, MOCK_DATA_PATH)
+    simulator()
+    # TODO: Functionality to shut down job
+    # TODO: Delete job is not finnished?
+    # TODO: Add functionality to schedule removal of potential uncompleted jobs
+
+    
+def cleanup_config_naming(name: str, description: str) -> Tuple[str, str]:
+    """
+    Checks that the name and description of the config is valid.
+    """
+    name = name.lower().strip().replace(' ', '_')
+    description = description.lower().strip().capitalize()
+    if not description[-1] == ".":
+        description = description + "."
+    return name, description
+
+
+def config_naming_is_valid(name: str) -> bool:
+    return name.replace(' ', '').isalpha() and (len(name.replace(' ', '')) > 0)

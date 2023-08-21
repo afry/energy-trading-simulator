@@ -1,8 +1,5 @@
 import json
-import os
-from typing import Tuple
 
-from tradingplatformpoc.app.app_constants import CURRENT_CONFIG_FILENAME
 from tradingplatformpoc.constants import AGENT_SPECS_FILENAME, AREA_INFO_SPECS, \
     DEFAULT_AGENTS_FILENAME, MOCK_DATA_CONSTANTS_SPECS
 
@@ -34,47 +31,12 @@ def read_default_params(names):
                 for param_type, param_dict in param_specs.items())
 
 
-def set_config(config: dict):
-    """Writes config to current configuration file."""
-    with open(CURRENT_CONFIG_FILENAME, 'w') as f:
-        json.dump(config, f)
-
-
-def read_config(name: str = 'current') -> dict:
-    """Reads and returns specified config from file."""
-    file_dict = {'current': CURRENT_CONFIG_FILENAME,
-                 'default': DEFAULT_AGENTS_FILENAME}
-
-    with open(file_dict[name], "r") as jsonfile:
+def read_config() -> dict:
+    """Reads and returns default config from file."""
+    with open(DEFAULT_AGENTS_FILENAME, "r") as jsonfile:
         config = json.load(jsonfile)
-    if name == 'default':
         default_params = read_default_params(names=['AreaInfo', 'MockDataConstants'])
-        config = {'Agents': config, **default_params}
-    return config
-
-
-def reset_config():
-    """Reads default configuration from file and writes to current configuration file."""
-    config = read_config(name='default')
-    set_config(config)
-
-
-def get_config(reset: bool) -> Tuple[dict, str]:
-    """
-    If no current config file exists or the reset button is clicked, reset.
-    Return current config.
-    """
-    if not os.path.exists(CURRENT_CONFIG_FILENAME):
-        reset_config()
-        message = "**Current configuration: :blue[DEFAULT]**"
-    elif reset:
-        reset = False
-        reset_config()
-        message = "**Current configuration: :blue[DEFAULT]**"
-    else:
-        message = "**Current configuration: :blue[LAST SAVED]**"
-    config = read_config()
-    return config, message
+    return {'Agents': config, **default_params}
 
 
 def fill_with_default_params(new_config: dict) -> dict:
