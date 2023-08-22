@@ -1,12 +1,9 @@
-import datetime
 import hashlib
 import logging
 import os
 import pickle
 import time
-from typing import Any, Callable, Dict, Iterable, Tuple, Union
-
-import numpy as np
+from typing import Any, Dict, Iterable, Tuple
 
 from pkg_resources import resource_filename
 
@@ -16,20 +13,24 @@ from statsmodels.regression.linear_model import RegressionResultsWrapper
 
 from tradingplatformpoc.compress import bz2_decompress_pickle
 from tradingplatformpoc.config.access_config import read_config
-from tradingplatformpoc.data.preproccessing import create_inputs_df_for_mock_data_generation, \
-    read_heating_data, read_irradiation_data, read_temperature_data
-from tradingplatformpoc.generate_data import commercial_heating_model
+from tradingplatformpoc.data.preproccessing import create_inputs_df_for_mock_data_generation, read_heating_data, \
+    read_irradiation_data, read_temperature_data
+from tradingplatformpoc.generate_data.generation_functions.common import add_datetime_value_frames
+from tradingplatformpoc.generate_data.generation_functions.non_residential.commercial import \
+    get_commercial_electricity_consumption_hourly_factor, \
+    simulate_commercial_area_total_heating
+from tradingplatformpoc.generate_data.generation_functions.non_residential.common import simulate_area_electricity
+from tradingplatformpoc.generate_data.generation_functions.non_residential.school import \
+    get_school_heating_consumption_hourly_factor, simulate_school_area_heating
+from tradingplatformpoc.generate_data.generation_functions.residential.residential import \
+    simulate_household_electricity_aggregated, simulate_residential_total_heating
 from tradingplatformpoc.generate_data.mock_data_generation_functions import MockDataKey, get_all_building_agents, \
-    get_commercial_electricity_consumption_hourly_factor, get_commercial_heating_consumption_hourly_factor, \
-    get_elec_cons_key, get_hot_tap_water_cons_key, get_school_heating_consumption_hourly_factor, \
-    get_space_heat_cons_key, load_existing_data_sets
-from tradingplatformpoc.trading_platform_utils import get_if_exists_else, nan_helper
+    get_elec_cons_key, get_hot_tap_water_cons_key, get_space_heat_cons_key, load_existing_data_sets
+from tradingplatformpoc.trading_platform_utils import get_if_exists_else
 
 DATA_PATH = 'tradingplatformpoc.data'
 
 MOCK_DATAS_PICKLE = resource_filename(DATA_PATH, 'mock_datas.pickle')
-
-EVERY_X_HOURS = 3  # Random noise will be piecewise linear, with knots every X hours
 
 # Will use these to set random seed.
 RESIDENTIAL_HEATING_SEED_SUFFIX = "RH"
@@ -195,292 +196,6 @@ def simulate_and_add_to_output_df(config_data: Dict[str, Any], agent: dict, df_i
     time_elapsed = end - start
     logger.debug('Finished work on \'{}\', took {:.2f} seconds'.format(agent['Name'], time_elapsed))
     return output_per_actor, time_elapsed
-
-
-def add_datetime_value_frames(*dfs: Union[pl.DataFrame, pl.LazyFrame]) -> Union[pl.DataFrame, pl.LazyFrame]:
-    """Works on both DataFrame and LazyFrame"""
-    if len(dfs) == 1:
-        return dfs[0]
-    else:
-        base_df = dfs[0]
-        for i in range(1, len(dfs)):
-            base_df = base_df.join(dfs[i], on='datetime'). \
-                select([pl.col('datetime'), (pl.col('value') + pl.col('value_right')).alias('value')])
-        return base_df
-
-
-def simulate_household_electricity_aggregated(df_inputs: pl.LazyFrame, model: RegressionResultsWrapper,
-                                              gross_floor_area_m2: float, start_seed: int, n_rows: int,
-                                              kwh_per_year_m2_atemp: float) -> pl.LazyFrame:
-    """
-    Simulates the aggregated household electricity consumption for an area. Instead of simulating individual apartments,
-    this method just sees the whole area as one apartment, and simulates that. This drastically reduces runtime.
-    Mathematically, the sum of log-normal random variables is approximately log-normal, which supports this way of doing
-    things. Furthermore, just simulating one series instead of ~100 (or however many apartments are in an area), should
-    increase randomness. This is probably not a bad thing for us: Since our simulations stem from a model fit on one
-    single apartment, increased randomness could actually be said to make a lot of sense.
-    Returns a pl.DataFrame with the datetimes and the data.
-    """
-    if gross_floor_area_m2 == 0:
-        return df_inputs.select([pl.col('datetime'), pl.lit(0).alias('value')])
-
-    unscaled_simulated_values_for_area = simulate_series(df_inputs.collect(), start_seed, model)
-    # Scale
-    simulated_values_for_this_area = scale_energy_consumption(unscaled_simulated_values_for_area.lazy(),
-                                                              gross_floor_area_m2, kwh_per_year_m2_atemp, n_rows)
-    return simulated_values_for_this_area
-
-
-def simulate_series(input_df: pl.DataFrame, rand_seed: int, model: RegressionResultsWrapper) -> pl.DataFrame:
-    """
-    Runs simulations using "model" and "input_df", with "rand_seed" as the random seed (can be specified, so that the
-    experiment becomes reproducible, and also when simulating several different apartments/houses, the simulations don't
-    end up identical).
-    The fact that autoregressive parts are included in the model, makes it more difficult to predict with, we can't just
-    use the predict-method. As explained in https://doc.afdrift.se/display/RPJ/Household+electricity+mock-up,
-    we use the predict-method first and then add on autoregressive terms afterwards. The autoregressive parts are
-    calculated in calculate_adjustment_for_energy_prev(...).
-    :param input_df: pl.DataFrame
-    :param rand_seed: int
-    :param model: statsmodels.regression.linear_model.RegressionResultsWrapper
-    :return: pl.DataFrame with 'datetime' and 'value', the latter being simulated energy
-    """
-    # Initialize 'energy_prev' with a np.nan first, then the rest 0s (for now)
-    input_df = input_df.with_column(pl.concat([pl.lit(np.nan), pl.repeat(0, input_df.height - 1)]).alias('energy_prev'))
-
-    # run regression with other_prev = 0, using the other_prev_start_dummy
-    z_hat = model.predict(input_df.to_pandas())
-    input_df = input_df.with_column(pl.from_pandas(z_hat).alias('z_hat'))
-    std_dev = np.sqrt(model.scale)  # store standard error
-
-    rng = np.random.default_rng(rand_seed)  # set random seed
-    eps_vec = rng.normal(0, std_dev, size=input_df.height)
-
-    # For t=0, z=y. For t>0, set y_t to np.nan for now
-    simulated_log_energy_unscaled = [input_df[0, 'z_hat'] + eps_vec[0]]
-
-    # For t>0, y_t = max(0, zhat_t + beta * y_(t-1) + eps_t)
-    # This is slow!
-    for t in range(1, len(input_df)):
-        energy_prev = np.exp(simulated_log_energy_unscaled[t - 1])
-        adjustment_for_prev = calculate_adjustment_for_energy_prev(model, energy_prev)
-        simulated_log_energy_unscaled.append(input_df['z_hat'][t] + adjustment_for_prev + eps_vec[t])
-    return input_df.select([pl.col('datetime'), pl.Series('value', simulated_log_energy_unscaled).exp()])
-
-
-def calculate_adjustment_for_energy_prev(model: RegressionResultsWrapper, energy_prev: float) -> float:
-    """
-    As described in https://doc.afdrift.se/display/RPJ/Household+electricity+mock-up, here we calculate an
-    autoregressive adjustment to a simulation.
-    @param model: A statsmodels.regression.linear_model.RegressionResultsWrapper, which must include parameters with the
-        following names:
-            'np.where(np.isnan(energy_prev), 0, energy_prev)'
-            'np.where(np.isnan(energy_prev), 0, np.power(energy_prev, 2))'
-            'np.where(np.isnan(energy_prev), 0, np.minimum(energy_prev, 0.3))'
-            'np.where(np.isnan(energy_prev), 0, np.minimum(energy_prev, 0.7))'
-    @param energy_prev: The simulated energy consumption in the previous time step (a.k.a. y_(t-1)
-    @return: The autoregressive part of the simulated energy, as a float
-    """
-    return model.params['np.where(np.isnan(energy_prev), 0, energy_prev)'] * energy_prev + \
-        model.params['np.where(np.isnan(energy_prev), 0, np.power(energy_prev, 2))'] * np.power(energy_prev, 2) + \
-        model.params['np.where(np.isnan(energy_prev), 0, np.minimum(energy_prev, 0.3))'] * np.minimum(energy_prev,
-                                                                                                      0.3) + \
-        model.params['np.where(np.isnan(energy_prev), 0, np.minimum(energy_prev, 0.7))'] * np.minimum(energy_prev, 0.7)
-
-
-def scale_energy_consumption(unscaled_simulated_values_kwh: pl.LazyFrame, m2: float,
-                             kwh_per_year_per_m2: float, n_rows: int) -> pl.LazyFrame:
-    if n_rows > 8760:
-        # unscaled_simulated_values may contain more than 1 year, so to scale, compare the sum of the first 8766 hours
-        # i.e. 365.25 days, with the wanted yearly sum.
-        wanted_yearly_sum = m2 * kwh_per_year_per_m2
-        return unscaled_simulated_values_kwh. \
-            with_row_count(). \
-            select([pl.col('datetime'),
-                    pl.col('value') * wanted_yearly_sum / pl.col('value').where(pl.col('row_nr') < 8766).sum()])
-    else:
-        raise RuntimeError("Less than a year's worth of data!")
-
-
-def simulate_area_electricity(gross_floor_area_m2: float, random_seed: int,
-                              input_df: pl.LazyFrame, kwh_elec_per_yr_per_m2: float,
-                              rel_error_std_dev: float,
-                              hourly_level_function: Callable[[datetime.datetime], float], n_rows: int) -> pl.LazyFrame:
-    """
-    Simulates electricity demand for the given datetimes. Uses random_seed when generating random numbers.
-    The total yearly amount is calculated using gross_floor_area_m2 and kwh_elec_per_yr_per_m2. Variability over time is
-    calculated using hourly_level_function and noise is added, its quantity determined by rel_error_std_dev.
-    For more information, see https://doc.afdrift.se/display/RPJ/Commercial+areas
-    @return A pl.DataFrame with datetimes and hourly electricity consumption, in kWh.
-    """
-    rng = np.random.default_rng(random_seed)
-    lf = input_df.select(pl.col('datetime')).with_column(
-        pl.col('datetime').apply(hourly_level_function).alias('time_factors')
-    )
-    lf = lf.with_column(pl.Series(name='relative_errors',
-                                  values=rng.normal(0, rel_error_std_dev, n_rows)))
-    lf = lf.with_column(
-        (pl.col('time_factors') * (1 + pl.col('relative_errors'))).alias('unscaled_values')
-    )
-    lf = lf.select([pl.col('datetime'), pl.col('unscaled_values').alias('value')])
-    scaled_series = scale_energy_consumption(lf, gross_floor_area_m2, kwh_elec_per_yr_per_m2, n_rows)
-    return scaled_series
-
-
-def simulate_commercial_area_total_heating(config_data: Dict[str, Any], commercial_gross_floor_area_m2: float,
-                                           random_seed: int, input_df: pl.LazyFrame, n_rows: int) -> \
-        Tuple[pl.LazyFrame, pl.LazyFrame]:
-    """
-    For more information, see https://doc.afdrift.se/display/RPJ/Commercial+areas and
-    https://doc.afdrift.se/display/RPJ/Coop+heating+energy+use+mock-up
-    @return Two pl.LazyFrames with datetimes and hourly heating load, in kWh. The first space heating, the second hot
-        tap water.
-    """
-    space_heating_per_year_m2 = config_data['MockDataConstants']['CommercialSpaceHeatKwhPerYearM2']
-    space_heating = simulate_space_heating(commercial_gross_floor_area_m2, random_seed, input_df,
-                                           space_heating_per_year_m2, get_commercial_heating_consumption_hourly_factor,
-                                           n_rows)
-
-    hot_tap_water_per_year_m2 = config_data['MockDataConstants']['CommercialHotTapWaterKwhPerYearM2']
-    hot_tap_water_relative_error_std_dev = config_data['MockDataConstants']['CommercialHotTapWaterRelativeErrorStdDev']
-    hot_tap_water = simulate_hot_tap_water(commercial_gross_floor_area_m2, random_seed, input_df,
-                                           hot_tap_water_per_year_m2, get_commercial_heating_consumption_hourly_factor,
-                                           hot_tap_water_relative_error_std_dev,
-                                           n_rows)
-    return space_heating, hot_tap_water
-
-
-def simulate_hot_tap_water(school_gross_floor_area_m2: float, random_seed: int, input_df: pl.LazyFrame,
-                           space_heating_per_year_m2: float, time_factor_function: Callable,
-                           relative_error_std_dev: float, n_rows: int) -> pl.LazyFrame:
-    """
-    Gets a factor based on the hour of day, multiplies it by a noise-factor, and scales it. Parameter 'input_df'
-    should be a pl.DataFrame with a column called 'datetime'.
-    @return A pl.DataFrame with hot tap water load for the area, scaled to KWH_SPACE_HEATING_PER_YEAR_M2_SCHOOL.
-    """
-    rng = np.random.default_rng(random_seed)
-
-    lf = input_df.select(pl.col('datetime')).with_column(
-        pl.col('datetime').apply(time_factor_function).alias('time_factors')
-    )
-
-    lf = lf.with_column(pl.Series(name='relative_errors',
-                                  values=rng.normal(0, relative_error_std_dev, n_rows)))
-    lf = lf.with_column(
-        (pl.col('time_factors') * (1 + pl.col('relative_errors'))).alias('unscaled_values')
-    )
-    # Evaluate the lazy data frame
-    lf = lf.select([pl.col('datetime'), pl.col('unscaled_values').alias('value')])
-
-    scaled_series = scale_energy_consumption(lf, school_gross_floor_area_m2,
-                                             space_heating_per_year_m2, n_rows)
-    return scaled_series
-
-
-def simulate_school_area_heating(config_data: Dict[str, Any], school_gross_floor_area_m2: float, random_seed: int,
-                                 input_df: pl.LazyFrame, n_rows: int) -> Tuple[pl.LazyFrame, pl.LazyFrame]:
-    """
-    This function follows the recipe outlined in the corresponding function for commercial buildings.
-    @return Two pl.DataFrames with datetimes and hourly total heating load, in kWh.
-    """
-    space_heating_per_year_m2 = config_data['MockDataConstants']['SchoolSpaceHeatKwhPerYearM2']
-    space_heating = simulate_space_heating(school_gross_floor_area_m2, random_seed, input_df,
-                                           space_heating_per_year_m2,
-                                           get_school_heating_consumption_hourly_factor, n_rows)
-    hot_tap_water_per_year_m2 = config_data['MockDataConstants']['SchoolHotTapWaterKwhPerYearM2']
-    hot_tap_water_relative_error_std_dev = config_data['MockDataConstants']['SchoolHotTapWaterRelativeErrorStdDev']
-    hot_tap_water = simulate_hot_tap_water(school_gross_floor_area_m2, random_seed, input_df,
-                                           hot_tap_water_per_year_m2,
-                                           get_school_heating_consumption_hourly_factor,
-                                           hot_tap_water_relative_error_std_dev,
-                                           n_rows)
-    return space_heating, hot_tap_water
-
-
-def simulate_space_heating(school_gross_floor_area_m2: float, random_seed: int,
-                           lazy_inputs: pl.LazyFrame, space_heating_per_year_m2: float,
-                           time_factor_function: Callable, n_rows: int) -> pl.LazyFrame:
-    """
-    For more information, see https://doc.afdrift.se/display/RPJ/Commercial+areas and
-    https://doc.afdrift.se/display/RPJ/Coop+heating+energy+use+mock-up
-    @input input_df: A pl.DataFrame with a 'datetime' column and a 'temperature' column
-    @return A pl.DataFrame with datetime and space heating load for the area, scaled to
-        space_heating_per_year_m2.
-    """
-    rng = np.random.default_rng(random_seed)
-
-    # First calculate probability that there is 0 heating demand, then simulate.
-    # Then, if heat demand non-zero, how much is it? Calculate expectancy then simulate
-    lf = lazy_inputs.select(
-        [pl.col('datetime'),
-         pl.when(
-             pl.col('temperature').
-             apply(lambda x: commercial_heating_model.probability_of_0_space_heating(x)).
-             apply(lambda x: rng.binomial(n=1, p=1 - x)) == 1
-        ).then(
-             pl.col('temperature').
-             apply(lambda x: commercial_heating_model.space_heating_given_more_than_0(x)).
-             apply(lambda x: np.maximum(0, rng.normal(loc=x, scale=commercial_heating_model.LM_STD_DEV)))
-        ).otherwise(0).alias('sim_energy_unscaled_no_time_factor')
-        ]
-    )
-
-    # Adjust for opening times
-    lf = lf.with_column(
-        pl.col('datetime').apply(time_factor_function).alias('time_factors')
-    ).with_column(
-        (pl.col('sim_energy_unscaled_no_time_factor') * pl.col('time_factors')).alias('sim_energy_unscaled')
-    )
-
-    # Scale
-    scaled_df = scale_energy_consumption(lf.select([pl.col('datetime'), pl.col('sim_energy_unscaled').alias('value')]),
-                                         school_gross_floor_area_m2,
-                                         space_heating_per_year_m2, n_rows)
-
-    return scaled_df
-
-
-def simulate_residential_total_heating(config_data: Dict[str, Any], df_inputs: pl.LazyFrame, n_rows: int,
-                                       gross_floor_area_m2: float, random_seed: int) -> \
-        Tuple[pl.LazyFrame, pl.LazyFrame]:
-    """
-    Following along with https://doc.afdrift.se/display/RPJ/Jonstaka+heating+mock-up
-    But as for electricity, we'll just see the whole sub-area as 1 house, shouldn't matter too much.
-    df_inputs needs to contain 'rad_energy' and 'hw_energy' columns, with the Vetelangden data.
-    Returns two pl.LazyFrames with datetimes and simulated data: The first representing space heating, the second hot
-        tap water.
-    """
-
-    if gross_floor_area_m2 == 0:
-        zeroes = df_inputs.select([pl.col('datetime'), pl.lit(0).alias('value')]).lazy()
-        return zeroes, zeroes
-
-    every_xth = np.arange(0, n_rows, EVERY_X_HOURS)
-    points_to_generate = len(every_xth)
-
-    rng = np.random.default_rng(random_seed)
-    std_dev = config_data['MockDataConstants']['ResidentialHeatingRelativeErrorStdDev']
-    generated_points = rng.normal(1, std_dev, points_to_generate)
-
-    noise = np.empty((n_rows,))
-    noise[:] = np.nan
-    noise[every_xth] = generated_points
-
-    nans, x = nan_helper(noise)
-    noise[nans] = np.interp(x(nans), x(~nans), noise[~nans])
-
-    space_heating_unscaled = df_inputs.lazy().select([pl.col('datetime'), pl.col('rad_energy').alias('value') * noise])
-    hot_tap_water_unscaled = df_inputs.lazy().select([pl.col('datetime'), pl.col('hw_energy').alias('value') * noise])
-    # Could argue we should use different noise here ^, but there is some logic to these two varying together
-
-    # Scale
-    space_heating_per_year_per_m2 = config_data['MockDataConstants']['ResidentialSpaceHeatKwhPerYearM2']
-    space_heating_scaled = scale_energy_consumption(space_heating_unscaled, gross_floor_area_m2,
-                                                    space_heating_per_year_per_m2, n_rows)
-    hot_tap_water_per_year_per_m2 = config_data['MockDataConstants']['ResidentialHotTapWaterKwhPerYearM2']
-    hot_tap_water_scaled = scale_energy_consumption(hot_tap_water_unscaled, gross_floor_area_m2,
-                                                    hot_tap_water_per_year_per_m2, n_rows)
-    return space_heating_scaled, hot_tap_water_scaled
 
 
 def find_agent_in_other_data_sets(agent_dict: Dict[str, Any], mock_data_constants: Dict[str, Any],

@@ -14,8 +14,11 @@ from tradingplatformpoc.compress import bz2_decompress_pickle
 from tradingplatformpoc.config.access_config import read_param_specs
 from tradingplatformpoc.data.preproccessing import is_day_before_major_holiday_sweden, is_major_holiday_sweden
 from tradingplatformpoc.generate_data.generate_mock_data import DATA_PATH, \
-    all_parameters_match, simulate_series, simulate_space_heating
-from tradingplatformpoc.generate_data.mock_data_generation_functions import get_school_heating_consumption_hourly_factor
+    all_parameters_match
+from tradingplatformpoc.generate_data.generation_functions.non_residential.common import simulate_space_heating
+from tradingplatformpoc.generate_data.generation_functions.non_residential.school import \
+    get_school_heating_consumption_hourly_factor
+from tradingplatformpoc.generate_data.generation_functions.residential.residential import simulate_series
 from tradingplatformpoc.trading_platform_utils import hourly_datetime_array_between
 
 
