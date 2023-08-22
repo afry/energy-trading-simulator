@@ -26,14 +26,14 @@ class TestBalanceManager(TestCase):
         """
         wholesale_price = 0.5
         retail_price = 1
-        bids = [NetBidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 200, wholesale_price, "Seller",
-                                           False, 200),
-                NetBidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 190, math.inf, "Buyer1",
-                                           False, 190),
-                NetBidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 10, math.inf, "Buyer2",
+        bids = [NetBidWithAcceptanceStatus(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 200, wholesale_price,
+                                           "Seller", False, 200),
+                NetBidWithAcceptanceStatus(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 190, math.inf,
+                                           "Buyer1", False, 190),
+                NetBidWithAcceptanceStatus(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 10, math.inf, "Buyer2",
                                            False, 10),
-                NetBidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, retail_price, "Grid",
-                                           True, 0)]
+                NetBidWithAcceptanceStatus(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 10000, retail_price,
+                                           "Grid", True, 0)]
         trades = [Trade(Action.SELL, Resource.ELECTRICITY, 199, wholesale_price, "Seller", False, Market.LOCAL,
                         self.some_datetime),
                   Trade(Action.BUY, Resource.ELECTRICITY, 210, wholesale_price, "Buyer1", False, Market.LOCAL,
@@ -52,9 +52,12 @@ class TestBalanceManager(TestCase):
         Expected: Local deficit, so clearing price gets set to 1.0.
         Actual: Local deficit a bit larger than expected. But import price = local price, so no extra cost.
         """
-        bids = [NetBidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 100, 0.5, "Seller1", False, 100),
-                NetBidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 200, math.inf, "Buyer1", False, 200),
-                NetBidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, 1, "Grid", True, 100)]
+        bids = [NetBidWithAcceptanceStatus(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 100, 0.5, "Seller1",
+                                           False, 100),
+                NetBidWithAcceptanceStatus(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 200, math.inf,
+                                           "Buyer1", False, 200),
+                NetBidWithAcceptanceStatus(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 10000, 1, "Grid",
+                                           True, 100)]
         trades = [Trade(Action.SELL, Resource.ELECTRICITY, 80, 1, "Seller1", False, Market.LOCAL, self.some_datetime),
                   Trade(Action.BUY, Resource.ELECTRICITY, 200, 1, "Buyer1", False, Market.LOCAL, self.some_datetime),
                   Trade(Action.SELL, Resource.ELECTRICITY, 120, 1, "Grid", True, Market.LOCAL, self.some_datetime)]
@@ -69,14 +72,14 @@ class TestBalanceManager(TestCase):
         """
         retail_price = 1
         wholesale_price = 0.5
-        bids = [NetBidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 2000, wholesale_price, "Seller1",
-                                           False, 2000),
-                NetBidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 2000, math.inf, "Buyer1",
-                                           False, 2000),
-                NetBidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 100, math.inf, "Buyer2",
-                                           False, 100),
-                NetBidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, retail_price, "Grid",
-                                           True, 100)]
+        bids = [NetBidWithAcceptanceStatus(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 2000, wholesale_price,
+                                           "Seller1", False, 2000),
+                NetBidWithAcceptanceStatus(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 2000, math.inf,
+                                           "Buyer1", False, 2000),
+                NetBidWithAcceptanceStatus(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 100, math.inf,
+                                           "Buyer2", False, 100),
+                NetBidWithAcceptanceStatus(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 10000, retail_price,
+                                           "Grid", True, 100)]
         trades = [Trade(Action.SELL, Resource.ELECTRICITY, 2000, retail_price, "Seller1", False, Market.LOCAL,
                         self.some_datetime),
                   Trade(Action.BUY, Resource.ELECTRICITY, 1800, retail_price, "Buyer1", False, Market.LOCAL,
@@ -103,9 +106,12 @@ class TestBalanceManager(TestCase):
         """
         retail_price = 1
         wholesale_price = 0.5
-        bids = [NetBidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 2000, math.inf, "Buyer1", False, 2000),
-                NetBidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 100, math.inf, "Buyer2", False, 100),
-                NetBidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, retail_price, "Grid", True, 2100)]
+        bids = [NetBidWithAcceptanceStatus(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 2000, math.inf,
+                                           "Buyer1", False, 2000),
+                NetBidWithAcceptanceStatus(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 100, math.inf,
+                                           "Buyer2", False, 100),
+                NetBidWithAcceptanceStatus(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 10000, retail_price,
+                                           "Grid", True, 2100)]
         trades = \
             [Trade(Action.SELL, Resource.ELECTRICITY, 2000, retail_price, "Seller1", False,
                    Market.LOCAL, self.some_datetime),
@@ -126,10 +132,14 @@ class TestBalanceManager(TestCase):
         """
         retail_price = 1
         wholesale_price = 0.5
-        bids = [NetBidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 2000, math.inf, "Buyer1", False, 2000),
-                NetBidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 100, math.inf, "Buyer2", False, 100),
-                NetBidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, retail_price, "Grid", True, 2100),
-                NetBidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 10000, retail_price, "Grid", True, 0)]
+        bids = [NetBidWithAcceptanceStatus(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 2000, math.inf,
+                                           "Buyer1", False, 2000),
+                NetBidWithAcceptanceStatus(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 100, math.inf,
+                                           "Buyer2", False, 100),
+                NetBidWithAcceptanceStatus(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 10000, retail_price,
+                                           "Grid", True, 2100),
+                NetBidWithAcceptanceStatus(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 10000, retail_price,
+                                           "Grid", True, 0)]
         trades = \
             [Trade(Action.SELL, Resource.ELECTRICITY, 2000, retail_price, "Seller1", False,
                    Market.LOCAL, self.some_datetime),
@@ -147,10 +157,14 @@ class TestBalanceManager(TestCase):
         next_period = datetime.datetime(2019, 1, 2, 1)
         retail_price = 1
         wholesale_price = 0.5
-        bids = [NetBidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 2000, 0.5, "Seller1", False, 2000),
-                NetBidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 1900, math.inf, "Buyer1", False, 1900),
-                NetBidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 100, math.inf, "Buyer2", False, 100),
-                NetBidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, retail_price, "Grid", True, 0)]
+        bids = [NetBidWithAcceptanceStatus(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 2000, 0.5, "Seller1",
+                                           False, 2000),
+                NetBidWithAcceptanceStatus(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 1900, math.inf,
+                                           "Buyer1", False, 1900),
+                NetBidWithAcceptanceStatus(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 100, math.inf,
+                                           "Buyer2", False, 100),
+                NetBidWithAcceptanceStatus(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 10000, retail_price,
+                                           "Grid", True, 0)]
         trades = \
             [Trade(Action.SELL, Resource.ELECTRICITY, 1990, wholesale_price, "Seller1", False,
                    Market.LOCAL, self.some_datetime),
@@ -169,9 +183,12 @@ class TestBalanceManager(TestCase):
         """
         retail_price = 1
         wholesale_price = 0.5
-        bids = [NetBidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 2000, math.inf, "Buyer1", False, 2000),
-                NetBidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 100, math.inf, "Buyer2", False, 100),
-                NetBidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, retail_price, "Grid", True, 2100)]
+        bids = [NetBidWithAcceptanceStatus(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 2000, math.inf,
+                                           "Buyer1", False, 2000),
+                NetBidWithAcceptanceStatus(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 100, math.inf,
+                                           "Buyer2", False, 100),
+                NetBidWithAcceptanceStatus(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 10000, retail_price,
+                                           "Grid", True, 2100)]
         trades = \
             [Trade(Action.SELL, Resource.ELECTRICITY, 2000, retail_price, "Seller1", False,
                    Market.LOCAL, self.some_datetime),
@@ -191,9 +208,12 @@ class TestBalanceManager(TestCase):
         retail_price = 0.9
         wholesale_price = 0.5
         local_price = 1.0
-        bids = [NetBidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 2000, math.inf, "Buyer1", False, 2000),
-                NetBidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 100, math.inf, "Buyer2", False, 100),
-                NetBidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, retail_price, "Grid", True, 2100)]
+        bids = [NetBidWithAcceptanceStatus(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 2000, math.inf,
+                                           "Buyer1", False, 2000),
+                NetBidWithAcceptanceStatus(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 100, math.inf,
+                                           "Buyer2", False, 100),
+                NetBidWithAcceptanceStatus(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 10000, retail_price,
+                                           "Grid", True, 2100)]
         trades = \
             [Trade(Action.SELL, Resource.ELECTRICITY, 2000, local_price, "Seller1", False,
                    Market.LOCAL, self.some_datetime),
@@ -210,12 +230,12 @@ class TestBalanceManager(TestCase):
         """
         local_price = 1.0
         wholesale_price = 0.5
-        bids = [NetBidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 2000, math.inf, "Buyer1",
-                                           False, 2000),
-                NetBidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 100, math.inf, "Buyer2",
-                                           False, 100),
-                NetBidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, local_price, "Seller1",
-                                           False, 2100)]
+        bids = [NetBidWithAcceptanceStatus(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 2000, math.inf,
+                                           "Buyer1", False, 2000),
+                NetBidWithAcceptanceStatus(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 100, math.inf,
+                                           "Buyer2", False, 100),
+                NetBidWithAcceptanceStatus(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 10000, local_price,
+                                           "Seller1", False, 2100)]
         trades = \
             [Trade(Action.SELL, Resource.ELECTRICITY, 2000, local_price, "Seller1", False,
                    Market.LOCAL, self.some_datetime),
@@ -232,16 +252,16 @@ class TestBalanceManager(TestCase):
         """
         wholesale_price = 0.5
         retail_price = 1
-        bids = [NetBidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 2000, wholesale_price, "Seller1",
-                                           False, 1990),
-                NetBidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 1900, math.inf, "Buyer1",
-                                           False, 1900),
-                NetBidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10, wholesale_price, "Buyer1",
-                                           False, 10),
-                NetBidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 100, math.inf, "Buyer2",
-                                           False, 100),
-                NetBidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, retail_price, "Grid",
-                                           True, 0)]
+        bids = [NetBidWithAcceptanceStatus(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 2000, wholesale_price,
+                                           "Seller1", False, 1990),
+                NetBidWithAcceptanceStatus(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 1900, math.inf,
+                                           "Buyer1", False, 1900),
+                NetBidWithAcceptanceStatus(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 10, wholesale_price,
+                                           "Buyer1", False, 10),
+                NetBidWithAcceptanceStatus(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 100, math.inf,
+                                           "Buyer2", False, 100),
+                NetBidWithAcceptanceStatus(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 10000, retail_price,
+                                           "Grid", True, 0)]
         trades = \
             [Trade(Action.SELL, Resource.ELECTRICITY, 1990, wholesale_price, "Seller1", False,
                    Market.LOCAL, self.some_datetime),
@@ -260,14 +280,14 @@ class TestBalanceManager(TestCase):
         """
         wholesale_price = 0.5
         retail_price = 1
-        bids = [NetBidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 2000, wholesale_price, "Seller1",
-                                           False, 2000),
-                NetBidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 1900, math.inf, "Buyer1",
-                                           False, 1900),
-                NetBidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 100, math.inf, "Buyer2",
-                                           False, 100),
-                NetBidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 10000, retail_price, "Grid",
-                                           True, 0)]
+        bids = [NetBidWithAcceptanceStatus(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 2000, wholesale_price,
+                                           "Seller1", False, 2000),
+                NetBidWithAcceptanceStatus(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 1900, math.inf,
+                                           "Buyer1", False, 1900),
+                NetBidWithAcceptanceStatus(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 100, math.inf,
+                                           "Buyer2", False, 100),
+                NetBidWithAcceptanceStatus(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 10000, retail_price,
+                                           "Grid", True, 0)]
         trades = \
             [Trade(Action.SELL, Resource.ELECTRICITY, 1990, wholesale_price, "Seller1", False,
                    Market.LOCAL, self.some_datetime),
@@ -424,10 +444,14 @@ class TestBalanceManager(TestCase):
         exact_wholesale_price = 0.6  # Irrelevant
         exact_retail_price = 0.75
         bids = [
-            NetBidWithAcceptanceStatus(Action.SELL, Resource.HEATING, 200, est_retail_price, "Grid", True, 0),
-            NetBidWithAcceptanceStatus(Action.BUY, Resource.HEATING, 6, math.inf, "Buyer1", False, 6),
-            NetBidWithAcceptanceStatus(Action.BUY, Resource.HEATING, 4, math.inf, "Buyer2", False, 4),
-            NetBidWithAcceptanceStatus(Action.SELL, Resource.HEATING, 11, 0, "Seller", False, 10)]
+            NetBidWithAcceptanceStatus(self.some_datetime, Action.SELL, Resource.HEATING, 200, est_retail_price,
+                                       "Grid", True, 0),
+            NetBidWithAcceptanceStatus(self.some_datetime, Action.BUY, Resource.HEATING, 6, math.inf, "Buyer1",
+                                       False, 6),
+            NetBidWithAcceptanceStatus(self.some_datetime, Action.BUY, Resource.HEATING, 4, math.inf, "Buyer2",
+                                       False, 4),
+            NetBidWithAcceptanceStatus(self.some_datetime, Action.SELL, Resource.HEATING, 11, 0, "Seller",
+                                       False, 10)]
         # In market solver clearing price gets set to est_wholesale_price
         trades = [
             Trade(Action.SELL, Resource.HEATING, 3, est_retail_price, "Grid",
@@ -484,10 +508,13 @@ class TestBalanceManager(TestCase):
         est_retail_price = 0.5
         exact_wholesale_price = 0.42
         bids = [
-            NetBidWithAcceptanceStatus(Action.SELL, Resource.HEATING, 200, est_retail_price, "Grid", True, 1),
-            NetBidWithAcceptanceStatus(Action.BUY, Resource.HEATING, 6, math.inf, "Buyer1", False, 6),
-            NetBidWithAcceptanceStatus(Action.BUY, Resource.HEATING, 4, math.inf, "Buyer2", False, 4),
-            NetBidWithAcceptanceStatus(Action.SELL, Resource.HEATING, 9, 0, "Seller", False, 9)]
+            NetBidWithAcceptanceStatus(self.some_datetime, Action.SELL, Resource.HEATING, 200, est_retail_price, "Grid",
+                                       True, 1),
+            NetBidWithAcceptanceStatus(self.some_datetime, Action.BUY, Resource.HEATING, 6, math.inf, "Buyer1", False,
+                                       6),
+            NetBidWithAcceptanceStatus(self.some_datetime, Action.BUY, Resource.HEATING, 4, math.inf, "Buyer2", False,
+                                       4),
+            NetBidWithAcceptanceStatus(self.some_datetime, Action.SELL, Resource.HEATING, 9, 0, "Seller", False, 9)]
         # In market solver clearing price gets set to est_retail_price
         trades = [
             Trade(Action.BUY, Resource.HEATING, 1, est_wholesale_price, "Grid", True, Market.LOCAL,

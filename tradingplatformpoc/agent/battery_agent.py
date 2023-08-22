@@ -73,13 +73,15 @@ class BatteryAgent(IAgent):
 
         buy_quantity = self.calculate_buy_quantity()
         if buy_quantity >= LOWEST_BID_QUANTITY:
-            bids.append(self.construct_elec_bid(action=Action.BUY,
+            bids.append(self.construct_elec_bid(period=period,
+                                                action=Action.BUY,
                                                 quantity=buy_quantity,
                                                 price=self.calculate_buy_price(prices_last_n_hours)))
 
         sell_quantity = self.calculate_sell_quantity()
         if sell_quantity >= LOWEST_BID_QUANTITY:
-            bids.append(self.construct_elec_bid(action=Action.SELL,
+            bids.append(self.construct_elec_bid(period=period,
+                                                action=Action.SELL,
                                                 quantity=sell_quantity,
                                                 price=self.calculate_sell_price(prices_last_n_hours)))
         return bids

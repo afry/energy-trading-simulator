@@ -85,7 +85,7 @@ class Trade:
                                                          self.tax_paid,
                                                          self.grid_fee_paid)
 
-    def to_dict_with_period(self, period: datetime.datetime) -> dict:
+    def to_dict(self) -> dict:
         """Same function name as the one in BidWithAcceptanceStatus, so that the same method can be reused."""
         return {'period': self.period,
                 'source': self.source,

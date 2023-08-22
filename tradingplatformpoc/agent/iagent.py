@@ -45,20 +45,20 @@ class IAgent(ABC):
         """
         pass
 
-    def construct_elec_bid(self, action: Action, quantity: float, price: float) -> GrossBid:
-        return GrossBid(action, Resource.ELECTRICITY, quantity, price, self.guid, False)
+    def construct_elec_bid(self, period: datetime.datetime, action: Action, quantity: float, price: float) -> GrossBid:
+        return GrossBid(period, action, Resource.ELECTRICITY, quantity, price, self.guid, False)
 
-    def construct_sell_heat_bid(self, quantity: float, price: float,
+    def construct_sell_heat_bid(self, period: datetime.datetime, quantity: float, price: float,
                                 heat_transfer_loss_per_side: float) -> GrossBid:
         # Heat transfer loss added
         quantity_after_loss = quantity * (1 - heat_transfer_loss_per_side)
-        return GrossBid(Action.SELL, Resource.HEATING, quantity_after_loss, price, self.guid, False)
+        return GrossBid(period, Action.SELL, Resource.HEATING, quantity_after_loss, price, self.guid, False)
 
-    def construct_buy_heat_bid(self, quantity_needed: float, price: float,
+    def construct_buy_heat_bid(self, period: datetime.datetime, quantity_needed: float, price: float,
                                heat_transfer_loss_per_side: float) -> GrossBid:
         # The heat transfer loss needs to be accounted for
         quantity_to_buy = quantity_needed / (1 - heat_transfer_loss_per_side)
-        return GrossBid(Action.BUY, Resource.HEATING, quantity_to_buy, price, self.guid, False)
+        return GrossBid(period, Action.BUY, Resource.HEATING, quantity_to_buy, price, self.guid, False)
 
     def construct_elec_trade(self, action: Action, quantity: float, price: float, market: Market,
                              period: datetime.datetime, tax_paid: float = 0.0, grid_fee_paid: float = 0.0) -> Trade:

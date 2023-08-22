@@ -23,7 +23,7 @@ add_indentation()
 set_max_width('1000px')  # This tab looks a bit daft when it is too wide, so limiting it here.
 
 config_ids = get_all_config_ids_in_db_without_jobs()
-choosen_config_id = st.selectbox('Choose a configurationt to run', config_ids)
+choosen_config_id = st.selectbox('Choose a configuration to run', config_ids)
 if len(config_ids) > 0:
     with st.expander('Configuration *{}* in JSON format'.format(choosen_config_id)):
         st.json(read_config(choosen_config_id), expanded=True)

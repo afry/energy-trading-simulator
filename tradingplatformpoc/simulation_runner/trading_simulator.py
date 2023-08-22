@@ -1,5 +1,4 @@
 import datetime
-import gc
 import logging
 import math
 import threading
@@ -42,6 +41,7 @@ from tradingplatformpoc.sql.trade.crud import trades_to_db_objects
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, flatten_collection, \
     get_intersection
 
+# from time import perf_counter
 
 logger = logging.getLogger(__name__)
 
@@ -180,7 +180,7 @@ class TradingSimulator:
         """
         The core loop of the simulation, running through the desired time period and performing trades.
         """
-
+        
         # Increase of progress bar per batch
         frac_of_calc_time_for_batch_simulated = 0.8 / number_of_batches
 
@@ -192,6 +192,8 @@ class TradingSimulator:
 
         number_of_trading_periods = len(self.trading_periods)
         batch_size = math.ceil(number_of_trading_periods / number_of_batches)
+        
+        # start = perf_counter()
         # Loop over batches
         for batch_number in range(number_of_batches):
             current_thread = threading.current_thread()
@@ -200,6 +202,7 @@ class TradingSimulator:
                     logger.error('Simulation stopped by event.')
                     raise Exception("Simulation stopped by event.")
             logger.info("Simulating batch number {} of {}".format(batch_number, number_of_batches))
+            
             # Periods in batch
             trading_periods_in_this_batch = self.trading_periods[
                 batch_number * batch_size:min((batch_number + 1) * batch_size, number_of_trading_periods)]
@@ -279,6 +282,9 @@ class TradingSimulator:
             self.progress.increase(frac_of_calc_time_for_batch_simulated)
             self.progress.display()
         
+        # elapsed_time = perf_counter() - start
+        # logger.info(f'time loop finish {elapsed_time}')
+
         clearing_prices_objs = clearing_prices_to_db_objects(self.clearing_prices_historical, self.job_id)
         heat_pump_level_objs = levels_to_db_objects(self.heat_pump_levels_dict,
                                                     TradeMetadataKey.HEAT_PUMP_WORKLOAD.name, self.job_id)
@@ -305,55 +311,6 @@ class TradingSimulator:
         logger.info('Saving extra costs to db...')
         objs = extra_costs_to_db_objects(heat_cost_discr_corrections, self.job_id)
         bulk_insert(objs)
-        # we inserted this into the database, and it's big (2GB), so delete from RAM
-        del heat_cost_discr_corrections, objs
-        gc.collect()
-
-        # logger.info("Formatting results...")
-
-        # self.progress.increase(0.05)
-        # self.progress.display()
-
-        # logger.info('Aggregating results per agent')
-        # exact_retail_heat_price_by_ym, exact_wholesale_heat_price_by_ym = db_to_heating_price_dicts(self.job_id)
-        # results_by_agent = results_calculator.calc_basic_results(self.agents, self.job_id,
-        #                                                          self.exact_retail_electricity_prices_by_period,
-        #                                                          self.exact_wholesale_electricity_prices_by_period,
-        #                                                          exact_retail_heat_price_by_ym,
-        #                                                          exact_wholesale_heat_price_by_ym)
-        # self.progress.increase(0.005)
-        # self.progress.display()
-
-        # logger.info('Read trades from db...')
-        # all_trades_df = db_to_trade_df(self.job_id)
-        # self.progress.increase(0.005)
-        # self.progress.display()
-        # logger.info('Read bids from db...')
-        # all_bids_df = db_to_bid_df(self.job_id)
-        # logger.info('Read extra costs from db...')
-        # extra_costs_df = db_to_extra_cost_df(self.job_id).sort_values(['period', 'agent'])
-
-        # self.progress.final()
-        # self.progress.display()
-
-        # tax_paid = get_total_tax_paid(self.job_id)
-        # grid_fees_paid_on_internal_trades = get_total_grid_fee_paid_on_internal_trades(self.job_id)
-
-        # sim_res = SimulationResults(clearing_prices_historical=self.clearing_prices_historical,
-        #                             all_trades=all_trades_df,
-        #                             all_extra_costs=extra_costs_df,
-        #                             all_bids=all_bids_df,
-        #                             storage_levels_dict=self.storage_levels_dict,
-        #                             heat_pump_levels_dict=self.heat_pump_levels_dict,
-        #                             config_data=self.config_data,
-        #                             agents=self.agents,
-        #                             pricing=[self.heat_pricing, self.electricity_pricing],
-        #                             grid_fees_paid_on_internal_trades=grid_fees_paid_on_internal_trades,
-        #                             tax_paid=tax_paid,
-        #                             exact_retail_heating_prices_by_year_and_month=exact_retail_heat_price_by_ym,
-        #                             exact_wholesale_heating_prices_by_year_and_month=exact_wholesale_heat_price_by_ym,
-        #                             results_by_agent=results_by_agent
-        #                             )
         
         logger.info('Simulation finished!')
 

@@ -274,8 +274,10 @@ class TestBatteryAgent(unittest.TestCase):
     def test_make_trade_with_2_accepted_bids(self):
         """Test that an error is raised when trying to calculate what trade to make, with more than 1 accepted bid."""
         accepted_bids_for_agent = [
-            NetBidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 100, 1, 'BatteryAgent', False, True),
-            NetBidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 100, 1, 'BatteryAgent', False, True)
+            NetBidWithAcceptanceStatus(SOME_DATETIME, Action.BUY, Resource.ELECTRICITY, 100, 1, 'BatteryAgent', False,
+                                       True),
+            NetBidWithAcceptanceStatus(SOME_DATETIME, Action.SELL, Resource.ELECTRICITY, 100, 1, 'BatteryAgent', False,
+                                       True)
         ]
         clearing_prices = {Resource.ELECTRICITY: 1.0, Resource.HEATING: np.nan}
         with self.assertRaises(RuntimeError):

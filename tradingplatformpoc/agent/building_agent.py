@@ -154,21 +154,21 @@ class BuildingAgent(IAgent):
         elec_net_consumption_incl_pump = elec_net_consumption + elec_needed_for_1_heat_pump * self.n_heat_pumps
         heat_net_consumption_incl_pump = heat_net_consumption - heat_output_for_1_heat_pump * self.n_heat_pumps
         if elec_net_consumption_incl_pump > 0:
-            bids.append(self.construct_elec_bid(Action.BUY, elec_net_consumption_incl_pump, math.inf))
+            bids.append(self.construct_elec_bid(period, Action.BUY, elec_net_consumption_incl_pump, math.inf))
             # This demand must be fulfilled - therefore price is inf
         elif elec_net_consumption_incl_pump < 0:
             # What price to use here? The predicted local clearing price, or the external grid wholesale price?
             # Going with the latter
-            bids.append(self.construct_elec_bid(Action.SELL, -elec_net_consumption_incl_pump,
+            bids.append(self.construct_elec_bid(period, Action.SELL, -elec_net_consumption_incl_pump,
                                                 self.electricity_pricing.get_external_grid_buy_price(period)))
         if heat_net_consumption_incl_pump > 0:
-            bids.append(self.construct_buy_heat_bid(heat_net_consumption_incl_pump, math.inf,
+            bids.append(self.construct_buy_heat_bid(period, heat_net_consumption_incl_pump, math.inf,
                                                     self.heat_pricing.heat_transfer_loss_per_side))
             # This demand must be fulfilled - therefore price is inf
         elif heat_net_consumption_incl_pump < 0 and self.allow_sell_heat:
             # What price to use here? The predicted local clearing price, or the external grid wholesale price?
             # External grid may not want to buy heat at all, so going with the former, for now.
-            bids.append(self.construct_sell_heat_bid(-heat_net_consumption_incl_pump, pred_heat_price,
+            bids.append(self.construct_sell_heat_bid(period, -heat_net_consumption_incl_pump, pred_heat_price,
                                                      self.heat_pricing.heat_transfer_loss_per_side))
         return bids
     

@@ -26,7 +26,7 @@ class PVAgent(IAgent):
         # However, the agent could always sell to the external grid, if the local price is too low.
         prognosis = self.make_prognosis(period, Resource.ELECTRICITY)
         if prognosis > 0:
-            return [self.construct_elec_bid(Action.SELL, prognosis,
+            return [self.construct_elec_bid(period, Action.SELL, prognosis,
                                             self.electricity_pricing.get_external_grid_buy_price(period))]
         else:
             return []
