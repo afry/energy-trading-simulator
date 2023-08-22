@@ -3,7 +3,7 @@ import logging
 import os
 import pickle
 import time
-from typing import Any, Dict, Iterable, Tuple
+from typing import Any, Dict, Iterable, List, Tuple, Union
 
 from pkg_resources import resource_filename
 
@@ -80,7 +80,8 @@ def run(config_data: Dict[str, Any]) -> Dict[MockDataKey, pl.DataFrame]:
         )
 
         logger.debug('Input dataframes created')
-        output_per_building = pl.DataFrame({'datetime': df_inputs['datetime']})
+        df = pl.DataFrame({'datetime': df_inputs['datetime']})
+        output = df.clone()
         logger.debug('Output dataframes created')
 
         n_rows = df_inputs.height
@@ -95,8 +96,9 @@ def run(config_data: Dict[str, Any]) -> Dict[MockDataKey, pl.DataFrame]:
             agent_dict = dict(agent)
             logger.debug('Generating new data for ' + agent_dict['Name'])
             output_per_building, time_elapsed = simulate_and_add_to_output_df(config_data, agent_dict, lazy_inputs,
-                                                                              n_rows, model, output_per_building,
+                                                                              n_rows, model, df.clone(),
                                                                               all_data_sets)
+            output = output.join(output_per_building, on='datetime')
             n_areas_done = n_areas_done + 1
             n_areas_remaining = n_areas - n_areas_done
             total_time_elapsed = total_time_elapsed + time_elapsed
@@ -105,7 +107,7 @@ def run(config_data: Dict[str, Any]) -> Dict[MockDataKey, pl.DataFrame]:
                 estimated_time_left = n_areas_remaining * time_taken_per_area
                 logger.info('Estimated time left: {:.2f} seconds'.format(estimated_time_left))
 
-        all_data_sets[mock_data_key] = output_per_building
+        all_data_sets[mock_data_key] = output
         pickle.dump(all_data_sets, open(MOCK_DATAS_PICKLE, 'wb'))
     return all_data_sets
 
@@ -142,78 +144,90 @@ def simulate_and_add_to_output_df(config_data: Dict[str, Any], agent: dict, df_i
             exit(1)
         fraction_residential = 1.0 - fraction_commercial - fraction_school
 
-        # COMMERCIAL
-        commercial_gross_floor_area = agent['GrossFloorArea'] * fraction_commercial
+        electricity_consumption: List[Union[pl.DataFrame, pl.LazyFrame]] = []
+        space_heating_consumption: List[Union[pl.DataFrame, pl.LazyFrame]] = []
+        hot_tap_water_consumption: List[Union[pl.DataFrame, pl.LazyFrame]] = []
 
-        commercial_electricity_cons = simulate_area_electricity(
-            agent['GrossFloorArea'] * fraction_commercial,
-            seed_commercial_electricity,
-            df_inputs,
-            config_data['MockDataConstants']['CommercialElecKwhPerYearM2'],
-            config_data['MockDataConstants']['CommercialElecRelativeErrorStdDev'],
-            get_commercial_electricity_consumption_hourly_factor,
-            n_rows)
-        
-        commercial_space_heating_cons, commercial_hot_tap_water_cons = simulate_commercial_area_total_heating(
-            config_data,
-            commercial_gross_floor_area,
-            seed_commercial_heating,
-            df_inputs,
-            n_rows)
+        # COMMERCIAL
+        if fraction_commercial > 0:
+            commercial_gross_floor_area = agent['GrossFloorArea'] * fraction_commercial
+
+            electricity_consumption.append(simulate_area_electricity(
+                agent['GrossFloorArea'] * fraction_commercial,
+                seed_commercial_electricity,
+                df_inputs,
+                config_data['MockDataConstants']['CommercialElecKwhPerYearM2'],
+                config_data['MockDataConstants']['CommercialElecRelativeErrorStdDev'],
+                get_commercial_electricity_consumption_hourly_factor,
+                n_rows)
+            )
+            
+            commercial_space_heating_cons, commercial_hot_tap_water_cons = simulate_commercial_area_total_heating(
+                config_data,
+                commercial_gross_floor_area,
+                seed_commercial_heating,
+                df_inputs,
+                n_rows)
+            space_heating_consumption.append(commercial_space_heating_cons)
+            hot_tap_water_consumption.append(commercial_hot_tap_water_cons)
         
         # SCHOOL
-        school_gross_floor_area_m2 = agent['GrossFloorArea'] * fraction_school
+        if fraction_school > 0:
+            school_gross_floor_area_m2 = agent['GrossFloorArea'] * fraction_school
 
-        school_electricity_cons = simulate_area_electricity(
-            school_gross_floor_area_m2,
-            seed_school_electricity,
-            df_inputs,
-            config_data['MockDataConstants']['SchoolElecKwhPerYearM2'],
-            config_data['MockDataConstants']['SchoolElecRelativeErrorStdDev'],
-            get_school_heating_consumption_hourly_factor,
-            n_rows)
+            electricity_consumption.append(
+                simulate_area_electricity(
+                    school_gross_floor_area_m2,
+                    seed_school_electricity,
+                    df_inputs,
+                    config_data['MockDataConstants']['SchoolElecKwhPerYearM2'],
+                    config_data['MockDataConstants']['SchoolElecRelativeErrorStdDev'],
+                    get_school_heating_consumption_hourly_factor,
+                    n_rows)
+            )
 
-        school_space_heating_cons, school_hot_tap_water_cons = simulate_school_area_heating(
-            config_data,
-            school_gross_floor_area_m2,
-            seed_school_heating,
-            df_inputs,
-            n_rows)
+            school_space_heating_cons, school_hot_tap_water_cons = simulate_school_area_heating(
+                config_data,
+                school_gross_floor_area_m2,
+                seed_school_heating,
+                df_inputs,
+                n_rows)
+            space_heating_consumption.append(school_space_heating_cons)
+            hot_tap_water_consumption.append(school_hot_tap_water_cons)
 
         # RESIDENTIAL
-        residential_gross_floor_area = agent['GrossFloorArea'] * fraction_residential
+        if fraction_residential > 0:
+            residential_gross_floor_area = agent['GrossFloorArea'] * fraction_residential
 
-        household_electricity_cons = simulate_household_electricity_aggregated(
-            df_inputs,
-            model,
-            residential_gross_floor_area,
-            seed_residential_electricity,
-            n_rows,
-            config_data['MockDataConstants']['ResidentialElecKwhPerYearM2Atemp'])
+            electricity_consumption.append(
+                simulate_household_electricity_aggregated(
+                    df_inputs,
+                    model,
+                    residential_gross_floor_area,
+                    seed_residential_electricity,
+                    n_rows,
+                    config_data['MockDataConstants']['ResidentialElecKwhPerYearM2Atemp'])
+            )
 
-        residential_space_heating_cons, residential_hot_tap_water_cons = simulate_residential_total_heating(
-            config_data,
-            df_inputs,
-            n_rows,
-            residential_gross_floor_area,
-            seed_residential_heating)
+            residential_space_heating_cons, residential_hot_tap_water_cons = simulate_residential_total_heating(
+                config_data,
+                df_inputs,
+                n_rows,
+                residential_gross_floor_area,
+                seed_residential_heating)
+            space_heating_consumption.append(residential_space_heating_cons)
+            hot_tap_water_consumption.append(residential_hot_tap_water_cons)
 
         logger.debug("Adding output for agent {}".format(agent['Name']))
         # Note: Here we join a normal DataFrame (output_per_actor) with LazyFrames
         output_per_actor = output_per_actor. \
-            join(add_datetime_value_frames(commercial_electricity_cons,
-                                           household_electricity_cons,
-                                           school_electricity_cons),
+            join(add_datetime_value_frames(electricity_consumption),
                  on='datetime'). \
             rename({'value': get_elec_cons_key(agent['Name'])}). \
-            join(add_datetime_value_frames(commercial_space_heating_cons,
-                                           residential_space_heating_cons,
-                                           school_space_heating_cons),
+            join(add_datetime_value_frames(space_heating_consumption),
                  on='datetime'). \
             rename({'value': get_space_heat_cons_key(agent['Name'])}). \
-            join(add_datetime_value_frames(commercial_hot_tap_water_cons,
-                                           residential_hot_tap_water_cons,
-                                           school_hot_tap_water_cons),
+            join(add_datetime_value_frames(hot_tap_water_consumption),
                  on='datetime'). \
             rename({'value': get_hot_tap_water_cons_key(agent['Name'])})
 

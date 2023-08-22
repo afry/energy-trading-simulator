@@ -1,4 +1,4 @@
-from typing import Union
+from typing import List, Union
 
 import polars as pl
 
@@ -17,7 +17,7 @@ def scale_energy_consumption(unscaled_simulated_values_kwh: pl.LazyFrame, m2: fl
         raise RuntimeError("Less than a year's worth of data!")
 
 
-def add_datetime_value_frames(*dfs: Union[pl.DataFrame, pl.LazyFrame]) -> Union[pl.DataFrame, pl.LazyFrame]:
+def add_datetime_value_frames(dfs: List[Union[pl.DataFrame, pl.LazyFrame]]) -> Union[pl.DataFrame, pl.LazyFrame]:
     """Works on both DataFrame and LazyFrame"""
     if len(dfs) == 1:
         return dfs[0]
