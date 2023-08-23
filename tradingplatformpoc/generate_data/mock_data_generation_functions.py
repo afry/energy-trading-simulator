@@ -1,3 +1,4 @@
+import functools
 import logging
 import pickle
 from dataclasses import dataclass
@@ -44,17 +45,27 @@ def get_all_building_agents(all_agents: List[Dict]) -> Tuple[Set, float]:
     return building_agents, total_gross_floor_area
 
 
-def get_elec_cons_key(agent_name: str):
-    return agent_name + '_elec_cons'
+def get_elec_cons_key(agent_id: str):
+    return agent_id + '_elec_cons'
 
 
-def get_space_heat_cons_key(agent_name: str):
-    return agent_name + '_space_heat_cons'
+def get_space_heat_cons_key(agent_id: str):
+    return agent_id + '_space_heat_cons'
 
 
-def get_hot_tap_water_cons_key(agent_name: str):
-    return agent_name + '_hot_tap_water_cons'
+def get_hot_tap_water_cons_key(agent_id: str):
+    return agent_id + '_hot_tap_water_cons'
 
 
-def get_pv_prod_key(agent_name: str):
-    return agent_name + '_pv_prod'
+def get_pv_prod_key(agent_id: str):
+    return agent_id + '_pv_prod'
+
+
+def join_list_of_polar_dfs(dfs: List[pl.DataFrame]) -> pl.DataFrame:
+    if len(dfs) > 1:
+        return functools.reduce(lambda left, right: left.join(right, on='datetime'), dfs)
+    elif len(dfs) == 1:
+        return dfs[0]
+    else:
+        logger.warning('No DataFrames to join!')
+        return pl.DataFrame()
