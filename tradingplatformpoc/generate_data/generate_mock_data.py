@@ -25,7 +25,7 @@ from tradingplatformpoc.generate_data.generation_functions.non_residential.schoo
 from tradingplatformpoc.generate_data.generation_functions.residential.residential import \
     simulate_household_electricity_aggregated, simulate_residential_total_heating
 from tradingplatformpoc.generate_data.mock_data_generation_functions import \
-    MockDataKey, get_elec_cons_key, get_hot_tap_water_cons_key, get_space_heat_cons_key, join_list_of_polar_dfs
+    get_elec_cons_key, get_hot_tap_water_cons_key, get_space_heat_cons_key, join_list_of_polar_dfs
 from tradingplatformpoc.sql.agent.crud import get_building_agent_dicts_from_id_list
 from tradingplatformpoc.sql.config.crud import get_all_agents_in_config, get_mock_data_constants
 from tradingplatformpoc.sql.mock_data.crud import db_to_mock_data_df, get_mock_data_agent_pairs_in_db, \
@@ -260,34 +260,6 @@ def simulate(mock_data_constants: Dict[str, Any], agent: dict, df_inputs: pl.Laz
         rename({'value': get_hot_tap_water_cons_key(agent[key])})
 
     return output_per_actor
-
-
-def find_agent_in_other_data_sets(agent_dict: Dict[str, Any], mock_data_constants: Dict[str, Any],
-                                  all_data_sets: Dict[MockDataKey, pl.DataFrame]) -> pl.DataFrame:
-    """Introduced in RES-216 - looking through other data sets, if this agent was present there, we can re-use that,
-    instead of running the generation step again. This saves time. If no usable data is found, the returned DataFrame
-    will be empty."""
-    data_to_reuse = pl.DataFrame()
-    found_cons_data = False
-    for mock_data_key, mock_data in all_data_sets.items():
-        set_of_building_agents = mock_data_key.building_agents_frozen_set
-        other_mock_data_constants = dict(mock_data_key.mock_data_constants)
-        for other_agent in set_of_building_agents:
-            other_agent_dict = dict(other_agent)
-
-            if (not found_cons_data) and \
-                    all_parameters_match(agent_dict, other_agent_dict, mock_data_constants, other_mock_data_constants):
-                # All parameters relating to generating energy usage data are the same
-                logger.debug('For agent \'{}\' found energy consumption data to re-use'.format(agent_dict['Name']))
-                found_cons_data = True
-                cons_data = mock_data.select([pl.col(get_elec_cons_key(other_agent_dict['Name'])),
-                                              pl.col(get_space_heat_cons_key(other_agent_dict['Name'])),
-                                              pl.col(get_hot_tap_water_cons_key(other_agent_dict['Name']))])
-                # Make sure that the datetime column is present
-                if 'datetime' not in data_to_reuse.columns:
-                    data_to_reuse = data_to_reuse.with_column(mock_data['datetime'])
-                data_to_reuse = pl.concat((data_to_reuse, cons_data), how='horizontal')
-    return data_to_reuse
 
 
 def all_parameters_match(agent_dict: Dict[str, Any], other_agent_dict: Dict[str, Any],
