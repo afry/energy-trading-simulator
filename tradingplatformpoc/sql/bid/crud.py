@@ -1,6 +1,5 @@
-import datetime
 from contextlib import _GeneratorContextManager
-from typing import Callable, Collection, Dict
+from typing import Any, Callable, Dict, List
 
 import pandas as pd
 
@@ -13,31 +12,19 @@ from tradingplatformpoc.market.bid import NetBidWithAcceptanceStatus
 from tradingplatformpoc.sql.bid.models import Bid as TableBid
 
 
-def bids_to_db_objects(trades_dict: Dict[datetime.datetime, Collection[NetBidWithAcceptanceStatus]], job_id: str):
-    objects = [TableBid(period=period,
-                        job_id=job_id,
-                        source=x.source,
-                        by_external=x.by_external,
-                        action=x.action,
-                        resource=x.resource,
-                        quantity=x.quantity,
-                        price=x.price,
-                        accepted_quantity=x.accepted_quantity)
-               for period, some_collection in trades_dict.items() for x in some_collection]
-    return objects
-
-# def bids_to_db_objects(trades_list: List, job_id: str):
-#    objects = [TableBid(job_id=job_id,
-#                        period=x.period,
-#                        source=x.source,
-#                        by_external=x.by_external,
-#                        action=x.action,
-#                        resource=x.resource,
-#                        quantity=x.quantity,
-#                        price=x.price,
-#                        accepted_quantity=x.accepted_quantity)
-#                for some_collection in trades_list for x in some_collection]
-#    return objects
+def bids_to_db_dict(trades_list: List[NetBidWithAcceptanceStatus],
+                    job_id: str) -> List[Dict[str, Any]]:
+    dict = [{'job_id': job_id,
+             'period': x.period,
+             'source': x.source,
+             'by_external': x.by_external,
+             'action': x.action,
+             'resource': x.resource,
+             'quantity': x.quantity,
+             'price': x.price,
+             'accepted_quantity': x.accepted_quantity}
+            for some_collection in trades_list for x in some_collection]
+    return dict
 
 
 def db_to_bid_df(job_id: str,

@@ -21,6 +21,7 @@ from tradingplatformpoc.trading_platform_utils import hourly_datetime_array_betw
 
 class Test(TestCase):
 
+    fake_job_id = "111111111111"
     mock_datas_file_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
     config = read_config()
     heat_pricing: HeatingPrice = HeatingPrice(
@@ -52,10 +53,10 @@ class Test(TestCase):
         prices, and warnings should be logged.
         """
         with self.assertLogs() as captured:
-            heating_price_lst = get_external_heating_prices(self.heat_pricing,
-                                                            pd.DatetimeIndex([datetime.datetime(2019, 2, 1),
+            heating_price_list = get_external_heating_prices(self.heat_pricing, self.fake_job_id,
+                                                             pd.DatetimeIndex([datetime.datetime(2019, 2, 1),
                                                                               datetime.datetime(2019, 2, 2)]))
-        heating_prices = pd.DataFrame.from_records(heating_price_lst)
+        heating_prices = pd.DataFrame.from_records(heating_price_list)
         self.assertTrue(len(captured.records) > 0)
         log_levels_captured = [rec.levelname for rec in captured.records]
         self.assertTrue('WARNING' in log_levels_captured)

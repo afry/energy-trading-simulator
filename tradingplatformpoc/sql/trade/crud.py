@@ -2,7 +2,7 @@ import datetime
 import itertools
 import operator
 from contextlib import _GeneratorContextManager
-from typing import Callable, Collection, Dict, Tuple
+from typing import Any, Callable, Dict, List, Tuple
 
 import pandas as pd
 
@@ -55,21 +55,21 @@ def db_to_trade_df(job_id: str,
                                            } for (trade, ) in trades])
 
 
-def trades_to_db_objects(bids_dict: Dict[datetime.datetime, Collection[Trade]], job_id: str):
-    objects = [TableTrade(period=period,
-                          job_id=job_id,
-                          source=x.source,
-                          by_external=x.by_external,
-                          action=x.action,
-                          resource=x.resource,
-                          quantity_pre_loss=x.quantity_pre_loss,
-                          quantity_post_loss=x.quantity_post_loss,
-                          price=x.price,
-                          market=x.market,
-                          tax_paid=x.tax_paid,
-                          grid_fee_paid=x.grid_fee_paid)
-               for period, some_collection in bids_dict.items() for x in some_collection]
-    return objects
+def trades_to_db_dict(bids_list: List[Trade], job_id: str) -> List[Dict[str, Any]]:
+    dict = [{'job_id': job_id,
+             'period': x.period,
+             'source': x.source,
+             'by_external': x.by_external,
+             'action': x.action,
+             'resource': x.resource,
+             'quantity_pre_loss': x.quantity_pre_loss,
+             'quantity_post_loss': x.quantity_post_loss,
+             'price': x.price,
+             'market': x.market,
+             'tax_paid': x.tax_paid,
+             'grid_fee_paid': x.grid_fee_paid}
+            for some_collection in bids_list for x in some_collection]
+    return dict
 
 
 def db_to_aggregated_trades_by_agent(job_id: str,

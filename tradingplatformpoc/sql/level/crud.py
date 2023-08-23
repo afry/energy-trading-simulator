@@ -1,6 +1,6 @@
 import datetime
 from contextlib import _GeneratorContextManager
-from typing import Callable, Dict
+from typing import Any, Callable, Dict, List
 
 import pandas as pd
 
@@ -10,15 +10,16 @@ from tradingplatformpoc.connection import session_scope
 from tradingplatformpoc.sql.level.models import Level
 
 
-def levels_to_db_objects(levels_dict: Dict[str, Dict[datetime.datetime, float]],
-                         level_type: str, job_id: str):
-    objects = [Level(period=period,
-                     job_id=job_id,
-                     agent=agent,
-                     type=level_type,
-                     level=level)
-               for agent, some_dict in levels_dict.items() for period, level in some_dict.items()]
-    return objects
+def levels_to_db_dict(levels_dict: Dict[str, Dict[datetime.datetime, float]],
+                      level_type: str, job_id: str) -> List[Dict[str, Any]]:
+    dict = [{'period': period,
+             'job_id': job_id,
+             'agent': agent,
+             'type': level_type,
+             'level': level}
+            for agent, some_dict in levels_dict.items()
+            for period, level in some_dict.items()]
+    return dict
 
 
 def db_to_viewable_level_df_by_agent(job_id: str, agent_guid: str, level_type: str,

@@ -1,5 +1,5 @@
 from contextlib import _GeneratorContextManager
-from typing import Any, Callable, Collection, Dict, List
+from typing import Callable
 
 import pandas as pd
 
@@ -9,12 +9,6 @@ from sqlmodel import Session
 
 from tradingplatformpoc.connection import session_scope
 from tradingplatformpoc.sql.heating_price.models import HeatingPrice as TableHeatingPrice
-
-
-def external_heating_prices_to_db_objects(
-        heating_price_by_ym_lst: List[Dict[str, Any]],
-        job_id: str) -> Collection[TableHeatingPrice]:
-    return [TableHeatingPrice(job_id=job_id, **args) for args in heating_price_by_ym_lst]
 
 
 def db_to_heating_price_df(job_id: str,
