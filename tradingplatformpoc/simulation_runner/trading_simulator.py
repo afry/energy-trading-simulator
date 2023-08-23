@@ -193,7 +193,7 @@ class TradingSimulator:
                 if current_thread.is_stopped():
                     logger.error('Simulation stopped by event.')
                     raise Exception("Simulation stopped by event.")
-            logger.info("Simulating batch number {} of {}".format(batch_number, number_of_batches))
+            logger.info("Simulating batch number {} of {}".format(batch_number + 1, number_of_batches))
             # Periods in batch
             trading_periods_in_this_batch = self.trading_periods[
                 batch_number * batch_size:min((batch_number + 1) * batch_size, number_of_trading_periods)]
