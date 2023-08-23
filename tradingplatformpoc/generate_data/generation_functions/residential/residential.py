@@ -12,7 +12,7 @@ from tradingplatformpoc.trading_platform_utils import nan_helper
 EVERY_X_HOURS = 3  # Random noise will be piecewise linear, with knots every X hours
 
 
-def simulate_residential_total_heating(config_data: Dict[str, Any], df_inputs: pl.LazyFrame, n_rows: int,
+def simulate_residential_total_heating(mock_data_constants: Dict[str, Any], df_inputs: pl.LazyFrame, n_rows: int,
                                        gross_floor_area_m2: float, random_seed: int) -> \
         Tuple[pl.LazyFrame, pl.LazyFrame]:
     """
@@ -31,7 +31,7 @@ def simulate_residential_total_heating(config_data: Dict[str, Any], df_inputs: p
     points_to_generate = len(every_xth)
 
     rng = np.random.default_rng(random_seed)
-    std_dev = config_data['MockDataConstants']['ResidentialHeatingRelativeErrorStdDev']
+    std_dev = mock_data_constants['ResidentialHeatingRelativeErrorStdDev']
     generated_points = rng.normal(1, std_dev, points_to_generate)
 
     noise = np.empty((n_rows,))
@@ -46,10 +46,10 @@ def simulate_residential_total_heating(config_data: Dict[str, Any], df_inputs: p
     # Could argue we should use different noise here ^, but there is some logic to these two varying together
 
     # Scale
-    space_heating_per_year_per_m2 = config_data['MockDataConstants']['ResidentialSpaceHeatKwhPerYearM2']
+    space_heating_per_year_per_m2 = mock_data_constants['ResidentialSpaceHeatKwhPerYearM2']
     space_heating_scaled = scale_energy_consumption(space_heating_unscaled, gross_floor_area_m2,
                                                     space_heating_per_year_per_m2, n_rows)
-    hot_tap_water_per_year_per_m2 = config_data['MockDataConstants']['ResidentialHotTapWaterKwhPerYearM2']
+    hot_tap_water_per_year_per_m2 = mock_data_constants['ResidentialHotTapWaterKwhPerYearM2']
     hot_tap_water_scaled = scale_energy_consumption(hot_tap_water_unscaled, gross_floor_area_m2,
                                                     hot_tap_water_per_year_per_m2, n_rows)
     return space_heating_scaled, hot_tap_water_scaled

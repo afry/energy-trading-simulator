@@ -95,7 +95,8 @@ def run(config_data: Dict[str, Any]) -> Dict[MockDataKey, pl.DataFrame]:
 
             agent_dict = dict(agent)
             logger.debug('Generating new data for ' + agent_dict['Name'])
-            output_per_building, time_elapsed = simulate_and_add_to_output_df(config_data, agent_dict, lazy_inputs,
+            output_per_building, time_elapsed = simulate_and_add_to_output_df(config_data['MockDataConstants'],
+                                                                              agent_dict, lazy_inputs,
                                                                               n_rows, model, df.clone(),
                                                                               all_data_sets)
             output = output.join(output_per_building, on='datetime')
@@ -112,14 +113,14 @@ def run(config_data: Dict[str, Any]) -> Dict[MockDataKey, pl.DataFrame]:
     return all_data_sets
 
 
-def simulate_and_add_to_output_df(config_data: Dict[str, Any], agent: dict, df_inputs: pl.LazyFrame, n_rows: int,
-                                  model: RegressionResultsWrapper, output_per_actor: pl.DataFrame,
+def simulate_and_add_to_output_df(mock_data_constants: Dict[str, Any], agent: dict, df_inputs: pl.LazyFrame,
+                                  n_rows: int, model: RegressionResultsWrapper, output_per_actor: pl.DataFrame,
                                   all_data_sets: dict) -> Tuple[pl.DataFrame, float]:
     start = time.time()
     agent = dict(agent)  # "Unfreezing" the frozenset
     logger.debug('Starting work on \'{}\''.format(agent['Name']))
 
-    pre_existing_data = find_agent_in_other_data_sets(agent, config_data['MockDataConstants'], all_data_sets)
+    pre_existing_data = find_agent_in_other_data_sets(agent, mock_data_constants, all_data_sets)
     if len(pre_existing_data.columns) > 0:
         output_per_actor = output_per_actor.join(pre_existing_data, on='datetime', how='left')
 
@@ -156,14 +157,14 @@ def simulate_and_add_to_output_df(config_data: Dict[str, Any], agent: dict, df_i
                 agent['GrossFloorArea'] * fraction_commercial,
                 seed_commercial_electricity,
                 df_inputs,
-                config_data['MockDataConstants']['CommercialElecKwhPerYearM2'],
-                config_data['MockDataConstants']['CommercialElecRelativeErrorStdDev'],
+                mock_data_constants['CommercialElecKwhPerYearM2'],
+                mock_data_constants['CommercialElecRelativeErrorStdDev'],
                 get_commercial_electricity_consumption_hourly_factor,
                 n_rows)
             )
             
             commercial_space_heating_cons, commercial_hot_tap_water_cons = simulate_commercial_area_total_heating(
-                config_data,
+                mock_data_constants,
                 commercial_gross_floor_area,
                 seed_commercial_heating,
                 df_inputs,
@@ -180,14 +181,14 @@ def simulate_and_add_to_output_df(config_data: Dict[str, Any], agent: dict, df_i
                     school_gross_floor_area_m2,
                     seed_school_electricity,
                     df_inputs,
-                    config_data['MockDataConstants']['SchoolElecKwhPerYearM2'],
-                    config_data['MockDataConstants']['SchoolElecRelativeErrorStdDev'],
+                    mock_data_constants['SchoolElecKwhPerYearM2'],
+                    mock_data_constants['SchoolElecRelativeErrorStdDev'],
                     get_school_heating_consumption_hourly_factor,
                     n_rows)
             )
 
             school_space_heating_cons, school_hot_tap_water_cons = simulate_school_area_heating(
-                config_data,
+                mock_data_constants,
                 school_gross_floor_area_m2,
                 seed_school_heating,
                 df_inputs,
@@ -206,11 +207,11 @@ def simulate_and_add_to_output_df(config_data: Dict[str, Any], agent: dict, df_i
                     residential_gross_floor_area,
                     seed_residential_electricity,
                     n_rows,
-                    config_data['MockDataConstants']['ResidentialElecKwhPerYearM2Atemp'])
+                    mock_data_constants['ResidentialElecKwhPerYearM2Atemp'])
             )
 
             residential_space_heating_cons, residential_hot_tap_water_cons = simulate_residential_total_heating(
-                config_data,
+                mock_data_constants,
                 df_inputs,
                 n_rows,
                 residential_gross_floor_area,

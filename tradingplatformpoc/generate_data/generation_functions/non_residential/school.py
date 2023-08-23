@@ -62,18 +62,19 @@ def get_school_heating_consumption_hourly_factor(timestamp: datetime.datetime) -
     return 1
 
 
-def simulate_school_area_heating(config_data: Dict[str, Any], school_gross_floor_area_m2: float, random_seed: int,
-                                 input_df: pl.LazyFrame, n_rows: int) -> Tuple[pl.LazyFrame, pl.LazyFrame]:
+def simulate_school_area_heating(mock_data_constants: Dict[str, Any], school_gross_floor_area_m2: float,
+                                 random_seed: int, input_df: pl.LazyFrame, n_rows: int
+                                 ) -> Tuple[pl.LazyFrame, pl.LazyFrame]:
     """
     This function follows the recipe outlined in the corresponding function for commercial buildings.
     @return Two pl.DataFrames with datetimes and hourly total heating load, in kWh.
     """
-    space_heating_per_year_m2 = config_data['MockDataConstants']['SchoolSpaceHeatKwhPerYearM2']
+    space_heating_per_year_m2 = mock_data_constants['SchoolSpaceHeatKwhPerYearM2']
     space_heating = simulate_space_heating(school_gross_floor_area_m2, random_seed, input_df,
                                            space_heating_per_year_m2,
                                            get_school_heating_consumption_hourly_factor, n_rows)
-    hot_tap_water_per_year_m2 = config_data['MockDataConstants']['SchoolHotTapWaterKwhPerYearM2']
-    hot_tap_water_relative_error_std_dev = config_data['MockDataConstants']['SchoolHotTapWaterRelativeErrorStdDev']
+    hot_tap_water_per_year_m2 = mock_data_constants['SchoolHotTapWaterKwhPerYearM2']
+    hot_tap_water_relative_error_std_dev = mock_data_constants['SchoolHotTapWaterRelativeErrorStdDev']
     hot_tap_water = simulate_hot_tap_water(school_gross_floor_area_m2, random_seed, input_df,
                                            hot_tap_water_per_year_m2,
                                            get_school_heating_consumption_hourly_factor,

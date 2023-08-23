@@ -47,7 +47,7 @@ def get_commercial_heating_consumption_hourly_factor(timestamp: datetime.datetim
         return 0.5
 
 
-def simulate_commercial_area_total_heating(config_data: Dict[str, Any], commercial_gross_floor_area_m2: float,
+def simulate_commercial_area_total_heating(mock_data_constants: Dict[str, Any], commercial_gross_floor_area_m2: float,
                                            random_seed: int, input_df: pl.LazyFrame, n_rows: int) -> \
         Tuple[pl.LazyFrame, pl.LazyFrame]:
     """
@@ -56,13 +56,13 @@ def simulate_commercial_area_total_heating(config_data: Dict[str, Any], commerci
     @return Two pl.LazyFrames with datetimes and hourly heating load, in kWh. The first space heating, the second hot
         tap water.
     """
-    space_heating_per_year_m2 = config_data['MockDataConstants']['CommercialSpaceHeatKwhPerYearM2']
+    space_heating_per_year_m2 = mock_data_constants['CommercialSpaceHeatKwhPerYearM2']
     space_heating = simulate_space_heating(commercial_gross_floor_area_m2, random_seed, input_df,
                                            space_heating_per_year_m2, get_commercial_heating_consumption_hourly_factor,
                                            n_rows)
 
-    hot_tap_water_per_year_m2 = config_data['MockDataConstants']['CommercialHotTapWaterKwhPerYearM2']
-    hot_tap_water_relative_error_std_dev = config_data['MockDataConstants']['CommercialHotTapWaterRelativeErrorStdDev']
+    hot_tap_water_per_year_m2 = mock_data_constants['CommercialHotTapWaterKwhPerYearM2']
+    hot_tap_water_relative_error_std_dev = mock_data_constants['CommercialHotTapWaterRelativeErrorStdDev']
     hot_tap_water = simulate_hot_tap_water(commercial_gross_floor_area_m2, random_seed, input_df,
                                            hot_tap_water_per_year_m2, get_commercial_heating_consumption_hourly_factor,
                                            hot_tap_water_relative_error_std_dev,
