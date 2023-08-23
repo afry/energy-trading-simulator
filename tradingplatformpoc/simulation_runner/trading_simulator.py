@@ -48,12 +48,11 @@ logger = logging.getLogger(__name__)
 
 
 class TradingSimulator:
-    def __init__(self, config_id: str, mock_datas_pickle_path: str):
+    def __init__(self, config_id: str):
         self.config_id = config_id
         self.job_id = create_job_if_new_config(config_id)
         self.config_data: Dict[str, Any] = read_config(config_id)
         self.agent_specs = get_all_agents_in_config(self.config_id)
-        self.mock_datas_pickle_path = mock_datas_pickle_path
 
     def __call__(self):
         if (self.job_id is not None) and (self.config_data is not None):
