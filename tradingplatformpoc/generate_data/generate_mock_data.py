@@ -4,6 +4,7 @@ import os
 import pickle
 import time
 from typing import Any, Dict, Iterable, List, Tuple, Union
+import pandas as pd
 
 from pkg_resources import resource_filename
 
@@ -54,6 +55,26 @@ For some more information: https://doc.afdrift.se/display/RPJ/Household+electric
 """
 
 logger = logging.getLogger(__name__)
+
+
+def get_generated_mock_data(config_data: dict, mock_datas_pickle_path: str) -> pd.DataFrame:
+    """
+    Loads the dict stored in MOCK_DATAS_PICKLE, checks if it contains a key which is identical to the set of building
+    agents specified in config_data. If it isn't, throws an error. If it is, it returns the value for that key in the
+    dictionary.
+    @param config_data: A dictionary specifying agents etc
+    @param mock_datas_pickle_path: Path to pickle file where dict with mock data is saved
+    @return: A pd.DataFrame containing mock data for building agents
+    """
+    with open(mock_datas_pickle_path, 'rb') as f:
+        all_data_sets = pickle.load(f)
+    building_agents, total_gross_floor_area = get_all_building_agents(config_data["Agents"])
+    mock_data_key = MockDataKey(frozenset(building_agents), frozenset(config_data["MockDataConstants"].items()))
+    if mock_data_key not in all_data_sets:
+        logger.info("No mock data found for this configuration. Running mock data generation.")
+        all_data_sets = run(config_data)
+        logger.info("Finished mock data generation.")
+    return all_data_sets[mock_data_key].to_pandas().set_index('datetime')
 
 
 def run(config_data: Dict[str, Any]) -> Dict[MockDataKey, pl.DataFrame]:
