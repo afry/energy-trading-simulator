@@ -6,8 +6,6 @@ from typing import Any, Dict, List, Tuple
 
 import pandas as pd
 
-# from time import perf_counter
-
 from tradingplatformpoc.agent.battery_agent import BatteryAgent
 from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.grid_agent import GridAgent
@@ -23,9 +21,8 @@ from tradingplatformpoc.generate_data.mock_data_generation_functions import get_
 from tradingplatformpoc.market import balance_manager
 from tradingplatformpoc.market import market_solver
 from tradingplatformpoc.market.balance_manager import correct_for_exact_heating_price
-from tradingplatformpoc.market.bid import GrossBid, Resource  # NetBidWithAcceptanceStatus,
-# from tradingplatformpoc.market.extra_cost import ExtraCost
-from tradingplatformpoc.market.trade import TradeMetadataKey  # Trade,
+from tradingplatformpoc.market.bid import GrossBid, Resource
+from tradingplatformpoc.market.trade import TradeMetadataKey
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
 from tradingplatformpoc.simulation_runner.progress import Progress
@@ -198,7 +195,6 @@ class TradingSimulator:
         number_of_trading_periods = len(self.trading_periods)
         batch_size = math.ceil(number_of_trading_periods / number_of_batches)
         
-        # start = perf_counter()
         # Loop over batches
         for batch_number in range(number_of_batches):
             current_thread = threading.current_thread()
@@ -212,9 +208,9 @@ class TradingSimulator:
             trading_periods_in_this_batch = self.trading_periods[
                 batch_number * batch_size:min((batch_number + 1) * batch_size, number_of_trading_periods)]
 
-            all_bids_list_batch = []  # : List[NetBidWithAcceptanceStatus]
-            all_trades_list_batch = []  # : List[Trade]
-            all_extra_costs_batch = []  # : List[ExtraCost]
+            all_bids_list_batch = []
+            all_trades_list_batch = []
+            all_extra_costs_batch = []
 
             # Loop over periods i batch
             for period in trading_periods_in_this_batch:
@@ -286,9 +282,6 @@ class TradingSimulator:
             bulk_insert(TableExtraCost, extra_cost_dict)
             self.progress.increase(frac_of_calc_time_for_batch_simulated)
             self.progress.display()
-        
-        # elapsed_time = perf_counter() - start
-        # logger.info(f'time loop finish {elapsed_time}')
 
         clearing_prices_objs = clearing_prices_to_db_dict(self.clearing_prices_historical, self.job_id)
         heat_pump_level_objs = levels_to_db_dict(self.heat_pump_levels_dict,

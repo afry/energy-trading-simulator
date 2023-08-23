@@ -1,7 +1,8 @@
 import logging
 from contextlib import _GeneratorContextManager
 from typing import Callable
-# from time import perf_counter
+
+from sqlalchemy_batch_inserts import enable_batch_inserting
 
 from sqlmodel import SQLModel, Session
 
@@ -26,11 +27,9 @@ def drop_db_and_tables():
 def bulk_insert(table_type, objects: list,
                 session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope):
     with session_generator() as db:
-        # start = perf_counter()
+        enable_batch_inserting(db)
         db.bulk_insert_mappings(table_type, objects)
         db.commit()
-        # elapsed_time = perf_counter() - start
-        # logger.info(f'time loop finish {elapsed_time}')
 
 
 def insert_default_config_into_db():
