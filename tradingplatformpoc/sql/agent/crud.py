@@ -1,6 +1,6 @@
 import logging
 from contextlib import _GeneratorContextManager
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, List
 
 from sqlalchemy import select
 
@@ -48,3 +48,17 @@ def check_if_agent_in_db(agent_type: str, agent_config: Dict[str, Any],
                 return agent_in_db.id
             
         return None
+
+
+def get_building_agent_dicts_from_id_list(
+        agent_ids: List[str],
+        session_generator: Callable[[], _GeneratorContextManager[Session]]
+        = session_scope):
+    """
+    Get agents
+    """
+    with session_generator() as db:
+        res = db.query(Agent).filter(Agent.id.in_(agent_ids),
+                                     Agent.agent_type == 'BuildingAgent').all()
+        return [{'db_id': agent.id, 'Type': agent.agent_type, **agent.agent_config}
+                for agent in res]
