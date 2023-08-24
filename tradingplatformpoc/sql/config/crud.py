@@ -106,11 +106,11 @@ def get_all_config_ids_in_db_without_jobs(session_generator: Callable[[], _Gener
         return [config_id for (config_id,) in res]
     
 
-def get_all_job_config_id_pairs_in_db(session_generator: Callable[[], _GeneratorContextManager[Session]]
-                                      = session_scope) -> Dict[str, str]:
+def get_all_finished_job_config_id_pairs_in_db(session_generator: Callable[[], _GeneratorContextManager[Session]]
+                                               = session_scope) -> Dict[str, str]:
     with session_generator() as db:
         res = db.execute(select(Config.id.label('config_id'), Job.id.label('job_id'))
-                         .join(Config, Job.config_id == Config.id)).all()
+                         .join(Config, Job.config_id == Config.id).where(Job.end_time.is_not(None))).all()
         return {elem.config_id: elem.job_id for elem in res}
 
 
