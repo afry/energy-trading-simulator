@@ -262,6 +262,7 @@ def simulate(mock_data_constants: Dict[str, Any], agent: dict, df_inputs: pl.Laz
     return output_per_actor
 
 
+# TODO: Question: Cann we still use this function somehow?
 def all_parameters_match(agent_dict: Dict[str, Any], other_agent_dict: Dict[str, Any],
                          mock_data_constants: Dict[str, Any], other_mock_data_constants: Dict[str, Any]) -> bool:
     """
