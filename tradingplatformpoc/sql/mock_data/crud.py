@@ -66,3 +66,12 @@ def get_mock_data_agent_pairs_in_db(agent_ids: List[str], mock_data_constants: D
         
         return {element.id: element.agent_id for element in res
                 if (len(list(set(mock_data_constants.items()) - set(element.mock_data_constants.items()))) == 0)}
+
+
+def get_mock_data_ids_for_agent(agent_id: str,
+                                session_generator: Callable[[], _GeneratorContextManager[Session]]
+                                = session_scope) -> Dict[str, str]:
+
+    with session_generator() as db:
+        res = db.query(MockData.id).filter(MockData.agent_id == agent_id).all()
+        return [mock_data_id for (mock_data_id,) in res]
