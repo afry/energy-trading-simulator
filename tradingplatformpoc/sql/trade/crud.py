@@ -11,7 +11,7 @@ from sqlalchemy import func, select
 from sqlmodel import Session
 
 from tradingplatformpoc.connection import session_scope
-from tradingplatformpoc.market.bid import Action
+from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.market.trade import Trade
 from tradingplatformpoc.sql.trade.models import Trade as TableTrade
 
@@ -72,26 +72,42 @@ def trades_to_db_objects(bids_dict: Dict[datetime.datetime, Collection[Trade]], 
     return objects
 
 
-def db_to_aggregated_trades_by_agent(job_id: str,
-                                     session_generator: Callable[[], _GeneratorContextManager[Session]]
-                                     = session_scope):
-    '''Fetches aggregated trades data from database for specified agent (source).'''
+def db_to_aggregated_buy_trades_by_agent(job_id: str, resource: Resource,
+                                         session_generator: Callable[[], _GeneratorContextManager[Session]]
+                                         = session_scope):
+    '''Fetches aggregated buy trades data from database for specified agent (source).'''
     with session_generator() as db:
         res = db.query(
-            TableTrade.source.label('source'),
-            TableTrade.resource.label('resource'),
-            TableTrade.action.label('action'),
-            func.sum(TableTrade.quantity_pre_loss).label('sum_quantity_pre_loss'),
-            func.sum(TableTrade.quantity_post_loss).label('sum_quantity_post_loss'),
-            func.sum(TableTrade.total_bought_for).label('sum_total_bought_for'),
-            func.sum(TableTrade.total_sold_for).label('sum_total_sold_for'),
-            func.sum(TableTrade.tax_paid_for_quantity).label('sum_tax_paid_for_quantities'),
-            func.sum(TableTrade.grid_fee_paid_for_quantity).label('grid_fee_paid_for_quantity')
-        ).filter(TableTrade.job_id == job_id)\
-         .group_by(TableTrade.source, TableTrade.resource, TableTrade.action).all()
+            TableTrade.source.label('Agent'),
+            func.sum(TableTrade.quantity_pre_loss).label('Total quantity bought [kWh]'),
+            func.sum(TableTrade.total_bought_for).label('Total amount bought for [SEK]'),
+        ).filter(TableTrade.job_id == job_id,
+                 TableTrade.action == Action.SELL,
+                 TableTrade.resource == resource)\
+         .group_by(TableTrade.source, TableTrade.resource).all()
 
-        return dict((source, list(vals)) for source, vals in
-                    itertools.groupby(res, operator.itemgetter(0)))
+        df = pd.DataFrame(res).set_index('Agent')
+        df['Average buy price [SEK/kWh]'] = df['Total amount bought for [SEK]'] / df['Total quantity bought [kWh]']
+        return df
+    
+
+def db_to_aggregated_sell_trades_by_agent(job_id: str, resource: Resource,
+                                          session_generator: Callable[[], _GeneratorContextManager[Session]]
+                                          = session_scope):
+    '''Fetches aggregated sell trades data from database for specified agent (source).'''
+    with session_generator() as db:
+        res = db.query(
+            TableTrade.source.label('Agent'),
+            func.sum(TableTrade.quantity_post_loss).label('Total quantity sold [kWh]'),
+            func.sum(TableTrade.total_sold_for).label('Total amount sold for [SEK]'),
+        ).filter(TableTrade.job_id == job_id,
+                 TableTrade.action == Action.BUY,
+                 TableTrade.resource == resource)\
+         .group_by(TableTrade.source, TableTrade.resource).all()
+
+        df = pd.DataFrame(res).set_index('Agent')
+        df['Average sell price [SEK/kWh]'] = df['Total amount sold for [SEK]'] / df['Total quantity sold [kWh]']
+        return df
 
 
 def db_to_trades_by_agent(source: str, job_id: str,
