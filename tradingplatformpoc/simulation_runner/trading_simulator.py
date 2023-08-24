@@ -18,7 +18,7 @@ from tradingplatformpoc.database import bulk_insert
 from tradingplatformpoc.digitaltwin.battery import Battery
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.generate_data.generate_mock_data import get_generated_mock_data
-from tradingplatformpoc.generate_data.mock_data_generation_functions import get_elec_cons_key, \
+from tradingplatformpoc.generate_data.mock_data_utils import get_elec_cons_key, \
     get_hot_tap_water_cons_key, get_space_heat_cons_key
 from tradingplatformpoc.market import balance_manager
 from tradingplatformpoc.market import market_solver

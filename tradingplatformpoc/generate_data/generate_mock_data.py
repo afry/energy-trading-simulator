@@ -23,7 +23,7 @@ from tradingplatformpoc.generate_data.generation_functions.non_residential.schoo
     get_school_heating_consumption_hourly_factor, simulate_school_area_heating
 from tradingplatformpoc.generate_data.generation_functions.residential.residential import \
     simulate_household_electricity_aggregated, simulate_residential_total_heating
-from tradingplatformpoc.generate_data.mock_data_generation_functions import \
+from tradingplatformpoc.generate_data.mock_data_utils import \
     calculate_seed_from_string, get_elec_cons_key, get_hot_tap_water_cons_key, get_space_heat_cons_key, \
     join_list_of_polar_dfs
 from tradingplatformpoc.sql.agent.crud import get_building_agent_dicts_from_id_list

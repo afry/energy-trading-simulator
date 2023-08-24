@@ -17,7 +17,7 @@ from tradingplatformpoc.generate_data.generation_functions.non_residential.commo
 from tradingplatformpoc.generate_data.generation_functions.non_residential.school import \
     get_school_heating_consumption_hourly_factor
 from tradingplatformpoc.generate_data.generation_functions.residential.residential import simulate_series
-from tradingplatformpoc.generate_data.mock_data_generation_functions import all_parameters_match
+from tradingplatformpoc.generate_data.mock_data_utils import all_parameters_match
 from tradingplatformpoc.trading_platform_utils import hourly_datetime_array_between
 
 
