@@ -56,14 +56,22 @@ if 'choosen_id_to_view' in st.session_state.keys() and st.session_state.choosen_
             st.dataframe(get_price_df_when_local_price_inbetween(st.session_state.combined_price_df,
                                                                  Resource.ELECTRICITY))
     resources = [Resource.ELECTRICITY, Resource.HEATING]
-    agg_tabs = st.tabs([resource.name.capitalize() for resource in resources])
-    for resource, tab in zip(resources, agg_tabs):
+    agg_tabs = st.tabs([resource.name.capitalize() for resource in resources] + ['Formulas'])
+    for resource, tab in zip(resources, agg_tabs[:-1]):
         with tab:
             agg_buy_trades = db_to_aggregated_buy_trades_by_agent(st.session_state.choosen_id_to_view['job_id'],
                                                                   resource)
             agg_sell_trades = db_to_aggregated_sell_trades_by_agent(st.session_state.choosen_id_to_view['job_id'],
                                                                     resource)
-            st.dataframe(agg_buy_trades.merge(agg_sell_trades, on='Agent', how='outer').transpose())
+            
+            agg_trades = agg_buy_trades.merge(agg_sell_trades, on='Agent', how='outer').transpose()
+            agg_trades = agg_trades.style.set_properties(**{'width': '400px'})
+            st.dataframe(agg_trades)
+    with agg_tabs[-1]:
+        st.markdown(r"Total quantity bought  $= \sum$ quantity pre loss")
+        st.markdown(r"Total amount bought for $= \sum$ quantity pre loss $\cdot$ price")
+        st.markdown(r"Total quantity sold  $= \sum$ quantity post loss")
+        st.markdown(r"Total amount sold for $= \sum$ quantity post loss $\cdot$ price")
 
 # TODO: Update graphs to work with results taken from database
 # if 'simulation_results' in st.session_state:
