@@ -34,6 +34,7 @@ from tradingplatformpoc.simulation_runner.simulation_utils import get_external_h
 from tradingplatformpoc.sql.bid.crud import bids_to_db_objects
 from tradingplatformpoc.sql.clearing_price.crud import clearing_prices_to_db_objects
 from tradingplatformpoc.sql.config.crud import read_config
+from tradingplatformpoc.sql.electricity_price.models import ElectricityPrice as TableElectricityPrice
 from tradingplatformpoc.sql.extra_cost.crud import extra_costs_to_db_objects
 from tradingplatformpoc.sql.heating_price.crud import external_heating_prices_to_db_objects
 from tradingplatformpoc.sql.job.crud import create_job_if_new_config, delete_job, update_job_with_end_time
@@ -95,11 +96,6 @@ class TradingSimulator:
         self.clearing_prices_historical: Dict[datetime.datetime, Dict[Resource, float]] = {}
         self.storage_levels_dict: Dict[str, Dict[datetime.datetime, float]] = {}
         self.heat_pump_levels_dict: Dict[str, Dict[datetime.datetime, float]] = {}
-        # Store the exact external prices, need them for some calculations
-        self.exact_retail_electricity_prices_by_period: Dict[datetime.datetime, float] \
-            = dict(zip(self.trading_periods, (0.0 for _ in self.trading_periods)))
-        self.exact_wholesale_electricity_prices_by_period: Dict[datetime.datetime, float] \
-            = dict(zip(self.trading_periods, (0.0 for _ in self.trading_periods)))
 
     def initialize_agents(self) -> Tuple[List[IAgent], List[GridAgent]]:
         # Register all agents
@@ -209,6 +205,7 @@ class TradingSimulator:
             all_trades_dict_batch: Dict[datetime.datetime, Collection[Trade]] \
                 = dict(zip(trading_periods_in_this_batch, ([] for _ in trading_periods_in_this_batch)))
             all_extra_costs_batch: List[ExtraCost] = []
+            electricity_price_objs: List[TableElectricityPrice] = []
 
             # Loop over periods i batch
             for period in trading_periods_in_this_batch:
@@ -267,15 +264,17 @@ class TradingSimulator:
                                                                                  clearing_prices,
                                                                                  wholesale_prices)
 
-                self.exact_wholesale_electricity_prices_by_period[period] = wholesale_price_elec
-                self.exact_retail_electricity_prices_by_period[period] = retail_price_elec
+                electricity_price_objs.append(TableElectricityPrice(
+                    job_id=self.job_id, period=period, retail_price=retail_price_elec,
+                    wholesale_price=wholesale_price_elec))
+
                 all_extra_costs_batch.extend(extra_costs)
 
             logger.info('Saving to db...')
             bid_objs = bids_to_db_objects(all_bids_dict_batch, self.job_id)
             trade_objs = trades_to_db_objects(all_trades_dict_batch, self.job_id)
             extra_cost_objs = extra_costs_to_db_objects(all_extra_costs_batch, self.job_id)
-            bulk_insert(bid_objs + trade_objs + extra_cost_objs)
+            bulk_insert(bid_objs + trade_objs + extra_cost_objs + electricity_price_objs)
             self.progress.increase(frac_of_calc_time_for_batch_simulated)
             self.progress.display()
         

@@ -7,8 +7,8 @@ from sqlalchemy import Column, DateTime, Integer
 from sqlmodel import Field, SQLModel
 
 
-class ExactElectricityPrice(SQLModel, table=True):
-    __tablename__ = 'exact_electricity_price'
+class ElectricityPrice(SQLModel, table=True):
+    __tablename__ = 'electricity_price'
 
     id: int = Field(
         title='Unique integer ID',

@@ -13,7 +13,7 @@ from tradingplatformpoc.connection import session_scope
 from tradingplatformpoc.sql.agent_in_job.models import AgentInJob
 from tradingplatformpoc.sql.bid.models import Bid as TableBid
 from tradingplatformpoc.sql.clearing_price.models import ClearingPrice
-from tradingplatformpoc.sql.exact_electricity_price.models import ExactElectricityPrice
+from tradingplatformpoc.sql.electricity_price.models import ElectricityPrice as TableElectricityPrice
 from tradingplatformpoc.sql.extra_cost.models import ExtraCost as TableExtraCost
 from tradingplatformpoc.sql.heating_price.models import HeatingPrice as TableHeatingPrice
 from tradingplatformpoc.sql.job.models import Job, JobCreate
@@ -64,7 +64,7 @@ def delete_job(job_id: str,
             db.execute(delete(AgentInJob).where(AgentInJob.job_id == job_id))
             db.execute(delete(TableBid).where(TableBid.job_id == job_id))
             db.execute(delete(ClearingPrice).where(ClearingPrice.job_id == job_id))
-            db.execute(delete(ExactElectricityPrice).where(ExactElectricityPrice.job_id == job_id))
+            db.execute(delete(TableElectricityPrice).where(TableElectricityPrice.job_id == job_id))
             db.execute(delete(TableExtraCost).where(TableExtraCost.job_id == job_id))
             db.execute(delete(TableHeatingPrice).where(TableHeatingPrice.job_id == job_id))
             db.execute(delete(Level).where(Level.job_id == job_id))
