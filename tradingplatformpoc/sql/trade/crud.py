@@ -72,57 +72,53 @@ def trades_to_db_objects(bids_dict: Dict[datetime.datetime, Collection[Trade]], 
     return objects
 
 
-def db_to_aggregated_buy_trades_by_agent(job_id: str, resource: Resource,
-                                         session_generator: Callable[[], _GeneratorContextManager[Session]]
-                                         = session_scope):
-    '''Fetches aggregated buy trades data from database for specified agent (source).'''
+def db_to_aggregated_trade_df(job_id: str, resource: Resource, action: Action,
+                              session_generator: Callable[[], _GeneratorContextManager[Session]]
+                              = session_scope):
+    '''Fetches aggregated trades data from database for specified agent (source), resource and action.'''
     with session_generator() as db:
+        if action == Action.BUY:
+            label = "bought"
+            quantity_attribute = "quantity_pre_loss"
+            action_attribute = "bought_for"
+        elif action == Action.SELL:
+            label = "sold"
+            quantity_attribute = "quantity_post_loss"
+            action_attribute = "sold_for"
         res = db.query(
             TableTrade.source.label('Agent'),
-            func.sum(TableTrade.quantity_pre_loss).label('Total quantity bought [kWh]'),
-            func.sum(TableTrade.total_bought_for).label('Total amount bought for [SEK]'),
+            func.sum(getattr(TableTrade, quantity_attribute)).label('Total quantity ' + label + ' [kWh]'),
+            func.sum(getattr(TableTrade, action_attribute)).label('Total amount ' + label + ' for [SEK]'),
         ).filter(TableTrade.job_id == job_id,
-                 TableTrade.action == Action.SELL,
+                 TableTrade.action == action,
                  TableTrade.resource == resource)\
          .group_by(TableTrade.source, TableTrade.resource).all()
 
         df = pd.DataFrame(res).set_index('Agent')
-        df['Average buy price [SEK/kWh]'] = df['Total amount bought for [SEK]'] / df['Total quantity bought [kWh]']
+        df['Average ' + action.name.lower() + ' price [SEK/kWh]'] = \
+            df['Total amount ' + label + ' for [SEK]'] / df['Total quantity ' + label + ' [kWh]']
         return df
     
 
-def db_to_aggregated_sell_trades_by_agent(job_id: str, resource: Resource,
-                                          session_generator: Callable[[], _GeneratorContextManager[Session]]
-                                          = session_scope):
-    '''Fetches aggregated sell trades data from database for specified agent (source).'''
+def db_to_trades_by_agent_and_resource_action(job_id: str, agent_guid: str, resource: Resource, action: Action,
+                                              session_generator: Callable[[], _GeneratorContextManager[Session]]
+                                              = session_scope):
     with session_generator() as db:
-        res = db.query(
-            TableTrade.source.label('Agent'),
-            func.sum(TableTrade.quantity_post_loss).label('Total quantity sold [kWh]'),
-            func.sum(TableTrade.total_sold_for).label('Total amount sold for [SEK]'),
-        ).filter(TableTrade.job_id == job_id,
-                 TableTrade.action == Action.BUY,
-                 TableTrade.resource == resource)\
-         .group_by(TableTrade.source, TableTrade.resource).all()
-
-        df = pd.DataFrame(res).set_index('Agent')
-        df['Average sell price [SEK/kWh]'] = df['Total amount sold for [SEK]'] / df['Total quantity sold [kWh]']
-        return df
-
-
-def db_to_trades_by_agent(source: str, job_id: str,
-                          session_generator: Callable[[], _GeneratorContextManager[Session]]
-                          = session_scope) -> pd.DataFrame:
-    # Fetches trades data from database for specified agent (source).
-    with session_generator() as db:
-        trades = db.execute(select(TableTrade.period.label('period'),
-                                   TableTrade.action.label('action').label('action'),
-                                   TableTrade.resource.label('resource'),
-                                   TableTrade.quantity_pre_loss.label('quantity_pre_loss'),
-                                   TableTrade.quantity_post_loss.label('quantity_post_loss'),
-                                   TableTrade.price.label('price'))
-                            .where((TableTrade.job_id == job_id) & (TableTrade.source == source))).all()
-        return trades
+        if action == Action.BUY:
+            attribute = 'quantity_pre_loss'
+        elif action == Action.SELL:
+            attribute = 'quantity_post_loss'
+        return db.query(
+            TableTrade.period.label('period'),
+            getattr(TableTrade, attribute).label(attribute),
+            TableTrade.price.label('price'),
+            TableTrade.month.label('month'),
+            TableTrade.year.label('year'),
+        ).filter(
+            TableTrade.job_id == job_id,
+            TableTrade.source == agent_guid,
+            TableTrade.action == action,
+            TableTrade.resource == resource).all()
     
 
 def db_to_viewable_trade_df_by_agent(job_id: str, agent_guid: str,

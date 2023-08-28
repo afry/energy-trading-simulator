@@ -34,7 +34,7 @@ def db_to_extra_cost_df(job_id: str,
                                            } for (extra_cost, ) in extra_costs])
 
 
-def db_to_aggregated_extra_costs_by_agent(agent_guid: str, job_id: str,
+def db_to_aggregated_extra_costs_by_agent(job_id: str, agent_guid: str,
                                           session_generator: Callable[[], _GeneratorContextManager[Session]]
                                           = session_scope) -> Tuple[float, float]:
 

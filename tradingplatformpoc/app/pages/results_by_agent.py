@@ -5,7 +5,7 @@ import streamlit as st
 from tradingplatformpoc.app import footer
 from tradingplatformpoc.app.app_functions import download_df_as_csv_button
 from tradingplatformpoc.app.app_visualizations import construct_storage_level_chart, \
-    construct_traded_amount_by_agent_chart
+    construct_traded_amount_by_agent_chart, get_savings_vs_only_external_buy
 from tradingplatformpoc.market.trade import TradeMetadataKey
 from tradingplatformpoc.sql.bid.crud import db_to_viewable_bid_df_for_agent
 from tradingplatformpoc.sql.config.crud import get_all_agents_in_config
@@ -68,6 +68,36 @@ if 'choosen_id_to_view' in st.session_state.keys() and st.session_state.choosen_
             storage_chart = construct_storage_level_chart(levels_df)
             st.altair_chart(storage_chart, use_container_width=True, theme=None)
 
+    total_saved, extra_costs_for_bad_bids = get_savings_vs_only_external_buy(
+        job_id=st.session_state.choosen_id_to_view['job_id'],
+        agent_guid=agent_chosen_guid)
+    
+    # TODO: Exclude GridAgent
+    # agent_type = get_agent_type(agent_specs[agent_chosen_guid])
+    # if agent_type != 'GridAgent':
+
+    st.metric(label="Savings by using local market, before taking penalties into account.",
+              value="{:,.2f} SEK".format(total_saved),
+              help="Amount saved for agent {} by using local market, ".format(agent_chosen_guid)
+              + r"as opposed to only using the external grid. "
+              r"The value is the sum of savings on buy trades where the buyer pays for "
+              r"the quantity before losses:"
+              r"$\sum \limits_{\text{buy}}$ quantity $ \cdot$ (retail price $-$ price)"
+              r" and savings on sell trades, where the seller is payed for the quantity after losses: "
+              r"$\sum \limits_\text{sell}$ (quantity $-$ loss) $\cdot$ (price $-$ wholesale price)"
+              r" minus heat cost corrections.")
+
+    st.metric(label="Total penalties accrued for bid inaccuracies.",
+              value="{:,.2f} SEK".format(extra_costs_for_bad_bids),
+              help=r"Agent {} was penalized with a total of {:,.2f} SEK due to inaccurate projections. This brought "
+                   r"total savings after penalties to {:,.2f} SEK.".format(agent_chosen_guid, extra_costs_for_bad_bids,
+                                                                           total_saved - extra_costs_for_bad_bids))
+    
+    # TODO: If BatteryAgent, display
+    # total_profit_gross = sek_sold_for - sek_bought_for + sek_tax_paid + sek_grid_fee_paid
+    # total_profit_net = sek_sold_for - sek_bought_for
+    
+
 # TODO: Update graphs to work with results taken from database
 # if 'simulation_results' in st.session_state:
 
@@ -80,13 +110,6 @@ if 'choosen_id_to_view' in st.session_state.keys() and st.session_state.choosen_
 #                                                                simulation_results.heat_pump_levels_dict)
 #             st.altair_chart(hp_chart, use_container_width=True, theme=None)
 #             st.write("Click on a variable to highlight it.")
-
-#     st.subheader('Aggregated results')
-
-#     results_by_agent_df = results_by_agent_as_df()
-#     results_by_agent_df_styled = results_by_agent_as_df_with_highlight(results_by_agent_df, agent_chosen_guid)
-#     st.dataframe(results_by_agent_df_styled, height=TABLE_HEIGHT)
-#     download_df_as_csv_button(results_by_agent_df, "results_by_agent_all_agents", include_index=True)
 
 else:
     st.write("There's no results to view yet.")

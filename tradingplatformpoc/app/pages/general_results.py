@@ -7,11 +7,10 @@ import streamlit as st
 from tradingplatformpoc.app import footer
 from tradingplatformpoc.app.app_visualizations import construct_combined_price_df, construct_price_chart, \
     get_price_df_when_local_price_inbetween
-from tradingplatformpoc.market.bid import Resource
+from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.sql.clearing_price.crud import db_to_construct_local_prices_df
 from tradingplatformpoc.sql.config.crud import read_config
-from tradingplatformpoc.sql.trade.crud import db_to_aggregated_buy_trades_by_agent, \
-    db_to_aggregated_sell_trades_by_agent, \
+from tradingplatformpoc.sql.trade.crud import db_to_aggregated_trade_df, \
     get_total_grid_fee_paid_on_internal_trades, get_total_tax_paid
 
 logger = logging.getLogger(__name__)
@@ -59,10 +58,10 @@ if 'choosen_id_to_view' in st.session_state.keys() and st.session_state.choosen_
     agg_tabs = st.tabs([resource.name.capitalize() for resource in resources] + ['Formulas'])
     for resource, tab in zip(resources, agg_tabs[:-1]):
         with tab:
-            agg_buy_trades = db_to_aggregated_buy_trades_by_agent(st.session_state.choosen_id_to_view['job_id'],
-                                                                  resource)
-            agg_sell_trades = db_to_aggregated_sell_trades_by_agent(st.session_state.choosen_id_to_view['job_id'],
-                                                                    resource)
+            agg_buy_trades = db_to_aggregated_trade_df(st.session_state.choosen_id_to_view['job_id'],
+                                                       resource, Action.BUY)
+            agg_sell_trades = db_to_aggregated_trade_df(st.session_state.choosen_id_to_view['job_id'],
+                                                        resource, Action.SELL)
             
             agg_trades = agg_buy_trades.merge(agg_sell_trades, on='Agent', how='outer').transpose()
             agg_trades = agg_trades.style.set_properties(**{'width': '400px'})
