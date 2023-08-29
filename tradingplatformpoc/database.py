@@ -4,6 +4,7 @@ from typing import Callable
 
 from sqlmodel import SQLModel, Session
 
+from tradingplatformpoc.app.app_constants import DEFAULT_CONFIG_NAME
 from tradingplatformpoc.config.access_config import read_config
 from tradingplatformpoc.connection import db_engine, session_scope
 from tradingplatformpoc.sql.config.crud import create_config_if_not_in_db
@@ -31,4 +32,4 @@ def bulk_insert(objects: list,
 def insert_default_config_into_db():
     config = read_config()
 
-    create_config_if_not_in_db(config, 'default', 'Default setup')
+    create_config_if_not_in_db(config, DEFAULT_CONFIG_NAME, 'Default setup')

@@ -23,3 +23,6 @@ RESOURCE_HELP_TEXT = "A string specifying which resource the agent handles. Allo
 
 CURRENT_CONFIG_FILENAME = resource_filename("tradingplatformpoc.config", "current_config.json")
 LAST_SIMULATION_RESULTS = resource_filename("tradingplatformpoc.data", "last_simulation_results.pbz2")
+
+
+DEFAULT_CONFIG_NAME = "default"
