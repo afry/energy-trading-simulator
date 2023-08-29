@@ -9,6 +9,7 @@ from sqlalchemy import select
 
 from sqlmodel import Session, exists
 
+from tradingplatformpoc.app.app_constants import DEFAULT_CONFIG_NAME
 from tradingplatformpoc.config.screen_config import param_diff
 from tradingplatformpoc.connection import session_scope
 from tradingplatformpoc.sql.agent.crud import create_agent_if_not_in_db
@@ -146,4 +147,35 @@ def get_all_agents_in_config(config_id: str,
         return res[0] if res is not None else None
 
 
-# TODO: Add function to delete config
+def delete_config(config_id: str,
+                  session_generator: Callable[[], _GeneratorContextManager[Session]]
+                  = session_scope) -> bool:
+    with session_generator() as db:
+        config = db.get(Config, config_id)
+        if not config:
+            logger.error('No config in database with ID {}'.format(config_id))
+            return False
+        else:
+            db.delete(config)
+            db.commit()
+            logger.info('Configuration with ID {} deleted'.format(config_id))
+            return True
+
+
+def get_job_ids_for_config_id(config_id: str,
+                              session_generator: Callable[[], _GeneratorContextManager[Session]]
+                              = session_scope) -> List[str]:
+    with session_generator() as db:
+        res = db.execute(select(Job.id).where(Job.config_id == config_id)).all()
+        return [job_id for (job_id,) in res]
+
+
+def delete_config_if_no_jobs_exist(config_id: str) -> bool:
+    if config_id == DEFAULT_CONFIG_NAME:
+        return False
+    job_ids = get_job_ids_for_config_id(config_id)
+    if len(job_ids) == 0:
+        return delete_config(config_id)
+    else:
+        logger.error('Cannot delete configuration with existing runs saved.')
+        return False
