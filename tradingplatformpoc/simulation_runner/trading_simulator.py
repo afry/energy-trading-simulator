@@ -27,7 +27,6 @@ from tradingplatformpoc.market.extra_cost import ExtraCost
 from tradingplatformpoc.market.trade import Trade, TradeMetadataKey
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
-from tradingplatformpoc.simulation_runner.progress import Progress
 from tradingplatformpoc.simulation_runner.simulation_utils import get_external_heating_prices, \
     get_generated_mock_data, get_quantity_heating_sold_by_external_grid, go_through_trades_metadata, \
     net_bids_from_gross_bids
@@ -58,7 +57,6 @@ class TradingSimulator:
 
                 self.initialize_data()
                 self.agents, self.grid_agents = self.initialize_agents()
-                self.progress = Progress()
                 self.run()
                 results = self.extract_results()
                 update_job_with_end_time(self.job_id)
@@ -181,11 +179,7 @@ class TradingSimulator:
         The core loop of the simulation, running through the desired time period and performing trades.
         """
 
-        # Increase of progress bar per batch
-        frac_of_calc_time_for_batch_simulated = 0.8 / number_of_batches
-
         logger.info("Starting trading simulations")
-        self.progress.increase(0.005)
 
         # Load generated mock data
         logger.info("Generating data...")
@@ -199,7 +193,7 @@ class TradingSimulator:
                 if current_thread.is_stopped():
                     logger.error('Simulation stopped by event.')
                     raise Exception("Simulation stopped by event.")
-            logger.info("Simulating batch number {} of {}".format(batch_number, number_of_batches))
+            logger.info("Simulating batch number {} of {}".format(batch_number + 1, number_of_batches))
             # Periods in batch
             trading_periods_in_this_batch = self.trading_periods[
                 batch_number * batch_size:min((batch_number + 1) * batch_size, number_of_trading_periods)]
@@ -276,8 +270,6 @@ class TradingSimulator:
             trade_objs = trades_to_db_objects(all_trades_dict_batch, self.job_id)
             extra_cost_objs = extra_costs_to_db_objects(all_extra_costs_batch, self.job_id)
             bulk_insert(bid_objs + trade_objs + extra_cost_objs)
-            self.progress.increase(frac_of_calc_time_for_batch_simulated)
-            self.progress.display()
         
         clearing_prices_objs = clearing_prices_to_db_objects(self.clearing_prices_historical, self.job_id)
         heat_pump_level_objs = levels_to_db_objects(self.heat_pump_levels_dict,
