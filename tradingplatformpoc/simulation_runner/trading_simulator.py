@@ -33,7 +33,7 @@ from tradingplatformpoc.simulation_runner.simulation_utils import get_external_h
     net_bids_from_gross_bids
 from tradingplatformpoc.sql.bid.crud import bids_to_db_objects
 from tradingplatformpoc.sql.clearing_price.crud import clearing_prices_to_db_objects
-from tradingplatformpoc.sql.config.crud import read_config
+from tradingplatformpoc.sql.config.crud import get_all_agents_in_config, read_config
 from tradingplatformpoc.sql.extra_cost.crud import extra_costs_to_db_objects
 from tradingplatformpoc.sql.heating_price.crud import external_heating_prices_to_db_objects
 from tradingplatformpoc.sql.job.crud import create_job_if_new_config, delete_job, update_job_with_end_time
@@ -47,10 +47,11 @@ logger = logging.getLogger(__name__)
 
 
 class TradingSimulator:
-    def __init__(self, config_id: str, mock_datas_pickle_path: str):
+    def __init__(self, config_id: str):
+        self.config_id = config_id
         self.job_id = create_job_if_new_config(config_id)
         self.config_data: Dict[str, Any] = read_config(config_id)
-        self.mock_datas_pickle_path = mock_datas_pickle_path
+        self.agent_specs = get_all_agents_in_config(self.config_id)
 
     def __call__(self):
         if (self.job_id is not None) and (self.config_data is not None):
@@ -72,7 +73,6 @@ class TradingSimulator:
 
     def initialize_data(self):
         self.config_data = self.config_data
-        self.mock_datas_pickle_path = self.mock_datas_pickle_path
 
         external_price_data = read_nordpool_data()
         self.heat_pricing: HeatingPrice = HeatingPrice(
@@ -86,7 +86,7 @@ class TradingSimulator:
             elec_grid_fee_internal=self.config_data['AreaInfo']["ElectricityGridFeeInternal"],
             nordpool_data=external_price_data)
 
-        self.buildings_mock_data: pd.DataFrame = get_generated_mock_data(self.config_data, self.mock_datas_pickle_path)
+        self.buildings_mock_data: pd.DataFrame = get_generated_mock_data(self.config_id)
         self.trading_periods = pd.DatetimeIndex(get_intersection(self.buildings_mock_data.index.tolist(),
                                                 self.electricity_pricing.get_external_price_data_datetimes()))\
             .sort_values()
@@ -119,9 +119,10 @@ class TradingSimulator:
                                                       agent['PVArea'],
                                                       agent['PVEfficiency'])
             if agent_type == "BuildingAgent":
-                elec_cons_series = self.buildings_mock_data[get_elec_cons_key(agent_name)]
-                space_heat_cons_series = self.buildings_mock_data[get_space_heat_cons_key(agent_name)]
-                hot_tap_water_cons_series = self.buildings_mock_data[get_hot_tap_water_cons_key(agent_name)]
+                agent_id = self.agent_specs[agent['Name']]
+                elec_cons_series = self.buildings_mock_data[get_elec_cons_key(agent_id)]
+                space_heat_cons_series = self.buildings_mock_data[get_space_heat_cons_key(agent_id)]
+                hot_tap_water_cons_series = self.buildings_mock_data[get_hot_tap_water_cons_key(agent_id)]
 
                 # We're not currently supporting different temperatures of heating,
                 # it's just "heating" as a very simplifiedS

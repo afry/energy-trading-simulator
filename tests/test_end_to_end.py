@@ -5,8 +5,6 @@ from unittest import TestCase, mock
 
 from dotenv import load_dotenv
 
-from pkg_resources import resource_filename
-
 from tradingplatformpoc.market.bid import Action
 from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES
 
@@ -36,13 +34,12 @@ class TestEndToEnd(TestCase):
             from tradingplatformpoc.sql.job.crud import delete_job
             from tradingplatformpoc.sql.trade.crud import db_to_trade_df
 
-        mock_datas_file_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
         config_data = read_config()
 
         create_db_and_tables()
         try:
             create_config_if_not_in_db(config_data, 'end_to_end_config_id', 'Default setup')
-            simulator = TradingSimulator('end_to_end_config_id', mock_datas_file_path)
+            simulator = TradingSimulator('end_to_end_config_id')
             job_id = simulator.job_id
             simulator()
 

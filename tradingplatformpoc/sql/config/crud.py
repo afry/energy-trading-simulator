@@ -1,7 +1,7 @@
 import logging
 from collections import Counter
 from contextlib import _GeneratorContextManager
-from typing import Callable, Dict, List
+from typing import Any, Callable, Dict, List, Optional
 
 import pandas as pd
 
@@ -153,6 +153,14 @@ def get_all_agents_in_config(config_id: str,
         res = db.execute(select(Config.agents_spec).where(Config.id == config_id)).first()
         return res[0] if res is not None else None
 
+
+def get_mock_data_constants(config_id: str,
+                            session_generator: Callable[[], _GeneratorContextManager[Session]]
+                            = session_scope) -> Optional[Dict[str, Any]]:
+    with session_generator() as db:
+        res = db.execute(select(Config.mock_data_constants).where(Config.id == config_id)).first()
+        return res[0] if res is not None else None
+    
 
 def update_description(config_id: str, new_description: str,
                        session_generator: Callable[[], _GeneratorContextManager[Session]]

@@ -10,7 +10,6 @@ import streamlit as st
 
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.compress import bz2_compress_pickle, bz2_decompress_pickle
-from tradingplatformpoc.constants import MOCK_DATA_PATH
 from tradingplatformpoc.results.simulation_results import SimulationResults
 from tradingplatformpoc.simulation_runner.trading_simulator import TradingSimulator
 
@@ -98,7 +97,7 @@ def update_multiselect_style():
 
 def run_simulation(choosen_config_id: str):
     logger.info("Running simulation")
-    simulator = TradingSimulator(choosen_config_id, MOCK_DATA_PATH)
+    simulator = TradingSimulator(choosen_config_id)
     simulator()
     # TODO: Functionality to shut down job
     # TODO: Delete job is not finnished?
