@@ -1,5 +1,6 @@
 import json
 import logging
+from time import sleep
 
 from st_pages import add_indentation, show_pages_from_config
 
@@ -14,8 +15,8 @@ from tradingplatformpoc.config.access_config import fill_agents_with_defaults, f
     read_param_specs
 from tradingplatformpoc.config.screen_config import compare_pv_efficiency, config_data_json_screening, \
     display_diff_in_config
-from tradingplatformpoc.sql.config.crud import create_config_if_not_in_db, get_all_config_ids_in_db, \
-    get_all_configs_in_db_df, read_description, update_description
+from tradingplatformpoc.sql.config.crud import create_config_if_not_in_db, delete_config_if_no_jobs_exist, \
+    get_all_config_ids_in_db, get_all_configs_in_db_df, read_description, update_description
 from tradingplatformpoc.sql.config.crud import read_config
 
 logger = logging.getLogger(__name__)
@@ -62,6 +63,27 @@ reset_config_button = st.button(label="SET CONFIGURATION TO **{}**".format(choos
 if ('config_data' not in st.session_state.keys()) or (reset_config_button):
     reset_config_button = False
     st.session_state.config_data = read_config(choosen_config_id)
+
+
+st.divider()
+
+st.caption("Button for deleting configuration {} from storage. Caution! This affects ALL USERS. "
+           "Won't allow deletion if saved jobs exist. "
+           "Jobs can be deleted on the *Run simulation*-page.".format(choosen_config_id))
+
+delete_config_button = st.button(label="DELETE CONFIGURATION **{}**".format(choosen_config_id),
+                                 help="Click here to DELETE the existing configuration. "
+                                 "Only configurations with no saved jobs can be deleted.", type='secondary',
+                                 disabled=(option_choosen == options[1]))
+if delete_config_button:
+    delete_config_button = False
+    deleted = delete_config_if_no_jobs_exist(choosen_config_id)
+    if deleted:
+        st.success('Configuration deleted!')
+    else:
+        st.error('Could not delete configuration.')
+    sleep(5)
+    st.experimental_rerun()
 
 st.markdown('---')
 st.markdown("**Create new configuration**")
@@ -232,6 +254,8 @@ if config_submit:
             st.success(config_created['message'])
         else:
             st.warning(config_created['message'])
+    sleep(10)
+    st.experimental_rerun()
 
 st.divider()
 
