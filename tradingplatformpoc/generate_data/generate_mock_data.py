@@ -184,21 +184,12 @@ def simulate(mock_data_constants: Dict[str, Any], agent: dict, df_inputs: pl.Laz
         commercial_gross_floor_area = agent['GrossFloorArea'] * fraction_commercial
 
         electricity_consumption.append(simulate_area_electricity(
-            agent['GrossFloorArea'] * fraction_commercial,
-            seed_commercial_electricity,
-            df_inputs,
-            mock_data_constants['CommercialElecKwhPerYearM2'],
-            mock_data_constants['CommercialElecRelativeErrorStdDev'],
-            get_commercial_electricity_consumption_hourly_factor,
-            n_rows)
-        )
+            agent['GrossFloorArea'] * fraction_commercial, seed_commercial_electricity, df_inputs,
+            mock_data_constants['CommercialElecKwhPerYearM2'], mock_data_constants['CommercialElecRelativeErrorStdDev'],
+            get_commercial_electricity_consumption_hourly_factor, n_rows))
         
         commercial_space_heating_cons, commercial_hot_tap_water_cons = simulate_commercial_area_total_heating(
-            mock_data_constants,
-            commercial_gross_floor_area,
-            seed_commercial_heating,
-            df_inputs,
-            n_rows)
+            mock_data_constants, commercial_gross_floor_area, seed_commercial_heating, df_inputs, n_rows)
         space_heating_consumption.append(commercial_space_heating_cons)
         hot_tap_water_consumption.append(commercial_hot_tap_water_cons)
     
@@ -208,21 +199,12 @@ def simulate(mock_data_constants: Dict[str, Any], agent: dict, df_inputs: pl.Laz
 
         electricity_consumption.append(
             simulate_area_electricity(
-                school_gross_floor_area_m2,
-                seed_school_electricity,
-                df_inputs,
-                mock_data_constants['SchoolElecKwhPerYearM2'],
-                mock_data_constants['SchoolElecRelativeErrorStdDev'],
-                get_school_heating_consumption_hourly_factor,
-                n_rows)
-        )
+                school_gross_floor_area_m2, seed_school_electricity, df_inputs,
+                mock_data_constants['SchoolElecKwhPerYearM2'], mock_data_constants['SchoolElecRelativeErrorStdDev'],
+                get_school_heating_consumption_hourly_factor, n_rows))
 
         school_space_heating_cons, school_hot_tap_water_cons = simulate_school_area_heating(
-            mock_data_constants,
-            school_gross_floor_area_m2,
-            seed_school_heating,
-            df_inputs,
-            n_rows)
+            mock_data_constants, school_gross_floor_area_m2, seed_school_heating, df_inputs, n_rows)
         space_heating_consumption.append(school_space_heating_cons)
         hot_tap_water_consumption.append(school_hot_tap_water_cons)
 
@@ -232,20 +214,11 @@ def simulate(mock_data_constants: Dict[str, Any], agent: dict, df_inputs: pl.Laz
 
         electricity_consumption.append(
             simulate_household_electricity_aggregated(
-                df_inputs,
-                model,
-                residential_gross_floor_area,
-                seed_residential_electricity,
-                n_rows,
-                mock_data_constants['ResidentialElecKwhPerYearM2Atemp'])
-        )
+                df_inputs, model, residential_gross_floor_area, seed_residential_electricity, n_rows,
+                mock_data_constants['ResidentialElecKwhPerYearM2Atemp']))
 
         residential_space_heating_cons, residential_hot_tap_water_cons = simulate_residential_total_heating(
-            mock_data_constants,
-            df_inputs,
-            n_rows,
-            residential_gross_floor_area,
-            seed_residential_heating)
+            mock_data_constants, df_inputs, n_rows, residential_gross_floor_area, seed_residential_heating)
         space_heating_consumption.append(residential_space_heating_cons)
         hot_tap_water_consumption.append(residential_hot_tap_water_cons)
 
