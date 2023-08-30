@@ -104,15 +104,21 @@ def run_simulation(choosen_config_id: str):
     # TODO: Add functionality to schedule removal of potential uncompleted jobs
 
     
-def cleanup_config_naming(name: str, description: str) -> Tuple[str, str]:
+def cleanup_config_description(description: str) -> str:
     """
-    Checks that the name and description of the config is valid.
+    Checks that the description of the config is valid.
     """
-    name = name.lower().strip().replace(' ', '_')
     description = description.lower().strip().capitalize()
     if not description[-1] == ".":
         description = description + "."
-    return name, description
+    return description
+
+
+def cleanup_config_name(name: str) -> str:
+    """
+    Checks that the name of the config is valid.
+    """
+    return name.lower().strip().replace(' ', '_')
 
 
 def config_naming_is_valid(name: str) -> bool:

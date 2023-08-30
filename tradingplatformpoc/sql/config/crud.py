@@ -106,11 +106,11 @@ def get_all_config_ids_in_db_without_jobs(session_generator: Callable[[], _Gener
         return [config_id for (config_id,) in res]
     
 
-def get_all_job_config_id_pairs_in_db(session_generator: Callable[[], _GeneratorContextManager[Session]]
-                                      = session_scope) -> Dict[str, str]:
+def get_all_finished_job_config_id_pairs_in_db(session_generator: Callable[[], _GeneratorContextManager[Session]]
+                                               = session_scope) -> Dict[str, str]:
     with session_generator() as db:
         res = db.execute(select(Config.id.label('config_id'), Job.id.label('job_id'))
-                         .join(Config, Job.config_id == Config.id)).all()
+                         .join(Config, Job.config_id == Config.id).where(Job.end_time.is_not(None))).all()
         return {elem.config_id: elem.job_id for elem in res}
 
 
@@ -121,6 +121,14 @@ def get_all_config_ids_in_db_with_jobs_df(session_generator: Callable[[], _Gener
         return pd.DataFrame.from_records([{'Job ID': job.id, 'Config ID': job.config_id, 'Description': desc,
                                            'Start time': job.init_time, 'End time': job.end_time}
                                          for (job, desc) in res])
+
+
+def get_all_configs_in_db_df(session_generator: Callable[[], _GeneratorContextManager[Session]]
+                             = session_scope):
+    with session_generator() as db:
+        res = db.execute(select(Config)).all()
+        return pd.DataFrame.from_records([{'Config ID': config.id, 'Description': config.description}
+                                          for (config,) in res])
 
 
 def get_all_config_ids_in_db(session_generator: Callable[[], _GeneratorContextManager[Session]]
@@ -152,6 +160,13 @@ def get_mock_data_constants(config_id: str,
     with session_generator() as db:
         res = db.execute(select(Config.mock_data_constants).where(Config.id == config_id)).first()
         return res[0] if res is not None else None
+    
+
+def update_description(config_id: str, new_description: str,
+                       session_generator: Callable[[], _GeneratorContextManager[Session]]
+                       = session_scope):
+    with session_generator() as db:
+        db.query(Config).filter(Config.id == config_id).update({'description': new_description})
 
 
 # TODO: Add function to delete config
