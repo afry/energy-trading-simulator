@@ -48,8 +48,7 @@ def db_to_mock_data_df(mock_data_id: str,
             mock_data_df = mock_data_df.reset_index().rename(columns={'index': 'datetime'})
             return pl.from_pandas(mock_data_df)
         else:
-            # TODO: Raise
-            return None
+            raise Exception('No mock data found in database for ID {}'.format(mock_data_id))
 
 
 def get_mock_data_agent_pairs_in_db(agent_ids: List[str], mock_data_constants: Dict[str, Any],
