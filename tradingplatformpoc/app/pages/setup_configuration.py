@@ -6,8 +6,8 @@ from st_pages import add_indentation, show_pages_from_config
 import streamlit as st
 
 from tradingplatformpoc.app import app_constants, footer
-from tradingplatformpoc.app.app_functions import cleanup_config_naming, config_naming_is_valid, set_max_width, \
-    update_multiselect_style
+from tradingplatformpoc.app.app_functions import cleanup_config_description, cleanup_config_name, \
+    config_naming_is_valid, set_max_width, update_multiselect_style
 from tradingplatformpoc.app.app_inputs import add_battery_agent, add_building_agent, add_grocery_store_agent, \
     add_params_to_form, add_pv_agent, agent_inputs, duplicate_agent, remove_agent, remove_all_building_agents
 from tradingplatformpoc.config.access_config import fill_agents_with_defaults, fill_with_default_params, \
@@ -15,7 +15,7 @@ from tradingplatformpoc.config.access_config import fill_agents_with_defaults, f
 from tradingplatformpoc.config.screen_config import compare_pv_efficiency, config_data_json_screening, \
     display_diff_in_config
 from tradingplatformpoc.sql.config.crud import create_config_if_not_in_db, get_all_config_ids_in_db, \
-    read_description
+    get_all_configs_in_db_df, read_description, update_description
 from tradingplatformpoc.sql.config.crud import read_config
 
 logger = logging.getLogger(__name__)
@@ -214,9 +214,9 @@ with config_container:
                     st.markdown(s)
 
 config_form = st.form(key='Save config')
-config_name = config_form.text_input('Name', '', max_chars=15,
+config_name = config_form.text_input('Name', '', max_chars=app_constants.CONFIG_ID_MAX_LENGTH,
                                      help="Name should consist only of letters, and it can not be empty.")
-description = config_form.text_input('Description', '', max_chars=40)
+description = config_form.text_input('Description', '', max_chars=app_constants.CONFIG_DESCRIPTION_MAX_LENGTH)
 config_submit = config_form.form_submit_button('SAVE CONFIGURATION', type='primary')
 if config_submit:
     config_submit = False
@@ -225,12 +225,44 @@ if config_submit:
     elif not config_naming_is_valid(description):
         st.error("Provide a valid description!")
     else:
-        config_name, description = cleanup_config_naming(config_name, description)
+        config_name = cleanup_config_name(config_name)
+        description = cleanup_config_description(description)
         config_created = create_config_if_not_in_db(st.session_state.config_data, config_name, description)
         if config_created['created']:
             st.success(config_created['message'])
         else:
             st.warning(config_created['message'])
 
+st.divider()
+
+with st.expander('Edit descriptions'):
+    st.caption("Here you can edit the descriptions of existing configurations. "
+               "Change the contents of the description fields and click on the button below to save changes.")
+    all_configs_df = get_all_configs_in_db_df()
+    if not all_configs_df.empty:
+        all_configs_df = all_configs_df.set_index('Config ID')
+        edit_configs_form = st.form(key='Edit configs form')
+        edited_df = edit_configs_form.data_editor(
+            all_configs_df,
+            # use_container_width=True,  # Caused shaking before
+            key='edit_df',
+            column_config={
+                "Edit": st.column_config.TextColumn(
+                    help="Edit description.",
+                )
+            },
+            hide_index=False,
+            disabled=['Config ID']
+        )
+        edit_configs_submit = edit_configs_form.form_submit_button('**EDIT DESCRIPTIONS**',
+                                                                   help='')
+        if edit_configs_submit:
+            edit_configs_submit = False
+            for i, row in edited_df.iterrows():
+                if row['Description'] != all_configs_df.loc[i, 'Description']:
+                    if config_naming_is_valid(row['Description']):
+                        update_description(i, cleanup_config_description(row['Description']))
+                    else:
+                        st.error("Provide a valid description!")
 
 st.write(footer.html, unsafe_allow_html=True)

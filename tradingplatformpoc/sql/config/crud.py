@@ -123,6 +123,14 @@ def get_all_config_ids_in_db_with_jobs_df(session_generator: Callable[[], _Gener
                                          for (job, desc) in res])
 
 
+def get_all_configs_in_db_df(session_generator: Callable[[], _GeneratorContextManager[Session]]
+                             = session_scope):
+    with session_generator() as db:
+        res = db.execute(select(Config)).all()
+        return pd.DataFrame.from_records([{'Config ID': config.id, 'Description': config.description}
+                                          for (config,) in res])
+
+
 def get_all_config_ids_in_db(session_generator: Callable[[], _GeneratorContextManager[Session]]
                              = session_scope):
     with session_generator() as db:
@@ -144,6 +152,13 @@ def get_all_agents_in_config(config_id: str,
     with session_generator() as db:
         res = db.execute(select(Config.agents_spec).where(Config.id == config_id)).first()
         return res[0] if res is not None else None
+
+
+def update_description(config_id: str, new_description: str,
+                       session_generator: Callable[[], _GeneratorContextManager[Session]]
+                       = session_scope):
+    with session_generator() as db:
+        db.query(Config).filter(Config.id == config_id).update({'description': new_description})
 
 
 # TODO: Add function to delete config
