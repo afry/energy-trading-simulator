@@ -1,7 +1,7 @@
 import logging
 from collections import Counter
 from contextlib import _GeneratorContextManager
-from typing import Callable, Dict, List
+from typing import Any, Callable, Dict, List, Optional
 
 import pandas as pd
 
@@ -85,7 +85,7 @@ def read_config(config_id: str,
         if config is not None:
             res = db.execute(select(TableAgent).where(TableAgent.id.in_(config.agents_spec.values()))).all()
             agents = [{'Name': [name for name, aid in config.agents_spec.items() if aid == agent.id][0],
-                       **agent.agent_config} for (agent,) in res]
+                       'Type': agent.agent_type, **agent.agent_config} for (agent,) in res]
             return {'Agents': agents, 'AreaInfo': config.area_info,
                     'MockDataConstants': config.mock_data_constants}
         else:
@@ -107,11 +107,11 @@ def get_all_config_ids_in_db_without_jobs(session_generator: Callable[[], _Gener
         return [config_id for (config_id,) in res]
     
 
-def get_all_job_config_id_pairs_in_db(session_generator: Callable[[], _GeneratorContextManager[Session]]
-                                      = session_scope) -> Dict[str, str]:
+def get_all_finished_job_config_id_pairs_in_db(session_generator: Callable[[], _GeneratorContextManager[Session]]
+                                               = session_scope) -> Dict[str, str]:
     with session_generator() as db:
         res = db.execute(select(Config.id.label('config_id'), Job.id.label('job_id'))
-                         .join(Config, Job.config_id == Config.id)).all()
+                         .join(Config, Job.config_id == Config.id).where(Job.end_time.is_not(None))).all()
         return {elem.config_id: elem.job_id for elem in res}
 
 
@@ -122,6 +122,14 @@ def get_all_config_ids_in_db_with_jobs_df(session_generator: Callable[[], _Gener
         return pd.DataFrame.from_records([{'Job ID': job.id, 'Config ID': job.config_id, 'Description': desc,
                                            'Start time': job.init_time, 'End time': job.end_time}
                                          for (job, desc) in res])
+
+
+def get_all_configs_in_db_df(session_generator: Callable[[], _GeneratorContextManager[Session]]
+                             = session_scope):
+    with session_generator() as db:
+        res = db.execute(select(Config)).all()
+        return pd.DataFrame.from_records([{'Config ID': config.id, 'Description': config.description}
+                                          for (config,) in res])
 
 
 def get_all_config_ids_in_db(session_generator: Callable[[], _GeneratorContextManager[Session]]
@@ -179,3 +187,18 @@ def delete_config_if_no_jobs_exist(config_id: str) -> bool:
     else:
         logger.error('Cannot delete configuration with existing runs saved.')
         return False
+
+
+def get_mock_data_constants(config_id: str,
+                            session_generator: Callable[[], _GeneratorContextManager[Session]]
+                            = session_scope) -> Optional[Dict[str, Any]]:
+    with session_generator() as db:
+        res = db.execute(select(Config.mock_data_constants).where(Config.id == config_id)).first()
+        return res[0] if res is not None else None
+    
+
+def update_description(config_id: str, new_description: str,
+                       session_generator: Callable[[], _GeneratorContextManager[Session]]
+                       = session_scope):
+    with session_generator() as db:
+        db.query(Config).filter(Config.id == config_id).update({'description': new_description})

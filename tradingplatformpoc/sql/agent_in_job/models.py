@@ -7,7 +7,7 @@ from sqlmodel import Field, SQLModel
 
 
 class AgentInJob(SQLModel, table=True):
-    __tablename__ = 'agents'
+    __tablename__ = 'agents_in_job'
 
     id: int = Field(
         title='Unique integer ID',

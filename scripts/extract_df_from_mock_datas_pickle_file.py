@@ -1,52 +1,36 @@
-import pickle
+import argparse
 
 import pandas as pd
 
-from pkg_resources import resource_filename
-
-from tradingplatformpoc.config.access_config import read_config
-from tradingplatformpoc.generate_data.mock_data_generation_functions import get_all_building_agents, \
+from tradingplatformpoc.generate_data.mock_data_generation_functions import \
     get_elec_cons_key, get_hot_tap_water_cons_key, get_space_heat_cons_key
+from tradingplatformpoc.sql.mock_data.crud import db_to_mock_data_df, get_mock_data_ids_for_agent
 
 
-DATA_PATH = 'tradingplatformpoc.data'
-IN_PICKLE = resource_filename(DATA_PATH, 'mock_datas.pickle')
-AGENT_TO_LOOK_AT = 'ResidentialBuildingAgentBC1'
+def extract_all_mock_data_for_agent(agent_id: str):
+    """
+    A funtion to examine the generated mock data.
+    Goes through the stored mockdata for a given agent, and saves to a data frame,
+    so that one can easily compare different configurations.
+    """
+    mock_data_ids = get_mock_data_ids_for_agent(agent_id)
 
-"""
-A utility script, to examine the generated mock data.
-Goes through the datasets in the IN_PICKLE file defined above, takes out the electricity consumption for a given
-agent, and saves to a data frame, so that one can easily compare the electricity consumption for an agent using
-different configurations.
-"""
+    comparison_df = pd.DataFrame()
+    for mock_data_id in mock_data_ids:
+        df_temp = db_to_mock_data_df(mock_data_id).to_pandas()
+        comparison_df[mock_data_id + 'Elec'] = df_temp[get_elec_cons_key(agent_id)]
+        comparison_df[mock_data_id + 'HotTapWater'] = df_temp[get_hot_tap_water_cons_key(agent_id)]
+        comparison_df[mock_data_id + 'SpaceHeat'] = df_temp[get_space_heat_cons_key(agent_id)]
+    return comparison_df
 
-# Open config file
-config_data = read_config()
-residential_building_agents, total_gross_floor_area = get_all_building_agents(config_data["Agents"])
-# The residential building agents in the current config:
-current_config_rbas = frozenset(residential_building_agents)
 
-with open(IN_PICKLE, 'rb') as f:
-    all_data_sets = pickle.load(f)
+parser = argparse.ArgumentParser()
+parser.add_argument("--agent_id", dest="agent_id", default="", help="Agent ID in database.", type=str)
+args = parser.parse_args()
 
-n_of_other_sets = 0
-comparison_df = pd.DataFrame()
-for mock_data_key, mock_data_frame in all_data_sets.items():
-    frozen_set_of_residential_building_agents = mock_data_key.building_agents_frozen_set
-    if 'datetime' not in comparison_df:
-        comparison_df['datetime'] = mock_data_frame['datetime'].to_pandas()
-        comparison_df.set_index('datetime', inplace=True)
-    if get_elec_cons_key(AGENT_TO_LOOK_AT) in mock_data_frame:
-        if frozen_set_of_residential_building_agents == current_config_rbas:
-            name_for_this_set_of_rbas = 'Current'
-        else:
-            n_of_other_sets = n_of_other_sets + 1
-            name_for_this_set_of_rbas = 'Other' + str(n_of_other_sets)
-        elec_cons_bc1 = mock_data_frame[get_elec_cons_key(AGENT_TO_LOOK_AT)]
-        hot_tap_water_cons_bc1 = mock_data_frame[get_hot_tap_water_cons_key(AGENT_TO_LOOK_AT)]
-        space_heat_cons_bc1 = mock_data_frame[get_space_heat_cons_key(AGENT_TO_LOOK_AT)]
-        comparison_df[name_for_this_set_of_rbas + 'Elec'] = elec_cons_bc1
-        comparison_df[name_for_this_set_of_rbas + 'HotTapWater'] = hot_tap_water_cons_bc1
-        comparison_df[name_for_this_set_of_rbas + 'SpaceHeat'] = space_heat_cons_bc1
+if __name__ == '__main__':
+    df = extract_all_mock_data_for_agent(args.agent_id)
+    df.to_csv('./agent_cons.csv')
 
-comparison_df.to_csv('./agent_elec_cons.csv')
+# Run in terminal
+# Ex: python scripts/extract_df_from_mock_datas_pickle_file.py --agent_id 6488dcf2-3a7c-44c2-be9c-51d23ea45f61
