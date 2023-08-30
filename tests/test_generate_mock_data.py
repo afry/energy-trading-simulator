@@ -12,11 +12,13 @@ import polars as pl
 
 from tradingplatformpoc.compress import bz2_decompress_pickle
 from tradingplatformpoc.config.access_config import read_param_specs
-from tradingplatformpoc.generate_data import generate_mock_data
+from tradingplatformpoc.data.preproccessing import is_day_before_major_holiday_sweden, is_major_holiday_sweden
 from tradingplatformpoc.generate_data.generate_mock_data import DATA_PATH, \
-    all_parameters_match, is_day_before_major_holiday_sweden, is_major_holiday_sweden, simulate_series, \
-    simulate_space_heating
-from tradingplatformpoc.generate_data.mock_data_generation_functions import get_school_heating_consumption_hourly_factor
+    all_parameters_match
+from tradingplatformpoc.generate_data.generation_functions.non_residential.common import simulate_space_heating
+from tradingplatformpoc.generate_data.generation_functions.non_residential.school import \
+    get_school_heating_consumption_hourly_factor
+from tradingplatformpoc.generate_data.generation_functions.residential.residential import simulate_series
 from tradingplatformpoc.trading_platform_utils import hourly_datetime_array_between
 
 
@@ -24,15 +26,15 @@ class Test(TestCase):
 
     def test_is_major_holiday_sweden(self):
         xmas_eve = pd.Timestamp('2017-12-24T01', tz='UTC')
-        self.assertTrue(generate_mock_data.is_major_holiday_sweden(xmas_eve))
+        self.assertTrue(is_major_holiday_sweden(xmas_eve))
         xmas_eve_in_tz_far_away = pd.Timestamp('2017-12-24T01', tz='Australia/Sydney')
-        self.assertFalse(generate_mock_data.is_major_holiday_sweden(xmas_eve_in_tz_far_away))
+        self.assertFalse(is_major_holiday_sweden(xmas_eve_in_tz_far_away))
 
     def test_is_day_before_major_holiday_sweden(self):
         new_years_eve = pd.Timestamp('2017-12-31T01', tz='UTC')
-        self.assertTrue(generate_mock_data.is_day_before_major_holiday_sweden(new_years_eve))
+        self.assertTrue(is_day_before_major_holiday_sweden(new_years_eve))
         new_years_eve_in_tz_far_away = pd.Timestamp('2017-12-31T01', tz='Australia/Sydney')
-        self.assertFalse(generate_mock_data.is_day_before_major_holiday_sweden(new_years_eve_in_tz_far_away))
+        self.assertFalse(is_day_before_major_holiday_sweden(new_years_eve_in_tz_far_away))
 
     def test_simulate_school_area_space_heating(self):
         """

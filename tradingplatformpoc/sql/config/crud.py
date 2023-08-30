@@ -84,7 +84,7 @@ def read_config(config_id: str,
         if config is not None:
             res = db.execute(select(TableAgent).where(TableAgent.id.in_(config.agents_spec.values()))).all()
             agents = [{'Name': [name for name, aid in config.agents_spec.items() if aid == agent.id][0],
-                       **agent.agent_config} for (agent,) in res]
+                       'Type': agent.agent_type, **agent.agent_config} for (agent,) in res]
             return {'Agents': agents, 'AreaInfo': config.area_info,
                     'MockDataConstants': config.mock_data_constants}
         else:

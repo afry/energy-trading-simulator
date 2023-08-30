@@ -17,6 +17,7 @@ from tradingplatformpoc.data.preproccessing import read_energy_data, read_irradi
 from tradingplatformpoc.database import bulk_insert
 from tradingplatformpoc.digitaltwin.battery import Battery
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
+from tradingplatformpoc.generate_data.generate_mock_data import get_generated_mock_data
 from tradingplatformpoc.generate_data.mock_data_generation_functions import get_elec_cons_key, \
     get_hot_tap_water_cons_key, get_space_heat_cons_key
 from tradingplatformpoc.market import balance_manager
@@ -28,7 +29,7 @@ from tradingplatformpoc.market.trade import Trade, TradeMetadataKey
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
 from tradingplatformpoc.simulation_runner.simulation_utils import get_external_heating_prices, \
-    get_generated_mock_data, get_quantity_heating_sold_by_external_grid, go_through_trades_metadata, \
+    get_quantity_heating_sold_by_external_grid, go_through_trades_metadata, \
     net_bids_from_gross_bids
 from tradingplatformpoc.sql.bid.crud import bids_to_db_objects
 from tradingplatformpoc.sql.clearing_price.crud import clearing_prices_to_db_objects
@@ -107,7 +108,7 @@ class TradingSimulator:
 
         # Read CSV files
         tornet_household_elec_cons, coop_elec_cons, tornet_heat_cons, coop_heat_cons = read_energy_data()
-        irradiation_data = read_irradiation_data()
+        irradiation_data = read_irradiation_data().set_index('datetime').squeeze()
 
         for agent in self.config_data["Agents"]:
             agent_type = agent["Type"]
