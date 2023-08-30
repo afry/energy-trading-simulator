@@ -68,7 +68,7 @@ if ('config_data' not in st.session_state.keys()) or (reset_config_button):
 st.divider()
 
 st.caption("Button for deleting configuration {} from storage. Caution! This affects ALL USERS. "
-           "Wont allow deletion if saved jobs exist. "
+           "Won't allow deletion if saved jobs exist. "
            "Jobs can be deleted on the *Run simulation*-page.".format(choosen_config_id))
 
 delete_config_button = st.button(label="DELETE CONFIGURATION **{}**".format(choosen_config_id),
