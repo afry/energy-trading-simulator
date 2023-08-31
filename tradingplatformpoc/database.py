@@ -6,6 +6,7 @@ from sqlalchemy_batch_inserts import enable_batch_inserting
 
 from sqlmodel import SQLModel, Session
 
+from tradingplatformpoc.app.app_constants import DEFAULT_CONFIG_NAME
 from tradingplatformpoc.config.access_config import read_config
 from tradingplatformpoc.connection import db_engine, session_scope
 from tradingplatformpoc.sql.config.crud import create_config_if_not_in_db
@@ -35,4 +36,4 @@ def bulk_insert(table_type, objects: list,
 def insert_default_config_into_db():
     config = read_config()
 
-    create_config_if_not_in_db(config, 'default', 'Default setup')
+    create_config_if_not_in_db(config, DEFAULT_CONFIG_NAME, 'Default setup')

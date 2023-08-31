@@ -1,7 +1,7 @@
 import datetime
 from typing import Any, Dict, Optional
 
-from sqlalchemy import Column, DateTime, func
+from sqlalchemy import Column, DateTime, String, func
 from sqlalchemy.dialects.postgresql import JSONB
 
 from sqlmodel import Field, SQLModel
@@ -24,13 +24,22 @@ class Agent(SQLModel, table=True):
         nullable=False,
         sa_column=Column(DateTime(timezone=True), server_default=func.now())
     )
-    agent_config: Optional[Dict[str, Any]] = Field(
+    agent_type: str = Field(
+        primary_key=False,
+        title='Agent type',
+        nullable=False,
+        sa_column=Column(String(50))
+    )
+    agent_config: Dict[str, Any] = Field(
         primary_key=False,
         title="Agent",
-        nullable=True,
+        nullable=False,
         sa_column=Column(JSONB(none_as_null=True))
     )
 
+    # TODO: Have a declared attribute that returns {'Type': self.agent_type, **self.agent_config}
+
 
 class AgentCreate(SQLModel):
+    agent_type: str
     agent_config: Dict[str, Any]

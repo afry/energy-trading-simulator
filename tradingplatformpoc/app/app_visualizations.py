@@ -7,16 +7,14 @@ import altair as alt
 import pandas as pd
 from pandas.io.formats.style import Styler
 
-from pkg_resources import resource_filename
-
 import streamlit as st
 
 from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app import app_constants
-from tradingplatformpoc.data.preproccessing import read_nordpool_data
+from tradingplatformpoc.data.preproccessing import create_inputs_df_for_mock_data_generation, \
+    read_heating_data, read_irradiation_data, read_nordpool_data, read_temperature_data
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
-from tradingplatformpoc.generate_data.generate_mock_data import create_inputs_df
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 
@@ -233,9 +231,11 @@ def aggregated_import_and_export_results_df_split_on_temperature() -> Dict[str, 
     or below 1 degree Celsius.
     """
     # Read in-data: Temperature and timestamps, TODO: simplify
-    df_inputs, df_irrd = create_inputs_df(resource_filename(app_constants.DATA_PATH, 'temperature_vetelangden.csv'),
-                                          resource_filename(app_constants.DATA_PATH, 'varberg_irradiation_W_m2_h.csv'),
-                                          resource_filename(app_constants.DATA_PATH, 'vetelangden_slim.csv'))
+    df_inputs = create_inputs_df_for_mock_data_generation(
+        read_temperature_data(),
+        read_irradiation_data(),
+        read_heating_data()
+    )
     
     temperature_df = df_inputs.to_pandas()[['datetime', 'temperature']]
     temperature_df['above_1_degree'] = temperature_df['temperature'].values >= 1.0

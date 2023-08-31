@@ -8,13 +8,15 @@ import pandas as pd
 from pkg_resources import resource_filename
 
 from tradingplatformpoc.config.access_config import read_config
-from tradingplatformpoc.constants import MOCK_DATA_PATH
+from tradingplatformpoc.generate_data.mock_data_generation_functions import get_elec_cons_key, \
+    get_hot_tap_water_cons_key, get_space_heat_cons_key
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.market.trade import Market, Trade
 from tradingplatformpoc.price.heating_price import HeatingPrice
 from tradingplatformpoc.simulation_runner.simulation_utils import construct_df_from_datetime_dict, \
     get_external_heating_prices, get_quantity_heating_sold_by_external_grid
 from tradingplatformpoc.simulation_runner.trading_simulator import TradingSimulator
+from tradingplatformpoc.sql.job.models import uuid_as_str_generator
 from tradingplatformpoc.trading_platform_utils import hourly_datetime_array_between
 
 
@@ -32,13 +34,22 @@ class Test(TestCase):
         fake_config = {'Agents': [agent for agent in self.config['Agents'] if agent['Type'] != 'GridAgent'],
                        'AreaInfo': self.config['AreaInfo'],
                        'MockDataConstants': self.config['MockDataConstants']}
+        agent_specs = {agent['Name']: uuid_as_str_generator() for agent in fake_config['Agents'][:]
+                       if agent['Type'] == 'BuildingAgent'}
+        mock_data_columns = [[get_elec_cons_key(agent_id),
+                              get_space_heat_cons_key(agent_id),
+                              get_hot_tap_water_cons_key(agent_id)] for agent_id in agent_specs.values()]
 
         with (mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.create_job_if_new_config',
                          return_value='fake_job_id'),
               mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.read_config',
-                         return_value=fake_config)):
+                         return_value=fake_config),
+              mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.get_all_agents_in_config',
+                         return_value=agent_specs),
+              mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.get_generated_mock_data',
+                         return_value=pd.DataFrame(columns=[bid for sublist in mock_data_columns for bid in sublist]))):
             with self.assertRaises(RuntimeError):
-                simulator = TradingSimulator('fake_config', MOCK_DATA_PATH)
+                simulator = TradingSimulator('fake_config')
                 simulator.initialize_data()
                 simulator.initialize_agents()
 
