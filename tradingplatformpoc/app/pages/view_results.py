@@ -5,14 +5,14 @@ from st_pages import add_indentation, show_pages_from_config
 import streamlit as st
 
 from tradingplatformpoc.app import footer
-from tradingplatformpoc.sql.config.crud import get_all_job_config_id_pairs_in_db, read_config
+from tradingplatformpoc.sql.config.crud import get_all_finished_job_config_id_pairs_in_db, read_config
 
 logger = logging.getLogger(__name__)
 
 show_pages_from_config("tradingplatformpoc/app/pages_config/pages_subpages.toml")
 add_indentation()
 
-ids = get_all_job_config_id_pairs_in_db()
+ids = get_all_finished_job_config_id_pairs_in_db()
 if len(ids) > 0:
     choosen_config_id_to_view = st.selectbox('Choose a configuration to view results for', ids.keys())
     if choosen_config_id_to_view is not None:

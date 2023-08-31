@@ -6,8 +6,8 @@ from logging.handlers import TimedRotatingFileHandler
 from pkg_resources import resource_filename
 import logging
 import sys
+from tradingplatformpoc.app.app_constants import DEFAULT_CONFIG_NAME
 from tradingplatformpoc.connection import SessionMaker
-from tradingplatformpoc.constants import MOCK_DATA_PATH
 from tradingplatformpoc.database import create_db_and_tables, insert_default_config_into_db
 
 from tradingplatformpoc.simulation_runner.trading_simulator import TradingSimulator
@@ -52,7 +52,7 @@ if string_to_log_later is not None:
 mock_datas_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
 results_path = "./results/"
 parser = argparse.ArgumentParser()
-parser.add_argument("--config_id", dest="config_id", default="default",
+parser.add_argument("--config_id", dest="config_id", default=DEFAULT_CONFIG_NAME,
                     help="Config ID", type=str)
 args = parser.parse_args()
 
@@ -63,9 +63,9 @@ if __name__ == '__main__':
     create_db_and_tables()
     insert_default_config_into_db()
     with SessionMaker() as sess:
-        job_id = get_job_id_for_config('default', sess)
+        job_id = get_job_id_for_config(DEFAULT_CONFIG_NAME, sess)
     delete_job(job_id)
-    simulator = TradingSimulator(args.config_id, MOCK_DATA_PATH)
+    simulator = TradingSimulator(args.config_id)
     simulation_results = simulator()
     if simulation_results is not None:
         logger.info("Finished running simulations. Will save simulations results as a pickle file.")
