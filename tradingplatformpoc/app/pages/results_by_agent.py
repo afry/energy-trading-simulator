@@ -68,14 +68,14 @@ if 'choosen_id_to_view' in st.session_state.keys() and st.session_state.choosen_
         with st.expander('Charging level over time for ' + agent_chosen_guid + ':'):
             storage_chart = construct_storage_level_chart(levels_df)
             st.altair_chart(storage_chart, use_container_width=True, theme=None)
-
-    total_saved, extra_costs_for_bad_bids = get_savings_vs_only_external_buy(
-        job_id=st.session_state.choosen_id_to_view['job_id'],
-        agent_guid=agent_chosen_guid)
     
     # Exclude GridAgent
     agent_type = get_agent_type(agent_specs[agent_chosen_guid])
     if agent_type != 'GridAgent':
+
+        total_saved, extra_costs_for_bad_bids = get_savings_vs_only_external_buy(
+            job_id=st.session_state.choosen_id_to_view['job_id'],
+            agent_guid=agent_chosen_guid)
 
         st.metric(
             label="Savings by using local market, before taking penalties into account.",
