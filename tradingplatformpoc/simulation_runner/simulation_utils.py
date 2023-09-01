@@ -53,19 +53,20 @@ def go_through_trades_metadata(metadata: Dict[TradeMetadataKey, Any], period: da
                         format(metadata_key, metadata[metadata_key]))
 
 
-def get_external_heating_prices(heat_pricing: HeatingPrice,
+def get_external_heating_prices(heat_pricing: HeatingPrice, job_id: str,
                                 trading_periods: Collection[datetime.datetime]) -> List[Dict[str, Any]]:
-    heating_price_by_ym_lst: List[Dict[str, Any]] = []
+    heating_price_by_ym_list: List[Dict[str, Any]] = []
     for (year, month) in set([(dt.year, dt.month) for dt in trading_periods]):
         first_day_of_month = datetime.datetime(year, month, 1)  # Which day it is doesn't matter
-        heating_price_by_ym_lst.append({
+        heating_price_by_ym_list.append({
+            'job_id': job_id,
             'year': year,
             'month': month,
             'exact_retail_price': heat_pricing.get_exact_retail_price(first_day_of_month, include_tax=True),
             'exact_wholesale_price': heat_pricing.get_exact_wholesale_price(first_day_of_month),
             'estimated_retail_price': heat_pricing.get_estimated_retail_price(first_day_of_month, include_tax=True),
             'estimated_wholesale_price': heat_pricing.get_estimated_wholesale_price(first_day_of_month)})
-    return heating_price_by_ym_lst
+    return heating_price_by_ym_list
 
 
 def get_quantity_heating_sold_by_external_grid(external_trades: List[Trade]) -> float:
@@ -80,7 +81,7 @@ def construct_df_from_datetime_dict(some_dict: Union[Dict[datetime.datetime, Col
     Streamlit likes to deal with pd.DataFrames, so we'll save data in that format.
     """
     logger.info('Constructing dataframe from datetime dict')
-    return pd.DataFrame([x.to_dict_with_period(period) for period, some_collection in some_dict.items()
+    return pd.DataFrame([x.to_dict() for some_collection in some_dict.values()
                          for x in some_collection])
 
 
