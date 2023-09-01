@@ -25,9 +25,10 @@ def mock_data_to_db_object(db_agent_id: str, mock_data_constants: Dict[str, floa
     agent_mock_data_df.index = agent_mock_data_df.index.strftime('%Y-%m-%d %H:%M:%S.%f')
     agent_mock_data_dict = agent_mock_data_df.to_dict()
     agent_mock_data_binary = json.dumps(agent_mock_data_dict).encode('utf-8')
-    return MockData(agent_id=db_agent_id,
-                    mock_data_constants=mock_data_constants,
-                    mock_data=agent_mock_data_binary)
+    dict = {'agent_id': db_agent_id,
+            'mock_data_constants': mock_data_constants,
+            'mock_data': agent_mock_data_binary}
+    return dict
 
 
 def db_to_mock_data_df(mock_data_id: str,

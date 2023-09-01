@@ -81,7 +81,7 @@ class Test(TestCase):
         Test construct_df_from_datetime_dict method, by creating a Dict[datetime, Trade]
         """
         dts = hourly_datetime_array_between(datetime.datetime(2019, 1, 1), datetime.datetime(2020, 1, 1))
-        dt_dict = {dt: [Trade(Action.BUY, Resource.ELECTRICITY, i, i, 'Agent' + str(i), False, Market.LOCAL, dt)
+        dt_dict = {dt: [Trade(dt, Action.BUY, Resource.ELECTRICITY, i, i, 'Agent' + str(i), False, Market.LOCAL)
                         for i in range(1, 6)]
                    for dt in dts}
         my_df = construct_df_from_datetime_dict(dt_dict)

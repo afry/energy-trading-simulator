@@ -29,22 +29,14 @@ from tradingplatformpoc.price.heating_price import HeatingPrice
 from tradingplatformpoc.simulation_runner.simulation_utils import get_external_heating_prices, \
     get_quantity_heating_sold_by_external_grid, go_through_trades_metadata, \
     net_bids_from_gross_bids
-<<<<<<< HEAD
 from tradingplatformpoc.sql.bid.crud import bids_to_db_dict
 from tradingplatformpoc.sql.bid.models import Bid as TableBid
 from tradingplatformpoc.sql.clearing_price.crud import clearing_prices_to_db_dict
 from tradingplatformpoc.sql.clearing_price.models import ClearingPrice as TableClearingPrice
-from tradingplatformpoc.sql.config.crud import read_config
+from tradingplatformpoc.sql.config.crud import get_all_agents_in_config, read_config
 from tradingplatformpoc.sql.extra_cost.crud import extra_costs_to_db_dict
 from tradingplatformpoc.sql.extra_cost.models import ExtraCost as TableExtraCost
 from tradingplatformpoc.sql.heating_price.models import HeatingPrice as TableHeatingPrice
-=======
-from tradingplatformpoc.sql.bid.crud import bids_to_db_objects
-from tradingplatformpoc.sql.clearing_price.crud import clearing_prices_to_db_objects
-from tradingplatformpoc.sql.config.crud import get_all_agents_in_config, read_config
-from tradingplatformpoc.sql.extra_cost.crud import extra_costs_to_db_objects
-from tradingplatformpoc.sql.heating_price.crud import external_heating_prices_to_db_objects
->>>>>>> ed04ddfab87d08abcd7006f4f330bebe32a7d480
 from tradingplatformpoc.sql.job.crud import create_job_if_new_config, delete_job, update_job_with_end_time
 from tradingplatformpoc.sql.level.crud import levels_to_db_dict
 from tradingplatformpoc.sql.level.models import Level as TableLevel
@@ -190,12 +182,6 @@ class TradingSimulator:
         """
         The core loop of the simulation, running through the desired time period and performing trades.
         """
-<<<<<<< HEAD
-        
-        # Increase of progress bar per batch
-        frac_of_calc_time_for_batch_simulated = 0.8 / number_of_batches
-=======
->>>>>>> ed04ddfab87d08abcd7006f4f330bebe32a7d480
 
         logger.info("Starting trading simulations")
 
@@ -212,19 +198,15 @@ class TradingSimulator:
                 if current_thread.is_stopped():
                     logger.error('Simulation stopped by event.')
                     raise Exception("Simulation stopped by event.")
-<<<<<<< HEAD
-            logger.info("Simulating batch number {} of {}".format(batch_number, number_of_batches))
-            
-=======
             logger.info("Simulating batch number {} of {}".format(batch_number + 1, number_of_batches))
->>>>>>> ed04ddfab87d08abcd7006f4f330bebe32a7d480
+
             # Periods in batch
             trading_periods_in_this_batch = self.trading_periods[
                 batch_number * batch_size:min((batch_number + 1) * batch_size, number_of_trading_periods)]
 
-            all_bids_list_batch = []
-            all_trades_list_batch = []
-            all_extra_costs_batch = []
+            all_bids_list_batch: List[TableBid] = []
+            all_trades_list_batch: List[TableTrade] = []
+            all_extra_costs_batch: List[TableExtraCost] = []
 
             # Loop over periods i batch
             for period in trading_periods_in_this_batch:
@@ -287,16 +269,15 @@ class TradingSimulator:
                 self.exact_retail_electricity_prices_by_period[period] = retail_price_elec
                 all_extra_costs_batch.extend(extra_costs)
 
-            logger.info('Saving to db...')
-<<<<<<< HEAD
+            logger.info('Saving bids to db...')
             bid_dict = bids_to_db_dict(all_bids_list_batch, self.job_id)
-            trade_dict = trades_to_db_dict(all_trades_list_batch, self.job_id)
-            extra_cost_dict = extra_costs_to_db_dict(all_extra_costs_batch, self.job_id)
             bulk_insert(TableBid, bid_dict)
+            logger.info('Saving trades to db...')
+            trade_dict = trades_to_db_dict(all_trades_list_batch, self.job_id)
             bulk_insert(TableTrade, trade_dict)
+            logger.info('Saving extra costs to db...')
+            extra_cost_dict = extra_costs_to_db_dict(all_extra_costs_batch, self.job_id)
             bulk_insert(TableExtraCost, extra_cost_dict)
-            self.progress.increase(frac_of_calc_time_for_batch_simulated)
-            self.progress.display()
 
         clearing_prices_objs = clearing_prices_to_db_dict(self.clearing_prices_historical, self.job_id)
         heat_pump_level_objs = levels_to_db_dict(self.heat_pump_levels_dict,
@@ -306,19 +287,6 @@ class TradingSimulator:
         bulk_insert(TableClearingPrice, clearing_prices_objs)
         bulk_insert(TableLevel, heat_pump_level_objs)
         bulk_insert(TableLevel, storage_level_objs)
-=======
-            bid_objs = bids_to_db_objects(all_bids_dict_batch, self.job_id)
-            trade_objs = trades_to_db_objects(all_trades_dict_batch, self.job_id)
-            extra_cost_objs = extra_costs_to_db_objects(all_extra_costs_batch, self.job_id)
-            bulk_insert(bid_objs + trade_objs + extra_cost_objs)
-        
-        clearing_prices_objs = clearing_prices_to_db_objects(self.clearing_prices_historical, self.job_id)
-        heat_pump_level_objs = levels_to_db_objects(self.heat_pump_levels_dict,
-                                                    TradeMetadataKey.HEAT_PUMP_WORKLOAD.name, self.job_id)
-        storage_level_objs = levels_to_db_objects(self.storage_levels_dict,
-                                                  TradeMetadataKey.STORAGE_LEVEL.name, self.job_id)
-        bulk_insert(clearing_prices_objs + heat_pump_level_objs + storage_level_objs)
->>>>>>> ed04ddfab87d08abcd7006f4f330bebe32a7d480
 
         logger.info("Finished simulating trades, beginning calculations on district heating price...")
 

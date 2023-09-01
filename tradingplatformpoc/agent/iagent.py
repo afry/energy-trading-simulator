@@ -59,25 +59,27 @@ class IAgent(ABC):
         # The heat transfer loss needs to be accounted for
         quantity_to_buy = quantity_needed / (1 - heat_transfer_loss_per_side)
         return GrossBid(period, Action.BUY, Resource.HEATING, quantity_to_buy, price, self.guid, False)
-
-    def construct_elec_trade(self, action: Action, quantity: float, price: float, market: Market,
-                             period: datetime.datetime, tax_paid: float = 0.0, grid_fee_paid: float = 0.0) -> Trade:
-        return Trade(action, Resource.ELECTRICITY, quantity, price, self.guid, False, market, period, tax_paid=tax_paid,
+    
+    def construct_elec_trade(self, period: datetime.datetime, action: Action, quantity: float, price: float,
+                             market: Market, tax_paid: float = 0.0, grid_fee_paid: float = 0.0) -> Trade:
+        return Trade(period=period, action=action, resource=Resource.ELECTRICITY, quantity=quantity, price=price,
+                     source=self.guid, by_external=False, market=market, tax_paid=tax_paid,
                      grid_fee_paid=grid_fee_paid)
 
-    def construct_sell_heat_trade(self, quantity: float, price: float, market: Market, period: datetime.datetime,
-                                  heat_transfer_loss_per_side: float) -> \
-            Trade:
+    def construct_sell_heat_trade(self, period: datetime.datetime, quantity: float, price: float, market: Market,
+                                  heat_transfer_loss_per_side: float) -> Trade:
         # Heat transfer loss added
         quantity_after_loss = quantity * (1 - heat_transfer_loss_per_side)
-        return Trade(Action.SELL, Resource.HEATING, quantity_after_loss, price, self.guid, False, market, period,
+        return Trade(period=period, action=Action.SELL, resource=Resource.HEATING, quantity=quantity_after_loss,
+                     price=price, source=self.guid, by_external=False, market=market,
                      loss=heat_transfer_loss_per_side)
 
-    def construct_buy_heat_trade(self, quantity_needed: float, price: float, market: Market,
-                                 period: datetime.datetime, heat_transfer_loss_per_side: float) -> Trade:
+    def construct_buy_heat_trade(self, period: datetime.datetime, quantity_needed: float, price: float,
+                                 market: Market, heat_transfer_loss_per_side: float) -> Trade:
         # The heat transfer loss needs to be accounted for
         quantity_to_buy = quantity_needed / (1 - heat_transfer_loss_per_side)
-        return Trade(Action.BUY, Resource.HEATING, quantity_to_buy, price, self.guid, False, market, period,
+        return Trade(period=period, action=Action.BUY, resource=Resource.HEATING, quantity=quantity_to_buy,
+                     price=price, source=self.guid, by_external=False, market=market,
                      loss=heat_transfer_loss_per_side)
 
 
