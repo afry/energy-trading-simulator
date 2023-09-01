@@ -110,13 +110,16 @@ class BatteryAgent(IAgent):
             if accepted_bids_for_agent[0].action == Action.BUY:
                 actual_charge_quantity = self.digital_twin.charge(accepted_quantity)
                 if actual_charge_quantity > 0:
-                    trades = [self.construct_elec_trade(Action.BUY, actual_charge_quantity,
-                                                        clearing_price, Market.LOCAL, period)]
+                    trades = [self.construct_elec_trade(period=period, action=Action.BUY,
+                                                        quantity=actual_charge_quantity,
+                                                        price=clearing_price, market=Market.LOCAL)]
             else:  # action was SELL
                 actual_discharge_quantity = self.digital_twin.discharge(accepted_quantity)
                 if actual_discharge_quantity > 0:
-                    trades = [self.construct_elec_trade(Action.SELL, actual_discharge_quantity,
-                                                        clearing_price, Market.LOCAL, period,
+
+                    trades = [self.construct_elec_trade(period=period, action=Action.SELL,
+                                                        quantity=actual_discharge_quantity, price=clearing_price,
+                                                        market=Market.LOCAL,
                                                         tax_paid=self.electricity_pricing.elec_tax_internal,
                                                         grid_fee_paid=self.electricity_pricing.elec_grid_fee_internal)]
         return trades, {TradeMetadataKey.STORAGE_LEVEL: self.digital_twin.capacity_kwh}

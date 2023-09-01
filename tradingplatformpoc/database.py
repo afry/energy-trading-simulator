@@ -25,11 +25,11 @@ def drop_db_and_tables():
     logger.info('Dropping db and tables')
 
 
-def bulk_insert(table_type, objects: list,
+def bulk_insert(table_type, dicts: list,
                 session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope):
     with session_generator() as db:
         enable_batch_inserting(db)
-        db.bulk_insert_mappings(table_type, objects)
+        db.bulk_insert_mappings(table_type, dicts)
         db.commit()
 
 

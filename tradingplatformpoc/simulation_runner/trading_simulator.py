@@ -203,9 +203,9 @@ class TradingSimulator:
             trading_periods_in_this_batch = self.trading_periods[
                 batch_number * batch_size:min((batch_number + 1) * batch_size, number_of_trading_periods)]
 
-            all_bids_list_batch = []
-            all_trades_list_batch = []
-            all_extra_costs_batch = []
+            all_bids_list_batch: List[TableBid] = []
+            all_trades_list_batch: List[TableTrade] = []
+            all_extra_costs_batch: List[TableExtraCost] = []
 
             # Loop over periods i batch
             for period in trading_periods_in_this_batch:
@@ -268,12 +268,14 @@ class TradingSimulator:
                 self.exact_retail_electricity_prices_by_period[period] = retail_price_elec
                 all_extra_costs_batch.extend(extra_costs)
 
-            logger.info('Saving to db...')
+            logger.info('Saving bids to db...')
             bid_dict = bids_to_db_dict(all_bids_list_batch, self.job_id)
-            trade_dict = trades_to_db_dict(all_trades_list_batch, self.job_id)
-            extra_cost_dict = extra_costs_to_db_dict(all_extra_costs_batch, self.job_id)
             bulk_insert(TableBid, bid_dict)
+            logger.info('Saving trades to db...')
+            trade_dict = trades_to_db_dict(all_trades_list_batch, self.job_id)
             bulk_insert(TableTrade, trade_dict)
+            logger.info('Saving extra costs to db...')
+            extra_cost_dict = extra_costs_to_db_dict(all_extra_costs_batch, self.job_id)
             bulk_insert(TableExtraCost, extra_cost_dict)
 
         clearing_prices_objs = clearing_prices_to_db_dict(self.clearing_prices_historical, self.job_id)

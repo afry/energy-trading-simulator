@@ -34,14 +34,14 @@ class TestBalanceManager(TestCase):
                                            False, 10),
                 NetBidWithAcceptanceStatus(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 10000, retail_price,
                                            "Grid", True, 0)]
-        trades = [Trade(Action.SELL, Resource.ELECTRICITY, 199, wholesale_price, "Seller", False, Market.LOCAL,
-                        self.some_datetime),
-                  Trade(Action.BUY, Resource.ELECTRICITY, 210, wholesale_price, "Buyer1", False, Market.LOCAL,
-                        self.some_datetime),
-                  Trade(Action.BUY, Resource.ELECTRICITY, 9, wholesale_price, "Buyer2", False, Market.LOCAL,
-                        self.some_datetime),
-                  Trade(Action.SELL, Resource.ELECTRICITY, 20, retail_price, "Grid", True, Market.LOCAL,
-                        self.some_datetime)]
+        trades = [Trade(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 199, wholesale_price, "Seller", False,
+                        Market.LOCAL),
+                  Trade(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 210, wholesale_price, "Buyer1", False,
+                        Market.LOCAL),
+                  Trade(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 9, wholesale_price, "Buyer2", False,
+                        Market.LOCAL),
+                  Trade(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 20, retail_price, "Grid", True,
+                        Market.LOCAL)]
         costs = calculate_penalty_costs_for_period_and_resource(bids, trades, wholesale_price, wholesale_price)
         self.assertAlmostEqual(0.455, costs["Seller"], places=3)
         self.assertAlmostEqual(9.091, costs["Buyer1"], places=3)
@@ -58,9 +58,9 @@ class TestBalanceManager(TestCase):
                                            "Buyer1", False, 200),
                 NetBidWithAcceptanceStatus(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 10000, 1, "Grid",
                                            True, 100)]
-        trades = [Trade(Action.SELL, Resource.ELECTRICITY, 80, 1, "Seller1", False, Market.LOCAL, self.some_datetime),
-                  Trade(Action.BUY, Resource.ELECTRICITY, 200, 1, "Buyer1", False, Market.LOCAL, self.some_datetime),
-                  Trade(Action.SELL, Resource.ELECTRICITY, 120, 1, "Grid", True, Market.LOCAL, self.some_datetime)]
+        trades = [Trade(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 80, 1, "Seller1", False, Market.LOCAL),
+                  Trade(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 200, 1, "Buyer1", False, Market.LOCAL),
+                  Trade(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 120, 1, "Grid", True, Market.LOCAL)]
         costs = calculate_penalty_costs_for_period_and_resource(bids, trades, 1.0, 0.5)
         self.assertEqual(0, len(costs))
 
@@ -80,14 +80,14 @@ class TestBalanceManager(TestCase):
                                            "Buyer2", False, 100),
                 NetBidWithAcceptanceStatus(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 10000, retail_price,
                                            "Grid", True, 100)]
-        trades = [Trade(Action.SELL, Resource.ELECTRICITY, 2000, retail_price, "Seller1", False, Market.LOCAL,
-                        self.some_datetime),
-                  Trade(Action.BUY, Resource.ELECTRICITY, 1800, retail_price, "Buyer1", False, Market.LOCAL,
-                        self.some_datetime),
-                  Trade(Action.BUY, Resource.ELECTRICITY, 100, retail_price, "Buyer2", False, Market.LOCAL,
-                        self.some_datetime),
-                  Trade(Action.BUY, Resource.ELECTRICITY, 100, wholesale_price, "Grid", True, Market.LOCAL,
-                        self.some_datetime)]
+        trades = [Trade(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 2000, retail_price, "Seller1", False,
+                        Market.LOCAL),
+                  Trade(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 1800, retail_price, "Buyer1", False,
+                        Market.LOCAL),
+                  Trade(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 100, retail_price, "Buyer2", False,
+                        Market.LOCAL),
+                  Trade(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 100, wholesale_price, "Grid", True,
+                        Market.LOCAL)]
         # Buyer1 pays 1800*1 = 1800
         # Buyer2 pays 100*1 = 100
         # Grid pays 100*0.5 = 50
@@ -113,14 +113,14 @@ class TestBalanceManager(TestCase):
                 NetBidWithAcceptanceStatus(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 10000, retail_price,
                                            "Grid", True, 2100)]
         trades = \
-            [Trade(Action.SELL, Resource.ELECTRICITY, 2000, retail_price, "Seller1", False,
-                   Market.LOCAL, self.some_datetime),
-             Trade(Action.BUY, Resource.ELECTRICITY, 1800, retail_price, "Buyer1", False,
-                   Market.LOCAL, self.some_datetime),
-             Trade(Action.BUY, Resource.ELECTRICITY, 100, retail_price, "Buyer2", False,
-                   Market.LOCAL, self.some_datetime),
-             Trade(Action.BUY, Resource.ELECTRICITY, 100, retail_price, "Grid", True,
-                   Market.LOCAL, self.some_datetime)]
+            [Trade(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 2000, retail_price, "Seller1", False,
+                   Market.LOCAL),
+             Trade(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 1800, retail_price, "Buyer1", False,
+                   Market.LOCAL),
+             Trade(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 100, retail_price, "Buyer2", False,
+                   Market.LOCAL),
+             Trade(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 100, retail_price, "Grid", True,
+                   Market.LOCAL)]
         costs = calculate_penalty_costs_for_period_and_resource(bids, trades, retail_price, wholesale_price)
         self.assertEqual(2, len(costs))
         self.assertAlmostEqual(45.4545, costs["Seller1"], places=3)
@@ -141,12 +141,12 @@ class TestBalanceManager(TestCase):
                 NetBidWithAcceptanceStatus(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 10000, retail_price,
                                            "Grid", True, 0)]
         trades = \
-            [Trade(Action.SELL, Resource.ELECTRICITY, 2000, retail_price, "Seller1", False,
-                   Market.LOCAL, self.some_datetime),
-             Trade(Action.BUY, Resource.ELECTRICITY, 100, retail_price, "Buyer2", False,
-                   Market.LOCAL, self.some_datetime),
-             Trade(Action.BUY, Resource.ELECTRICITY, 100, retail_price, "Grid", True,
-                   Market.LOCAL, self.some_datetime)]
+            [Trade(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 2000, retail_price, "Seller1", False,
+                   Market.LOCAL),
+             Trade(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 100, retail_price, "Buyer2", False,
+                   Market.LOCAL),
+             Trade(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 100, retail_price, "Grid", True,
+                   Market.LOCAL)]
         with self.assertRaises(RuntimeError):
             calculate_penalty_costs_for_period_and_resource(bids, trades, retail_price, wholesale_price)
 
@@ -166,14 +166,14 @@ class TestBalanceManager(TestCase):
                 NetBidWithAcceptanceStatus(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 10000, retail_price,
                                            "Grid", True, 0)]
         trades = \
-            [Trade(Action.SELL, Resource.ELECTRICITY, 1990, wholesale_price, "Seller1", False,
-                   Market.LOCAL, self.some_datetime),
-             Trade(Action.BUY, Resource.ELECTRICITY, 2100, wholesale_price, "Buyer1", False,
-                   Market.LOCAL, self.some_datetime),
-             Trade(Action.BUY, Resource.ELECTRICITY, 90, wholesale_price, "Buyer2", False,
-                   Market.LOCAL, next_period),
-             Trade(Action.SELL, Resource.ELECTRICITY, 200, retail_price, "Grid", True,
-                   Market.LOCAL, self.some_datetime)]
+            [Trade(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 1990, wholesale_price, "Seller1", False,
+                   Market.LOCAL),
+             Trade(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 2100, wholesale_price, "Buyer1", False,
+                   Market.LOCAL),
+             Trade(next_period, Action.BUY, Resource.ELECTRICITY, 90, wholesale_price, "Buyer2", False,
+                   Market.LOCAL),
+             Trade(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 200, retail_price, "Grid", True,
+                   Market.LOCAL)]
         with self.assertRaises(RuntimeError):
             calculate_penalty_costs_for_period_and_resource(bids, trades, wholesale_price, wholesale_price)
 
@@ -190,14 +190,14 @@ class TestBalanceManager(TestCase):
                 NetBidWithAcceptanceStatus(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 10000, retail_price,
                                            "Grid", True, 2100)]
         trades = \
-            [Trade(Action.SELL, Resource.ELECTRICITY, 2000, retail_price, "Seller1", False,
-                   Market.LOCAL, self.some_datetime),
-             Trade(Action.BUY, Resource.ELECTRICITY, 100, retail_price, "Buyer2", False,
-                   Market.LOCAL, self.some_datetime),
-             Trade(Action.BUY, Resource.ELECTRICITY, 100, retail_price, "Grid", True,
-                   Market.LOCAL, self.some_datetime),
-             Trade(Action.SELL, Resource.ELECTRICITY, 100, retail_price, "Grid", True,
-                   Market.LOCAL, self.some_datetime)]
+            [Trade(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 2000, retail_price, "Seller1", False,
+                   Market.LOCAL),
+             Trade(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 100, retail_price, "Buyer2", False,
+                   Market.LOCAL),
+             Trade(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 100, retail_price, "Grid", True,
+                   Market.LOCAL),
+             Trade(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 100, retail_price, "Grid", True,
+                   Market.LOCAL)]
         with self.assertRaises(RuntimeError):
             calculate_penalty_costs_for_period_and_resource(bids, trades, retail_price, wholesale_price)
 
@@ -215,12 +215,12 @@ class TestBalanceManager(TestCase):
                 NetBidWithAcceptanceStatus(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 10000, retail_price,
                                            "Grid", True, 2100)]
         trades = \
-            [Trade(Action.SELL, Resource.ELECTRICITY, 2000, local_price, "Seller1", False,
-                   Market.LOCAL, self.some_datetime),
-             Trade(Action.BUY, Resource.ELECTRICITY, 100, local_price, "Buyer2", False,
-                   Market.LOCAL, self.some_datetime),
-             Trade(Action.BUY, Resource.ELECTRICITY, 100, local_price, "Grid", True,
-                   Market.LOCAL, self.some_datetime)]
+            [Trade(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 2000, local_price, "Seller1", False,
+                   Market.LOCAL),
+             Trade(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 100, local_price, "Buyer2", False,
+                   Market.LOCAL),
+             Trade(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 100, local_price, "Grid", True,
+                   Market.LOCAL)]
         with self.assertRaises(RuntimeError):
             calculate_penalty_costs_for_period_and_resource(bids, trades, local_price, wholesale_price)
 
@@ -237,12 +237,12 @@ class TestBalanceManager(TestCase):
                 NetBidWithAcceptanceStatus(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 10000, local_price,
                                            "Seller1", False, 2100)]
         trades = \
-            [Trade(Action.SELL, Resource.ELECTRICITY, 2000, local_price, "Seller1", False,
-                   Market.LOCAL, self.some_datetime),
-             Trade(Action.BUY, Resource.ELECTRICITY, 100, local_price, "Buyer2", False,
-                   Market.LOCAL, self.some_datetime),
-             Trade(Action.BUY, Resource.ELECTRICITY, 100, local_price, "Seller1", False,
-                   Market.LOCAL, self.some_datetime)]
+            [Trade(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 2000, local_price, "Seller1", False,
+                   Market.LOCAL),
+             Trade(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 100, local_price, "Buyer2", False,
+                   Market.LOCAL),
+             Trade(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 100, local_price, "Seller1", False,
+                   Market.LOCAL)]
         with self.assertRaises(RuntimeError):
             calculate_penalty_costs_for_period_and_resource(bids, trades, local_price, wholesale_price)
 
@@ -263,14 +263,14 @@ class TestBalanceManager(TestCase):
                 NetBidWithAcceptanceStatus(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 10000, retail_price,
                                            "Grid", True, 0)]
         trades = \
-            [Trade(Action.SELL, Resource.ELECTRICITY, 1990, wholesale_price, "Seller1", False,
-                   Market.LOCAL, self.some_datetime),
-             Trade(Action.BUY, Resource.ELECTRICITY, 2100, wholesale_price, "Buyer1", False,
-                   Market.LOCAL, self.some_datetime),
-             Trade(Action.BUY, Resource.ELECTRICITY, 90, wholesale_price, "Buyer2", False,
-                   Market.LOCAL, self.some_datetime),
-             Trade(Action.SELL, Resource.ELECTRICITY, 200, retail_price, "Grid", True,
-                   Market.LOCAL, self.some_datetime)]
+            [Trade(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 1990, wholesale_price, "Seller1", False,
+                   Market.LOCAL),
+             Trade(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 2100, wholesale_price, "Buyer1", False,
+                   Market.LOCAL),
+             Trade(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 90, wholesale_price, "Buyer2", False,
+                   Market.LOCAL),
+             Trade(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 200, retail_price, "Grid", True,
+                   Market.LOCAL)]
         with self.assertRaises(RuntimeError):
             calculate_penalty_costs_for_period_and_resource(bids, trades, wholesale_price, wholesale_price)
 
@@ -289,16 +289,16 @@ class TestBalanceManager(TestCase):
                 NetBidWithAcceptanceStatus(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 10000, retail_price,
                                            "Grid", True, 0)]
         trades = \
-            [Trade(Action.SELL, Resource.ELECTRICITY, 1990, wholesale_price, "Seller1", False,
-                   Market.LOCAL, self.some_datetime),
-             Trade(Action.BUY, Resource.ELECTRICITY, 2100, wholesale_price, "Buyer1", False,
-                   Market.LOCAL, self.some_datetime),
-             Trade(Action.SELL, Resource.ELECTRICITY, 100, wholesale_price, "Buyer1", False,
-                   Market.LOCAL, self.some_datetime),
-             Trade(Action.BUY, Resource.ELECTRICITY, 90, wholesale_price, "Buyer2", False,
-                   Market.LOCAL, self.some_datetime),
-             Trade(Action.SELL, Resource.ELECTRICITY, 200, retail_price, "Grid", True,
-                   Market.LOCAL, self.some_datetime)]
+            [Trade(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 1990, wholesale_price, "Seller1", False,
+                   Market.LOCAL),
+             Trade(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 2100, wholesale_price, "Buyer1", False,
+                   Market.LOCAL),
+             Trade(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 100, wholesale_price, "Buyer1", False,
+                   Market.LOCAL),
+             Trade(self.some_datetime, Action.BUY, Resource.ELECTRICITY, 90, wholesale_price, "Buyer2", False,
+                   Market.LOCAL),
+             Trade(self.some_datetime, Action.SELL, Resource.ELECTRICITY, 200, retail_price, "Grid", True,
+                   Market.LOCAL)]
         with self.assertRaises(RuntimeError):
             calculate_penalty_costs_for_period_and_resource(bids, trades, wholesale_price, wholesale_price)
 
@@ -312,9 +312,9 @@ class TestBalanceManager(TestCase):
         est_retail_price = 0.5
         exact_retail_price = 0.75
         trades = [
-            Trade(Action.SELL, Resource.HEATING, 10, est_retail_price, "Grid", True, Market.LOCAL, self.some_datetime),
-            Trade(Action.BUY, Resource.HEATING, 6, est_retail_price, "Buyer1", False, Market.LOCAL, self.some_datetime),
-            Trade(Action.BUY, Resource.HEATING, 4, est_retail_price, "Buyer2", False, Market.LOCAL, self.some_datetime)]
+            Trade(self.some_datetime, Action.SELL, Resource.HEATING, 10, est_retail_price, "Grid", True, Market.LOCAL),
+            Trade(self.some_datetime, Action.BUY, Resource.HEATING, 6, est_retail_price, "Buyer1", False, Market.LOCAL),
+            Trade(self.some_datetime, Action.BUY, Resource.HEATING, 4, est_retail_price, "Buyer2", False, Market.LOCAL)]
 
         heating_prices = pd.DataFrame.from_records([{
             'year': self.some_datetime.year,
@@ -342,12 +342,12 @@ class TestBalanceManager(TestCase):
         est_wholesale_price = 0.5
         exact_wholesale_price = 0.25
         trades = [
-            Trade(Action.BUY, Resource.HEATING, 10, est_wholesale_price, "Grid", True, Market.LOCAL,
-                  self.some_datetime),
-            Trade(Action.SELL, Resource.HEATING, 6, est_wholesale_price, "Seller1", False, Market.LOCAL,
-                  self.some_datetime),
-            Trade(Action.SELL, Resource.HEATING, 4, est_wholesale_price, "Seller2", False, Market.LOCAL,
-                  self.some_datetime)]
+            Trade(self.some_datetime, Action.BUY, Resource.HEATING, 10, est_wholesale_price, "Grid", True,
+                  Market.LOCAL),
+            Trade(self.some_datetime, Action.SELL, Resource.HEATING, 6, est_wholesale_price, "Seller1", False,
+                  Market.LOCAL),
+            Trade(self.some_datetime, Action.SELL, Resource.HEATING, 4, est_wholesale_price, "Seller2", False,
+                  Market.LOCAL)]
 
         heating_prices = pd.DataFrame.from_records([{
             'year': self.some_datetime.year,
@@ -374,12 +374,12 @@ class TestBalanceManager(TestCase):
         est_retail_price = 0.5
         exact_retail_price = 0.25
         trades = [
-            Trade(Action.SELL, Resource.HEATING, 10, est_retail_price, "Grid", True, Market.LOCAL,
-                  self.some_datetime),
-            Trade(Action.BUY, Resource.HEATING, 6, est_retail_price, "Buyer1", False, Market.LOCAL,
-                  self.some_datetime),
-            Trade(Action.BUY, Resource.HEATING, 4, est_retail_price, "Buyer2", False, Market.LOCAL,
-                  self.some_datetime)]
+            Trade(self.some_datetime, Action.SELL, Resource.HEATING, 10, est_retail_price, "Grid", True,
+                  Market.LOCAL),
+            Trade(self.some_datetime, Action.BUY, Resource.HEATING, 6, est_retail_price, "Buyer1", False,
+                  Market.LOCAL),
+            Trade(self.some_datetime, Action.BUY, Resource.HEATING, 4, est_retail_price, "Buyer2", False,
+                  Market.LOCAL)]
 
         heating_prices = pd.DataFrame.from_records([{
             'year': self.some_datetime.year,
@@ -408,14 +408,14 @@ class TestBalanceManager(TestCase):
         est_retail_price = 0.5
         exact_retail_price = 0.75
         trades = [
-            Trade(Action.SELL, Resource.HEATING, 1000, est_retail_price, "Grid", True, Market.LOCAL,
-                  self.some_datetime),
-            Trade(Action.BUY, Resource.HEATING, 900, est_retail_price, "Buyer1", False, Market.LOCAL,
-                  self.some_datetime),
-            Trade(Action.BUY, Resource.HEATING, 300, est_retail_price, "Buyer2", False, Market.LOCAL,
-                  self.some_datetime),
-            Trade(Action.SELL, Resource.HEATING, 200, est_retail_price, "Seller", False, Market.LOCAL,
-                  self.some_datetime)]
+            Trade(self.some_datetime, Action.SELL, Resource.HEATING, 1000, est_retail_price, "Grid", True,
+                  Market.LOCAL),
+            Trade(self.some_datetime, Action.BUY, Resource.HEATING, 900, est_retail_price, "Buyer1", False,
+                  Market.LOCAL),
+            Trade(self.some_datetime, Action.BUY, Resource.HEATING, 300, est_retail_price, "Buyer2", False,
+                  Market.LOCAL),
+            Trade(self.some_datetime, Action.SELL, Resource.HEATING, 200, est_retail_price, "Seller", False,
+                  Market.LOCAL)]
 
         heating_prices = pd.DataFrame.from_records([{
             'year': self.some_datetime.year,
@@ -454,14 +454,14 @@ class TestBalanceManager(TestCase):
                                        False, 10)]
         # In market solver clearing price gets set to est_wholesale_price
         trades = [
-            Trade(Action.SELL, Resource.HEATING, 3, est_retail_price, "Grid",
-                  True, Market.LOCAL, self.some_datetime),
-            Trade(Action.BUY, Resource.HEATING, 6, est_wholesale_price, "Buyer1",
-                  False, Market.LOCAL, self.some_datetime),
-            Trade(Action.BUY, Resource.HEATING, 6, est_wholesale_price, "Buyer2",
-                  False, Market.LOCAL, self.some_datetime),
-            Trade(Action.SELL, Resource.HEATING, 9, est_wholesale_price, "Seller",
-                  False, Market.LOCAL, self.some_datetime)]
+            Trade(self.some_datetime, Action.SELL, Resource.HEATING, 3, est_retail_price, "Grid",
+                  True, Market.LOCAL),
+            Trade(self.some_datetime, Action.BUY, Resource.HEATING, 6, est_wholesale_price, "Buyer1",
+                  False, Market.LOCAL),
+            Trade(self.some_datetime, Action.BUY, Resource.HEATING, 6, est_wholesale_price, "Buyer2",
+                  False, Market.LOCAL),
+            Trade(self.some_datetime, Action.SELL, Resource.HEATING, 9, est_wholesale_price, "Seller",
+                  False, Market.LOCAL)]
 
         # Buyer1 pays 6*0.4 = 2.4
         # Buyer2 pays 6*0.4 = 2.4
@@ -517,14 +517,14 @@ class TestBalanceManager(TestCase):
             NetBidWithAcceptanceStatus(self.some_datetime, Action.SELL, Resource.HEATING, 9, 0, "Seller", False, 9)]
         # In market solver clearing price gets set to est_retail_price
         trades = [
-            Trade(Action.BUY, Resource.HEATING, 1, est_wholesale_price, "Grid", True, Market.LOCAL,
-                  self.some_datetime),
-            Trade(Action.BUY, Resource.HEATING, 6, est_retail_price, "Buyer1", False, Market.LOCAL,
-                  self.some_datetime),
-            Trade(Action.BUY, Resource.HEATING, 2, est_retail_price, "Buyer2", False, Market.LOCAL,
-                  self.some_datetime),
-            Trade(Action.SELL, Resource.HEATING, 9, est_retail_price, "Seller", False, Market.LOCAL,
-                  self.some_datetime)]
+            Trade(self.some_datetime, Action.BUY, Resource.HEATING, 1, est_wholesale_price, "Grid", True,
+                  Market.LOCAL),
+            Trade(self.some_datetime, Action.BUY, Resource.HEATING, 6, est_retail_price, "Buyer1", False,
+                  Market.LOCAL),
+            Trade(self.some_datetime, Action.BUY, Resource.HEATING, 2, est_retail_price, "Buyer2", False,
+                  Market.LOCAL),
+            Trade(self.some_datetime, Action.SELL, Resource.HEATING, 9, est_retail_price, "Seller", False,
+                  Market.LOCAL)]
 
         # Buyer2 turned out to only need 2, so 1 had to get sold to grid, at a lower price
         # Buyer1 pays 6*0.5 = 3.0

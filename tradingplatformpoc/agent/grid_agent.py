@@ -106,9 +106,9 @@ class GridAgent(IAgent):
             need_to_provide = deficit_in_market / (1 - self.resource_loss_per_side)
             tax_to_pay = self.pricing.elec_tax if isinstance(self.pricing, ElectricityPrice) else 0.0
             trades_to_add.append(
-                Trade(Action.SELL, resource, need_to_provide, retail_price, self.guid, True, market, period,
-                      loss=self.resource_loss_per_side,
-                      tax_paid=tax_to_pay))
+                Trade(period=period, action=Action.SELL, resource=resource, quantity=need_to_provide,
+                      price=retail_price, source=self.guid, by_external=True, market=market,
+                      loss=self.resource_loss_per_side, tax_paid=tax_to_pay))
             if market == Market.LOCAL:
                 if local_clearing_price < retail_price:
                     # What happened here is that the market solver believed that locally produced energy would cover
@@ -125,7 +125,8 @@ class GridAgent(IAgent):
             surplus_in_market = sum_sells - sum_buys
             need_to_buy = surplus_in_market * (1 - self.resource_loss_per_side)
             trades_to_add.append(
-                Trade(Action.BUY, resource, need_to_buy, wholesale_price, self.guid, True, market, period,
+                Trade(period=period, action=Action.BUY, resource=resource, quantity=need_to_buy, price=wholesale_price,
+                      source=self.guid, by_external=True, market=market,
                       loss=self.resource_loss_per_side))
             if market == Market.LOCAL:
                 if local_clearing_price > wholesale_price:
