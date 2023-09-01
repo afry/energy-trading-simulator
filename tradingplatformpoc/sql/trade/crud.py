@@ -100,6 +100,22 @@ def db_to_aggregated_trade_df(job_id: str, resource: Resource, action: Action,
         return df
     
 
+def get_total_traded_for_agent(job_id: str, agent_guid: str, action: Action,
+                               session_generator: Callable[[], _GeneratorContextManager[Session]]
+                               = session_scope):
+    with session_generator() as db:
+        if action == Action.BUY:
+            action_attribute = "bought_for"
+        elif action == Action.SELL:
+            action_attribute = "sold_for"
+        res = db.query(
+            func.sum(getattr(TableTrade, action_attribute)),
+        ).filter(TableTrade.job_id == job_id,
+                 TableTrade.source == agent_guid,
+                 TableTrade.action == action).first()
+        return res[0] if res[0] is not None else 0.0
+
+
 def db_to_trades_by_agent_and_resource_action(job_id: str, agent_guid: str, resource: Resource, action: Action,
                                               session_generator: Callable[[], _GeneratorContextManager[Session]]
                                               = session_scope):

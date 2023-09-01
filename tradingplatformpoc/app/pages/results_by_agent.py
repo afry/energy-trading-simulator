@@ -5,7 +5,7 @@ import streamlit as st
 from tradingplatformpoc.app import footer
 from tradingplatformpoc.app.app_functions import download_df_as_csv_button
 from tradingplatformpoc.app.app_visualizations import construct_storage_level_chart, \
-    construct_traded_amount_by_agent_chart, get_savings_vs_only_external_buy
+    construct_traded_amount_by_agent_chart, get_savings_vs_only_external_buy, get_total_profit_net
 from tradingplatformpoc.market.trade import TradeMetadataKey
 from tradingplatformpoc.sql.agent.crud import get_agent_type
 from tradingplatformpoc.sql.bid.crud import db_to_viewable_bid_df_for_agent
@@ -95,10 +95,17 @@ if 'choosen_id_to_view' in st.session_state.keys() and st.session_state.choosen_
             help=r"Agent {} was penalized with a total of {:,.2f} SEK due to inaccurate projections. This brought "
                  r"total savings after penalties to {:,.2f} SEK.".format(agent_chosen_guid, extra_costs_for_bad_bids,
                                                                          total_saved - extra_costs_for_bad_bids))
-    
+        if agent_type == 'BatteryAgent':
+            total_profit_net = get_total_profit_net(
+                job_id=st.session_state.choosen_id_to_view['job_id'],
+                agent_guid=agent_chosen_guid)
+            st.metric(
+                label="Net profit.",
+                value="{:,.2f} SEK".format(total_profit_net),
+                help=r"What the {} sold for minus what it bought for.".format(agent_chosen_guid))
+
     # TODO: If BatteryAgent, display
     # total_profit_gross = sek_sold_for - sek_bought_for + sek_tax_paid + sek_grid_fee_paid
-    # total_profit_net = sek_sold_for - sek_bought_for
     
 
 # TODO: Update graphs to work with results taken from database

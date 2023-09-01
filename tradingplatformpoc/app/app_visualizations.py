@@ -20,7 +20,7 @@ from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.sql.electricity_price.crud import db_to_electricity_price_dict
 from tradingplatformpoc.sql.extra_cost.crud import db_to_aggregated_extra_costs_by_agent
 from tradingplatformpoc.sql.heating_price.crud import db_to_heating_price_dict
-from tradingplatformpoc.sql.trade.crud import db_to_trades_by_agent_and_resource_action
+from tradingplatformpoc.sql.trade.crud import db_to_trades_by_agent_and_resource_action, get_total_traded_for_agent
 
 
 def get_price_df_when_local_price_inbetween(prices_df: pd.DataFrame, resource: Resource) -> pd.DataFrame:
@@ -403,3 +403,8 @@ def get_savings_vs_only_external_buy(job_id: str, agent_guid: str) -> Tuple[floa
         - extra_costs_for_heat_cost_discr
 
     return total_saved, extra_costs_for_bad_bids
+
+
+def get_total_profit_net(job_id: str, agent_guid: str) -> float:
+    return get_total_traded_for_agent(job_id, agent_guid, Action.SELL) \
+        - get_total_traded_for_agent(job_id, agent_guid, Action.BUY)
