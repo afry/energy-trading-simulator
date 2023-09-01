@@ -2,7 +2,7 @@ import datetime
 from typing import Optional
 
 from sqlalchemy import Column, DateTime, String, func
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import BYTEA, JSONB
 
 from sqlmodel import Field, SQLModel
 
@@ -36,9 +36,9 @@ class MockData(SQLModel, table=True):
         nullable=False,
         sa_column=Column(JSONB(none_as_null=True))
     )
-    # mock_data: Optional[bytearray] = Field(
-    #     primary_key=False,
-    #     title="Mock data for agent",
-    #     nullable=True,
-    #     sa_column=Column(bytearray)
-    # )
+    mock_data: Optional[bytes] = Field(
+        primary_key=False,
+        title="Mock data for agent",
+        nullable=True,
+        sa_column=Column(BYTEA)
+    )

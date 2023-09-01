@@ -1,6 +1,6 @@
 import logging
 from contextlib import _GeneratorContextManager
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, List
 
 from sqlalchemy import select
 
@@ -16,10 +16,11 @@ def create_agent_if_not_in_db(agent: Dict[str, Any]):
     """
     If agent with config not already in db, insert
     """
-    agent_config = {key: val for key, val in agent.items() if key != 'Name'}
-    agent_in_db_id = check_if_agent_in_db(agent_config)
+    agent_config = {key: val for key, val in agent.items() if key not in ['Name', 'Type']}
+    agent_type = agent['Type']
+    agent_in_db_id = check_if_agent_in_db(agent_type, agent_config)
     if agent_in_db_id is None:
-        agent_in_db_id = create_agent(AgentCreate(agent_config=agent_config))
+        agent_in_db_id = create_agent(AgentCreate(agent_config=agent_config, agent_type=agent_type))
         logger.info('Agent created with id {}'.format(agent_in_db_id))
     return agent_in_db_id
 
@@ -34,11 +35,12 @@ def create_agent(agent: AgentCreate,
         return agent_to_db.id
 
 
-def check_if_agent_in_db(agent_config: Dict[str, Any],
+def check_if_agent_in_db(agent_type: str, agent_config: Dict[str, Any],
                          session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope):
     with session_generator() as db:
         agents_in_db = db.execute(select(Agent.id.label('id'),
-                                         Agent.agent_config.label('config'))).all()
+                                         Agent.agent_config.label('config'))
+                                  .where(Agent.agent_type == agent_type)).all()
         for agent_in_db in agents_in_db:
             symmetric_diff = set(agent_config.items()).symmetric_difference(set(agent_in_db.config.items()))
             if len(symmetric_diff) == 0:
@@ -46,3 +48,17 @@ def check_if_agent_in_db(agent_config: Dict[str, Any],
                 return agent_in_db.id
             
         return None
+
+
+def get_building_agent_dicts_from_id_list(
+        agent_ids: List[str],
+        session_generator: Callable[[], _GeneratorContextManager[Session]]
+        = session_scope):
+    """
+    Get agents
+    """
+    with session_generator() as db:
+        res = db.query(Agent).filter(Agent.id.in_(agent_ids),
+                                     Agent.agent_type == 'BuildingAgent').all()
+        return [{'db_id': agent.id, 'Type': agent.agent_type, **agent.agent_config}
+                for agent in res]

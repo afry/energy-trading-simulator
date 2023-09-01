@@ -17,6 +17,7 @@ from tradingplatformpoc.data.preproccessing import read_energy_data, read_irradi
 from tradingplatformpoc.database import bulk_insert
 from tradingplatformpoc.digitaltwin.battery import Battery
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
+from tradingplatformpoc.generate_data.generate_mock_data import get_generated_mock_data
 from tradingplatformpoc.generate_data.mock_data_generation_functions import get_elec_cons_key, \
     get_hot_tap_water_cons_key, get_space_heat_cons_key
 from tradingplatformpoc.market import balance_manager
@@ -27,13 +28,12 @@ from tradingplatformpoc.market.extra_cost import ExtraCost
 from tradingplatformpoc.market.trade import Trade, TradeMetadataKey
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
-from tradingplatformpoc.simulation_runner.progress import Progress
 from tradingplatformpoc.simulation_runner.simulation_utils import get_external_heating_prices, \
-    get_generated_mock_data, get_quantity_heating_sold_by_external_grid, go_through_trades_metadata, \
+    get_quantity_heating_sold_by_external_grid, go_through_trades_metadata, \
     net_bids_from_gross_bids
 from tradingplatformpoc.sql.bid.crud import bids_to_db_objects
 from tradingplatformpoc.sql.clearing_price.crud import clearing_prices_to_db_objects
-from tradingplatformpoc.sql.config.crud import read_config
+from tradingplatformpoc.sql.config.crud import get_all_agents_in_config, read_config
 from tradingplatformpoc.sql.electricity_price.models import ElectricityPrice as TableElectricityPrice
 from tradingplatformpoc.sql.extra_cost.crud import extra_costs_to_db_objects
 from tradingplatformpoc.sql.heating_price.crud import external_heating_prices_to_db_objects
@@ -48,10 +48,11 @@ logger = logging.getLogger(__name__)
 
 
 class TradingSimulator:
-    def __init__(self, config_id: str, mock_datas_pickle_path: str):
+    def __init__(self, config_id: str):
+        self.config_id = config_id
         self.job_id = create_job_if_new_config(config_id)
         self.config_data: Dict[str, Any] = read_config(config_id)
-        self.mock_datas_pickle_path = mock_datas_pickle_path
+        self.agent_specs = get_all_agents_in_config(self.config_id)
 
     def __call__(self):
         if (self.job_id is not None) and (self.config_data is not None):
@@ -59,7 +60,6 @@ class TradingSimulator:
 
                 self.initialize_data()
                 self.agents, self.grid_agents = self.initialize_agents()
-                self.progress = Progress()
                 self.run()
                 results = self.extract_results()
                 update_job_with_end_time(self.job_id)
@@ -74,7 +74,6 @@ class TradingSimulator:
 
     def initialize_data(self):
         self.config_data = self.config_data
-        self.mock_datas_pickle_path = self.mock_datas_pickle_path
 
         external_price_data = read_nordpool_data()
         self.heat_pricing: HeatingPrice = HeatingPrice(
@@ -88,7 +87,7 @@ class TradingSimulator:
             elec_grid_fee_internal=self.config_data['AreaInfo']["ElectricityGridFeeInternal"],
             nordpool_data=external_price_data)
 
-        self.buildings_mock_data: pd.DataFrame = get_generated_mock_data(self.config_data, self.mock_datas_pickle_path)
+        self.buildings_mock_data: pd.DataFrame = get_generated_mock_data(self.config_id)
         self.trading_periods = pd.DatetimeIndex(get_intersection(self.buildings_mock_data.index.tolist(),
                                                 self.electricity_pricing.get_external_price_data_datetimes()))\
             .sort_values()
@@ -105,7 +104,7 @@ class TradingSimulator:
 
         # Read CSV files
         tornet_household_elec_cons, coop_elec_cons, tornet_heat_cons, coop_heat_cons = read_energy_data()
-        irradiation_data = read_irradiation_data()
+        irradiation_data = read_irradiation_data().set_index('datetime').squeeze()
 
         for agent in self.config_data["Agents"]:
             agent_type = agent["Type"]
@@ -116,9 +115,10 @@ class TradingSimulator:
                                                       agent['PVArea'],
                                                       agent['PVEfficiency'])
             if agent_type == "BuildingAgent":
-                elec_cons_series = self.buildings_mock_data[get_elec_cons_key(agent_name)]
-                space_heat_cons_series = self.buildings_mock_data[get_space_heat_cons_key(agent_name)]
-                hot_tap_water_cons_series = self.buildings_mock_data[get_hot_tap_water_cons_key(agent_name)]
+                agent_id = self.agent_specs[agent['Name']]
+                elec_cons_series = self.buildings_mock_data[get_elec_cons_key(agent_id)]
+                space_heat_cons_series = self.buildings_mock_data[get_space_heat_cons_key(agent_id)]
+                hot_tap_water_cons_series = self.buildings_mock_data[get_hot_tap_water_cons_key(agent_id)]
 
                 # We're not currently supporting different temperatures of heating,
                 # it's just "heating" as a very simplifiedS
@@ -177,11 +177,7 @@ class TradingSimulator:
         The core loop of the simulation, running through the desired time period and performing trades.
         """
 
-        # Increase of progress bar per batch
-        frac_of_calc_time_for_batch_simulated = 0.8 / number_of_batches
-
         logger.info("Starting trading simulations")
-        self.progress.increase(0.005)
 
         # Load generated mock data
         logger.info("Generating data...")
@@ -195,7 +191,7 @@ class TradingSimulator:
                 if current_thread.is_stopped():
                     logger.error('Simulation stopped by event.')
                     raise Exception("Simulation stopped by event.")
-            logger.info("Simulating batch number {} of {}".format(batch_number, number_of_batches))
+            logger.info("Simulating batch number {} of {}".format(batch_number + 1, number_of_batches))
             # Periods in batch
             trading_periods_in_this_batch = self.trading_periods[
                 batch_number * batch_size:min((batch_number + 1) * batch_size, number_of_trading_periods)]
@@ -275,8 +271,6 @@ class TradingSimulator:
             trade_objs = trades_to_db_objects(all_trades_dict_batch, self.job_id)
             extra_cost_objs = extra_costs_to_db_objects(all_extra_costs_batch, self.job_id)
             bulk_insert(bid_objs + trade_objs + extra_cost_objs + electricity_price_objs)
-            self.progress.increase(frac_of_calc_time_for_batch_simulated)
-            self.progress.display()
         
         clearing_prices_objs = clearing_prices_to_db_objects(self.clearing_prices_historical, self.job_id)
         heat_pump_level_objs = levels_to_db_objects(self.heat_pump_levels_dict,
