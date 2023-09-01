@@ -62,3 +62,10 @@ def get_building_agent_dicts_from_id_list(
                                      Agent.agent_type == 'BuildingAgent').all()
         return [{'db_id': agent.id, 'Type': agent.agent_type, **agent.agent_config}
                 for agent in res]
+    
+
+def get_agent_type(agent_id: str,
+                   session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope):
+    with session_generator() as db:
+        res = db.execute(select(Agent.agent_type).where(Agent.id == agent_id)).first()
+        return res[0] if res is not None else None

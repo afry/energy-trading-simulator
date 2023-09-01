@@ -7,6 +7,7 @@ from tradingplatformpoc.app.app_functions import download_df_as_csv_button
 from tradingplatformpoc.app.app_visualizations import construct_storage_level_chart, \
     construct_traded_amount_by_agent_chart, get_savings_vs_only_external_buy
 from tradingplatformpoc.market.trade import TradeMetadataKey
+from tradingplatformpoc.sql.agent.crud import get_agent_type
 from tradingplatformpoc.sql.bid.crud import db_to_viewable_bid_df_for_agent
 from tradingplatformpoc.sql.config.crud import get_all_agents_in_config
 from tradingplatformpoc.sql.extra_cost.crud import db_to_viewable_extra_costs_df_by_agent
@@ -72,26 +73,28 @@ if 'choosen_id_to_view' in st.session_state.keys() and st.session_state.choosen_
         job_id=st.session_state.choosen_id_to_view['job_id'],
         agent_guid=agent_chosen_guid)
     
-    # TODO: Exclude GridAgent
-    # agent_type = get_agent_type(agent_specs[agent_chosen_guid])
-    # if agent_type != 'GridAgent':
+    # Exclude GridAgent
+    agent_type = get_agent_type(agent_specs[agent_chosen_guid])
+    if agent_type != 'GridAgent':
 
-    st.metric(label="Savings by using local market, before taking penalties into account.",
-              value="{:,.2f} SEK".format(total_saved),
-              help="Amount saved for agent {} by using local market, ".format(agent_chosen_guid)
-              + r"as opposed to only using the external grid. "
-              r"The value is the sum of savings on buy trades where the buyer pays for "
-              r"the quantity before losses:"
-              r"$\sum \limits_{\text{buy}}$ quantity $ \cdot$ (retail price $-$ price)"
-              r" and savings on sell trades, where the seller is payed for the quantity after losses: "
-              r"$\sum \limits_\text{sell}$ (quantity $-$ loss) $\cdot$ (price $-$ wholesale price)"
-              r" minus heat cost corrections.")
+        st.metric(
+            label="Savings by using local market, before taking penalties into account.",
+            value="{:,.2f} SEK".format(total_saved),
+            help="Amount saved for agent {} by using local market, ".format(agent_chosen_guid)
+            + r"as opposed to only using the external grid. "
+            r"The value is the sum of savings on buy trades where the buyer pays for "
+            r"the quantity before losses:"
+            r"$\sum \limits_{\text{buy}}$ quantity $ \cdot$ (retail price $-$ price)"
+            r" and savings on sell trades, where the seller is payed for the quantity after losses: "
+            r"$\sum \limits_\text{sell}$ (quantity $-$ loss) $\cdot$ (price $-$ wholesale price)"
+            r" minus heat cost corrections.")
 
-    st.metric(label="Total penalties accrued for bid inaccuracies.",
-              value="{:,.2f} SEK".format(extra_costs_for_bad_bids),
-              help=r"Agent {} was penalized with a total of {:,.2f} SEK due to inaccurate projections. This brought "
-                   r"total savings after penalties to {:,.2f} SEK.".format(agent_chosen_guid, extra_costs_for_bad_bids,
-                                                                           total_saved - extra_costs_for_bad_bids))
+        st.metric(
+            label="Total penalties accrued for bid inaccuracies.",
+            value="{:,.2f} SEK".format(extra_costs_for_bad_bids),
+            help=r"Agent {} was penalized with a total of {:,.2f} SEK due to inaccurate projections. This brought "
+                 r"total savings after penalties to {:,.2f} SEK.".format(agent_chosen_guid, extra_costs_for_bad_bids,
+                                                                         total_saved - extra_costs_for_bad_bids))
     
     # TODO: If BatteryAgent, display
     # total_profit_gross = sek_sold_for - sek_bought_for + sek_tax_paid + sek_grid_fee_paid
