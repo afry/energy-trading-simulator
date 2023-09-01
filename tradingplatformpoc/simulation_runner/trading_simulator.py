@@ -279,14 +279,14 @@ class TradingSimulator:
             extra_cost_dict = extra_costs_to_db_dict(all_extra_costs_batch, self.job_id)
             bulk_insert(TableExtraCost, extra_cost_dict)
 
-        clearing_prices_objs = clearing_prices_to_db_dict(self.clearing_prices_historical, self.job_id)
-        heat_pump_level_objs = levels_to_db_dict(self.heat_pump_levels_dict,
-                                                 TradeMetadataKey.HEAT_PUMP_WORKLOAD.name, self.job_id)
-        storage_level_objs = levels_to_db_dict(self.storage_levels_dict,
-                                               TradeMetadataKey.STORAGE_LEVEL.name, self.job_id)
-        bulk_insert(TableClearingPrice, clearing_prices_objs)
-        bulk_insert(TableLevel, heat_pump_level_objs)
-        bulk_insert(TableLevel, storage_level_objs)
+        clearing_prices_dicts = clearing_prices_to_db_dict(self.clearing_prices_historical, self.job_id)
+        heat_pump_level_dicts = levels_to_db_dict(self.heat_pump_levels_dict,
+                                                  TradeMetadataKey.HEAT_PUMP_WORKLOAD.name, self.job_id)
+        storage_level_dicts = levels_to_db_dict(self.storage_levels_dict,
+                                                TradeMetadataKey.STORAGE_LEVEL.name, self.job_id)
+        bulk_insert(TableClearingPrice, clearing_prices_dicts)
+        bulk_insert(TableLevel, heat_pump_level_dicts)
+        bulk_insert(TableLevel, storage_level_dicts)
 
         logger.info("Finished simulating trades, beginning calculations on district heating price...")
 
