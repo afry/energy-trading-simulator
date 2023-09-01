@@ -1,7 +1,6 @@
-import hashlib
 import logging
 import os
-from typing import Any, Dict, Iterable, List, Union
+from typing import Any, Dict, List, Union
 
 import pandas as pd
 
@@ -24,8 +23,9 @@ from tradingplatformpoc.generate_data.generation_functions.non_residential.schoo
     get_school_heating_consumption_hourly_factor, simulate_school_area_heating
 from tradingplatformpoc.generate_data.generation_functions.residential.residential import \
     simulate_household_electricity_aggregated, simulate_residential_total_heating
-from tradingplatformpoc.generate_data.mock_data_generation_functions import \
-    get_elec_cons_key, get_hot_tap_water_cons_key, get_space_heat_cons_key, join_list_of_polar_dfs
+from tradingplatformpoc.generate_data.mock_data_utils import \
+    calculate_seed_from_string, get_elec_cons_key, get_hot_tap_water_cons_key, get_space_heat_cons_key, \
+    join_list_of_polar_dfs
 from tradingplatformpoc.sql.agent.crud import get_building_agent_dicts_from_id_list
 from tradingplatformpoc.sql.config.crud import get_all_agents_in_config, get_mock_data_constants
 from tradingplatformpoc.sql.mock_data.crud import db_to_mock_data_df, get_mock_data_agent_pairs_in_db, \
@@ -184,21 +184,12 @@ def simulate(mock_data_constants: Dict[str, Any], agent: dict, df_inputs: pl.Laz
         commercial_gross_floor_area = agent['GrossFloorArea'] * fraction_commercial
 
         electricity_consumption.append(simulate_area_electricity(
-            agent['GrossFloorArea'] * fraction_commercial,
-            seed_commercial_electricity,
-            df_inputs,
-            mock_data_constants['CommercialElecKwhPerYearM2'],
-            mock_data_constants['CommercialElecRelativeErrorStdDev'],
-            get_commercial_electricity_consumption_hourly_factor,
-            n_rows)
-        )
+            agent['GrossFloorArea'] * fraction_commercial, seed_commercial_electricity, df_inputs,
+            mock_data_constants['CommercialElecKwhPerYearM2'], mock_data_constants['CommercialElecRelativeErrorStdDev'],
+            get_commercial_electricity_consumption_hourly_factor, n_rows))
         
         commercial_space_heating_cons, commercial_hot_tap_water_cons = simulate_commercial_area_total_heating(
-            mock_data_constants,
-            commercial_gross_floor_area,
-            seed_commercial_heating,
-            df_inputs,
-            n_rows)
+            mock_data_constants, commercial_gross_floor_area, seed_commercial_heating, df_inputs, n_rows)
         space_heating_consumption.append(commercial_space_heating_cons)
         hot_tap_water_consumption.append(commercial_hot_tap_water_cons)
     
@@ -208,21 +199,12 @@ def simulate(mock_data_constants: Dict[str, Any], agent: dict, df_inputs: pl.Laz
 
         electricity_consumption.append(
             simulate_area_electricity(
-                school_gross_floor_area_m2,
-                seed_school_electricity,
-                df_inputs,
-                mock_data_constants['SchoolElecKwhPerYearM2'],
-                mock_data_constants['SchoolElecRelativeErrorStdDev'],
-                get_school_heating_consumption_hourly_factor,
-                n_rows)
-        )
+                school_gross_floor_area_m2, seed_school_electricity, df_inputs,
+                mock_data_constants['SchoolElecKwhPerYearM2'], mock_data_constants['SchoolElecRelativeErrorStdDev'],
+                get_school_heating_consumption_hourly_factor, n_rows))
 
         school_space_heating_cons, school_hot_tap_water_cons = simulate_school_area_heating(
-            mock_data_constants,
-            school_gross_floor_area_m2,
-            seed_school_heating,
-            df_inputs,
-            n_rows)
+            mock_data_constants, school_gross_floor_area_m2, seed_school_heating, df_inputs, n_rows)
         space_heating_consumption.append(school_space_heating_cons)
         hot_tap_water_consumption.append(school_hot_tap_water_cons)
 
@@ -232,20 +214,11 @@ def simulate(mock_data_constants: Dict[str, Any], agent: dict, df_inputs: pl.Laz
 
         electricity_consumption.append(
             simulate_household_electricity_aggregated(
-                df_inputs,
-                model,
-                residential_gross_floor_area,
-                seed_residential_electricity,
-                n_rows,
-                mock_data_constants['ResidentialElecKwhPerYearM2Atemp'])
-        )
+                df_inputs, model, residential_gross_floor_area, seed_residential_electricity, n_rows,
+                mock_data_constants['ResidentialElecKwhPerYearM2Atemp']))
 
         residential_space_heating_cons, residential_hot_tap_water_cons = simulate_residential_total_heating(
-            mock_data_constants,
-            df_inputs,
-            n_rows,
-            residential_gross_floor_area,
-            seed_residential_heating)
+            mock_data_constants, df_inputs, n_rows, residential_gross_floor_area, seed_residential_heating)
         space_heating_consumption.append(residential_space_heating_cons)
         hot_tap_water_consumption.append(residential_hot_tap_water_cons)
 
@@ -260,71 +233,6 @@ def simulate(mock_data_constants: Dict[str, Any], agent: dict, df_inputs: pl.Laz
         rename({'value': get_hot_tap_water_cons_key(agent[key])})
 
     return output_per_actor
-
-
-# TODO: Question: Cann we still use this function somehow?
-def all_parameters_match(agent_dict: Dict[str, Any], other_agent_dict: Dict[str, Any],
-                         mock_data_constants: Dict[str, Any], other_mock_data_constants: Dict[str, Any]) -> bool:
-    """
-    Check if all parameters used for generating mock data for a given pair of agents are the same.
-    Looks at fields in the agent dictionaries themselves, but also the relevant mock data constants. If an agent has
-    no commercial areas, for example, then it doesn't matter that mock data constants relating to commercial areas are
-    different.
-    """
-    if agent_parameters_match(agent_dict, other_agent_dict):
-        relevant_mock_data_generation_constants_match: bool = True
-        if get_if_exists_else(agent_dict, 'FractionCommercial', 0) > 0 and \
-                not all_fields_match(mock_data_constants, other_mock_data_constants,
-                                     ['CommercialElecKwhPerYearM2',
-                                      'CommercialElecRelativeErrorStdDev',
-                                      'CommercialSpaceHeatKwhPerYearM2',
-                                      'CommercialHotTapWaterKwhPerYearM2',
-                                      'CommercialHotTapWaterRelativeErrorStdDev']):
-            relevant_mock_data_generation_constants_match = False
-
-        if get_if_exists_else(agent_dict, 'FractionSchool', 0) > 0 and \
-                not all_fields_match(mock_data_constants, other_mock_data_constants,
-                                     ['SchoolElecKwhPerYearM2',
-                                      'SchoolElecRelativeErrorStdDev',
-                                      'SchoolSpaceHeatKwhPerYearM2',
-                                      'SchoolHotTapWaterKwhPerYearM2',
-                                      'SchoolHotTapWaterRelativeErrorStdDev']):
-            relevant_mock_data_generation_constants_match = False
-
-        fraction_residential = 1 - get_if_exists_else(agent_dict, 'FractionCommercial', 0) - \
-            get_if_exists_else(agent_dict, 'FractionSchool', 0)
-        if fraction_residential > 0 and not all_fields_match(mock_data_constants, other_mock_data_constants,
-                                                             ['ResidentialElecKwhPerYearM2Atemp',
-                                                              'ResidentialSpaceHeatKwhPerYearM2',
-                                                              'ResidentialHotTapWaterKwhPerYearM2',
-                                                              'ResidentialHeatingRelativeErrorStdDev']):
-            relevant_mock_data_generation_constants_match = False
-
-        return relevant_mock_data_generation_constants_match
-    return False
-
-
-def agent_parameters_match(agent_dict: Dict[str, Any], other_agent_dict: Dict[str, Any]) -> bool:
-    fields_to_check = ['Name', 'GrossFloorArea', 'FractionCommercial', 'FractionSchool']
-    return all_fields_match(agent_dict, other_agent_dict, fields_to_check)
-
-
-def all_fields_match(dict_1: dict, dict_2: dict, keys_list: Iterable) -> bool:
-    for key in keys_list:
-        if get_if_exists_else(dict_1, key, 0) != get_if_exists_else(dict_2, key, 0):
-            return False
-    return True
-
-
-def calculate_seed_from_string(some_string: str) -> int:
-    """
-    Hashes the string, and truncates the value to a 32-bit integer, since that is what seeds are allowed to be.
-    __hash__() is non-deterministic, so we use hashlib.
-    """
-    bytes_to_hash = some_string.encode('utf-8')
-    hashed_hexadecimal = hashlib.sha256(bytes_to_hash).hexdigest()
-    very_big_int = int(hashed_hexadecimal, 16)
-    return very_big_int & 0xFFFFFFFF
 
 
 if __name__ == '__main__':

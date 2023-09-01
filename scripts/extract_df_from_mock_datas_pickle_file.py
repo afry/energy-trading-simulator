@@ -2,7 +2,7 @@ import argparse
 
 import pandas as pd
 
-from tradingplatformpoc.generate_data.mock_data_generation_functions import \
+from tradingplatformpoc.generate_data.mock_data_utils import \
     get_elec_cons_key, get_hot_tap_water_cons_key, get_space_heat_cons_key
 from tradingplatformpoc.sql.mock_data.crud import db_to_mock_data_df, get_mock_data_ids_for_agent
 
