@@ -2,7 +2,7 @@ import datetime
 import itertools
 import operator
 from contextlib import _GeneratorContextManager
-from typing import Callable, Collection, Dict, Tuple
+from typing import Callable, Collection, Dict, Optional, Tuple
 
 import pandas as pd
 
@@ -162,24 +162,31 @@ def db_to_viewable_trade_df_by_agent(job_id: str, agent_guid: str,
                                          'quantity_post_loss', 'price', 'tax_paid', 'grid_fee_paid'])
 
 
-def get_total_tax_paid(job_id: str,
+def get_total_tax_paid(job_id: str, agent_guid: Optional[str] = None,
                        session_generator: Callable[[], _GeneratorContextManager[Session]]
                        = session_scope) -> Tuple[float, float]:
     with session_generator() as db:
-        res = db.query(
+        query = db.query(
             func.sum(TableTrade.tax_paid_for_quantity).label('sum_tax_paid_for_quantities'),
-        ).filter(TableTrade.action == Action.SELL, TableTrade.job_id == job_id).first()
+        ).filter(TableTrade.action == Action.SELL,
+                 TableTrade.job_id == job_id)
+        if agent_guid is not None:
+            query = query.filter(TableTrade.source == agent_guid)
+        res = query.first()
 
         return res.sum_tax_paid_for_quantities if res.sum_tax_paid_for_quantities is not None else 0.0
 
 
-def get_total_grid_fee_paid_on_internal_trades(job_id: str,
+def get_total_grid_fee_paid_on_internal_trades(job_id: str, agent_guid: Optional[str] = None,
                                                session_generator: Callable[[], _GeneratorContextManager[Session]]
                                                = session_scope) -> Tuple[float, float]:
     with session_generator() as db:
-        res = db.query(
+        query = db.query(
             func.sum(TableTrade.grid_fee_paid_for_quantity).label('sum_grid_fee_paid_for_quantities'),
         ).filter(TableTrade.action == Action.SELL, TableTrade.by_external.is_(False),
-                 TableTrade.job_id == job_id).first()
+                 TableTrade.job_id == job_id)
+        if agent_guid is not None:
+            query = query.filter(TableTrade.source == agent_guid)
+        res = query.first()
 
         return res.sum_grid_fee_paid_for_quantities if res.sum_grid_fee_paid_for_quantities is not None else 0.0

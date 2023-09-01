@@ -12,7 +12,8 @@ from tradingplatformpoc.sql.bid.crud import db_to_viewable_bid_df_for_agent
 from tradingplatformpoc.sql.config.crud import get_all_agents_in_config
 from tradingplatformpoc.sql.extra_cost.crud import db_to_viewable_extra_costs_df_by_agent
 from tradingplatformpoc.sql.level.crud import db_to_viewable_level_df_by_agent
-from tradingplatformpoc.sql.trade.crud import db_to_viewable_trade_df_by_agent
+from tradingplatformpoc.sql.trade.crud import db_to_viewable_trade_df_by_agent, \
+    get_total_grid_fee_paid_on_internal_trades, get_total_tax_paid
 
 TABLE_HEIGHT: int = 300
 
@@ -96,17 +97,25 @@ if 'choosen_id_to_view' in st.session_state.keys() and st.session_state.choosen_
                  r"total savings after penalties to {:,.2f} SEK.".format(agent_chosen_guid, extra_costs_for_bad_bids,
                                                                          total_saved - extra_costs_for_bad_bids))
         if agent_type == 'BatteryAgent':
-            total_profit_net = get_total_profit_net(
+            battery_agent_total_profit_net = get_total_profit_net(
                 job_id=st.session_state.choosen_id_to_view['job_id'],
                 agent_guid=agent_chosen_guid)
             st.metric(
                 label="Net profit.",
-                value="{:,.2f} SEK".format(total_profit_net),
+                value="{:,.2f} SEK".format(battery_agent_total_profit_net),
                 help=r"What the {} sold for minus what it bought for.".format(agent_chosen_guid))
+            battery_agent_tax_paid = get_total_tax_paid(
+                job_id=st.session_state.choosen_id_to_view['job_id'],
+                agent_guid=agent_chosen_guid)
+            battery_agent_grid_fee_paid = get_total_grid_fee_paid_on_internal_trades(
+                job_id=st.session_state.choosen_id_to_view['job_id'],
+                agent_guid=agent_chosen_guid)
+            st.metric(
+                label="Gross profit.",
+                value="{:,.2f} SEK".format(
+                    battery_agent_total_profit_net + battery_agent_tax_paid + battery_agent_grid_fee_paid),
+                help=r"Net profit plus what the {} paid for tax and grid fees.".format(agent_chosen_guid))
 
-    # TODO: If BatteryAgent, display
-    # total_profit_gross = sek_sold_for - sek_bought_for + sek_tax_paid + sek_grid_fee_paid
-    
 
 # TODO: Update graphs to work with results taken from database
 # if 'simulation_results' in st.session_state:
