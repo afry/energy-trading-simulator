@@ -81,7 +81,6 @@ def construct_df_from_datetime_dict(some_dict: Union[Dict[datetime.datetime, Col
     Streamlit likes to deal with pd.DataFrames, so we'll save data in that format.
     """
     logger.info('Constructing dataframe from datetime dict')
-    # change dict into list later
     return pd.DataFrame([x.to_dict() for some_collection in some_dict.values()
                          for x in some_collection])
 
