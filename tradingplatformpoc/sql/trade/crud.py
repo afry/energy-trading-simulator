@@ -2,7 +2,7 @@ import datetime
 import itertools
 import operator
 from contextlib import _GeneratorContextManager
-from typing import Any, Callable, Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import pandas as pd
 
@@ -11,7 +11,7 @@ from sqlalchemy import func, select
 from sqlmodel import Session
 
 from tradingplatformpoc.connection import session_scope
-from tradingplatformpoc.market.bid import Action
+from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.market.trade import Trade
 from tradingplatformpoc.sql.trade.models import Trade as TableTrade
 
@@ -72,41 +72,69 @@ def trades_to_db_dict(bids_list: List[Trade], job_id: str) -> List[Dict[str, Any
     return dict
 
 
-def db_to_aggregated_trades_by_agent(job_id: str,
-                                     session_generator: Callable[[], _GeneratorContextManager[Session]]
-                                     = session_scope):
-    '''Fetches aggregated trades data from database for specified agent (source).'''
+def db_to_aggregated_trade_df(job_id: str, resource: Resource, action: Action,
+                              session_generator: Callable[[], _GeneratorContextManager[Session]]
+                              = session_scope):
+    '''Fetches aggregated trades data from database for specified agent (source), resource and action.'''
     with session_generator() as db:
+        if action == Action.BUY:
+            label = "bought"
+            quantity_attribute = "quantity_pre_loss"
+            action_attribute = "bought_for"
+        elif action == Action.SELL:
+            label = "sold"
+            quantity_attribute = "quantity_post_loss"
+            action_attribute = "sold_for"
         res = db.query(
-            TableTrade.source.label('source'),
-            TableTrade.resource.label('resource'),
-            TableTrade.action.label('action'),
-            func.sum(TableTrade.quantity_pre_loss).label('sum_quantity_pre_loss'),
-            func.sum(TableTrade.quantity_post_loss).label('sum_quantity_post_loss'),
-            func.sum(TableTrade.total_bought_for).label('sum_total_bought_for'),
-            func.sum(TableTrade.total_sold_for).label('sum_total_sold_for'),
-            func.sum(TableTrade.tax_paid_for_quantity).label('sum_tax_paid_for_quantities'),
-            func.sum(TableTrade.grid_fee_paid_for_quantity).label('grid_fee_paid_for_quantity')
-        ).filter(TableTrade.job_id == job_id)\
-         .group_by(TableTrade.source, TableTrade.resource, TableTrade.action).all()
+            TableTrade.source.label('Agent'),
+            func.sum(getattr(TableTrade, quantity_attribute)).label('Total quantity ' + label + ' [kWh]'),
+            func.sum(getattr(TableTrade, action_attribute)).label('Total amount ' + label + ' for [SEK]'),
+        ).filter(TableTrade.job_id == job_id,
+                 TableTrade.action == action,
+                 TableTrade.resource == resource)\
+         .group_by(TableTrade.source, TableTrade.resource).all()
 
-        return dict((source, list(vals)) for source, vals in
-                    itertools.groupby(res, operator.itemgetter(0)))
+        df = pd.DataFrame(res).set_index('Agent')
+        df['Average ' + action.name.lower() + ' price [SEK/kWh]'] = \
+            df['Total amount ' + label + ' for [SEK]'] / df['Total quantity ' + label + ' [kWh]']
+        return df
+    
 
-
-def db_to_trades_by_agent(source: str, job_id: str,
-                          session_generator: Callable[[], _GeneratorContextManager[Session]]
-                          = session_scope) -> pd.DataFrame:
-    # Fetches trades data from database for specified agent (source).
+def get_total_traded_for_agent(job_id: str, agent_guid: str, action: Action,
+                               session_generator: Callable[[], _GeneratorContextManager[Session]]
+                               = session_scope):
     with session_generator() as db:
-        trades = db.execute(select(TableTrade.period.label('period'),
-                                   TableTrade.action.label('action').label('action'),
-                                   TableTrade.resource.label('resource'),
-                                   TableTrade.quantity_pre_loss.label('quantity_pre_loss'),
-                                   TableTrade.quantity_post_loss.label('quantity_post_loss'),
-                                   TableTrade.price.label('price'))
-                            .where((TableTrade.job_id == job_id) & (TableTrade.source == source))).all()
-        return trades
+        if action == Action.BUY:
+            action_attribute = "bought_for"
+        elif action == Action.SELL:
+            action_attribute = "sold_for"
+        res = db.query(
+            func.sum(getattr(TableTrade, action_attribute)),
+        ).filter(TableTrade.job_id == job_id,
+                 TableTrade.source == agent_guid,
+                 TableTrade.action == action).first()
+        return res[0] if res[0] is not None else 0.0
+
+
+def db_to_trades_by_agent_and_resource_action(job_id: str, agent_guid: str, resource: Resource, action: Action,
+                                              session_generator: Callable[[], _GeneratorContextManager[Session]]
+                                              = session_scope):
+    with session_generator() as db:
+        if action == Action.BUY:
+            attribute = 'quantity_pre_loss'
+        elif action == Action.SELL:
+            attribute = 'quantity_post_loss'
+        return db.query(
+            TableTrade.period.label('period'),
+            getattr(TableTrade, attribute).label(attribute),
+            TableTrade.price.label('price'),
+            TableTrade.month.label('month'),
+            TableTrade.year.label('year'),
+        ).filter(
+            TableTrade.job_id == job_id,
+            TableTrade.source == agent_guid,
+            TableTrade.action == action,
+            TableTrade.resource == resource).all()
     
 
 def db_to_viewable_trade_df_by_agent(job_id: str, agent_guid: str,
@@ -134,24 +162,31 @@ def db_to_viewable_trade_df_by_agent(job_id: str, agent_guid: str,
                                          'quantity_post_loss', 'price', 'tax_paid', 'grid_fee_paid'])
 
 
-def get_total_tax_paid(job_id: str,
+def get_total_tax_paid(job_id: str, agent_guid: Optional[str] = None,
                        session_generator: Callable[[], _GeneratorContextManager[Session]]
                        = session_scope) -> Tuple[float, float]:
     with session_generator() as db:
-        res = db.query(
+        query = db.query(
             func.sum(TableTrade.tax_paid_for_quantity).label('sum_tax_paid_for_quantities'),
-        ).filter(TableTrade.action == Action.SELL, TableTrade.job_id == job_id).first()
+        ).filter(TableTrade.action == Action.SELL,
+                 TableTrade.job_id == job_id)
+        if agent_guid is not None:
+            query = query.filter(TableTrade.source == agent_guid)
+        res = query.first()
 
         return res.sum_tax_paid_for_quantities if res.sum_tax_paid_for_quantities is not None else 0.0
 
 
-def get_total_grid_fee_paid_on_internal_trades(job_id: str,
+def get_total_grid_fee_paid_on_internal_trades(job_id: str, agent_guid: Optional[str] = None,
                                                session_generator: Callable[[], _GeneratorContextManager[Session]]
                                                = session_scope) -> Tuple[float, float]:
     with session_generator() as db:
-        res = db.query(
+        query = db.query(
             func.sum(TableTrade.grid_fee_paid_for_quantity).label('sum_grid_fee_paid_for_quantities'),
         ).filter(TableTrade.action == Action.SELL, TableTrade.by_external.is_(False),
-                 TableTrade.job_id == job_id).first()
+                 TableTrade.job_id == job_id)
+        if agent_guid is not None:
+            query = query.filter(TableTrade.source == agent_guid)
+        res = query.first()
 
         return res.sum_grid_fee_paid_for_quantities if res.sum_grid_fee_paid_for_quantities is not None else 0.0

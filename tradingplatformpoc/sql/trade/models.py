@@ -2,7 +2,7 @@ import datetime
 
 from pydantic.types import Optional
 
-from sqlalchemy import Column, DateTime, Enum, Integer
+from sqlalchemy import Column, DateTime, Enum, Integer, cast, extract
 from sqlalchemy.orm import column_property, declared_attr
 
 from sqlmodel import Field, SQLModel
@@ -94,9 +94,17 @@ class Trade(SQLModel, table=True):
         return column_property(self.quantity_post_loss * self.grid_fee_paid)
     
     @declared_attr
-    def total_bought_for(self):
+    def bought_for(self):
         return column_property(self.quantity_pre_loss * self.price)
     
     @declared_attr
-    def total_sold_for(self):
+    def sold_for(self):
         return column_property(self.quantity_post_loss * self.price)
+
+    @declared_attr
+    def month(self):
+        return column_property(cast(extract('month', self.period), Integer))
+    
+    @declared_attr
+    def year(self):
+        return column_property(cast(extract('year', self.period), Integer))
