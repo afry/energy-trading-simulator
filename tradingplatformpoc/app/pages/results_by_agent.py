@@ -103,7 +103,7 @@ if 'choosen_id_to_view' in st.session_state.keys() and st.session_state.choosen_
             st.metric(
                 label="Net profit.",
                 value="{:,.2f} SEK".format(battery_agent_total_net_profit),
-                help=r"What the {} sold for minus what it bought for.".format(agent_chosen_guid))
+                help=r"What the {} sold minus what it bought.".format(agent_chosen_guid))
             battery_agent_tax_paid = get_total_tax_paid(
                 job_id=st.session_state.choosen_id_to_view['job_id'],
                 agent_guid=agent_chosen_guid)
