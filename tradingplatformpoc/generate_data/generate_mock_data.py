@@ -152,20 +152,20 @@ def simulate_for_agents(agent_dicts: List[Dict[str, Any]], mock_data_constants: 
 
 
 def simulate(mock_data_constants: Dict[str, Any], agent: dict, df_inputs: pl.LazyFrame, n_rows: int,
-             model: RegressionResultsWrapper, output_per_actor: pl.DataFrame, key) -> pl.DataFrame:
+             model: RegressionResultsWrapper, output_per_actor: pl.DataFrame, key: str) -> pl.DataFrame:
     """
     Simulate mock data for agent and mock data constants.
     """
     logger.debug('Starting work on \'{}\''.format(agent[key]))
         
     # Seeds
-    # TODO: This wont really work anymore. Fix!
-    seed_residential_electricity = calculate_seed_from_string(agent[key])
-    seed_residential_heating = calculate_seed_from_string(agent[key] + RESIDENTIAL_HEATING_SEED_SUFFIX)
-    seed_commercial_electricity = calculate_seed_from_string(agent[key] + COMMERCIAL_ELECTRICITY_SEED_SUFFIX)
-    seed_commercial_heating = calculate_seed_from_string(agent[key] + COMMERCIAL_HEATING_SEED_SUFFIX)
-    seed_school_electricity = calculate_seed_from_string(agent[key] + SCHOOL_ELECTRICITY_SEED_SUFFIX)
-    seed_school_heating = calculate_seed_from_string(agent[key] + SCHOOL_HEATING_SEED_SUFFIX)
+    agent_as_str = str(sorted({k: v for k, v in agent.items() if k != key}.items()))
+    seed_residential_electricity = calculate_seed_from_string(agent_as_str)
+    seed_residential_heating = calculate_seed_from_string(agent_as_str + RESIDENTIAL_HEATING_SEED_SUFFIX)
+    seed_commercial_electricity = calculate_seed_from_string(agent_as_str + COMMERCIAL_ELECTRICITY_SEED_SUFFIX)
+    seed_commercial_heating = calculate_seed_from_string(agent_as_str + COMMERCIAL_HEATING_SEED_SUFFIX)
+    seed_school_electricity = calculate_seed_from_string(agent_as_str + SCHOOL_ELECTRICITY_SEED_SUFFIX)
+    seed_school_heating = calculate_seed_from_string(agent_as_str + SCHOOL_HEATING_SEED_SUFFIX)
 
     # Fraction of GrossFloorArea in commercial, school and residential
     fraction_commercial = get_if_exists_else(agent, 'FractionCommercial', 0)
