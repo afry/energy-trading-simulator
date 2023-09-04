@@ -1,5 +1,4 @@
 from tradingplatformpoc.sql.agent.models import Agent  # noqa: F401
-from tradingplatformpoc.sql.agent_in_job.models import AgentInJob  # noqa: F401
 from tradingplatformpoc.sql.bid.models import Bid  # noqa: F401
 from tradingplatformpoc.sql.clearing_price.models import ClearingPrice  # noqa: F401
 from tradingplatformpoc.sql.config.models import Config  # noqa: F401

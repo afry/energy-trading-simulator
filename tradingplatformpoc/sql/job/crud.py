@@ -10,7 +10,6 @@ from sqlalchemy import delete, select
 from sqlmodel import Session
 
 from tradingplatformpoc.connection import session_scope
-from tradingplatformpoc.sql.agent_in_job.models import AgentInJob
 from tradingplatformpoc.sql.bid.models import Bid as TableBid
 from tradingplatformpoc.sql.clearing_price.models import ClearingPrice
 from tradingplatformpoc.sql.electricity_price.models import ElectricityPrice as TableElectricityPrice
@@ -61,7 +60,6 @@ def delete_job(job_id: str,
             logger.error('No job in database with ID {}'.format(job_id))
         else:
             # Delete job AND ALL RELATED DATA
-            db.execute(delete(AgentInJob).where(AgentInJob.job_id == job_id))
             db.execute(delete(TableBid).where(TableBid.job_id == job_id))
             db.execute(delete(ClearingPrice).where(ClearingPrice.job_id == job_id))
             db.execute(delete(TableElectricityPrice).where(TableElectricityPrice.job_id == job_id))
