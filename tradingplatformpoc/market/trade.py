@@ -53,8 +53,8 @@ class Trade:
     tax_paid: float
     grid_fee_paid: float
 
-    def __init__(self, action: Action, resource: Resource, quantity: float, price: float, source: str,
-                 by_external: bool, market: Market, period: datetime.datetime, loss: float = 0.0, tax_paid: float = 0.0,
+    def __init__(self, period: datetime.datetime, action: Action, resource: Resource, quantity: float, price: float,
+                 source: str, by_external: bool, market: Market, loss: float = 0.0, tax_paid: float = 0.0,
                  grid_fee_paid: float = 0.0):
         if quantity <= 0:
             raise RuntimeError('Trade must have quantity > 0, but was ' + str(quantity))
@@ -85,7 +85,7 @@ class Trade:
                                                          self.tax_paid,
                                                          self.grid_fee_paid)
 
-    def to_dict_with_period(self, period: datetime.datetime) -> dict:
+    def to_dict(self) -> dict:
         """Same function name as the one in BidWithAcceptanceStatus, so that the same method can be reused."""
         return {'period': self.period,
                 'source': self.source,

@@ -1,5 +1,5 @@
 from contextlib import _GeneratorContextManager
-from typing import Any, Callable, Collection, Dict, List
+from typing import Callable, Dict, Tuple
 
 import pandas as pd
 
@@ -9,12 +9,6 @@ from sqlmodel import Session
 
 from tradingplatformpoc.connection import session_scope
 from tradingplatformpoc.sql.heating_price.models import HeatingPrice as TableHeatingPrice
-
-
-def external_heating_prices_to_db_objects(
-        heating_price_by_ym_lst: List[Dict[str, Any]],
-        job_id: str) -> Collection[TableHeatingPrice]:
-    return [TableHeatingPrice(job_id=job_id, **args) for args in heating_price_by_ym_lst]
 
 
 def db_to_heating_price_df(job_id: str,
@@ -31,15 +25,13 @@ def db_to_heating_price_df(job_id: str,
                                            } for (heating_price, ) in heating_prices])
 
 
-def db_to_heating_price_dicts(job_id: str,
-                              session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope
-                              ) -> pd.DataFrame:
+def db_to_heating_price_dict(job_id: str, column: str,
+                             session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope
+                             ) -> Dict[Tuple[float, float], float]:
     with session_generator() as db:
-        heating_prices = db.execute(select(TableHeatingPrice).where(TableHeatingPrice.job_id == job_id)).all()
-        exact_retail_heat_price_by_ym = \
-            {(heating_price.year, heating_price.month): heating_price.exact_retail_price
-             for (heating_price, ) in heating_prices}
-        exact_wholesale_heat_price_by_ym = \
-            {(heating_price.year, heating_price.month): heating_price.exact_wholesale_price
-             for (heating_price, ) in heating_prices}
-        return exact_retail_heat_price_by_ym, exact_wholesale_heat_price_by_ym
+        heating_prices = db.execute(select(TableHeatingPrice.year.label('year'),
+                                           TableHeatingPrice.month.label('month'),
+                                           getattr(TableHeatingPrice, column).label('price')
+                                           ).where(TableHeatingPrice.job_id == job_id)).all()
+        return {(heating_price.year, heating_price.month): heating_price.price
+                for heating_price in heating_prices}

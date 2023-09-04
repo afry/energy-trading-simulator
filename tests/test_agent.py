@@ -81,8 +81,8 @@ class TestGridAgent(unittest.TestCase):
         retail_price = 3.948725389630498
         clearing_prices = {Resource.ELECTRICITY: retail_price, Resource.HEATING: np.nan}
         trades_excl_external = [
-            Trade(Action.BUY, Resource.ELECTRICITY, 100, retail_price, "BuildingAgent", False, Market.LOCAL,
-                  SOME_DATETIME)
+            Trade(SOME_DATETIME, Action.BUY, Resource.ELECTRICITY, 100, retail_price, "BuildingAgent", False,
+                  Market.LOCAL)
         ]
         external_trades = self.electricity_grid_agent.calculate_external_trades(trades_excl_external, clearing_prices)
         self.assertEqual(1, len(external_trades))
@@ -99,8 +99,8 @@ class TestGridAgent(unittest.TestCase):
         retail_price = 1.3225484261501212
         clearing_prices = {Resource.ELECTRICITY: np.nan, Resource.HEATING: retail_price}
         trades_excl_external = [
-            Trade(Action.BUY, Resource.HEATING, 100, retail_price, "BuildingAgent", False, Market.LOCAL,
-                  SOME_DATETIME, self.heating_grid_agent.resource_loss_per_side)
+            Trade(SOME_DATETIME, Action.BUY, Resource.HEATING, 100, retail_price, "BuildingAgent", False, Market.LOCAL,
+                  self.heating_grid_agent.resource_loss_per_side)
         ]
         external_trades = self.heating_grid_agent.calculate_external_trades(trades_excl_external, clearing_prices)
         self.assertEqual(1, len(external_trades))
@@ -117,10 +117,10 @@ class TestGridAgent(unittest.TestCase):
         retail_price = 0.99871
         clearing_prices = {Resource.ELECTRICITY: retail_price, Resource.HEATING: np.nan}
         trades_excl_external = [
-            Trade(Action.BUY, Resource.ELECTRICITY, 100, retail_price, "BuildingAgent", False, Market.LOCAL,
-                  SOME_DATETIME),
-            Trade(Action.SELL, Resource.ELECTRICITY, 100, retail_price, "PVAgent", False, Market.LOCAL,
-                  SOME_DATETIME)
+            Trade(SOME_DATETIME, Action.BUY, Resource.ELECTRICITY, 100, retail_price, "BuildingAgent", False,
+                  Market.LOCAL),
+            Trade(SOME_DATETIME, Action.SELL, Resource.ELECTRICITY, 100, retail_price, "PVAgent", False,
+                  Market.LOCAL)
         ]
         external_trades = self.electricity_grid_agent.calculate_external_trades(trades_excl_external, clearing_prices)
         self.assertEqual(0, len(external_trades))
@@ -130,8 +130,8 @@ class TestGridAgent(unittest.TestCase):
         local_price = MAX_NORDPOOL_PRICE + 1.0
         clearing_prices = {Resource.ELECTRICITY: local_price, Resource.HEATING: np.nan}
         trades_excl_external = [
-            Trade(Action.BUY, Resource.ELECTRICITY, 100, local_price, "BuildingAgent", False, Market.LOCAL,
-                  SOME_DATETIME)
+            Trade(SOME_DATETIME, Action.BUY, Resource.ELECTRICITY, 100, local_price, "BuildingAgent", False,
+                  Market.LOCAL)
         ]
         with self.assertLogs() as captured:
             self.electricity_grid_agent.calculate_external_trades(trades_excl_external, clearing_prices)
@@ -144,8 +144,8 @@ class TestGridAgent(unittest.TestCase):
         local_price = MIN_NORDPOOL_PRICE - 1.0
         clearing_prices = {Resource.ELECTRICITY: local_price, Resource.HEATING: np.nan}
         trades_excl_external = [
-            Trade(Action.BUY, Resource.ELECTRICITY, 100, local_price, "BuildingAgent", False, Market.LOCAL,
-                  SOME_DATETIME)
+            Trade(SOME_DATETIME, Action.BUY, Resource.ELECTRICITY, 100, local_price, "BuildingAgent", False,
+                  Market.LOCAL)
         ]
         # Should log a line about external grid and market clearing price being different
         external_trades = self.electricity_grid_agent.calculate_external_trades(trades_excl_external, clearing_prices)
@@ -155,11 +155,13 @@ class TestGridAgent(unittest.TestCase):
         """Test basic functionality of GridAgent's calculate_external_trades method when there is a local surplus."""
         wholesale_price = 3.5087253896304977
         clearing_prices = {Resource.ELECTRICITY: wholesale_price, Resource.HEATING: np.nan}
-        period = SOME_DATETIME
         trades_excl_external = [
-            Trade(Action.BUY, Resource.ELECTRICITY, 100, wholesale_price, "BuildingAgent", False, Market.LOCAL, period),
-            Trade(Action.BUY, Resource.ELECTRICITY, 200, wholesale_price, "GSAgent", False, Market.LOCAL, period),
-            Trade(Action.SELL, Resource.ELECTRICITY, 400, wholesale_price, "PvAgent", False, Market.LOCAL, period)
+            Trade(SOME_DATETIME, Action.BUY, Resource.ELECTRICITY, 100, wholesale_price, "BuildingAgent", False,
+                  Market.LOCAL),
+            Trade(SOME_DATETIME, Action.BUY, Resource.ELECTRICITY, 200, wholesale_price, "GSAgent", False,
+                  Market.LOCAL),
+            Trade(SOME_DATETIME, Action.SELL, Resource.ELECTRICITY, 400, wholesale_price, "PvAgent", False,
+                  Market.LOCAL)
         ]
         external_trades = self.electricity_grid_agent.calculate_external_trades(trades_excl_external, clearing_prices)
         self.assertEqual(1, len(external_trades))
@@ -169,17 +171,17 @@ class TestGridAgent(unittest.TestCase):
         self.assertAlmostEqual(wholesale_price, external_trades[0].price)
         self.assertEqual("ElectricityGridAgent", external_trades[0].source)
         self.assertEqual(Market.LOCAL, external_trades[0].market)
-        self.assertEqual(period, external_trades[0].period)
+        self.assertEqual(SOME_DATETIME, external_trades[0].period)
 
     def test_calculate_trades_with_some_bids_with_other_resource(self):
         """When sent into an electricity grid agent, heating trades should be ignored."""
         retail_price = 3.948725389630498
         clearing_prices = {Resource.ELECTRICITY: retail_price, Resource.HEATING: np.nan}
         trades_excl_external = [
-            Trade(Action.BUY, Resource.ELECTRICITY, 100, retail_price, "BuildingAgent", False, Market.LOCAL,
-                  SOME_DATETIME),
-            Trade(Action.BUY, Resource.HEATING, 100, retail_price, "BuildingAgent", False, Market.LOCAL,
-                  SOME_DATETIME)
+            Trade(SOME_DATETIME, Action.BUY, Resource.ELECTRICITY, 100, retail_price, "BuildingAgent", False,
+                  Market.LOCAL),
+            Trade(SOME_DATETIME, Action.BUY, Resource.HEATING, 100, retail_price, "BuildingAgent", False,
+                  Market.LOCAL)
         ]
         external_trades = self.electricity_grid_agent.calculate_external_trades(trades_excl_external, clearing_prices)
         self.assertEqual(1, len(external_trades))
@@ -196,10 +198,10 @@ class TestGridAgent(unittest.TestCase):
         retail_price = 1.0
         clearing_prices = {Resource.ELECTRICITY: retail_price, Resource.HEATING: np.nan}
         trades_excl_external = [
-            Trade(Action.BUY, Resource.ELECTRICITY, 100, retail_price, "BuildingAgent", False, Market.LOCAL,
-                  DATETIME_ARRAY[0]),
-            Trade(Action.BUY, Resource.ELECTRICITY, 100, retail_price, "BuildingAgent", False, Market.LOCAL,
-                  DATETIME_ARRAY[1])
+            Trade(DATETIME_ARRAY[0], Action.BUY, Resource.ELECTRICITY, 100, retail_price, "BuildingAgent", False,
+                  Market.LOCAL),
+            Trade(DATETIME_ARRAY[1], Action.BUY, Resource.ELECTRICITY, 100, retail_price, "BuildingAgent", False,
+                  Market.LOCAL)
         ]
         with self.assertRaises(RuntimeError):
             self.electricity_grid_agent.calculate_external_trades(trades_excl_external, clearing_prices)
@@ -274,8 +276,10 @@ class TestBatteryAgent(unittest.TestCase):
     def test_make_trade_with_2_accepted_bids(self):
         """Test that an error is raised when trying to calculate what trade to make, with more than 1 accepted bid."""
         accepted_bids_for_agent = [
-            NetBidWithAcceptanceStatus(Action.BUY, Resource.ELECTRICITY, 100, 1, 'BatteryAgent', False, True),
-            NetBidWithAcceptanceStatus(Action.SELL, Resource.ELECTRICITY, 100, 1, 'BatteryAgent', False, True)
+            NetBidWithAcceptanceStatus(SOME_DATETIME, Action.BUY, Resource.ELECTRICITY, 100, 1, 'BatteryAgent', False,
+                                       True),
+            NetBidWithAcceptanceStatus(SOME_DATETIME, Action.SELL, Resource.ELECTRICITY, 100, 1, 'BatteryAgent', False,
+                                       True)
         ]
         clearing_prices = {Resource.ELECTRICITY: 1.0, Resource.HEATING: np.nan}
         with self.assertRaises(RuntimeError):

@@ -1,24 +1,26 @@
 
 import datetime
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import altair as alt
 
 import pandas as pd
 from pandas.io.formats.style import Styler
 
-from pkg_resources import resource_filename
-
 import streamlit as st
 
 from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app import app_constants
-from tradingplatformpoc.data.preproccessing import read_nordpool_data
+from tradingplatformpoc.data.preproccessing import create_inputs_df_for_mock_data_generation, \
+    read_heating_data, read_irradiation_data, read_nordpool_data, read_temperature_data
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
-from tradingplatformpoc.generate_data.generate_mock_data import create_inputs_df
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
+from tradingplatformpoc.sql.electricity_price.crud import db_to_electricity_price_dict
+from tradingplatformpoc.sql.extra_cost.crud import db_to_aggregated_extra_costs_by_agent
+from tradingplatformpoc.sql.heating_price.crud import db_to_heating_price_dict
+from tradingplatformpoc.sql.trade.crud import db_to_trades_by_agent_and_resource_action, get_total_traded_for_agent
 
 
 def get_price_df_when_local_price_inbetween(prices_df: pd.DataFrame, resource: Resource) -> pd.DataFrame:
@@ -233,9 +235,11 @@ def aggregated_import_and_export_results_df_split_on_temperature() -> Dict[str, 
     or below 1 degree Celsius.
     """
     # Read in-data: Temperature and timestamps, TODO: simplify
-    df_inputs, df_irrd = create_inputs_df(resource_filename(app_constants.DATA_PATH, 'temperature_vetelangden.csv'),
-                                          resource_filename(app_constants.DATA_PATH, 'varberg_irradiation_W_m2_h.csv'),
-                                          resource_filename(app_constants.DATA_PATH, 'vetelangden_slim.csv'))
+    df_inputs = create_inputs_df_for_mock_data_generation(
+        read_temperature_data(),
+        read_irradiation_data(),
+        read_heating_data()
+    )
     
     temperature_df = df_inputs.to_pandas()[['datetime', 'temperature']]
     temperature_df['above_1_degree'] = temperature_df['temperature'].values >= 1.0
@@ -356,3 +360,51 @@ def color_in(val):
     else:
         color = '#f01d5c'
     return 'color: %s' % color
+
+
+def get_savings_vs_only_external_buy_heat(job_id: str, agent_guid: str):
+    buy_trades = db_to_trades_by_agent_and_resource_action(job_id, agent_guid, Resource.HEATING, Action.BUY)
+    retail_prices = db_to_heating_price_dict(job_id, "exact_retail_price")
+    return sum([trade.quantity_pre_loss * (retail_prices[(trade.year, trade.month)] - trade.price)
+                for trade in buy_trades])
+
+
+def get_savings_vs_only_external_sell_heat(job_id: str, agent_guid: str):
+    sell_trades = db_to_trades_by_agent_and_resource_action(job_id, agent_guid, Resource.HEATING, Action.SELL)
+    wholesale_prices = db_to_heating_price_dict(job_id, "exact_wholesale_price")
+    return sum([trade.quantity_post_loss * (trade.price - wholesale_prices[(trade.year, trade.month)])
+                for trade in sell_trades])
+
+
+def get_savings_vs_only_external_buy_elec(job_id: str, agent_guid: str):
+    buy_trades = db_to_trades_by_agent_and_resource_action(job_id, agent_guid, Resource.ELECTRICITY, Action.BUY)
+    retail_prices = db_to_electricity_price_dict(job_id, "retail_price")
+    return sum([trade.quantity_pre_loss * (retail_prices[trade.period] - trade.price)
+                for trade in buy_trades])
+
+
+def get_savings_vs_only_external_sell_elec(job_id: str, agent_guid: str):
+    sell_trades = db_to_trades_by_agent_and_resource_action(job_id, agent_guid, Resource.ELECTRICITY, Action.SELL)
+    wholesale_prices = db_to_electricity_price_dict(job_id, "wholesale_price")
+    return sum([trade.quantity_post_loss * (trade.price - wholesale_prices[trade.period])
+                for trade in sell_trades])
+
+
+def get_savings_vs_only_external_buy(job_id: str, agent_guid: str) -> Tuple[float, float]:
+
+    extra_costs_for_bad_bids, extra_costs_for_heat_cost_discr = \
+        db_to_aggregated_extra_costs_by_agent(job_id, agent_guid)
+    
+    # Saving by using local market, before taking penalties into account [SEK]
+    total_saved = get_savings_vs_only_external_buy_heat(job_id, agent_guid) \
+        + get_savings_vs_only_external_buy_elec(job_id, agent_guid) \
+        + get_savings_vs_only_external_sell_heat(job_id, agent_guid) \
+        + get_savings_vs_only_external_sell_elec(job_id, agent_guid) \
+        - extra_costs_for_heat_cost_discr
+
+    return total_saved, extra_costs_for_bad_bids
+
+
+def get_total_profit_net(job_id: str, agent_guid: str) -> float:
+    return get_total_traded_for_agent(job_id, agent_guid, Action.SELL) \
+        - get_total_traded_for_agent(job_id, agent_guid, Action.BUY)

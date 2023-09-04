@@ -7,10 +7,11 @@ import streamlit as st
 from tradingplatformpoc.app import footer
 from tradingplatformpoc.app.app_visualizations import construct_combined_price_df, construct_price_chart, \
     get_price_df_when_local_price_inbetween
-from tradingplatformpoc.market.bid import Resource
+from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.sql.clearing_price.crud import db_to_construct_local_prices_df
 from tradingplatformpoc.sql.config.crud import read_config
-from tradingplatformpoc.sql.trade.crud import get_total_grid_fee_paid_on_internal_trades, get_total_tax_paid
+from tradingplatformpoc.sql.trade.crud import db_to_aggregated_trade_df, \
+    get_total_grid_fee_paid_on_internal_trades, get_total_tax_paid
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +54,22 @@ if 'choosen_id_to_view' in st.session_state.keys() and st.session_state.choosen_
                        "between external retail and wholesale price:")
             st.dataframe(get_price_df_when_local_price_inbetween(st.session_state.combined_price_df,
                                                                  Resource.ELECTRICITY))
+    resources = [Resource.ELECTRICITY, Resource.HEATING]
+    agg_tabs = st.tabs([resource.name.capitalize() for resource in resources])
+    for resource, tab in zip(resources, agg_tabs):
+        with tab:
+            agg_buy_trades = db_to_aggregated_trade_df(st.session_state.choosen_id_to_view['job_id'],
+                                                       resource, Action.BUY)
+            agg_sell_trades = db_to_aggregated_trade_df(st.session_state.choosen_id_to_view['job_id'],
+                                                        resource, Action.SELL)
+            
+            agg_trades = agg_buy_trades.merge(agg_sell_trades, on='Agent', how='outer').transpose()
+            agg_trades = agg_trades.style.set_properties(**{'width': '400px'})
+            st.dataframe(agg_trades)
+
+            st.caption("For purchases, the quantities used for calculation is before losses but for "
+                       "sales the quantities after losses are used.")
+
 
 # TODO: Update graphs to work with results taken from database
 # if 'simulation_results' in st.session_state:
