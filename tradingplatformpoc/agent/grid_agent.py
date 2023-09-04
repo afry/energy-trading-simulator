@@ -36,7 +36,8 @@ class GridAgent(IAgent):
         # Get the retail price, taxes will be added later
         retail_price = self.pricing.get_estimated_retail_price(period, include_tax=False)
         # Sell up to self.max_transfer_per_hour kWh
-        bid_to_sell = self.construct_gross_bid(Action.SELL, self.resource, self.max_transfer_per_hour, retail_price)
+        bid_to_sell = self.construct_gross_bid(period, Action.SELL, self.resource, self.max_transfer_per_hour,
+                                               retail_price)
         # Note: In FED, this agent also submits a BUY bid at "wholesale price". To implement this, we'd need a way
         # for the market solver to know that such a bid doesn't _have to_ be filled. Not sure how this was handled in
         # FED. For us, the "wholesale price" comes into the pricing through the other selling agents: They check what
@@ -44,8 +45,8 @@ class GridAgent(IAgent):
         # local price was to be lower than that, those agents would just sell directly to the external grid instead).
         return [bid_to_sell]
 
-    def construct_gross_bid(self, action, resource, quantity, price) -> GrossBid:
-        return GrossBid(action, resource, quantity, price, self.guid, True)
+    def construct_gross_bid(self, period, action, resource, quantity, price) -> GrossBid:
+        return GrossBid(period, action, resource, quantity, price, self.guid, True)
 
     def make_prognosis(self, period: datetime.datetime, resource: Resource) -> float:
         # FUTURE: Make prognoses of the price, instead of using actual? Although we are already using the day-ahead?
@@ -105,9 +106,9 @@ class GridAgent(IAgent):
             need_to_provide = deficit_in_market / (1 - self.resource_loss_per_side)
             tax_to_pay = self.pricing.elec_tax if isinstance(self.pricing, ElectricityPrice) else 0.0
             trades_to_add.append(
-                Trade(Action.SELL, resource, need_to_provide, retail_price, self.guid, True, market, period,
-                      loss=self.resource_loss_per_side,
-                      tax_paid=tax_to_pay))
+                Trade(period=period, action=Action.SELL, resource=resource, quantity=need_to_provide,
+                      price=retail_price, source=self.guid, by_external=True, market=market,
+                      loss=self.resource_loss_per_side, tax_paid=tax_to_pay))
             if market == Market.LOCAL:
                 if local_clearing_price < retail_price:
                     # What happened here is that the market solver believed that locally produced energy would cover
@@ -124,7 +125,8 @@ class GridAgent(IAgent):
             surplus_in_market = sum_sells - sum_buys
             need_to_buy = surplus_in_market * (1 - self.resource_loss_per_side)
             trades_to_add.append(
-                Trade(Action.BUY, resource, need_to_buy, wholesale_price, self.guid, True, market, period,
+                Trade(period=period, action=Action.BUY, resource=resource, quantity=need_to_buy, price=wholesale_price,
+                      source=self.guid, by_external=True, market=market,
                       loss=self.resource_loss_per_side))
             if market == Market.LOCAL:
                 if local_clearing_price > wholesale_price:

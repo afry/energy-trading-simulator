@@ -272,7 +272,7 @@ with st.expander('Edit descriptions'):
             key='edit_df',
             column_config={
                 "Edit": st.column_config.TextColumn(
-                    help="Edit description.",
+                    help="Save changes to descriptions.",
                 )
             },
             hide_index=False,

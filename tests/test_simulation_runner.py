@@ -1,4 +1,3 @@
-# import datetime
 import datetime
 from unittest import TestCase, mock
 
@@ -9,7 +8,7 @@ import pandas as pd
 from pkg_resources import resource_filename
 
 from tradingplatformpoc.config.access_config import read_config
-from tradingplatformpoc.generate_data.mock_data_generation_functions import get_elec_cons_key, \
+from tradingplatformpoc.generate_data.mock_data_utils import get_elec_cons_key, \
     get_hot_tap_water_cons_key, get_space_heat_cons_key
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.market.trade import Market, Trade
@@ -23,6 +22,7 @@ from tradingplatformpoc.trading_platform_utils import hourly_datetime_array_betw
 
 class Test(TestCase):
 
+    fake_job_id = "111111111111"
     mock_datas_file_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
     config = read_config()
     heat_pricing: HeatingPrice = HeatingPrice(
@@ -63,10 +63,10 @@ class Test(TestCase):
         prices, and warnings should be logged.
         """
         with self.assertLogs() as captured:
-            heating_price_lst = get_external_heating_prices(self.heat_pricing,
-                                                            pd.DatetimeIndex([datetime.datetime(2019, 2, 1),
+            heating_price_list = get_external_heating_prices(self.heat_pricing, self.fake_job_id,
+                                                             pd.DatetimeIndex([datetime.datetime(2019, 2, 1),
                                                                               datetime.datetime(2019, 2, 2)]))
-        heating_prices = pd.DataFrame.from_records(heating_price_lst)
+        heating_prices = pd.DataFrame.from_records(heating_price_list)
         self.assertTrue(len(captured.records) > 0)
         log_levels_captured = [rec.levelname for rec in captured.records]
         self.assertTrue('WARNING' in log_levels_captured)
@@ -81,7 +81,7 @@ class Test(TestCase):
         Test construct_df_from_datetime_dict method, by creating a Dict[datetime, Trade]
         """
         dts = hourly_datetime_array_between(datetime.datetime(2019, 1, 1), datetime.datetime(2020, 1, 1))
-        dt_dict = {dt: [Trade(Action.BUY, Resource.ELECTRICITY, i, i, 'Agent' + str(i), False, Market.LOCAL, dt)
+        dt_dict = {dt: [Trade(dt, Action.BUY, Resource.ELECTRICITY, i, i, 'Agent' + str(i), False, Market.LOCAL)
                         for i in range(1, 6)]
                    for dt in dts}
         my_df = construct_df_from_datetime_dict(dt_dict)
