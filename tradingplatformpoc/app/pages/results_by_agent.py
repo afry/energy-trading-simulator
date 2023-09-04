@@ -97,12 +97,12 @@ if 'choosen_id_to_view' in st.session_state.keys() and st.session_state.choosen_
                  r"total savings after penalties to {:,.2f} SEK.".format(agent_chosen_guid, extra_costs_for_bad_bids,
                                                                          total_saved - extra_costs_for_bad_bids))
         if agent_type == 'BatteryAgent':
-            battery_agent_total_profit_net = get_total_profit_net(
+            battery_agent_total_net_profit = get_total_profit_net(
                 job_id=st.session_state.choosen_id_to_view['job_id'],
                 agent_guid=agent_chosen_guid)
             st.metric(
                 label="Net profit.",
-                value="{:,.2f} SEK".format(battery_agent_total_profit_net),
+                value="{:,.2f} SEK".format(battery_agent_total_net_profit),
                 help=r"What the {} sold for minus what it bought for.".format(agent_chosen_guid))
             battery_agent_tax_paid = get_total_tax_paid(
                 job_id=st.session_state.choosen_id_to_view['job_id'],
@@ -113,7 +113,7 @@ if 'choosen_id_to_view' in st.session_state.keys() and st.session_state.choosen_
             st.metric(
                 label="Gross profit.",
                 value="{:,.2f} SEK".format(
-                    battery_agent_total_profit_net + battery_agent_tax_paid + battery_agent_grid_fee_paid),
+                    battery_agent_total_net_profit + battery_agent_tax_paid + battery_agent_grid_fee_paid),
                 help=r"Net profit plus what the {} paid for tax and grid fees.".format(agent_chosen_guid))
 
 

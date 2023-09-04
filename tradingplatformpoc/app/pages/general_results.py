@@ -67,8 +67,8 @@ if 'choosen_id_to_view' in st.session_state.keys() and st.session_state.choosen_
             agg_trades = agg_trades.style.set_properties(**{'width': '400px'})
             st.dataframe(agg_trades)
 
-            st.caption("For buy trades, the quantities used for calculation is before losses, while "
-                       "for sell trades it's the quantities after losses that is used.")
+            st.caption("For purchases, the quantities used for calculation is before losses but for "
+                       "sales the quantities after losses are used.")
 
 
 # TODO: Update graphs to work with results taken from database
