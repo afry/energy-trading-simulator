@@ -11,6 +11,7 @@ from st_pages import show_pages_from_config, add_indentation
 
 from tradingplatformpoc.database import create_db_and_tables, insert_default_config_into_db
 from tradingplatformpoc.sql.input_data.crud import insert_input_data_to_db_if_empty
+from tradingplatformpoc.sql.input_electricity_price.crud import insert_input_electricity_price_to_db_if_empty
 
 # Note: To debug a streamlit script, see https://stackoverflow.com/a/60172283
 
@@ -55,6 +56,7 @@ if string_to_log_later is not None:
 
 create_db_and_tables()
 insert_input_data_to_db_if_empty()
+insert_input_electricity_price_to_db_if_empty()
 insert_default_config_into_db()
 
 if __name__ == '__main__':
