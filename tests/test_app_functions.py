@@ -70,8 +70,8 @@ class TestAppFunctions(TestCase):
                                                                  mock_grid_he,
                                                                  mock_pv]}))
         
-        # Invalid resouce
-        self.assertEqual("Resource ThisIsNotAValidResource is not in availible for agent ElectricityGridAgent.",
+        # Invalid resource
+        self.assertEqual("Resource ThisIsNotAValidResource is not in available for agent ElectricityGridAgent.",
                          config_data_agent_screening({'Agents': [{"Type": "GridAgent",
                                                                   "Name": "ElectricityGridAgent",
                                                                   "Resource": "ThisIsNotAValidResource",
@@ -117,7 +117,7 @@ class TestAppFunctions(TestCase):
                                                                  mock_pv]}))
         
         # Unknown parameter
-        self.assertEqual("Specified ThisIsNotAValidAgentParameter not in availible "
+        self.assertEqual("Specified ThisIsNotAValidAgentParameter not in available "
                          "input params for agent HeatingGridAgent of type GridAgent.",
                          config_data_agent_screening({'Agents': [{**mock_grid_he,
                                                                   **{'ThisIsNotAValidAgentParameter': 0.0}},

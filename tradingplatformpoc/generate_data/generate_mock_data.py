@@ -11,7 +11,7 @@ import polars as pl
 from statsmodels.regression.linear_model import RegressionResultsWrapper
 
 from tradingplatformpoc.compress import bz2_decompress_pickle
-from tradingplatformpoc.data.preproccessing import create_inputs_df_for_mock_data_generation, read_heating_data, \
+from tradingplatformpoc.data.preprocessing import create_inputs_df_for_mock_data_generation, read_heating_data, \
     read_irradiation_data, read_temperature_data
 from tradingplatformpoc.database import bulk_insert
 from tradingplatformpoc.generate_data.generation_functions.common import add_datetime_value_frames

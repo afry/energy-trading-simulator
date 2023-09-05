@@ -28,56 +28,56 @@ set_max_width('1000px')  # This tab looks a bit daft when it is too wide, so lim
 
 
 options = ['...input parameters through UI.', '...upload configuration file.']
-option_choosen = st.sidebar.selectbox('I want to...', options)
+option_chosen = st.sidebar.selectbox('I want to...', options)
 
 st.markdown('On this page you can create new scenario configurations to run simulations for. '
             'Start by selecting a configuration to compare against. '
             'If you click on the *set*-button below, then the *current* configuration is changed to '
-            'the choosen existing configuration. '
+            'the chosen existing configuration. '
             'This existing configuration can then be customized by changing parameters in the '
             'forms under **Create new configuration**.')
 
 st.divider()
 
 config_ids = get_all_config_ids_in_db()
-choosen_config_id = st.selectbox('Choose an existing configuration.', config_ids)
+chosen_config_id = st.selectbox('Choose an existing configuration.', config_ids)
 
 if len(config_ids) > 0:
-    with st.expander('Choosen existing configuration :blue[{}]'.format(choosen_config_id)):
-        st.write('**Configuration description**: ', read_description(choosen_config_id))
+    with st.expander('chosen existing configuration :blue[{}]'.format(chosen_config_id)):
+        st.write('**Configuration description**: ', read_description(chosen_config_id))
         st.markdown("##")
         # Button to export config to a JSON file
-        st.download_button(label="Export *" + choosen_config_id + "* config to JSON",
-                           data=json.dumps(read_config(choosen_config_id)),
-                           file_name="trading-platform-poc-config-" + choosen_config_id + ".json",
-                           mime="text/json", help="Click button below to download the " + choosen_config_id
+        st.download_button(label="Export *" + chosen_config_id + "* config to JSON",
+                           data=json.dumps(read_config(chosen_config_id)),
+                           file_name="trading-platform-poc-config-" + chosen_config_id + ".json",
+                           mime="text/json", help="Click button below to download the " + chosen_config_id
                            + " configuration to a JSON-file.")
         st.markdown("#")
-        st.json(read_config(choosen_config_id), expanded=True)
+        st.json(read_config(chosen_config_id), expanded=True)
 
-reset_config_button = st.button(label="SET CONFIGURATION TO **{}**".format(choosen_config_id),
+reset_config_button = st.button(label="SET CONFIGURATION TO **{}**".format(chosen_config_id),
                                 help="Click here to DELETE custom configuration and reset configuration to "
-                                "choosen base configuration", type='primary',
-                                disabled=(option_choosen == options[1]))
+                                "chosen base configuration", type='primary',
+                                disabled=(option_chosen == options[1]))
 
 if ('config_data' not in st.session_state.keys()) or (reset_config_button):
     reset_config_button = False
-    st.session_state.config_data = read_config(choosen_config_id)
+    st.session_state.config_data = read_config(chosen_config_id)
 
 
 st.divider()
 
 st.caption("Button for deleting configuration {} from storage. Caution! This affects ALL USERS. "
            "Won't allow deletion if saved jobs exist. "
-           "Jobs can be deleted on the *Run simulation*-page.".format(choosen_config_id))
+           "Jobs can be deleted on the *Run simulation*-page.".format(chosen_config_id))
 
-delete_config_button = st.button(label="DELETE CONFIGURATION **{}**".format(choosen_config_id),
+delete_config_button = st.button(label="DELETE CONFIGURATION **{}**".format(chosen_config_id),
                                  help="Click here to DELETE the existing configuration. "
                                  "Only configurations with no saved jobs can be deleted.", type='secondary',
-                                 disabled=(option_choosen == options[1]))
+                                 disabled=(option_chosen == options[1]))
 if delete_config_button:
     delete_config_button = False
-    deleted = delete_config_if_no_jobs_exist(choosen_config_id)
+    deleted = delete_config_if_no_jobs_exist(chosen_config_id)
     if deleted:
         st.success('Configuration deleted!')
     else:
@@ -98,7 +98,7 @@ if comp_pveff is not None:
 # TODO: Button for setting all PVEfficiency params to same value
 # TODO: Same for Heatpump COP
 
-if option_choosen == options[0]:
+if option_chosen == options[0]:
     with st.expander("General parameters"):
         st.markdown('Change parameter values by filling out the following forms. **Save** '
                     'changes by clicking on respective save button. Changes can be '
@@ -138,9 +138,9 @@ if option_choosen == options[0]:
                         'at the bottom. Changes can be verified against the configuration under the '
                         '*Current configuration in JSON format*-expander.')
             current_agent_names = [agent['Name'] for agent in current_agents]
-            choosen_agent_name = st.selectbox('Choose an agent to modify:', current_agent_names)
-            choosen_agent_ind = current_agent_names.index(choosen_agent_name)
-            agent = current_agents[choosen_agent_ind]
+            chosen_agent_name = st.selectbox('Choose an agent to modify:', current_agent_names)
+            chosen_agent_ind = current_agent_names.index(chosen_agent_name)
+            agent = current_agents[chosen_agent_ind]
             agent_inputs(agent)
 
             # Additional buttons
@@ -159,14 +159,14 @@ if option_choosen == options[0]:
                         'from the drop down list, and modify the pre-selected parameter values. '
                         'Click on **Save** to create agent.')
             agent_type_options = ['BuildingAgent', 'GroceryStoreAgent', 'BatteryAgent', 'PVAgent']
-            choosen_agent_type = st.selectbox('Add new agent of type:', options=agent_type_options)
-            if choosen_agent_type == 'BuildingAgent':
+            chosen_agent_type = st.selectbox('Add new agent of type:', options=agent_type_options)
+            if chosen_agent_type == 'BuildingAgent':
                 add_building_agent()
-            elif choosen_agent_type == 'GroceryStoreAgent':
+            elif chosen_agent_type == 'GroceryStoreAgent':
                 add_grocery_store_agent()
-            elif choosen_agent_type == 'BatteryAgent':
+            elif chosen_agent_type == 'BatteryAgent':
                 add_battery_agent()
-            elif choosen_agent_type == 'PVAgent':
+            elif chosen_agent_type == 'PVAgent':
                 add_pv_agent()
             if 'agents_added' in st.session_state.keys() and st.session_state.agents_added:
                 st.success("Last new agent added: '" + current_agents[-1]["Name"] + "'")
@@ -187,13 +187,13 @@ if option_choosen == options[0]:
                         remove_agent(agent)
                     st.experimental_rerun()
             else:
-                st.markdown('No agents availible to delete.')
+                st.markdown('No agents available to delete.')
 
             st.button(":red[Remove all BuildingAgents]", on_click=remove_all_building_agents, use_container_width=True)
 
         # --------------------- End config specification for dummies ------------------------
 
-if option_choosen == options[1]:
+if option_chosen == options[1]:
     uploaded_file = st.file_uploader(label="Upload configuration", type="json",
                                      help="Expand the sections below for information on how the configuration file "
                                           "should look")
@@ -230,7 +230,7 @@ with config_container:
             st.json(st.session_state.config_data, expanded=True)
     with coltext:
         with st.expander('Configuration changes from default'):
-            str_to_disp = display_diff_in_config(read_config(choosen_config_id), st.session_state.config_data)
+            str_to_disp = display_diff_in_config(read_config(chosen_config_id), st.session_state.config_data)
             if len(str_to_disp) > 1:
                 for s in str_to_disp:
                     st.markdown(s)
