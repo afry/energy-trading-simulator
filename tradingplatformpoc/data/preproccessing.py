@@ -124,7 +124,7 @@ def read_and_process_input_data():
     """
     Create input dataframe.
     """
-    dfs = [read_irradiation_data(), read_temperature_data()]
+    dfs = [read_irradiation_data(), read_temperature_data(), read_heating_data()]
     dfs_cleaned = [clean(df) for df in dfs]
     df_merged = functools.reduce(lambda left, right: left.join(right, on='datetime', how='inner'), dfs_cleaned)
     return df_merged.reset_index()

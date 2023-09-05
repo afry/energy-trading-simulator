@@ -24,3 +24,15 @@ class InputData(SQLModel, table=True):
         title='Outdoor temperature, degrees Celsius.',
         nullable=False
     )
+    rad_energy: float = Field(
+        primary_key=False,
+        default=None,
+        title='Radiator heating energy consumption, in kW.',
+        nullable=False
+    )
+    hw_energy: float = Field(
+        primary_key=False,
+        default=None,
+        title='Hot water heating energy consumption, in kW.',
+        nullable=False
+    )
