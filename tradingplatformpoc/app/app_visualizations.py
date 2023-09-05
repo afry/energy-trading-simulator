@@ -19,7 +19,7 @@ from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.sql.electricity_price.crud import db_to_electricity_price_dict
 from tradingplatformpoc.sql.extra_cost.crud import db_to_aggregated_extra_costs_by_agent
 from tradingplatformpoc.sql.heating_price.crud import db_to_heating_price_dict
-from tradingplatformpoc.sql.input_data.crud import read_temperature_df_from_db
+from tradingplatformpoc.sql.input_data.crud import read_input_column_df_from_db
 from tradingplatformpoc.sql.trade.crud import db_to_trades_by_agent_and_resource_action, get_total_traded_for_agent
 
 
@@ -234,7 +234,7 @@ def aggregated_import_and_export_results_df_split_on_temperature() -> Dict[str, 
     Dict of dataframes displaying total import and export of resources split for when the temperature was above
     or below 1 degree Celsius.
     """
-    temperature_df = read_temperature_df_from_db()
+    temperature_df = read_input_column_df_from_db('temperature')
     temperature_df['above_1_degree'] = temperature_df['temperature'].values >= 1.0
     period = st.session_state.simulation_results.all_trades.period
     temp_mask = pd.DataFrame(period).merge(temperature_df, on='period', how='left')['above_1_degree']

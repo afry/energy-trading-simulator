@@ -12,7 +12,7 @@ from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app.app_threading import StoppableThread
-from tradingplatformpoc.data.preproccessing import read_energy_data, read_irradiation_data, read_nordpool_data
+from tradingplatformpoc.data.preproccessing import read_energy_data, read_nordpool_data
 from tradingplatformpoc.database import bulk_insert
 from tradingplatformpoc.digitaltwin.battery import Battery
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
@@ -38,6 +38,7 @@ from tradingplatformpoc.sql.electricity_price.models import ElectricityPrice as 
 from tradingplatformpoc.sql.extra_cost.crud import extra_costs_to_db_dict
 from tradingplatformpoc.sql.extra_cost.models import ExtraCost as TableExtraCost
 from tradingplatformpoc.sql.heating_price.models import HeatingPrice as TableHeatingPrice
+from tradingplatformpoc.sql.input_data.crud import read_input_column_df_from_db
 from tradingplatformpoc.sql.job.crud import create_job_if_new_config, delete_job, update_job_with_end_time
 from tradingplatformpoc.sql.level.crud import levels_to_db_dict
 from tradingplatformpoc.sql.level.models import Level as TableLevel
@@ -106,7 +107,7 @@ class TradingSimulator:
 
         # Read CSV files
         tornet_household_elec_cons, coop_elec_cons, tornet_heat_cons, coop_heat_cons = read_energy_data()
-        irradiation_data = read_irradiation_data().set_index('datetime').squeeze()
+        irradiation_data = read_input_column_df_from_db('irradiation').set_index('period').squeeze()
 
         for agent in self.config_data["Agents"]:
             agent_type = agent["Type"]

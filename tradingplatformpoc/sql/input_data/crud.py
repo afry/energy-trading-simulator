@@ -30,15 +30,16 @@ def insert_input_data_to_db_if_empty(session_generator: Callable[[], _GeneratorC
             logger.info('Input data table already populated.')
 
 
-def read_temperature_df_from_db(
+def read_input_column_df_from_db(
+        column: str,
         session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope) -> pd.DataFrame:
     with session_generator() as db:
         res = db.execute(select(InputData.period.label('period'),
-                                InputData.temperature.label('temperature'))).all()
+                                getattr(InputData, column).label('value'))).all()
         if res is not None:
             return pd.DataFrame.from_records([{
                 'period': x.period,
-                'temperature': x.temperature}
+                column: x.value}
                 for x in res])
         else:
             raise Exception('Could not fetch input data from database.')
