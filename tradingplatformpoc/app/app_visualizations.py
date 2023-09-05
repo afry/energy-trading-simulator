@@ -12,14 +12,14 @@ import streamlit as st
 from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app import app_constants
-from tradingplatformpoc.data.preproccessing import create_inputs_df_for_mock_data_generation, \
-    read_heating_data, read_irradiation_data, read_nordpool_data, read_temperature_data
+from tradingplatformpoc.data.preproccessing import read_nordpool_data
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.sql.electricity_price.crud import db_to_electricity_price_dict
 from tradingplatformpoc.sql.extra_cost.crud import db_to_aggregated_extra_costs_by_agent
 from tradingplatformpoc.sql.heating_price.crud import db_to_heating_price_dict
+from tradingplatformpoc.sql.input_data.crud import read_temperature_df_from_db
 from tradingplatformpoc.sql.trade.crud import db_to_trades_by_agent_and_resource_action, get_total_traded_for_agent
 
 
@@ -234,18 +234,10 @@ def aggregated_import_and_export_results_df_split_on_temperature() -> Dict[str, 
     Dict of dataframes displaying total import and export of resources split for when the temperature was above
     or below 1 degree Celsius.
     """
-    # Read in-data: Temperature and timestamps, TODO: simplify
-    df_inputs = create_inputs_df_for_mock_data_generation(
-        read_temperature_data(),
-        read_irradiation_data(),
-        read_heating_data()
-    )
-    
-    temperature_df = df_inputs.to_pandas()[['datetime', 'temperature']]
+    temperature_df = read_temperature_df_from_db()
     temperature_df['above_1_degree'] = temperature_df['temperature'].values >= 1.0
     period = st.session_state.simulation_results.all_trades.period
-    temp_mask = pd.DataFrame(period).rename(columns={'period': 'datetime'}).merge(temperature_df, on='datetime',
-                                                                                  how='left')['above_1_degree']
+    temp_mask = pd.DataFrame(period).merge(temperature_df, on='period', how='left')['above_1_degree']
     return aggregated_import_and_export_results_df_split_on_mask(temp_mask, ['Above', 'Below'])
 
 
