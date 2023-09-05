@@ -1,3 +1,6 @@
+import functools
+import logging
+
 import numpy as np
 
 import pandas as pd
@@ -7,6 +10,8 @@ from pkg_resources import resource_filename
 import polars as pl
 
 # This file contains functions used for reading and preprocessing data from files.
+
+logger = logging.getLogger(__name__)
 
 
 # Read CSVs
@@ -98,6 +103,32 @@ def read_heating_data(data_path: str = "tradingplatformpoc.data",
 
 # Preprocess data
 # ----------------------------------------------------------------------------------------------------------------------
+
+def clean(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Interpolate values for missing datetimes in dataframe range.
+    """
+    df = df.set_index('datetime')
+    datetime_range = pd.date_range(start=df.index.min(), end=df.index.max(),
+                                   freq="1h", tz='utc')
+    missing_datetimes = datetime_range.difference(df.index)
+    if len(missing_datetimes) > 0:
+        logger.info("{} missing datetime/s in data. Will fill using linear interpolation."
+                    .format(len(missing_datetimes)))
+        df = df.reindex(datetime_range)
+        df = df.interpolate('linear')
+    return df
+
+
+def read_and_process_input_data():
+    """
+    Create input dataframe.
+    """
+    dfs = [read_irradiation_data(), read_temperature_data()]
+    dfs_cleaned = [clean(df) for df in dfs]
+    df_merged = functools.reduce(lambda left, right: left.join(right, on='datetime', how='inner'), dfs_cleaned)
+    return df_merged.reset_index()
+
 
 def create_inputs_df_for_mock_data_generation(
         df_temp: pd.DataFrame,
