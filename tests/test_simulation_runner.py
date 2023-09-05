@@ -8,6 +8,7 @@ import pandas as pd
 from pkg_resources import resource_filename
 
 from tradingplatformpoc.config.access_config import read_config
+from tradingplatformpoc.data.preproccessing import read_and_process_input_data
 from tradingplatformpoc.generate_data.mock_data_utils import get_elec_cons_key, \
     get_hot_tap_water_cons_key, get_space_heat_cons_key
 from tradingplatformpoc.market.bid import Action, Resource
@@ -39,6 +40,9 @@ class Test(TestCase):
         mock_data_columns = [[get_elec_cons_key(agent_id),
                               get_space_heat_cons_key(agent_id),
                               get_hot_tap_water_cons_key(agent_id)] for agent_id in agent_specs.values()]
+        input_data = read_and_process_input_data()[[
+            'datetime', 'irradiation', 'coop_electricity_consumed', 'coop_heating_consumed']].rename(
+                columns={'datetime': 'period'})
 
         with (mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.create_job_if_new_config',
                          return_value='fake_job_id'),
@@ -47,7 +51,9 @@ class Test(TestCase):
               mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.get_all_agents_in_config',
                          return_value=agent_specs),
               mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.get_generated_mock_data',
-                         return_value=pd.DataFrame(columns=[bid for sublist in mock_data_columns for bid in sublist]))):
+                         return_value=pd.DataFrame(columns=[bid for sublist in mock_data_columns for bid in sublist])),
+              mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.read_inputs_df_for_agent_creation',
+                         return_value=input_data)):
             with self.assertRaises(RuntimeError):
                 simulator = TradingSimulator('fake_config')
                 simulator.initialize_data()

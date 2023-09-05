@@ -64,11 +64,11 @@ def read_energy_data(data_path: str = "tradingplatformpoc.data",
     energy_data_csv_path = resource_filename(data_path, energy_data_file)
     energy_data = pd.read_csv(energy_data_csv_path, index_col=0)
     energy_data.index = pd.to_datetime(energy_data.index, utc=True)
-    return energy_data['tornet_electricity_consumed_household_kwh'], \
-        energy_data['coop_electricity_consumed_cooling_kwh'] + \
-        energy_data['coop_electricity_consumed_other_kwh'], \
-        energy_data['tornet_energy_consumed_heat_kwh'], \
-        np.maximum(energy_data['coop_net_heat_consumed'], 0)  # Indications are Coop has no excess heat so setting to 0
+    energy_data['coop_electricity_consumed'] = energy_data['coop_electricity_consumed_cooling_kwh'] \
+        + energy_data['coop_electricity_consumed_other_kwh']
+    # Indications are Coop has no excess heat so setting to 0
+    energy_data['coop_heating_consumed'] = np.maximum(energy_data['coop_net_heat_consumed'], 0)
+    return energy_data[['coop_electricity_consumed', 'coop_heating_consumed']].reset_index()
 
 
 def read_temperature_data(data_path: str = "tradingplatformpoc.data",
@@ -123,7 +123,7 @@ def read_and_process_input_data():
     """
     Create input dataframe.
     """
-    dfs = [read_irradiation_data(), read_temperature_data(), read_heating_data()]
+    dfs = [read_irradiation_data(), read_temperature_data(), read_heating_data(), read_energy_data()]
     dfs_cleaned = [clean(df) for df in dfs]
     df_merged = functools.reduce(lambda left, right: left.join(right, on='datetime', how='inner'), dfs_cleaned)
     return df_merged.reset_index()

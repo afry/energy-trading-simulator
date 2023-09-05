@@ -12,7 +12,7 @@ from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app.app_threading import StoppableThread
-from tradingplatformpoc.data.preproccessing import read_energy_data, read_nordpool_data
+from tradingplatformpoc.data.preproccessing import read_nordpool_data
 from tradingplatformpoc.database import bulk_insert
 from tradingplatformpoc.digitaltwin.battery import Battery
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
@@ -38,7 +38,7 @@ from tradingplatformpoc.sql.electricity_price.models import ElectricityPrice as 
 from tradingplatformpoc.sql.extra_cost.crud import extra_costs_to_db_dict
 from tradingplatformpoc.sql.extra_cost.models import ExtraCost as TableExtraCost
 from tradingplatformpoc.sql.heating_price.models import HeatingPrice as TableHeatingPrice
-from tradingplatformpoc.sql.input_data.crud import read_input_column_df_from_db
+from tradingplatformpoc.sql.input_data.crud import read_inputs_df_for_agent_creation
 from tradingplatformpoc.sql.job.crud import create_job_if_new_config, delete_job, update_job_with_end_time
 from tradingplatformpoc.sql.level.crud import levels_to_db_dict
 from tradingplatformpoc.sql.level.models import Level as TableLevel
@@ -105,16 +105,15 @@ class TradingSimulator:
         agents: List[IAgent] = []
         grid_agents: List[GridAgent] = []
 
-        # Read CSV files
-        tornet_household_elec_cons, coop_elec_cons, tornet_heat_cons, coop_heat_cons = read_energy_data()
-        irradiation_data = read_input_column_df_from_db('irradiation').set_index('period').squeeze()
+        # Read input data (irradiation and grocery store consumption) from database
+        inputs_df = read_inputs_df_for_agent_creation()
 
         for agent in self.config_data["Agents"]:
             agent_type = agent["Type"]
             agent_name = agent['Name']
 
             if agent_type in ["BuildingAgent", "PVAgent", "GroceryStoreAgent"]:
-                pv_prod_series = calculate_solar_prod(irradiation_data,
+                pv_prod_series = calculate_solar_prod(inputs_df.set_index('period')['irradiation'],
                                                       agent['PVArea'],
                                                       agent['PVEfficiency'])
             if agent_type == "BuildingAgent":
@@ -152,9 +151,10 @@ class TradingSimulator:
                 pv_digital_twin = StaticDigitalTwin(electricity_production=pv_prod_series)
                 agents.append(PVAgent(self.electricity_pricing, pv_digital_twin, guid=agent_name))
             elif agent_type == "GroceryStoreAgent":
-                grocery_store_digital_twin = StaticDigitalTwin(electricity_usage=coop_elec_cons,
-                                                               heating_usage=coop_heat_cons,
-                                                               electricity_production=pv_prod_series)
+                grocery_store_digital_twin = StaticDigitalTwin(
+                    electricity_usage=inputs_df['coop_electricity_consumed'],
+                    heating_usage=inputs_df['coop_heating_consumed'],
+                    electricity_production=pv_prod_series)
                 agents.append(BuildingAgent(heat_pricing=self.heat_pricing,
                                             electricity_pricing=self.electricity_pricing,
                                             digital_twin=grocery_store_digital_twin,
