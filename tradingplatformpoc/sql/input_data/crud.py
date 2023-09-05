@@ -42,3 +42,19 @@ def read_temperature_df_from_db(
                 for x in res])
         else:
             raise Exception('Could not fetch input data from database.')
+
+
+def read_inputs_df_for_mock_data_generation(
+        session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope):
+    with session_generator() as db:
+        res = db.execute(select(InputData)).all()
+        if res is not None:
+            return pd.DataFrame.from_records([{
+                'datetime': x.period,
+                'irradiation': x.irradiation,
+                'temperature': x.temperature,
+                'rad_energy': x.rad_energy,
+                'hw_energy': x.hw_energy}
+                for (x,) in res])
+        else:
+            raise Exception('Could not fetch input data from database.')
