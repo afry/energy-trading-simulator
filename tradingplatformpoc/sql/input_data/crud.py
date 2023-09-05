@@ -2,6 +2,10 @@ import logging
 from contextlib import _GeneratorContextManager
 from typing import Callable
 
+import pandas as pd
+
+from sqlalchemy import select
+
 from sqlmodel import Session
 
 from tradingplatformpoc.connection import session_scope
@@ -24,3 +28,17 @@ def insert_input_data_to_db_if_empty(session_generator: Callable[[], _GeneratorC
             db.bulk_insert_mappings(InputData, input_dict)
         else:
             logger.info('Input data table already populated.')
+
+
+def read_temperature_df_from_db(
+        session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope) -> pd.DataFrame:
+    with session_generator() as db:
+        res = db.execute(select(InputData.period.label('period'),
+                                InputData.temperature.label('temperature'))).all()
+        if res is not None:
+            return pd.DataFrame.from_records([{
+                'period': x.period,
+                'temperature': x.temperature}
+                for x in res])
+        else:
+            raise Exception('Could not fetch input data from database.')
