@@ -78,7 +78,7 @@ def get_job_id_for_config(config_id: str, db: Session):
     if job_for_config:
         return job_for_config.id
     else:
-        None
+        return None
 
 
 def update_job_with_end_time(job_id: str,

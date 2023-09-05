@@ -28,7 +28,7 @@ class TestAppFunctions(TestCase):
         self.assertIsNone(config_data_param_screening({'AreaInfo': {'DefaultPVEfficiency': 0.165}}))
 
     def test_config_data_agent_screening(self):
-        "Test of agent input check."
+        """Test of agent input check."""
         mock_grid_el = {"Type": "GridAgent", "Name": "ElectricityGridAgent",
                         "Resource": "ELECTRICITY", "TransferRate": 5.0}
         mock_grid_he = {"Type": "GridAgent", "Name": "HeatingGridAgent",

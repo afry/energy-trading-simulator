@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import numpy as np
 
 import pandas as pd
@@ -56,7 +58,8 @@ def read_nordpool_data(data_path: str = "tradingplatformpoc.data",
 
 
 def read_energy_data(data_path: str = "tradingplatformpoc.data",
-                     energy_data_file: str = "full_mock_energy_data.csv") -> pd.DataFrame:
+                     energy_data_file: str = "full_mock_energy_data.csv") -> \
+        Tuple[pd.Series, pd.Series, pd.Series, pd.Series]:
     energy_data_csv_path = resource_filename(data_path, energy_data_file)
     energy_data = pd.read_csv(energy_data_csv_path, index_col=0)
     energy_data.index = pd.to_datetime(energy_data.index, utc=True)

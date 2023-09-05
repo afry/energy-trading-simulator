@@ -60,7 +60,7 @@ reset_config_button = st.button(label="SET CONFIGURATION TO **{}**".format(chose
                                 "chosen base configuration", type='primary',
                                 disabled=(option_chosen == options[1]))
 
-if ('config_data' not in st.session_state.keys()) or (reset_config_button):
+if ('config_data' not in st.session_state.keys()) or reset_config_button:
     reset_config_button = False
     st.session_state.config_data = read_config(chosen_config_id)
 
