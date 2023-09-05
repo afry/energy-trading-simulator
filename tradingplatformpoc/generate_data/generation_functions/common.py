@@ -59,3 +59,23 @@ def is_day_before_major_holiday_sweden(timestamp: pd.Timestamp) -> bool:
            ((month_of_year == 1) & (day_of_month == 5)) | \
            ((month_of_year == 4) & (day_of_month == 30)) | \
            ((month_of_year == 6) & (day_of_month == 5))
+
+
+def extract_datetime_features_from_inputs_df(df_inputs: pd.DataFrame) -> pl.DataFrame:
+    """
+    Create pl.DataFrames with certain columns that are needed to predict from the household electricity linear model.
+    Will start reading CSVs as pd.DataFrames, since pandas is better at handling time zones, and then convert to polars.
+    @param df_inputs: Dataframe with datetime-stamps and temperature readings, in degrees C,
+                      solar irradiance readings, in W/m2 and heating energy readings, in kW.
+    @return: A pl.DataFrames containing date/time-related columns, as well as outdoor temperature readings and
+             heating energy demand data from Vetelangden, which will be used to simulate electricity and heat demands,
+             and also irradiation data, which is used to estimate PV production.
+    """
+    df_inputs['hour_of_day'] = df_inputs['datetime'].dt.hour + 1
+    df_inputs['day_of_week'] = df_inputs['datetime'].dt.dayofweek + 1
+    df_inputs['day_of_month'] = df_inputs['datetime'].dt.day
+    df_inputs['month_of_year'] = df_inputs['datetime'].dt.month
+    df_inputs['major_holiday'] = df_inputs['datetime'].apply(lambda dt: is_major_holiday_sweden(dt))
+    df_inputs['pre_major_holiday'] = df_inputs['datetime'].apply(lambda dt: is_day_before_major_holiday_sweden(dt))
+
+    return pl.from_pandas(df_inputs)

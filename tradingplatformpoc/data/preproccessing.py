@@ -7,10 +7,6 @@ import pandas as pd
 
 from pkg_resources import resource_filename
 
-import polars as pl
-
-from tradingplatformpoc.generate_data.generation_functions.common import is_day_before_major_holiday_sweden, \
-    is_major_holiday_sweden
 
 # This file contains functions used for reading and preprocessing data from files.
 
@@ -131,35 +127,3 @@ def read_and_process_input_data():
     dfs_cleaned = [clean(df) for df in dfs]
     df_merged = functools.reduce(lambda left, right: left.join(right, on='datetime', how='inner'), dfs_cleaned)
     return df_merged.reset_index()
-
-
-def create_inputs_df_for_mock_data_generation(
-        df_temp: pd.DataFrame,
-        df_irrd: pd.DataFrame,
-        df_heat: pd.DataFrame
-) -> pl.DataFrame:
-    """
-    Create pl.DataFrames with certain columns that are needed to predict from the household electricity linear model.
-    Will start reading CSVs as pd.DataFrames, since pandas is better at handling time zones, and then convert to polars.
-    @param df_temp: Dataframe with datetime-stamps and temperature readings, in degrees C.
-    @param df_irrd: Dataframe with datetime-stamps and solar irradiance readings, in W/m2.
-    @param df_heat: Dataframe with datetime-stamps and heating energy readings, in kW.
-    @return: A pl.DataFrames containing date/time-related columns, as well as outdoor temperature readings and
-             heating energy demand data from Vetelangden, which will be used to simulate electricity and heat demands,
-             and also irradiation data, which is used to estimate PV production.
-    """
-    df_inputs = df_temp.merge(df_irrd)
-
-    # In case there are any missing values
-    df_inputs[['temperature', 'irradiation']] = df_inputs[['temperature', 'irradiation']].interpolate(method='linear')
-
-    df_inputs['hour_of_day'] = df_inputs['datetime'].dt.hour + 1
-    df_inputs['day_of_week'] = df_inputs['datetime'].dt.dayofweek + 1
-    df_inputs['day_of_month'] = df_inputs['datetime'].dt.day
-    df_inputs['month_of_year'] = df_inputs['datetime'].dt.month
-    df_inputs['major_holiday'] = df_inputs['datetime'].apply(lambda dt: is_major_holiday_sweden(dt))
-    df_inputs['pre_major_holiday'] = df_inputs['datetime'].apply(lambda dt: is_day_before_major_holiday_sweden(dt))
-
-    df_inputs = df_inputs.merge(df_heat)
-
-    return pl.from_pandas(df_inputs)

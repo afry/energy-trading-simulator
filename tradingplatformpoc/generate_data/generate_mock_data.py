@@ -11,10 +11,9 @@ import polars as pl
 from statsmodels.regression.linear_model import RegressionResultsWrapper
 
 from tradingplatformpoc.compress import bz2_decompress_pickle
-from tradingplatformpoc.data.preproccessing import create_inputs_df_for_mock_data_generation, read_heating_data, \
-    read_irradiation_data, read_temperature_data
 from tradingplatformpoc.database import bulk_insert
-from tradingplatformpoc.generate_data.generation_functions.common import add_datetime_value_frames
+from tradingplatformpoc.generate_data.generation_functions.common import add_datetime_value_frames, \
+    extract_datetime_features_from_inputs_df
 from tradingplatformpoc.generate_data.generation_functions.non_residential.commercial import \
     get_commercial_electricity_consumption_hourly_factor, \
     simulate_commercial_area_total_heating
@@ -28,6 +27,7 @@ from tradingplatformpoc.generate_data.mock_data_utils import \
     join_list_of_polar_dfs
 from tradingplatformpoc.sql.agent.crud import get_building_agent_dicts_from_id_list
 from tradingplatformpoc.sql.config.crud import get_all_agents_in_config, get_mock_data_constants
+from tradingplatformpoc.sql.input_data.crud import read_inputs_df_for_mock_data_generation
 from tradingplatformpoc.sql.mock_data.crud import db_to_mock_data_df, get_mock_data_agent_pairs_in_db, \
     mock_data_to_db_dict
 from tradingplatformpoc.sql.mock_data.models import MockData as TableMockData
@@ -128,9 +128,9 @@ def simulate_for_agents(agent_dicts: List[Dict[str, Any]], mock_data_constants: 
     model = bz2_decompress_pickle(resource_filename(DATA_PATH, 'models/household_electricity_model.pbz2'))
     logger.debug('Model loaded')
 
-    # Read in-data: Temperature and timestamps
-    df_inputs = create_inputs_df_for_mock_data_generation(
-        read_temperature_data(), read_irradiation_data(), read_heating_data())
+    # Read input data: Temperature, irradiation and heat consumption
+    df_inputs_pandas = read_inputs_df_for_mock_data_generation()
+    df_inputs = extract_datetime_features_from_inputs_df(df_inputs_pandas)
     logger.debug('Input data loaded')
 
     # Extract indices
