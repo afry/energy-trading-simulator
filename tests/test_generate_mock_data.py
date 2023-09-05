@@ -11,8 +11,9 @@ import polars as pl
 
 from tradingplatformpoc.compress import bz2_decompress_pickle
 from tradingplatformpoc.config.access_config import read_param_specs
-from tradingplatformpoc.data.preproccessing import is_day_before_major_holiday_sweden, is_major_holiday_sweden
 from tradingplatformpoc.generate_data.generate_mock_data import DATA_PATH
+from tradingplatformpoc.generate_data.generation_functions.common import is_day_before_major_holiday_sweden, \
+    is_major_holiday_sweden
 from tradingplatformpoc.generate_data.generation_functions.non_residential.common import simulate_space_heating
 from tradingplatformpoc.generate_data.generation_functions.non_residential.school import \
     get_school_heating_consumption_hourly_factor

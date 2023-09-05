@@ -9,6 +9,9 @@ from pkg_resources import resource_filename
 
 import polars as pl
 
+from tradingplatformpoc.generate_data.generation_functions.common import is_day_before_major_holiday_sweden, \
+    is_major_holiday_sweden
+
 # This file contains functions used for reading and preprocessing data from files.
 
 logger = logging.getLogger(__name__)
@@ -160,33 +163,3 @@ def create_inputs_df_for_mock_data_generation(
     df_inputs = df_inputs.merge(df_heat)
 
     return pl.from_pandas(df_inputs)
-
-
-def is_major_holiday_sweden(timestamp: pd.Timestamp) -> bool:
-    swedish_time = timestamp.tz_convert("Europe/Stockholm")
-    month_of_year = swedish_time.month
-    day_of_month = swedish_time.day
-    # Major holidays will naturally have a big impact on household electricity usage patterns, with people not working
-    # etc. Included here are: Christmas eve, Christmas day, Boxing day, New years day, epiphany, 1 may, national day.
-    # Some moveable ones not included (Easter etc)
-    return ((month_of_year == 12) & (day_of_month == 24)) | \
-           ((month_of_year == 12) & (day_of_month == 25)) | \
-           ((month_of_year == 12) & (day_of_month == 26)) | \
-           ((month_of_year == 1) & (day_of_month == 1)) | \
-           ((month_of_year == 1) & (day_of_month == 6)) | \
-           ((month_of_year == 5) & (day_of_month == 1)) | \
-           ((month_of_year == 6) & (day_of_month == 6))
-
-
-def is_day_before_major_holiday_sweden(timestamp: pd.Timestamp) -> bool:
-    swedish_time = timestamp.tz_convert("Europe/Stockholm")
-    month_of_year = swedish_time.month
-    day_of_month = swedish_time.day
-    # Major holidays will naturally have a big impact on household electricity usage patterns, with people not working
-    # etc. Included here are:
-    # Day before christmas eve, New years eve, day before epiphany, Valborg, day before national day.
-    return ((month_of_year == 12) & (day_of_month == 23)) | \
-           ((month_of_year == 12) & (day_of_month == 31)) | \
-           ((month_of_year == 1) & (day_of_month == 5)) | \
-           ((month_of_year == 4) & (day_of_month == 30)) | \
-           ((month_of_year == 6) & (day_of_month == 5))
