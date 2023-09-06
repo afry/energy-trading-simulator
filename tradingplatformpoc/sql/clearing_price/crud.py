@@ -17,12 +17,12 @@ from tradingplatformpoc.sql.clearing_price.models import ClearingPrice as TableC
 
 def clearing_prices_to_db_dict(clearing_prices_dict: Dict[datetime.datetime, Dict[Resource, float]],
                                job_id: str) -> List[Dict[str, Any]]:
-    dict = [{'period': period,
+    dict = ({'period': period,
              'job_id': job_id,
              'resource': resource,
              'price': price}
             for period, some_dict in clearing_prices_dict.items()
-            for resource, price in some_dict.items()]
+            for resource, price in some_dict.items())
     return dict
 
 

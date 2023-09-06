@@ -66,10 +66,4 @@ if __name__ == '__main__':
         job_id = get_job_id_for_config(DEFAULT_CONFIG_NAME, sess)
     delete_job(job_id)
     simulator = TradingSimulator(args.config_id)
-    simulation_results = simulator()
-    if simulation_results is not None:
-        logger.info("Finished running simulations. Will save simulations results as a pickle file.")
-        with open(results_path + 'simulation_results.pickle', 'wb') as destination:
-            pickle.dump(simulation_results, destination)
-    else:
-        logger.info("Could not finish simulation.")
+    simulator()
