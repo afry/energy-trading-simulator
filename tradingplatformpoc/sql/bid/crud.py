@@ -14,7 +14,7 @@ from tradingplatformpoc.sql.bid.models import Bid as TableBid
 
 def bids_to_db_dict(trades_list: List[NetBidWithAcceptanceStatus],
                     job_id: str) -> List[Dict[str, Any]]:
-    dict = ({'job_id': job_id,
+    dict = [{'job_id': job_id,
              'period': x.period,
              'source': x.source,
              'by_external': x.by_external,
@@ -23,7 +23,7 @@ def bids_to_db_dict(trades_list: List[NetBidWithAcceptanceStatus],
              'quantity': x.quantity,
              'price': x.price,
              'accepted_quantity': x.accepted_quantity}
-            for some_collection in trades_list for x in some_collection)
+            for some_collection in trades_list for x in some_collection]
     return dict
 
 
