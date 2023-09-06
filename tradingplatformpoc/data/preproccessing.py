@@ -48,7 +48,7 @@ def read_irradiation_data(data_path: str = "tradingplatformpoc.data",
 
 def read_nordpool_data(data_path: str = "tradingplatformpoc.data",
                        external_price_file: str = "nordpool_area_grid_el_price.csv"
-                       ) -> pd.Series:
+                       ) -> pd.DataFrame:
     external_price_csv_path = resource_filename(data_path, external_price_file)
     price_data = pd.read_csv(external_price_csv_path, index_col=0)
     price_data = price_data.squeeze()
