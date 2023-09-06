@@ -45,3 +45,18 @@ def insert_input_electricity_price_to_db_if_empty(session_generator: Callable[[]
                 raise Exception('Nordpool data contains less periods than input data plus max of n hours back.')
         else:
             logger.info('Input data table already populated.')
+
+
+def electricity_price_df_from_db(session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope
+                                 ) -> pd.DatetimeIndex:
+    with session_generator() as db:
+        res = db.query(InputElectricityPrice).all()
+        if res is not None:
+            logger.info('Fetching electricity price data from database.')
+            return pd.DataFrame.from_records([{
+                'period': x.period,
+                'electricity_price': x.dayahead_se3_el_price}
+                for x in res]).set_index('period').squeeze()
+        else:
+            logger.error('Could not fetch electricity price data from database.')
+            raise Exception('Could not fetch electricity price data from database.')
