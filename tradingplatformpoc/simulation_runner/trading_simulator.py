@@ -12,7 +12,6 @@ from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app.app_threading import StoppableThread
-from tradingplatformpoc.data.preproccessing import read_nordpool_data
 from tradingplatformpoc.database import bulk_insert
 from tradingplatformpoc.digitaltwin.battery import Battery
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
@@ -39,6 +38,7 @@ from tradingplatformpoc.sql.extra_cost.crud import extra_costs_to_db_dict
 from tradingplatformpoc.sql.extra_cost.models import ExtraCost as TableExtraCost
 from tradingplatformpoc.sql.heating_price.models import HeatingPrice as TableHeatingPrice
 from tradingplatformpoc.sql.input_data.crud import read_inputs_df_for_agent_creation
+from tradingplatformpoc.sql.input_electricity_price.crud import electricity_price_df_from_db
 from tradingplatformpoc.sql.job.crud import create_job_if_new_config, delete_job, update_job_with_end_time
 from tradingplatformpoc.sql.level.crud import levels_to_db_dict
 from tradingplatformpoc.sql.level.models import Level as TableLevel
@@ -78,7 +78,7 @@ class TradingSimulator:
     def initialize_data(self):
         self.config_data = self.config_data
 
-        external_price_data = read_nordpool_data()
+        external_price_data = electricity_price_df_from_db()
         self.heat_pricing: HeatingPrice = HeatingPrice(
             heating_wholesale_price_fraction=self.config_data['AreaInfo']['ExternalHeatingWholesalePriceFraction'],
             heat_transfer_loss=self.config_data['AreaInfo']["HeatTransferLoss"])

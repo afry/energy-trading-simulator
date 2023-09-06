@@ -56,7 +56,9 @@ def read_nordpool_data(data_path: str = "tradingplatformpoc.data",
         # convert price from SEK per MWh to SEK per kWh
         price_data = price_data / 1000
     price_data.index = pd.to_datetime(price_data.index, utc=True)
-    return price_data
+    price_df = pd.DataFrame(price_data).reset_index()
+    price_df = price_df.rename(columns={'dayahead_SE3_el_price': 'dayahead_se3_el_price'})
+    return price_df
 
 
 def read_energy_data(data_path: str = "tradingplatformpoc.data",

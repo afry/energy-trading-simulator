@@ -25,11 +25,10 @@ def insert_input_electricity_price_to_db_if_empty(session_generator: Callable[[]
         res = db.query(InputElectricityPrice).first()
         if res is None:
             logger.info('Populating input electricity price table.')
-            electricity_price_series = read_nordpool_data()
-            electricity_price_df = pd.DataFrame(electricity_price_series).reset_index()
+            electricity_price_df = read_nordpool_data()
             electricity_price_df = clean(electricity_price_df).reset_index()
             electricity_price_df = electricity_price_df.rename(
-                columns={'datetime': 'period', 'dayahead_SE3_el_price': 'dayahead_se3_el_price'})
+                columns={'datetime': 'period'})
             
             # Check that the nordpool data contains enough periods
             period_range = db.query(func.max(InputData.period).label('max'),

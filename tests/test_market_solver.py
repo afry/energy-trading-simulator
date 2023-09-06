@@ -9,7 +9,7 @@ import pandas as pd
 
 from tests import utility_test_objects
 
-from tradingplatformpoc.data.preproccessing import read_nordpool_data
+from tradingplatformpoc.data.preproccessing import clean, read_nordpool_data
 from tradingplatformpoc.market.bid import Action, GrossBid, Resource
 from tradingplatformpoc.market.market_solver import no_bids_accepted, resolve_bids
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
@@ -26,6 +26,9 @@ ONES_SERIES = pd.Series(np.ones(shape=len(DATETIME_ARRAY)), index=DATETIME_ARRAY
 
 # Read CSV files
 external_price_data = read_nordpool_data()
+external_price_data = clean(external_price_data).reset_index()
+external_price_data = external_price_data.rename(
+    columns={'datetime': 'period', 'dayahead_se3_el_price': 'electricity_price'})
 area_info = utility_test_objects.AREA_INFO
 pricing: Dict[Resource, IPrice] = {
     Resource.HEATING: HeatingPrice(
