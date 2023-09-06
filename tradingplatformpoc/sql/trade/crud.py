@@ -2,7 +2,7 @@ import datetime
 import itertools
 import operator
 from contextlib import _GeneratorContextManager
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional
 
 import pandas as pd
 
