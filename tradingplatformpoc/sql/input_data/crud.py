@@ -81,3 +81,15 @@ def read_inputs_df_for_agent_creation(
                 for x in res])
         else:
             raise Exception('Could not fetch input data from database.')
+
+
+def get_periods_from_db(session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope
+                        ) -> pd.DatetimeIndex:
+    with session_generator() as db:
+        periods = db.execute(select(InputData.period)).all()
+        if periods is not None:
+            logger.info('Fetching periods from database.')
+            return pd.DatetimeIndex([period for (period,) in periods]).sort_values()
+        else:
+            logger.error('Could not fetch periods from database.')
+            raise Exception('Could not fetch periods from database.')
