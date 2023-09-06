@@ -11,7 +11,7 @@ from pydantic import BaseSettings
 logger = logging.getLogger(__name__)
 
 
-dotenv_path = Path('.env')
+dotenv_path = Path('../.env' if 'tests' in os.getcwd() else '.env')
 load_dotenv(dotenv_path=dotenv_path)
 
 
