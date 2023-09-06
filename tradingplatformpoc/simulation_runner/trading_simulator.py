@@ -77,7 +77,6 @@ class TradingSimulator:
     def initialize_data(self):
         self.config_data = self.config_data
 
-        external_price_data = electricity_price_df_from_db()
         self.heat_pricing: HeatingPrice = HeatingPrice(
             heating_wholesale_price_fraction=self.config_data['AreaInfo']['ExternalHeatingWholesalePriceFraction'],
             heat_transfer_loss=self.config_data['AreaInfo']["HeatTransferLoss"])
@@ -87,9 +86,8 @@ class TradingSimulator:
             elec_grid_fee=self.config_data['AreaInfo']["ElectricityGridFee"],
             elec_tax_internal=self.config_data['AreaInfo']["ElectricityTaxInternal"],
             elec_grid_fee_internal=self.config_data['AreaInfo']["ElectricityGridFeeInternal"],
-            nordpool_data=external_price_data)
+            nordpool_data=electricity_price_df_from_db())
 
-        self.buildings_mock_data: pd.DataFrame = get_generated_mock_data(self.config_id)
         self.trading_periods = get_periods_from_db().sort_values()
 
         self.clearing_prices_historical: Dict[datetime.datetime, Dict[Resource, float]] = {}
@@ -104,6 +102,8 @@ class TradingSimulator:
 
         # Read input data (irradiation and grocery store consumption) from database
         inputs_df = read_inputs_df_for_agent_creation()
+        # Get mock data
+        buildings_mock_data: pd.DataFrame = get_generated_mock_data(self.config_id)
 
         for agent in self.config_data["Agents"]:
             agent_type = agent["Type"]
@@ -115,9 +115,9 @@ class TradingSimulator:
                                                       agent['PVEfficiency'])
             if agent_type == "BuildingAgent":
                 agent_id = self.agent_specs[agent['Name']]
-                elec_cons_series = self.buildings_mock_data[get_elec_cons_key(agent_id)]
-                space_heat_cons_series = self.buildings_mock_data[get_space_heat_cons_key(agent_id)]
-                hot_tap_water_cons_series = self.buildings_mock_data[get_hot_tap_water_cons_key(agent_id)]
+                elec_cons_series = buildings_mock_data[get_elec_cons_key(agent_id)]
+                space_heat_cons_series = buildings_mock_data[get_space_heat_cons_key(agent_id)]
+                hot_tap_water_cons_series = buildings_mock_data[get_hot_tap_water_cons_key(agent_id)]
 
                 # We're not currently supporting different temperatures of heating,
                 # it's just "heating" as a very simplifiedS
