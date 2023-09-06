@@ -56,7 +56,7 @@ def db_to_trade_df(job_id: str,
 
 
 def trades_to_db_dict(bids_list: List[Trade], job_id: str) -> List[Dict[str, Any]]:
-    dict = ({'job_id': job_id,
+    dict = [{'job_id': job_id,
              'period': x.period,
              'source': x.source,
              'by_external': x.by_external,
@@ -68,7 +68,7 @@ def trades_to_db_dict(bids_list: List[Trade], job_id: str) -> List[Dict[str, Any
              'market': x.market,
              'tax_paid': x.tax_paid,
              'grid_fee_paid': x.grid_fee_paid}
-            for some_collection in bids_list for x in some_collection)
+            for some_collection in bids_list for x in some_collection]
     return dict
 
 
