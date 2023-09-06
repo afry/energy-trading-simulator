@@ -50,6 +50,8 @@ class Test(TestCase):
                          return_value=fake_config),
               mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.get_all_agents_in_config',
                          return_value=agent_specs),
+              mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.get_periods_from_db',
+                         return_value=pd.DatetimeIndex(input_data.period)),
               mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.get_generated_mock_data',
                          return_value=pd.DataFrame(columns=[bid for sublist in mock_data_columns for bid in sublist])),
               mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.read_inputs_df_for_agent_creation',
