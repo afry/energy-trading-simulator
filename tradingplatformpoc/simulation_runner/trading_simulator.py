@@ -39,7 +39,7 @@ from tradingplatformpoc.sql.extra_cost.models import ExtraCost as TableExtraCost
 from tradingplatformpoc.sql.heating_price.models import HeatingPrice as TableHeatingPrice
 from tradingplatformpoc.sql.input_data.crud import get_periods_from_db, read_inputs_df_for_agent_creation
 from tradingplatformpoc.sql.input_electricity_price.crud import electricity_price_df_from_db
-from tradingplatformpoc.sql.job.crud import create_job_if_new_config, delete_job, update_job_with_end_time
+from tradingplatformpoc.sql.job.crud import create_job_if_new_config, delete_job, update_job_with_time
 from tradingplatformpoc.sql.level.crud import levels_to_db_dict
 from tradingplatformpoc.sql.level.models import Level as TableLevel
 from tradingplatformpoc.sql.trade.crud import trades_to_db_dict
@@ -63,7 +63,7 @@ class TradingSimulator:
                 self.agents, self.grid_agents = self.initialize_agents()
                 self.run()
                 self.extract_heating_price()
-                update_job_with_end_time(self.job_id)
+                update_job_with_time(self.job_id, 'end_time')
 
             except Exception as e:
                 logger.exception(e)
