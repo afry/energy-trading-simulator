@@ -43,7 +43,7 @@ def create_job_if_new_config(config_id: str,
     with session_generator() as db:
         exists = get_job_id_for_config(config_id, db)
         if not exists:
-            job_to_db = create_job(JobCreate(init_time=datetime.datetime.now(pytz.utc),
+            job_to_db = create_job(JobCreate(start_time=datetime.datetime.now(pytz.utc),
                                              config_id=config_id), db=db)
             logger.info('Job created with ID {}.'.format(job_to_db.id))
             return job_to_db.id
@@ -100,5 +100,5 @@ def update_job_with_end_time(job_id: str,
 def get_all_ongoing_jobs(session_generator: Callable[[], _GeneratorContextManager[Session]]
                          = session_scope):
     with session_generator() as db:
-        res = db.query(Job.config_id).filter(Job.init_time.is_not(None), Job.end_time.is_(None)).all()
+        res = db.query(Job.config_id).filter(Job.start_time.is_not(None), Job.end_time.is_(None)).all()
         return [config_id for (config_id,) in res]

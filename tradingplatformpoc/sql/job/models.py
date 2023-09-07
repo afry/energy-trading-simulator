@@ -26,7 +26,7 @@ class Job(SQLModel, table=True):
         nullable=False,
         sa_column=Column(DateTime(timezone=True), server_default=func.now())
     )
-    init_time: Optional[datetime.datetime] = Field(
+    start_time: Optional[datetime.datetime] = Field(
         primary_key=False,
         title="Timestamp of simulation initialization, with tz",
         nullable=True,
@@ -46,7 +46,7 @@ class Job(SQLModel, table=True):
 
 
 class JobCreate(SQLModel):
-    init_time: datetime.datetime
+    start_time: datetime.datetime
     config_id: str
 
     
