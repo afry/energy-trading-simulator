@@ -145,7 +145,7 @@ class TradingSimulator:
             elif agent_type == "GroceryStoreAgent":
                 grocery_store_digital_twin = StaticDigitalTwin(
                     electricity_usage=inputs_df['coop_electricity_consumed'],
-                    heating_usage=inputs_df['coop_electricity_consumed'],
+                    heating_usage=inputs_df['coop_heating_consumed'],
                     electricity_production=pv_prod_series)
                 agents.append(BuildingAgent(heat_pricing=self.heat_pricing,
                                             electricity_pricing=self.electricity_pricing,
