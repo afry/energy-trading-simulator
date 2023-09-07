@@ -13,7 +13,7 @@ from tradingplatformpoc.app.app_threading import StoppableThread, get_running_th
 from tradingplatformpoc.app.app_visualizations import color_in
 from tradingplatformpoc.sql.config.crud import \
     get_all_config_ids_in_db_with_jobs_df, get_all_config_ids_in_db_without_jobs, read_config
-from tradingplatformpoc.sql.job.crud import delete_job
+from tradingplatformpoc.sql.job.crud import create_job_if_new_config, delete_job
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,8 @@ run_sim = st.button("**CLICK TO RUN SIMULATION FOR *{}***".format(chosen_config_
                     type='primary')
 
 if run_sim:
-    t = StoppableThread(name='run_' + chosen_config_id, target=run_simulation, args=(chosen_config_id,))
+    new_job_id = create_job_if_new_config(chosen_config_id)
+    t = StoppableThread(name='run_' + chosen_config_id, target=run_simulation, args=(new_job_id,))
     add_script_run_ctx(t)
     t.start()
     run_sim = False

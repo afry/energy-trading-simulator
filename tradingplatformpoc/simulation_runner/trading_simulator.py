@@ -39,7 +39,8 @@ from tradingplatformpoc.sql.extra_cost.models import ExtraCost as TableExtraCost
 from tradingplatformpoc.sql.heating_price.models import HeatingPrice as TableHeatingPrice
 from tradingplatformpoc.sql.input_data.crud import get_periods_from_db, read_inputs_df_for_agent_creation
 from tradingplatformpoc.sql.input_electricity_price.crud import electricity_price_df_from_db
-from tradingplatformpoc.sql.job.crud import create_job_if_new_config, delete_job, update_job_with_time
+from tradingplatformpoc.sql.job.crud import delete_job, get_config_id_for_job_id, \
+    update_job_with_time
 from tradingplatformpoc.sql.level.crud import levels_to_db_dict
 from tradingplatformpoc.sql.level.models import Level as TableLevel
 from tradingplatformpoc.sql.trade.crud import trades_to_db_dict
@@ -50,10 +51,10 @@ logger = logging.getLogger(__name__)
 
 
 class TradingSimulator:
-    def __init__(self, config_id: str):
-        self.config_id = config_id
-        self.job_id = create_job_if_new_config(config_id)
-        self.config_data: Dict[str, Any] = read_config(config_id)
+    def __init__(self, job_id: str):
+        self.job_id = job_id
+        self.config_id = get_config_id_for_job_id(self.job_id)
+        self.config_data: Dict[str, Any] = read_config(self.config_id)
         self.agent_specs = get_all_agents_in_config(self.config_id)
 
     def __call__(self):

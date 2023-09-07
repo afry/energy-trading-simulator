@@ -54,9 +54,9 @@ def update_multiselect_style():
     )
 
 
-def run_simulation(chosen_config_id: str):
+def run_simulation(job_id: str):
     logger.info("Running simulation")
-    simulator = TradingSimulator(chosen_config_id)
+    simulator = TradingSimulator(job_id)
     simulator()
     # TODO: Functionality to shut down job
     # TODO: Delete job is not finished?
