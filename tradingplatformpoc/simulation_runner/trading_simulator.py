@@ -174,9 +174,6 @@ class TradingSimulator:
 
         logger.info("Starting trading simulations")
 
-        # Load generated mock data
-        logger.info("Generating data...")
-
         number_of_trading_periods = len(self.trading_periods)
         batch_size = math.ceil(number_of_trading_periods / number_of_batches)
         
