@@ -13,6 +13,11 @@ def read_agent_defaults(agent_type, agent_specs):
     return dict((param, val["default_value"]) for param, val in agent_specs[agent_type].items())
 
 
+def read_parameter_from_agent_defaults(agent_type: str, parameter_name: str):
+    agent_specs = read_agent_specs()
+    return agent_specs[agent_type][parameter_name]
+
+
 def read_param_specs(names):
     """Reads and returns specified params specification from file."""
     file_dict = {'AreaInfo': AREA_INFO_SPECS,

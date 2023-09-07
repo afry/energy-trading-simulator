@@ -12,7 +12,6 @@ from tradingplatformpoc.agent.battery_agent import BatteryAgent
 from tradingplatformpoc.agent.building_agent import BuildingAgent, construct_workloads_data
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
-from tradingplatformpoc.data.preprocessing import read_energy_data
 from tradingplatformpoc.digitaltwin.battery import Battery
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.market.bid import Action, NetBidWithAcceptanceStatus, Resource
@@ -37,7 +36,6 @@ irradiation_values = np.random.uniform(0, 100.0, len(DATETIME_ARRAY))
 carbon_values = np.ones(shape=len(DATETIME_ARRAY))
 
 # Read CSV files
-tornet_household_elec_cons, coop_elec_cons, tornet_heat_cons, coop_heat_cons = read_energy_data()
 irradiation_data = pd.Series(irradiation_values, index=DATETIME_ARRAY)
 external_price_data = pd.Series(nordpool_values, index=DATETIME_ARRAY)
 

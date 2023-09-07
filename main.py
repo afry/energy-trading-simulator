@@ -10,6 +10,8 @@ from tradingplatformpoc.connection import SessionMaker
 from tradingplatformpoc.database import create_db_and_tables, insert_default_config_into_db
 
 from tradingplatformpoc.simulation_runner.trading_simulator import TradingSimulator
+from tradingplatformpoc.sql.input_data.crud import insert_input_data_to_db_if_empty
+from tradingplatformpoc.sql.input_electricity_price.crud import insert_input_electricity_price_to_db_if_empty
 from tradingplatformpoc.sql.job.crud import delete_job, get_job_id_for_config
 
 # --- Read sys.argv to get logging level, if it is specified ---
@@ -60,6 +62,8 @@ args = parser.parse_args()
 if __name__ == '__main__':
     logger.info("Running main with config {}.".format(args.config_id))
     create_db_and_tables()
+    insert_input_data_to_db_if_empty()
+    insert_input_electricity_price_to_db_if_empty()
     insert_default_config_into_db()
     with SessionMaker() as sess:
         job_id = get_job_id_for_config(args.config_id, sess)

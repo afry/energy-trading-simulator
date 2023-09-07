@@ -12,7 +12,6 @@ from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app.app_threading import StoppableThread
-from tradingplatformpoc.data.preprocessing import read_energy_data, read_irradiation_data, read_nordpool_data
 from tradingplatformpoc.database import bulk_insert
 from tradingplatformpoc.digitaltwin.battery import Battery
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
@@ -38,13 +37,14 @@ from tradingplatformpoc.sql.electricity_price.models import ElectricityPrice as 
 from tradingplatformpoc.sql.extra_cost.crud import extra_costs_to_db_dict
 from tradingplatformpoc.sql.extra_cost.models import ExtraCost as TableExtraCost
 from tradingplatformpoc.sql.heating_price.models import HeatingPrice as TableHeatingPrice
+from tradingplatformpoc.sql.input_data.crud import get_periods_from_db, read_inputs_df_for_agent_creation
+from tradingplatformpoc.sql.input_electricity_price.crud import electricity_price_df_from_db
 from tradingplatformpoc.sql.job.crud import create_job_if_new_config, delete_job, update_job_with_end_time
 from tradingplatformpoc.sql.level.crud import levels_to_db_dict
 from tradingplatformpoc.sql.level.models import Level as TableLevel
 from tradingplatformpoc.sql.trade.crud import trades_to_db_dict
 from tradingplatformpoc.sql.trade.models import Trade as TableTrade
-from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, flatten_collection, \
-    get_intersection
+from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, flatten_collection
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +72,6 @@ class TradingSimulator:
     def initialize_data(self):
         self.config_data = self.config_data
 
-        external_price_data = read_nordpool_data()
         self.heat_pricing: HeatingPrice = HeatingPrice(
             heating_wholesale_price_fraction=self.config_data['AreaInfo']['ExternalHeatingWholesalePriceFraction'],
             heat_transfer_loss=self.config_data['AreaInfo']["HeatTransferLoss"])
@@ -82,12 +81,9 @@ class TradingSimulator:
             elec_grid_fee=self.config_data['AreaInfo']["ElectricityGridFee"],
             elec_tax_internal=self.config_data['AreaInfo']["ElectricityTaxInternal"],
             elec_grid_fee_internal=self.config_data['AreaInfo']["ElectricityGridFeeInternal"],
-            nordpool_data=external_price_data)
+            nordpool_data=electricity_price_df_from_db())
 
-        self.buildings_mock_data: pd.DataFrame = get_generated_mock_data(self.config_id)
-        self.trading_periods = pd.DatetimeIndex(get_intersection(self.buildings_mock_data.index.tolist(),
-                                                self.electricity_pricing.get_external_price_data_datetimes()))\
-            .sort_values()
+        self.trading_periods = get_periods_from_db().sort_values()
 
         self.clearing_prices_historical: Dict[datetime.datetime, Dict[Resource, float]] = {}
         self.storage_levels_dict: Dict[str, Dict[datetime.datetime, float]] = {}
@@ -99,23 +95,24 @@ class TradingSimulator:
         agents: List[IAgent] = []
         grid_agents: List[GridAgent] = []
 
-        # Read CSV files
-        tornet_household_elec_cons, coop_elec_cons, tornet_heat_cons, coop_heat_cons = read_energy_data()
-        irradiation_data = read_irradiation_data().set_index('datetime').squeeze()
+        # Read input data (irradiation and grocery store consumption) from database
+        inputs_df = read_inputs_df_for_agent_creation()
+        # Get mock data
+        buildings_mock_data: pd.DataFrame = get_generated_mock_data(self.config_id)
 
         for agent in self.config_data["Agents"]:
             agent_type = agent["Type"]
             agent_name = agent['Name']
 
             if agent_type in ["BuildingAgent", "PVAgent", "GroceryStoreAgent"]:
-                pv_prod_series = calculate_solar_prod(irradiation_data,
+                pv_prod_series = calculate_solar_prod(inputs_df['irradiation'],
                                                       agent['PVArea'],
                                                       agent['PVEfficiency'])
             if agent_type == "BuildingAgent":
                 agent_id = self.agent_specs[agent['Name']]
-                elec_cons_series = self.buildings_mock_data[get_elec_cons_key(agent_id)]
-                space_heat_cons_series = self.buildings_mock_data[get_space_heat_cons_key(agent_id)]
-                hot_tap_water_cons_series = self.buildings_mock_data[get_hot_tap_water_cons_key(agent_id)]
+                elec_cons_series = buildings_mock_data[get_elec_cons_key(agent_id)]
+                space_heat_cons_series = buildings_mock_data[get_space_heat_cons_key(agent_id)]
+                hot_tap_water_cons_series = buildings_mock_data[get_hot_tap_water_cons_key(agent_id)]
 
                 # We're not currently supporting different temperatures of heating,
                 # it's just "heating" as a very simplifiedS
@@ -146,9 +143,10 @@ class TradingSimulator:
                 pv_digital_twin = StaticDigitalTwin(electricity_production=pv_prod_series)
                 agents.append(PVAgent(self.electricity_pricing, pv_digital_twin, guid=agent_name))
             elif agent_type == "GroceryStoreAgent":
-                grocery_store_digital_twin = StaticDigitalTwin(electricity_usage=coop_elec_cons,
-                                                               heating_usage=coop_heat_cons,
-                                                               electricity_production=pv_prod_series)
+                grocery_store_digital_twin = StaticDigitalTwin(
+                    electricity_usage=inputs_df['coop_electricity_consumed'],
+                    heating_usage=inputs_df['coop_heating_consumed'],
+                    electricity_production=pv_prod_series)
                 agents.append(BuildingAgent(heat_pricing=self.heat_pricing,
                                             electricity_pricing=self.electricity_pricing,
                                             digital_twin=grocery_store_digital_twin,
@@ -175,9 +173,6 @@ class TradingSimulator:
         """
 
         logger.info("Starting trading simulations")
-
-        # Load generated mock data
-        logger.info("Generating data...")
 
         number_of_trading_periods = len(self.trading_periods)
         batch_size = math.ceil(number_of_trading_periods / number_of_batches)
