@@ -28,10 +28,10 @@ def resource_string(resource: Resource) -> str:
 
 
 class GrossBid:
-    """The bid model for our trading tradingplatformpoc.
+    """The bid model for our trading platform.
 
     Parameters:
-        period: time bid occured
+        period: time bid occurred
         action: Buy/sell
         resource: Electricity
         quantity: Amount in kWh

@@ -9,7 +9,7 @@ import pandas as pd
 
 from tests import utility_test_objects
 
-from tradingplatformpoc.data.preproccessing import clean, read_nordpool_data
+from tradingplatformpoc.data.preprocessing import clean, read_nordpool_data
 from tradingplatformpoc.market.bid import Action, GrossBid, Resource
 from tradingplatformpoc.market.market_solver import no_bids_accepted, resolve_bids
 from tradingplatformpoc.price.electricity_price import ElectricityPrice

@@ -59,20 +59,15 @@ class TradingSimulator:
     def __call__(self):
         if (self.job_id is not None) and (self.config_data is not None):
             try:
-
                 self.initialize_data()
                 self.agents, self.grid_agents = self.initialize_agents()
                 self.run()
-                results = self.extract_heating_price()
+                self.extract_heating_price()
                 update_job_with_end_time(self.job_id)
-                return results
 
             except Exception as e:
                 logger.exception(e)
                 delete_job(self.job_id)
-                return None
-        else:
-            return None
 
     def initialize_data(self):
         self.config_data = self.config_data

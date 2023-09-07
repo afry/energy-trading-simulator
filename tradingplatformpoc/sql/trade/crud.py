@@ -2,7 +2,7 @@ import datetime
 import itertools
 import operator
 from contextlib import _GeneratorContextManager
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional
 
 import pandas as pd
 
@@ -75,7 +75,7 @@ def trades_to_db_dict(bids_list: List[Trade], job_id: str) -> List[Dict[str, Any
 def db_to_aggregated_trade_df(job_id: str, resource: Resource, action: Action,
                               session_generator: Callable[[], _GeneratorContextManager[Session]]
                               = session_scope):
-    '''Fetches aggregated trades data from database for specified agent (source), resource and action.'''
+    """Fetches aggregated trades data from database for specified agent (source), resource and action."""
     with session_generator() as db:
         if action == Action.BUY:
             label = "bought"
@@ -164,7 +164,7 @@ def db_to_viewable_trade_df_by_agent(job_id: str, agent_guid: str,
 
 def get_total_tax_paid(job_id: str, agent_guid: Optional[str] = None,
                        session_generator: Callable[[], _GeneratorContextManager[Session]]
-                       = session_scope) -> Tuple[float, float]:
+                       = session_scope) -> float:
     with session_generator() as db:
         query = db.query(
             func.sum(TableTrade.tax_paid_for_quantity).label('sum_tax_paid_for_quantities'),
@@ -179,7 +179,7 @@ def get_total_tax_paid(job_id: str, agent_guid: Optional[str] = None,
 
 def get_total_grid_fee_paid_on_internal_trades(job_id: str, agent_guid: Optional[str] = None,
                                                session_generator: Callable[[], _GeneratorContextManager[Session]]
-                                               = session_scope) -> Tuple[float, float]:
+                                               = session_scope) -> float:
     with session_generator() as db:
         query = db.query(
             func.sum(TableTrade.grid_fee_paid_for_quantity).label('sum_grid_fee_paid_for_quantities'),

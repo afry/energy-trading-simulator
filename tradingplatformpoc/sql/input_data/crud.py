@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlmodel import Session
 
 from tradingplatformpoc.connection import session_scope
-from tradingplatformpoc.data.preproccessing import read_and_process_input_data
+from tradingplatformpoc.data.preprocessing import read_and_process_input_data
 from tradingplatformpoc.sql.input_data.models import InputData
 
 

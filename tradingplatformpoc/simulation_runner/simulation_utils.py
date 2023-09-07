@@ -15,7 +15,7 @@ from tradingplatformpoc.trading_platform_utils import add_to_nested_dict
 logger = logging.getLogger(__name__)
 
 
-def net_bids_from_gross_bids(gross_bids: List[GrossBid], electricty_pricing: ElectricityPrice) -> List[NetBid]:
+def net_bids_from_gross_bids(gross_bids: List[GrossBid], electricity_pricing: ElectricityPrice) -> List[NetBid]:
     """
     Add in internal tax and internal grid fee for internal SELL bids (for electricity, heating is not taxed).
     Note: External electricity bids already have grid fee
@@ -24,10 +24,10 @@ def net_bids_from_gross_bids(gross_bids: List[GrossBid], electricty_pricing: Ele
     for gross_bid in gross_bids:
         if gross_bid.action == Action.SELL and gross_bid.resource == Resource.ELECTRICITY:
             if gross_bid.by_external:
-                net_price = electricty_pricing.get_electricity_net_external_price(gross_bid.price)
+                net_price = electricity_pricing.get_electricity_net_external_price(gross_bid.price)
                 net_bids.append(NetBid.from_gross_bid(gross_bid, net_price))
             else:
-                net_price = electricty_pricing.get_electricity_net_internal_price(gross_bid.price)
+                net_price = electricity_pricing.get_electricity_net_internal_price(gross_bid.price)
                 net_bids.append(NetBid.from_gross_bid(gross_bid, net_price))
         else:
             net_bids.append(NetBid.from_gross_bid(gross_bid, gross_bid.price))

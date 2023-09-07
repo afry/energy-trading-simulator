@@ -11,7 +11,7 @@ from sqlmodel import Session
 
 from tradingplatformpoc.config.access_config import read_parameter_from_agent_defaults
 from tradingplatformpoc.connection import session_scope
-from tradingplatformpoc.data.preproccessing import clean, read_nordpool_data
+from tradingplatformpoc.data.preprocessing import clean, read_nordpool_data
 from tradingplatformpoc.sql.input_data.models import InputData
 from tradingplatformpoc.sql.input_electricity_price.models import InputElectricityPrice
 

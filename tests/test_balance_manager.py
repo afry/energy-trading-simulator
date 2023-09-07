@@ -328,7 +328,7 @@ class TestBalanceManager(TestCase):
         with mock.patch('tradingplatformpoc.market.balance_manager.heat_trades_from_db_for_periods',
                         return_value={self.some_datetime: trades}):
             extra_costs = correct_for_exact_heating_price(
-                pd.DatetimeIndex([self.some_datetime]), heating_prices, None)
+                pd.DatetimeIndex([self.some_datetime]), heating_prices, "job_id")
         self.assertEqual(1.5, [x.cost for x in extra_costs if x.agent == "Buyer1"][0])
         self.assertEqual(1.0, [x.cost for x in extra_costs if x.agent == "Buyer2"][0])
 
@@ -360,7 +360,7 @@ class TestBalanceManager(TestCase):
         with mock.patch('tradingplatformpoc.market.balance_manager.heat_trades_from_db_for_periods',
                         return_value={self.some_datetime: trades}):
             extra_costs = correct_for_exact_heating_price(
-                pd.DatetimeIndex([self.some_datetime]), heating_prices, None)
+                pd.DatetimeIndex([self.some_datetime]), heating_prices, "job_id")
         self.assertEqual(1.5, [x.cost for x in extra_costs if x.agent == "Seller1"][0])
         self.assertEqual(1.0, [x.cost for x in extra_costs if x.agent == "Seller2"][0])
 
@@ -392,7 +392,7 @@ class TestBalanceManager(TestCase):
         with mock.patch('tradingplatformpoc.market.balance_manager.heat_trades_from_db_for_periods',
                         return_value={self.some_datetime: trades}):
             extra_costs = correct_for_exact_heating_price(
-                pd.DatetimeIndex([self.some_datetime]), heating_prices, None)
+                pd.DatetimeIndex([self.some_datetime]), heating_prices, "job_id")
         self.assertEqual(-1.5, [x.cost for x in extra_costs if x.agent == "Buyer1"][0])
         self.assertEqual(-1.0, [x.cost for x in extra_costs if x.agent == "Buyer2"][0])
 
@@ -429,7 +429,7 @@ class TestBalanceManager(TestCase):
         with mock.patch('tradingplatformpoc.market.balance_manager.heat_trades_from_db_for_periods',
                         return_value={self.some_datetime: trades}):
             extra_costs = correct_for_exact_heating_price(
-                pd.DatetimeIndex([self.some_datetime]), heating_prices, None)
+                pd.DatetimeIndex([self.some_datetime]), heating_prices, "job_id")
         self.assertEqual(187.5, [x.cost for x in extra_costs if x.agent == "Buyer1"][0])
         self.assertEqual(62.5, [x.cost for x in extra_costs if x.agent == "Buyer2"][0])
 
@@ -482,7 +482,7 @@ class TestBalanceManager(TestCase):
         with mock.patch('tradingplatformpoc.market.balance_manager.heat_trades_from_db_for_periods',
                         return_value={self.some_datetime: trades}):
             cost_discrepancy_correction = correct_for_exact_heating_price(
-                pd.DatetimeIndex([self.some_datetime]), heating_prices, None)
+                pd.DatetimeIndex([self.some_datetime]), heating_prices, "job_id")
         self.assertAlmostEqual(0.375, [x.cost for x in cost_discrepancy_correction if x.agent == "Buyer1"][0], places=3)
         self.assertAlmostEqual(0.375, [x.cost for x in cost_discrepancy_correction if x.agent == "Buyer2"][0], places=3)
         self.assertAlmostEqual(-0.75, [x.cost for x in cost_discrepancy_correction if x.agent == "Grid"][0], places=3)
@@ -549,7 +549,7 @@ class TestBalanceManager(TestCase):
         with mock.patch('tradingplatformpoc.market.balance_manager.heat_trades_from_db_for_periods',
                         return_value={self.some_datetime: trades}):
             cost_discr_corrs = correct_for_exact_heating_price(
-                pd.DatetimeIndex([self.some_datetime]), heating_prices, None)
+                pd.DatetimeIndex([self.some_datetime]), heating_prices, "job_id")
         self.assertAlmostEqual(0.02, [x.cost for x in cost_discr_corrs if x.agent == "Grid"][0], places=3)
         self.assertAlmostEqual(-0.02, [x.cost for x in cost_discr_corrs if x.agent == "Seller"][0], places=3)
 
