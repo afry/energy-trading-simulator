@@ -78,7 +78,7 @@ def read_inputs_df_for_agent_creation(
                 'irradiation': x.irradiation,
                 'coop_electricity_consumed': x.coop_electricity_consumed,
                 'coop_heating_consumed': x.coop_heating_consumed}
-                for x in res])
+                for x in res]).set_index('period')
         else:
             raise Exception('Could not fetch input data from database.')
 
