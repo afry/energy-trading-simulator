@@ -48,7 +48,3 @@ class Job(SQLModel, table=True):
 class JobCreate(SQLModel):
     start_time: datetime.datetime
     config_id: str
-
-    
-class JobUpdate(SQLModel):
-    end_time: datetime.datetime
