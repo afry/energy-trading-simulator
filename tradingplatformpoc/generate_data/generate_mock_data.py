@@ -63,7 +63,7 @@ logger = logging.getLogger(__name__)
 
 def get_generated_mock_data(config_id: str) -> pd.DataFrame:
     """
-    Get mock data.
+    Fetch mock data if it exists, else generate it.
     @param config_id: Config id in db
     @return: A pd.DataFrame containing mock data for building agents
     """
@@ -74,6 +74,11 @@ def get_generated_mock_data(config_id: str) -> pd.DataFrame:
 
 
 def run(config_id: str) -> Union[pl.DataFrame, pl.LazyFrame]:
+    """
+    Fetch mock data if it exists, else generate it.
+    @param config_id: Config id in db
+    @return: A pl.DataFrame or pl.LazyFrame containing mock data for building agents
+    """
     agent_specs = get_all_agents_in_config(config_id)
     mock_data_constants = get_mock_data_constants(config_id)
     agent_ids_in_config = list(agent_specs.values())
