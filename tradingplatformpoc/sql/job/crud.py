@@ -102,3 +102,13 @@ def get_all_ongoing_jobs(session_generator: Callable[[], _GeneratorContextManage
     with session_generator() as db:
         res = db.query(Job.config_id).filter(Job.start_time.is_not(None), Job.end_time.is_(None)).all()
         return [config_id for (config_id,) in res]
+
+
+def get_config_id_for_job_id(job_id: str,
+                             session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope):
+    with session_generator() as db:
+        res = db.query(Job.config_id.label('config_id')).filter(Job.id == job_id).first()
+        if res is not None:
+            return res.config_id
+        else:
+            raise Exception('Found no config ID for job ID.')
