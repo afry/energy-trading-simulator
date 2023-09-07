@@ -9,8 +9,8 @@ from tradingplatformpoc.sql.mock_data.crud import db_to_mock_data_df, get_mock_d
 
 def extract_all_mock_data_for_agent(agent_id: str):
     """
-    A funtion to examine the generated mock data.
-    Goes through the stored mockdata for a given agent, and saves to a data frame,
+    A function to examine the generated mock data.
+    Goes through the stored mock data for a given agent, and saves to a data frame,
     so that one can easily compare different configurations.
     """
     mock_data_ids = get_mock_data_ids_for_agent(agent_id)

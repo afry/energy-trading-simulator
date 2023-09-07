@@ -23,22 +23,22 @@ add_indentation()
 set_max_width('1000px')  # This tab looks a bit daft when it is too wide, so limiting it here.
 
 config_ids = get_all_config_ids_in_db_without_jobs()
-choosen_config_id = st.selectbox('Choose a configuration to run', config_ids)
+chosen_config_id = st.selectbox('Choose a configuration to run', config_ids)
 if len(config_ids) > 0:
-    with st.expander('Configuration *{}* in JSON format'.format(choosen_config_id)):
-        st.json(read_config(choosen_config_id), expanded=True)
+    with st.expander('Configuration *{}* in JSON format'.format(chosen_config_id)):
+        st.json(read_config(chosen_config_id), expanded=True)
 else:
     st.markdown('Set up a configuration in **Setup simulation**')
 
-run_sim = st.button("**CLICK TO RUN SIMULATION FOR *{}***".format(choosen_config_id)
-                    if choosen_config_id is not None else "**CLICK TO RUN SIMULATION**",
+run_sim = st.button("**CLICK TO RUN SIMULATION FOR *{}***".format(chosen_config_id)
+                    if chosen_config_id is not None else "**CLICK TO RUN SIMULATION**",
                     disabled=(len(config_ids) == 0),
                     help='Click this button to start a simulation '
-                    'run with the specified configuration: *{}*'.format(choosen_config_id),
+                    'run with the specified configuration: *{}*'.format(chosen_config_id),
                     type='primary')
 
 if run_sim:
-    t = StoppableThread(name='run_' + choosen_config_id, target=run_simulation, args=(choosen_config_id,))
+    t = StoppableThread(name='run_' + chosen_config_id, target=run_simulation, args=(chosen_config_id,))
     add_script_run_ctx(t)
     t.start()
     run_sim = False
@@ -46,7 +46,7 @@ if run_sim:
 
 
 st.subheader('Jobs')
-st.caption('This table is not automatically updated. Reload page in order to see latest informtion.')
+st.caption('This table is not automatically updated. Reload page in order to see latest information.')
 config_df = get_all_config_ids_in_db_with_jobs_df()
 if not config_df.empty:
     config_df['Delete'] = False

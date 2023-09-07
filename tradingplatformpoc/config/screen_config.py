@@ -95,7 +95,7 @@ def config_data_agent_screening(config_data: dict) -> Optional[str]:
                 return "No specified resource for agent {}.".format(agent['Name'])
 
             if not agent['Resource'] in ALL_IMPLEMENTED_RESOURCES_STR:
-                return "Resource {} is not in availible for agent {}.".format(agent['Resource'], agent['Name'])
+                return "Resource {} is not in available for agent {}.".format(agent['Resource'], agent['Name'])
         
     # Needs exactly two GridAgents, one for each resource
     if 'GridAgent' not in [agent['Type'] for agent in config_data['Agents']]:
@@ -118,7 +118,7 @@ def config_data_agent_screening(config_data: dict) -> Optional[str]:
         for key, val in items.items():
 
             if key not in agent_specs[agent['Type']].keys():
-                return ("Specified {} not in availible "
+                return ("Specified {} not in available "
                         "input params for agent {} of type {}.".format(key, agent['Name'], agent['Type']))
             
             if "min_value" in agent_specs[agent['Type']][key].keys():
@@ -141,7 +141,7 @@ def config_data_agent_screening(config_data: dict) -> Optional[str]:
 
 # -------------------------------------- Start diff display -----------------------------------
 def agent_diff(default: dict, new: dict) -> Tuple[List[str], List[str], Dict[str, dict]]:
-    """Returns agents removed, agents added and paramas changed for agents."""
+    """Returns agents removed, agents added and params changed for agents."""
     agents_in_default = [agent['Name'] for agent in default['Agents']]
     agents_in_new = [agent['Name'] for agent in new['Agents']]
 
@@ -209,8 +209,8 @@ def display_diff_in_config(default: dict, new: dict) -> List[str]:
 def compare_pv_efficiency(config: dict) -> Optional[str]:
     """If the PVEfficiency of agents differs from default, return message."""
     agents_w_pv_eff = [agent for agent in config['Agents'] if 'PVEfficiency' in agent.keys()]
-    agentw_w_other_pv_eff = [agent['Name'] for agent in agents_w_pv_eff if
+    agents_w_other_pv_eff = [agent['Name'] for agent in agents_w_pv_eff if
                              agent['PVEfficiency'] != config['AreaInfo']['DefaultPVEfficiency']]
-    if len(agentw_w_other_pv_eff) > 0:
-        return "PV efficiency differs from default for {}".format(', '.join(agentw_w_other_pv_eff))
+    if len(agents_w_other_pv_eff) > 0:
+        return "PV efficiency differs from default for {}".format(', '.join(agents_w_other_pv_eff))
     return None

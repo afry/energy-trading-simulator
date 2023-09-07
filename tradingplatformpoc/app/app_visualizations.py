@@ -12,7 +12,7 @@ import streamlit as st
 from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app import app_constants
-from tradingplatformpoc.data.preproccessing import create_inputs_df_for_mock_data_generation, \
+from tradingplatformpoc.data.preprocessing import create_inputs_df_for_mock_data_generation, \
     read_heating_data, read_irradiation_data, read_nordpool_data, read_temperature_data
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.market.bid import Action, Resource
@@ -296,7 +296,7 @@ def construct_traded_amount_by_agent_chart(agent_chosen_guid: str,
     """
     Plot amount of electricity and heating sold and bought.
     @param agent_chosen_guid: Name of chosen agent
-    @param full_df: All trades in simulation results
+    @param agent_trade_df: All trades by agent
     @return: Altair chart with plot of sold and bought resources
     """
 

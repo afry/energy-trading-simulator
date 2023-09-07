@@ -20,15 +20,15 @@ TABLE_HEIGHT: int = 300
 show_pages_from_config("tradingplatformpoc/app/pages_config/pages_subpages.toml")
 add_indentation()
 
-if 'choosen_id_to_view' in st.session_state.keys() and st.session_state.choosen_id_to_view is not None:
+if 'chosen_id_to_view' in st.session_state.keys() and st.session_state.chosen_id_to_view is not None:
 
-    agent_specs = get_all_agents_in_config(st.session_state.choosen_id_to_view['config_id'])
+    agent_specs = get_all_agents_in_config(st.session_state.chosen_id_to_view['config_id'])
     agent_ids = [name for name in agent_specs.keys()]
     agent_chosen_guid = st.sidebar.selectbox('Choose agent:', agent_ids)
     st.write("Showing results for: " + agent_chosen_guid)
 
     with st.expander('Bids'):
-        bids_df = db_to_viewable_bid_df_for_agent(job_id=st.session_state.choosen_id_to_view['job_id'],
+        bids_df = db_to_viewable_bid_df_for_agent(job_id=st.session_state.chosen_id_to_view['job_id'],
                                                   agent_guid=agent_chosen_guid)
         if bids_df.empty:
             st.dataframe(bids_df, hide_index=True)
@@ -38,7 +38,7 @@ if 'choosen_id_to_view' in st.session_state.keys() and st.session_state.choosen_
                                       include_index=True)
 
     with st.expander('Trades'):
-        trades_df = db_to_viewable_trade_df_by_agent(job_id=st.session_state.choosen_id_to_view['job_id'],
+        trades_df = db_to_viewable_trade_df_by_agent(job_id=st.session_state.chosen_id_to_view['job_id'],
                                                      agent_guid=agent_chosen_guid)
         if trades_df.empty:
             st.dataframe(trades_df, hide_index=True)
@@ -53,7 +53,7 @@ if 'choosen_id_to_view' in st.session_state.keys() and st.session_state.choosen_
     with st.expander('Extra costs'):
         st.write('A negative cost means that the agent was owed money for the period, rather than owing the '
                  'money to someone else.')
-        extra_costs_df = db_to_viewable_extra_costs_df_by_agent(job_id=st.session_state.choosen_id_to_view['job_id'],
+        extra_costs_df = db_to_viewable_extra_costs_df_by_agent(job_id=st.session_state.chosen_id_to_view['job_id'],
                                                                 agent_guid=agent_chosen_guid)
         
         if extra_costs_df.empty:
@@ -62,7 +62,7 @@ if 'choosen_id_to_view' in st.session_state.keys() and st.session_state.choosen_
             st.dataframe(extra_costs_df.replace(float('inf'), 'inf'), height=TABLE_HEIGHT)
             download_df_as_csv_button(extra_costs_df, "extra_costs_for_agent_" + agent_chosen_guid,
                                       include_index=True)
-    levels_df = db_to_viewable_level_df_by_agent(job_id=st.session_state.choosen_id_to_view['job_id'],
+    levels_df = db_to_viewable_level_df_by_agent(job_id=st.session_state.chosen_id_to_view['job_id'],
                                                  agent_guid=agent_chosen_guid,
                                                  level_type=TradeMetadataKey.STORAGE_LEVEL.name)
     if not levels_df.empty:
@@ -75,7 +75,7 @@ if 'choosen_id_to_view' in st.session_state.keys() and st.session_state.choosen_
     if agent_type != 'GridAgent':
 
         total_saved, extra_costs_for_bad_bids = get_savings_vs_only_external_buy(
-            job_id=st.session_state.choosen_id_to_view['job_id'],
+            job_id=st.session_state.chosen_id_to_view['job_id'],
             agent_guid=agent_chosen_guid)
 
         st.metric(
@@ -98,17 +98,17 @@ if 'choosen_id_to_view' in st.session_state.keys() and st.session_state.choosen_
                                                                          total_saved - extra_costs_for_bad_bids))
         if agent_type == 'BatteryAgent':
             battery_agent_total_net_profit = get_total_profit_net(
-                job_id=st.session_state.choosen_id_to_view['job_id'],
+                job_id=st.session_state.chosen_id_to_view['job_id'],
                 agent_guid=agent_chosen_guid)
             st.metric(
                 label="Net profit.",
                 value="{:,.2f} SEK".format(battery_agent_total_net_profit),
                 help=r"What the {} sold minus what it bought.".format(agent_chosen_guid))
             battery_agent_tax_paid = get_total_tax_paid(
-                job_id=st.session_state.choosen_id_to_view['job_id'],
+                job_id=st.session_state.chosen_id_to_view['job_id'],
                 agent_guid=agent_chosen_guid)
             battery_agent_grid_fee_paid = get_total_grid_fee_paid_on_internal_trades(
-                job_id=st.session_state.choosen_id_to_view['job_id'],
+                job_id=st.session_state.chosen_id_to_view['job_id'],
                 agent_guid=agent_chosen_guid)
             st.metric(
                 label="Gross profit.",

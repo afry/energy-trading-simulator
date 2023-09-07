@@ -12,7 +12,7 @@ from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app.app_threading import StoppableThread
-from tradingplatformpoc.data.preproccessing import read_energy_data, read_irradiation_data, read_nordpool_data
+from tradingplatformpoc.data.preprocessing import read_energy_data, read_irradiation_data, read_nordpool_data
 from tradingplatformpoc.database import bulk_insert
 from tradingplatformpoc.digitaltwin.battery import Battery
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
@@ -59,20 +59,15 @@ class TradingSimulator:
     def __call__(self):
         if (self.job_id is not None) and (self.config_data is not None):
             try:
-
                 self.initialize_data()
                 self.agents, self.grid_agents = self.initialize_agents()
                 self.run()
-                results = self.extract_heating_price()
+                self.extract_heating_price()
                 update_job_with_end_time(self.job_id)
-                return results
 
             except Exception as e:
                 logger.exception(e)
                 delete_job(self.job_id)
-                return None
-        else:
-            return None
 
     def initialize_data(self):
         self.config_data = self.config_data
