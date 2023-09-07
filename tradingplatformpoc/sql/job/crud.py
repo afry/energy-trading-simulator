@@ -111,3 +111,11 @@ def get_config_id_for_job_id(job_id: str,
             return res.config_id
         else:
             raise Exception('Found no config ID for job ID.')
+
+
+def get_all_queued_jobs(session_generator: Callable[[], _GeneratorContextManager[Session]]
+                        = session_scope):
+    with session_generator() as db:
+        res = db.query(Job.id).filter(Job.start_time.is_(None), Job.end_time.is_(None)).\
+            order_by(Job.created_at.asc()).all()
+        return [job_id for (job_id,) in res]

@@ -5,11 +5,10 @@ import pandas as pd
 from st_pages import add_indentation, show_pages_from_config
 
 import streamlit as st
-from streamlit.runtime.scriptrunner import add_script_run_ctx
 
 from tradingplatformpoc.app import footer
-from tradingplatformpoc.app.app_functions import run_simulation, set_max_width
-from tradingplatformpoc.app.app_threading import StoppableThread, get_running_threads
+from tradingplatformpoc.app.app_functions import run_next_job_in_queue, set_max_width
+from tradingplatformpoc.app.app_threading import get_running_threads
 from tradingplatformpoc.app.app_visualizations import color_in
 from tradingplatformpoc.sql.config.crud import \
     get_all_config_ids_in_db_with_jobs_df, get_all_config_ids_in_db_without_jobs, read_config
@@ -21,6 +20,10 @@ show_pages_from_config("tradingplatformpoc/app/pages_config/pages.toml")
 add_indentation()
 
 set_max_width('1000px')  # This tab looks a bit daft when it is too wide, so limiting it here.
+
+# TODO: Make this automatic
+if len([thread for thread in get_running_threads() if 'run_' in thread.name]) == 0:
+    run_next_job_in_queue()
 
 config_ids = get_all_config_ids_in_db_without_jobs()
 chosen_config_id = st.selectbox('Choose a configuration to run', config_ids)
@@ -39,9 +42,6 @@ run_sim = st.button("**CLICK TO RUN SIMULATION FOR *{}***".format(chosen_config_
 
 if run_sim:
     new_job_id = create_job_if_new_config(chosen_config_id)
-    t = StoppableThread(name='run_' + chosen_config_id, target=run_simulation, args=(new_job_id,))
-    add_script_run_ctx(t)
-    t.start()
     run_sim = False
     st.experimental_rerun()
 
@@ -53,7 +53,7 @@ if not config_df.empty:
     config_df['Delete'] = False
     # config_df['Delete'] = config_df['Delete'].astype(bool)
     config_df['Status'] = 'Could not finish'
-    config_df.loc[config_df['Config ID'].isin([thread.name[4:] for thread in get_running_threads()]),
+    config_df.loc[config_df['Job ID'].isin([thread.name[4:] for thread in get_running_threads()]),
                   'Status'] = 'Running'
     config_df.loc[(config_df['Start time'].isna() & config_df['End time'].isna()), 'Status'] = 'Pending'
     config_df.loc[config_df['End time'].notna(), 'Status'] = 'Completed'
@@ -82,7 +82,7 @@ if not config_df.empty:
         delete_runs_submit = False
         if not edited_df[edited_df['Delete']].empty:
             for _i, row in edited_df[edited_df['Delete']].iterrows():
-                active = [thread for thread in get_running_threads() if thread.name == 'run_' + row['Config ID']]
+                active = [thread for thread in get_running_threads() if thread.name == 'run_' + row['Job ID']]
                 if len(active) == 0:
                     delete_job(row['Job ID'])
                 else:
