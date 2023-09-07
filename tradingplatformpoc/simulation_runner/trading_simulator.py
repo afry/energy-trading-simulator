@@ -59,6 +59,7 @@ class TradingSimulator:
     def __call__(self):
         if (self.job_id is not None) and (self.config_data is not None):
             try:
+                update_job_with_time(self.job_id, 'start_time')
                 self.initialize_data()
                 self.agents, self.grid_agents = self.initialize_agents()
                 self.run()

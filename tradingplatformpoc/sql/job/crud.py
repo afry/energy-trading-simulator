@@ -43,8 +43,7 @@ def create_job_if_new_config(config_id: str,
     with session_generator() as db:
         exists = get_job_id_for_config(config_id, db)
         if not exists:
-            job_to_db = create_job(JobCreate(start_time=datetime.datetime.now(pytz.utc),
-                                             config_id=config_id), db=db)
+            job_to_db = create_job(JobCreate(config_id=config_id), db=db)
             logger.info('Job created with ID {}.'.format(job_to_db.id))
             return job_to_db.id
         else:
