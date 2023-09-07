@@ -55,6 +55,7 @@ if not config_df.empty:
     config_df['Status'] = 'Could not finish'
     config_df.loc[config_df['Config ID'].isin([thread.name[4:] for thread in get_running_threads()]),
                   'Status'] = 'Running'
+    config_df.loc[(config_df['Start time'].isna() & config_df['End time'].isna()), 'Status'] = 'Pending'
     config_df.loc[config_df['End time'].notna(), 'Status'] = 'Completed'
     config_df_styled = config_df.style.applymap(color_in, subset=['Status'])\
         .set_properties(**{'background-color': '#f5f5f5'}, subset=['Status', 'Config ID'])
