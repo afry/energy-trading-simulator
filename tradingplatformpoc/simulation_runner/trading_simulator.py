@@ -125,6 +125,7 @@ class TradingSimulator:
 
                 agents.append(BuildingAgent(heat_pricing=self.heat_pricing,
                                             electricity_pricing=self.electricity_pricing,
+                                            outdoor_temperatures=inputs_df['temperature'],
                                             digital_twin=building_digital_twin,
                                             guid=agent_name, nbr_heat_pumps=agent["NumberHeatPumps"],
                                             coeff_of_perf=agent["COP"]))
@@ -149,6 +150,7 @@ class TradingSimulator:
                     electricity_production=pv_prod_series)
                 agents.append(BuildingAgent(heat_pricing=self.heat_pricing,
                                             electricity_pricing=self.electricity_pricing,
+                                            outdoor_temperatures=inputs_df['temperature'],
                                             digital_twin=grocery_store_digital_twin,
                                             guid=agent_name))
             elif agent_type == "GridAgent":

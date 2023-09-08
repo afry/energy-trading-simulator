@@ -34,11 +34,12 @@ np.random.seed(1)
 # Create data
 nordpool_values = np.random.uniform(MIN_NORDPOOL_PRICE, MAX_NORDPOOL_PRICE, len(DATETIME_ARRAY))
 irradiation_values = np.random.uniform(0, 100.0, len(DATETIME_ARRAY))
-temperature_values = np.random.triangular(-53.0, 10.0, 38.0, len(DATETIME_ARRAY))  # TODO: Remove?
+temperature_values = np.random.triangular(-53.0, 10.0, 38.0, len(DATETIME_ARRAY))
 carbon_values = np.ones(shape=len(DATETIME_ARRAY))
 
 # Read CSV files
 irradiation_data = pd.Series(irradiation_values, index=DATETIME_ARRAY)
+temperature_series = pd.Series(temperature_values, index=DATETIME_ARRAY)
 external_price_data = pd.Series(nordpool_values, index=DATETIME_ARRAY)
 
 area_info = utility_test_objects.AREA_INFO
@@ -294,15 +295,18 @@ class TestBuildingAgent(TestCase):
                                                    heating_usage=pd.Series(heat_values, index=DATETIME_ARRAY))
     building_agent_cons = BuildingAgent(heat_pricing=heat_pricing,
                                         electricity_pricing=electricity_pricing,
+                                        outdoor_temperatures=temperature_series,
                                         digital_twin=building_digital_twin_cons)
     building_digital_twin_prod = StaticDigitalTwin(electricity_usage=-pd.Series(elec_values, index=DATETIME_ARRAY),
                                                    heating_usage=-pd.Series(heat_values, index=DATETIME_ARRAY))
     building_agent_prod = BuildingAgent(heat_pricing=heat_pricing, electricity_pricing=electricity_pricing,
+                                        outdoor_temperatures=temperature_series,
                                         digital_twin=building_digital_twin_prod)
     building_digital_twin_zeros = StaticDigitalTwin(electricity_usage=pd.Series(elec_values * 0, index=DATETIME_ARRAY),
                                                     heating_usage=pd.Series(heat_values * 0, index=DATETIME_ARRAY))
     building_agent_zeros = BuildingAgent(heat_pricing=heat_pricing,
                                          electricity_pricing=electricity_pricing,
+                                         outdoor_temperatures=temperature_series,
                                          digital_twin=building_digital_twin_zeros)
 
     def test_make_bids_consumer(self):
@@ -428,11 +432,13 @@ class TestBuildingAgentHeatPump(TestCase):
     # Create agent with 2 heat pumps, default COP
     building_agent_2_pumps_default_cop = BuildingAgent(electricity_pricing=electricity_pricing,
                                                        heat_pricing=heat_pricing,
+                                                       outdoor_temperatures=temperature_series,
                                                        digital_twin=building_digital_twin,
                                                        nbr_heat_pumps=2)
     # Create agent with 3 pumps, COP = 4.3
     building_agent_3_pumps_custom_cop = BuildingAgent(electricity_pricing=electricity_pricing,
                                                       heat_pricing=heat_pricing,
+                                                      outdoor_temperatures=temperature_series,
                                                       digital_twin=building_digital_twin,
                                                       nbr_heat_pumps=3, coeff_of_perf=4.3)
 

@@ -6,10 +6,13 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
+import pandas as pd
+
 from tradingplatformpoc import trading_platform_utils
 from tradingplatformpoc.agent.iagent import IAgent, get_price_and_market_to_use_when_buying, \
     get_price_and_market_to_use_when_selling
-from tradingplatformpoc.digitaltwin.heat_pump import DEFAULT_BRINE_TEMP, HeatPump
+from tradingplatformpoc.digitaltwin.heat_pump import create_set_of_outdoor_brine_temps_pairs, DEFAULT_BRINE_TEMP, \
+    HeatPump
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.market.bid import Action, GrossBid, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.market.trade import Trade, TradeMetadataKey
@@ -30,14 +33,14 @@ class BuildingAgent(IAgent):
     allow_sell_heat: bool
 
     def __init__(self, heat_pricing: HeatingPrice, electricity_pricing: ElectricityPrice,
-                 digital_twin: StaticDigitalTwin, nbr_heat_pumps: int = 0,
+                 outdoor_temperatures: pd.Series, digital_twin: StaticDigitalTwin, nbr_heat_pumps: int = 0,
                  coeff_of_perf: Optional[float] = None, guid="BuildingAgent"):
         super().__init__(guid)
         self.heat_pricing = heat_pricing
         self.electricity_pricing = electricity_pricing
         self.digital_twin = digital_twin
         self.n_heat_pumps = nbr_heat_pumps
-        self.outdoor_temperatures = None  # TODO: Temperature data
+        self.outdoor_temperatures = outdoor_temperatures
         self.temperature_pairs = create_set_of_outdoor_brine_temps_pairs(self.outdoor_temperatures)
         self.workloads_data = construct_workloads_data(list(self.temperature_pairs['brine_temp_c'])
                                                        + [DEFAULT_BRINE_TEMP],

@@ -86,7 +86,8 @@ class TestDataStore(TestCase):
         """Test that the CSV file with Vetelangden temperature data reads correctly."""
         data = read_temperature_data()
         self.assertTrue(data.shape[0] > 0)
-        self.assertIsInstance(data.index, DatetimeIndex)
+        self.assertTrue('datetime' in data.columns)
+        self.assertTrue('temperature' in data.columns)
 
     def test_add_external_heating_sell(self):
         ds = HeatingPrice(

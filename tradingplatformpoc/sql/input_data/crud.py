@@ -66,16 +66,18 @@ def read_inputs_df_for_mock_data_generation(
         
 
 def read_inputs_df_for_agent_creation(
-        session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope):
+        session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope) -> pd.DataFrame:
     with session_generator() as db:
         res = db.execute(select(InputData.period.label('period'),
                                 InputData.irradiation.label('irradiation'),
+                                InputData.temperature.label('temperature'),
                                 InputData.coop_electricity_consumed.label('coop_electricity_consumed'),
                                 InputData.coop_heating_consumed.label('coop_heating_consumed'))).all()
         if res is not None:
             return pd.DataFrame.from_records([{
                 'period': x.period,
                 'irradiation': x.irradiation,
+                'temperature': x.temperature,
                 'coop_electricity_consumed': x.coop_electricity_consumed,
                 'coop_heating_consumed': x.coop_heating_consumed}
                 for x in res]).set_index('period')
