@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta
 from typing import Any, Collection, Dict, List
 
@@ -5,11 +6,13 @@ import numpy as np
 
 import pandas as pd
 
-from tradingplatformpoc.bid import Resource
+from tradingplatformpoc.market.bid import Resource
 
 ALL_IMPLEMENTED_RESOURCES = [Resource.ELECTRICITY, Resource.HEATING]
 ALL_IMPLEMENTED_RESOURCES_STR = [res.name for res in ALL_IMPLEMENTED_RESOURCES]
-ALL_AGENT_TYPES = ["BuildingAgent", "PVAgent", "StorageAgent", "GridAgent", "GroceryStoreAgent"]
+ALL_AGENT_TYPES = ["BuildingAgent", "PVAgent", "BatteryAgent", "GridAgent", "GroceryStoreAgent"]
+
+logger = logging.getLogger(__name__)
 
 
 def minus_n_hours(t1: datetime, n_hours: int):
@@ -54,21 +57,7 @@ def calculate_solar_prod(irradiation_data: pd.Series, pv_sqm: float, pv_efficien
     return irradiation_data * pv_sqm * pv_efficiency / 1000
 
 
-def add_numeric_dicts(dict1: Dict[Any, float], dict2: Dict[Any, float]) -> Dict[Any, float]:
-    """
-    Add values for keys that exist in both, keep all keys.
-    This could have been done smoothly with collections.Counter, but that doesn't include keys for which the value is 0,
-    which we want.
-    """
-    combined_dict = dict1.copy()
-    for k, v in dict2.items():
-        if k in combined_dict:
-            combined_dict[k] = combined_dict[k] + v
-        else:
-            combined_dict[k] = v
-    return combined_dict
-
-
+# TODO: move to simulation_runner_utils.py
 def flatten_collection(collection_of_lists: Collection[Collection[Any]]) -> List[Any]:
     return [bid for sublist in collection_of_lists for bid in sublist]
 
@@ -97,6 +86,7 @@ def get_if_exists_else(some_dict: Dict[str, Any], key: str, default_value: Any) 
     return some_dict[key] if key in some_dict else default_value
 
 
+# TODO: move to simulation_runner_utils.py
 def add_to_nested_dict(nested_dict: dict, key1, key2, value):
     if key1 in nested_dict:
         nested_dict[key1][key2] = value

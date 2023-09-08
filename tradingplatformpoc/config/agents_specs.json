@@ -1,0 +1,177 @@
+
+{
+    "BuildingAgent": {
+        "GrossFloorArea": {
+            "display": "Gross floor area (sqm)",
+            "min_value": 0.0,
+            "step": 10.0,
+            "default_value": 1000.0,
+            "help": "Specified in square meters, used for calculating the energy demand",
+            "type": "float"
+        },
+        "FractionCommercial": {
+            "display": "Fraction commercial",
+            "min_value": 0.0,
+            "max_value": 1.0,
+            "help": "A number from 0 to 1, specifying how large a share of the area which should be treated as commercial buildings, as opposed to residential. Used for calculating the pattern and quantity of energy demand",
+            "default_value": 0.0,
+            "type": "float"
+        },
+        "FractionSchool": {
+            "display": "Fraction school",
+            "min_value": 0.0,
+            "max_value": 1.0,
+            "help": "A number from 0 to 1, specifying how large a share of the area which should be treated as school buildings, as opposed to residential. Used for calculating the pattern and quantity of energy demand",
+            "default_value": 0.0,
+            "type": "float"
+        },
+        "PVArea": {
+            "display": "PV area (sqm)",
+            "min_value": 0.0,
+            "step": 10.0,
+            "format": "%.1f",
+            "help": "Specified in square meters, indicating the total areal of solar panels that this agent has at its disposal",
+            "default_value": 0.0,
+            "type": "float"
+        },
+        "PVEfficiency": {
+            "display": "PV efficiency",
+            "min_value": 0.01,
+            "max_value": 0.99,
+            "step": 0.005,
+            "format": "%.3f",
+            "default_value": 0.165,
+            "help": "A number from 0 to 1, specifying the efficiency of solar panels that the agent may have at its disposal. If missing, will default to the default PV efficiency specified in 'AreaInfo'",
+            "type": "float"
+        },
+        "NumberHeatPumps": {
+            "display": "Heat pumps",
+            "min_value": 0,
+            "step": 1,
+            "help": "Heat pumps allow the building agent to convert electricity into heating. Currently, all heat pumps are medium sized 'Thermia Mega 2020' pumps, with a maximum effect of 44 kW",
+            "default_value": 0,
+            "type": "int"
+        },
+        "COP": {
+            "display": "COP",
+            "min_value": 2.0,
+            "step": 0.1,
+            "help": "With this parameter, one can modify the relative Coefficient of Performance of the agent's heat pumps. The default is 4.6, which is the tabulated value for a medium sized 'Thermia Mega 2020' running on 3600 RPM, with a forward temperature of 35 degrees and a brine fluid temperature of 0 degrees Celsius",
+            "default_value": 4.6,
+            "type": "float",
+            "disabled_cond": {"NumberHeatPumps": 0}
+        }
+    },
+    "BatteryAgent": {
+        "Capacity": {
+            "display": "Capacity",
+            "min_value": 0.0,
+            "step": 1.0,
+            "default_value": 1000,
+            "help": "A number specifying the storage capacity, in kWh",
+            "type": "float"
+        },
+        "ChargeRate": {
+            "display": "Charge rate",
+            "min_value": 0.01,
+            "max_value": 10.0,
+            "default_value": 0.4,
+            "help": "A number specifying how much of the maximum capacity can be charged in an hour. This value being equal to 1 would mean that the storage entity can go from completely empty, to completely full, in one hour. Must be a positive number",
+            "type": "float"
+        },
+        "RoundTripEfficiency": {
+            "display": "Round-trip efficiency",
+            "min_value": 0.01,
+            "max_value": 1.0,
+            "default_value": 0.93,
+            "help": "A number specifying the round-trip efficiency. This value being equal to 1 would mean that there are no losses for the storage entity; if one charges it with X kWh, one can later discharge exactly the same amount. Must be a positive number, no larger than 1",
+            "type": "float"
+        },
+        "NHoursBack": {
+            "display": "'N hours back'",
+            "min_value": 1,
+            "max_value": 720,
+            "default_value": 168,
+            "help": "Used in the current BatteryAgent strategy: The agent will use the prices from NHoursBack to form an opinion on what its asking prices should be for upcoming periods",
+            "type": "int"
+        },
+        "BuyPricePercentile": {
+            "display": "'Buy-price percentile'",
+            "min_value": 0.0,
+            "max_value": 100.0,
+            "step": 1.0,
+            "default_value": 20,
+            "help": "Used in the current BatteryAgent strategy: The agent will look at historical prices, as specified above, and set its buy-bid asking price to be this percentile of those historical prices",
+            "type": "float"
+        },
+        "SellPricePercentile": {
+            "display": "'Sell-price percentile'",
+            "min_value": 0.0,
+            "max_value": 100.0,
+            "step": 1.0,
+            "default_value": 80,
+            "help": "Used in the current BatteryAgent strategy: The agent will look at historical prices, as specified above, and set its sell-bid asking price to be this percentile of those historical prices. SellPricePercentile must be bigger than BuyPricePercentile",
+            "type": "float"
+        },
+        "DischargeRate": {
+            "display": "Discharge rate",
+            "min_value": 0.01,
+            "max_value": 10.0,
+            "default_value": 0.4,
+            "help": "A number specifying how much of the maximum capacity can be discharged in an hour. This value being equal to 1 would mean that the storage entity can go from completely full, to completely empty, in one hour. Must be a positive number. If not specified, will default to the charge rate",
+            "type": "float"
+        }
+    },
+    "GridAgent": {
+        "TransferRate": {
+            "display": "Transfer rate",
+            "min_value": 0.0,
+            "step": 10.0,
+            "default_value": 10000,
+            "help": "A number specifying (in kWh) the maximum amount of energy the agent can transfer into, or out from, the microgrid in an hour",
+            "type": "float"
+        }
+    },
+    "PVAgent": {
+        "PVArea": {
+            "display": "PV area (sqm)",
+            "min_value": 0.0,
+            "step": 10.0,
+            "format": "%.1f",
+            "help": "Specified in square meters, indicating the total areal of solar panels that this agent has at its disposal",
+            "default_value": 0.0,
+            "type": "float"
+        },
+        "PVEfficiency": {
+            "display": "PV efficiency",
+            "min_value": 0.01,
+            "max_value": 0.99,
+            "step": 0.005,
+            "format": "%.3f",
+            "default_value": 0.165,
+            "help": "A number from 0 to 1, specifying the efficiency of solar panels that the agent may have at its disposal. If missing, will default to the default PV efficiency specified in 'AreaInfo'",
+            "type": "float"
+        }
+    },
+    "GroceryStoreAgent": {
+        "PVArea": {
+            "display": "PV area (sqm)",
+            "min_value": 0.0,
+            "step": 10.0,
+            "format": "%.1f",
+            "help": "Specified in square meters, indicating the total areal of solar panels that this agent has at its disposal",
+            "default_value": 320,
+            "type": "float"
+        },
+        "PVEfficiency": {
+            "display": "PV efficiency",
+            "min_value": 0.01,
+            "max_value": 0.99,
+            "step": 0.005,
+            "format": "%.3f",
+            "default_value": 0.165,
+            "help": "A number from 0 to 1, specifying the efficiency of solar panels that the agent may have at its disposal. If missing, will default to the default PV efficiency specified in 'AreaInfo'",
+            "type": "float"
+        }
+    }
+}

@@ -4,7 +4,7 @@ import numpy as np
 
 import pandas as pd
 
-from tradingplatformpoc.bid import Action, Resource
+from tradingplatformpoc.market.bid import Action, Resource
 
 PATH_TO_TRADES_CSV = "../results/trades.csv"
 
@@ -68,8 +68,8 @@ all_heating_use['day_of_month'] = all_heating_use.index.day
 jan_feb_avg_consumption_kw = all_heating_use.loc[all_heating_use.month <= 2].quantity.mean()
 print('Average heating need for the microgrid in January-February was {:.4f} kW'.format(jan_feb_avg_consumption_kw))
 
-monthly_sums = all_heating_use.groupby('month')['quantity'].sum()
-daily_sums = all_heating_use.groupby(['month', 'day_of_month'], as_index=False)['quantity'].sum()
+monthly_sums = all_heating_use.groupby('month')['quantity'].to_numpy().sum()
+daily_sums = all_heating_use.groupby(['month', 'day_of_month'], as_index=False)['quantity'].to_numpy().sum()
 max_daily_demand_by_month = daily_sums.groupby('month')['quantity'].max()  # Unit kWh
 max_daily_avg_demand_by_month = max_daily_demand_by_month / 24  # Unit is now kW
 

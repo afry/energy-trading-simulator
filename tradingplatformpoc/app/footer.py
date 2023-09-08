@@ -37,7 +37,7 @@ text-align: left; /* you can replace 'left' with 'center' or 'right' if you want
 <div id="page-container">
 
 <div class="footer">
-Version 1.0.4<br>
+Version 2.0.2<br>
 Built by AFRY X - AI & Advanced Analytics
 </div>
 

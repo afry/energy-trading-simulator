@@ -1,0 +1,15 @@
+[[pages]]
+path = "app.py"
+name = "Start"
+
+[[pages]]
+path = "tradingplatformpoc/app/pages/setup_configuration.py"
+name = "Setup configuration"
+
+[[pages]]
+path = "tradingplatformpoc/app/pages/run_simulation.py"
+name = "Run simulation"
+
+[[pages]]
+path = "tradingplatformpoc/app/pages/view_results.py"
+name = "View results"
