@@ -11,8 +11,8 @@ import pandas as pd
 from tradingplatformpoc import trading_platform_utils
 from tradingplatformpoc.agent.iagent import IAgent, get_price_and_market_to_use_when_buying, \
     get_price_and_market_to_use_when_selling
-from tradingplatformpoc.digitaltwin.heat_pump import create_set_of_outdoor_brine_temps_pairs, DEFAULT_BRINE_TEMP, \
-    HeatPump
+from tradingplatformpoc.digitaltwin.heat_pump import (DEFAULT_BRINE_TEMP, HeatPump,
+                                                      create_set_of_outdoor_brine_temps_pairs)
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.market.bid import Action, GrossBid, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.market.trade import Trade, TradeMetadataKey
