@@ -18,7 +18,8 @@ from tradingplatformpoc.market.bid import Action, GrossBid, NetBidWithAcceptance
 from tradingplatformpoc.market.trade import Trade, TradeMetadataKey
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
-from tradingplatformpoc.simulation_runner.simulation_utils import get_local_price_if_exists_else_external_estimate
+from tradingplatformpoc.simulation_runner.simulation_utils import get_closest_entry, \
+    get_local_price_if_exists_else_external_estimate
 
 logger = logging.getLogger(__name__)
 
@@ -93,8 +94,7 @@ class BuildingAgent(IAgent):
 
         # Find brine temp for the closest outdoor temperature
         temp = self.outdoor_temperatures.loc[period]
-        closest_row = self.temperature_pairs.iloc[(self.temperature_pairs['outdoor_temp_c'] - temp).abs().argsort()[:1]]
-        brine_temp_c = closest_row['brine_temp_c'].iloc[0]
+        brine_temp_c = get_closest_entry(temp, 'outdoor_temp_c', self.temperature_pairs)['brine_temp_c']
 
         # Re-calculate optimal workload, now that prices are known
         workload_to_use = self.calculate_optimal_workload(brine_temp_c, elec_net_consumption_pred,
@@ -164,8 +164,7 @@ class BuildingAgent(IAgent):
 
         # Find brine temp for the closest outdoor temperature
         temp = self.outdoor_temperatures.loc[period]
-        closest_row = self.temperature_pairs.iloc[(self.temperature_pairs['outdoor_temp_c'] - temp).abs().argsort()[:1]]
-        brine_temp_c = closest_row['brine_temp_c'].iloc[0]
+        brine_temp_c = get_closest_entry(temp, 'outdoor_temp_c', self.temperature_pairs)['brine_temp_c']
 
         heat_net_consumption = self.make_prognosis(period, Resource.HEATING)
         elec_net_consumption = self.make_prognosis(period, Resource.ELECTRICITY)  # Negative means net production
