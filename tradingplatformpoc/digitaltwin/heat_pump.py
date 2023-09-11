@@ -206,14 +206,10 @@ def calculate_brine_temp_c(outdoor_temp_c: pd.Series) -> pd.Series:
     return 7 / 40 * outdoor_temp_c + 5 / 2
 
 
-def create_set_of_outdoor_brine_temps_pairs(outdoor_temp_c: pd.Series) -> pd.DataFrame:
+def create_set_of_outdoor_brine_temps_pairs(min_temp: float, max_temp: float, num_steps: int) -> pd.DataFrame:
     """Create a dataframe with a set of outdoor temperature, brine temperature pairs to use for workload calculations"""
-
-    disc_temps = pd.DataFrame(
-        outdoor_temp_c.quantile(np.linspace(0.0, 1.0, 21)).rename('outdoor_temp_c')
-    )
+    disc_temps = pd.DataFrame(np.linspace(min_temp, max_temp, num_steps), columns=['outdoor_temp_c'])
     disc_temps['brine_temp_c'] = calculate_brine_temp_c(disc_temps['outdoor_temp_c'])
-
     return disc_temps
 
 

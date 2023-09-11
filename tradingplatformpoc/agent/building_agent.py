@@ -41,7 +41,7 @@ class BuildingAgent(IAgent):
         self.digital_twin = digital_twin
         self.n_heat_pumps = nbr_heat_pumps
         self.outdoor_temperatures = outdoor_temperatures
-        self.temperature_pairs = create_set_of_outdoor_brine_temps_pairs(self.outdoor_temperatures)
+        self.temperature_pairs = create_set_of_outdoor_brine_temps_pairs(-20.0, 20.0, 41)
         self.workloads_data = Workloads(list(self.temperature_pairs['brine_temp_c']) + [DEFAULT_BRINE_TEMP],
                                         coeff_of_perf, nbr_heat_pumps)
         self.allow_sell_heat = False
