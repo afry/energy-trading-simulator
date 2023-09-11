@@ -87,7 +87,7 @@ def run_simulation(job_id: str):
     # TODO: Add functionality to schedule removal of potential uncompleted jobs
 
 
-def run_next_job_in_queue():
+def run_next_job_in_queue() -> bool:
     queue = get_all_queued_jobs()
     if len(queue) > 0:
         job_id = queue[0]
@@ -95,5 +95,7 @@ def run_next_job_in_queue():
         t = StoppableThread(name='run_' + job_id, target=run_simulation, args=(job_id,))
         add_script_run_ctx(t)
         t.start()
+        return True
     else:
         logger.info('No jobs in queue.')
+        return False
