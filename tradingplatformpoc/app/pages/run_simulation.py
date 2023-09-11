@@ -60,6 +60,10 @@ if not config_df.empty:
                   'Status'] = 'Running'
     config_df.loc[(config_df['Start time'].isna() & config_df['End time'].isna()), 'Status'] = 'Pending'
     config_df.loc[config_df['End time'].notna(), 'Status'] = 'Completed'
+    config_df['Status'] = pd.Categorical(config_df['Status'],
+                                         categories=["Running", "Pending", "Completed", "Could not finish"],
+                                         ordered=True)
+    config_df.sort_values('Status', inplace=True)
     config_df_styled = config_df.style.applymap(color_in, subset=['Status'])\
         .set_properties(**{'background-color': '#f5f5f5'}, subset=['Status', 'Config ID'])
     delete_runs_form = st.form(key='Delete runs form')
