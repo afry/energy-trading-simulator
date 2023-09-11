@@ -97,5 +97,5 @@ def run_next_job_in_queue() -> bool:
         t.start()
         return True
     else:
-        logger.info('No jobs in queue.')
+        logger.debug('No jobs in queue.')
         return False
