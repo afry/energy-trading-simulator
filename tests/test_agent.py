@@ -9,11 +9,11 @@ import pandas as pd
 from tests import utility_test_objects
 
 from tradingplatformpoc.agent.battery_agent import BatteryAgent
-from tradingplatformpoc.agent.building_agent import BuildingAgent, construct_workloads_data
+from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.digitaltwin.battery import Battery
-from tradingplatformpoc.digitaltwin.heat_pump import DEFAULT_BRINE_TEMP
+from tradingplatformpoc.digitaltwin.heat_pump import DEFAULT_BRINE_TEMP, Workloads
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.market.bid import Action, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.market.trade import Market, Trade
@@ -445,8 +445,8 @@ class TestBuildingAgentHeatPump(TestCase):
     def test_construct_workloads_df(self):
         """Test that when a BuildingAgent doesn't have any heat pumps, the workloads data frame is still created as
         expected, with just one row for each brine temp, corresponding to not running any heat pump."""
-        with_0_pumps = construct_workloads_data([-3.0, 2.0], None, 0)
-        for _brine_temp_c, ord_dict in with_0_pumps.items():
+        with_0_pumps = Workloads([-3.0, 2.0], None, 0)
+        for _brine_temp_c, ord_dict in with_0_pumps.get_workloads_data().items():
             self.assertEqual(1, len(ord_dict))
             self.assertEqual(0, list(ord_dict.keys())[0])
 
@@ -454,10 +454,10 @@ class TestBuildingAgentHeatPump(TestCase):
         """Assert that when a different COP is specified, this is reflected in the workloads_data"""
         workloads_data_low_cop = self.building_agent_3_pumps_custom_cop.workloads_data
         workloads_data_high_cop = self.building_agent_2_pumps_default_cop.workloads_data
-        for brine_temp_c in workloads_data_low_cop.keys():
+        for brine_temp_c in workloads_data_low_cop.get_brine_temperatures_lst():
             for i in np.arange(1, 10):
-                lower_output = workloads_data_low_cop[brine_temp_c][i][1]
-                higher_output = workloads_data_high_cop[brine_temp_c][i][1]
+                lower_output = workloads_data_low_cop.calculate_heat_output(brine_temp_c, i)
+                higher_output = workloads_data_high_cop.calculate_heat_output(brine_temp_c, i)
                 self.assertTrue(lower_output < higher_output)
 
     def test_optimal_workload(self):

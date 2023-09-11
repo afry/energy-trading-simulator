@@ -1,6 +1,6 @@
 import logging
 from collections import OrderedDict
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -215,3 +215,51 @@ def create_set_of_outdoor_brine_temps_pairs(outdoor_temp_c: pd.Series) -> pd.Dat
     disc_temps['brine_temp_c'] = calculate_brine_temp_c(disc_temps['outdoor_temp_c'])
 
     return disc_temps
+
+
+class Workloads:
+    workloads_data: Dict[float, OrderedDict[int, Tuple[float, float]]]
+
+    def __init__(self, brine_temps_lst: List[float], coeff_of_perf: Optional[float], nbr_heat_pumps: int):
+        self.workloads_data = self.construct_workloads_data(brine_temps_lst, coeff_of_perf, nbr_heat_pumps)
+
+    def construct_workloads_data(self, brine_temps_lst: List[float], coeff_of_perf: Optional[float],
+                                 n_heat_pumps: int) -> Dict[float, OrderedDict[int, Tuple[float, float]]]:
+        """
+        Will construct a dict with brine temperatures as keys, and ordered dicts as values, in which workload is key,
+        and input, output are the values.
+        If there are no heat pumps (n_heat_pumps = 0), the returned ordered dicts in the dict will have only one row,
+        which corresponds to not running a heat pump at all.
+        """
+        if n_heat_pumps == 0:
+            ordered_dict = OrderedDict()
+            ordered_dict[0] = (0.0, 0.0)
+            dct = {brine_temp_c: ordered_dict for brine_temp_c in brine_temps_lst}
+            return dct
+        if coeff_of_perf is None:
+            return HeatPump.calculate_for_all_workloads_for_all_brine_temps(brine_temps_lst)
+        return HeatPump.calculate_for_all_workloads_for_all_brine_temps(brine_temps_lst, coeff_of_perf=coeff_of_perf)
+
+    def calculate_elec_needed(self, brine_temp_c: float, workload_to_use) -> float:
+        return self.workloads_data[brine_temp_c][workload_to_use][0]
+    
+    def calculate_heat_output(self, brine_temp_c: float, workload_to_use) -> float:
+        return self.workloads_data[brine_temp_c][workload_to_use][1]
+    
+    def get_arrays(self, brine_temp_c: float) -> Tuple[np.array, np.array, np.array]:
+        """
+        Converting workload ordered dict into numpy array for faster computing
+        Columns: Workload, electricity input, heating output
+        """
+        workload_elec_heat_array = np.array([np.array([workload, vals[0], vals[1]])
+                                             for workload, vals in self.workloads_data[brine_temp_c].items()])
+        workloads = workload_elec_heat_array[:, 0]
+        elec = workload_elec_heat_array[:, 1]
+        heat = workload_elec_heat_array[:, 2]
+        return workloads, elec, heat
+
+    def get_brine_temperatures_lst(self) -> List[float]:
+        return list(self.workloads_data.keys())
+    
+    def get_workloads_data(self) -> Dict[float, OrderedDict[int, Tuple[float, float]]]:
+        return self.workloads_data

@@ -1,7 +1,6 @@
 import datetime
 import logging
 import math
-from collections import OrderedDict
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
@@ -11,8 +10,8 @@ import pandas as pd
 from tradingplatformpoc import trading_platform_utils
 from tradingplatformpoc.agent.iagent import IAgent, get_price_and_market_to_use_when_buying, \
     get_price_and_market_to_use_when_selling
-from tradingplatformpoc.digitaltwin.heat_pump import (DEFAULT_BRINE_TEMP, HeatPump,
-                                                      create_set_of_outdoor_brine_temps_pairs)
+from tradingplatformpoc.digitaltwin.heat_pump import DEFAULT_BRINE_TEMP, Workloads, \
+    create_set_of_outdoor_brine_temps_pairs
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.market.bid import Action, GrossBid, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.market.trade import Trade, TradeMetadataKey
@@ -30,7 +29,7 @@ class BuildingAgent(IAgent):
     electricity_pricing: ElectricityPrice
     digital_twin: StaticDigitalTwin
     n_heat_pumps: int
-    workloads_data: Dict[float, OrderedDict[int, Tuple[float, float]]]  # Keys should be strictly increasing
+    workloads_data: Workloads  # Keys should be strictly increasing
     allow_sell_heat: bool
 
     def __init__(self, heat_pricing: HeatingPrice, electricity_pricing: ElectricityPrice,
@@ -43,9 +42,8 @@ class BuildingAgent(IAgent):
         self.n_heat_pumps = nbr_heat_pumps
         self.outdoor_temperatures = outdoor_temperatures
         self.temperature_pairs = create_set_of_outdoor_brine_temps_pairs(self.outdoor_temperatures)
-        self.workloads_data = construct_workloads_data(list(self.temperature_pairs['brine_temp_c'])
-                                                       + [DEFAULT_BRINE_TEMP],
-                                                       coeff_of_perf, nbr_heat_pumps)
+        self.workloads_data = Workloads(list(self.temperature_pairs['brine_temp_c']) + [DEFAULT_BRINE_TEMP],
+                                        coeff_of_perf, nbr_heat_pumps)
         self.allow_sell_heat = False
 
     def make_bids(self, period: datetime.datetime, clearing_prices_historical: Union[Dict[datetime.datetime, Dict[
@@ -101,8 +99,8 @@ class BuildingAgent(IAgent):
                                                           heat_net_consumption_pred, elec_clearing_price,
                                                           heat_clearing_price)
 
-        elec_needed_for_1_heat_pump = self.workloads_data[brine_temp_c][workload_to_use][0]
-        heat_output_for_1_heat_pump = self.workloads_data[brine_temp_c][workload_to_use][1]
+        elec_needed_for_1_heat_pump = self.workloads_data.calculate_elec_needed(brine_temp_c, workload_to_use)
+        heat_output_for_1_heat_pump = self.workloads_data.calculate_heat_output(brine_temp_c, workload_to_use)
 
         # Now, the trading period "happens", some resources are consumed, some produced...
         elec_usage = self.get_actual_usage(period, Resource.ELECTRICITY)
@@ -171,8 +169,8 @@ class BuildingAgent(IAgent):
         workload_to_use = self.calculate_optimal_workload(brine_temp_c, elec_net_consumption, heat_net_consumption,
                                                           pred_elec_price, pred_heat_price)
 
-        elec_needed_for_1_heat_pump = self.workloads_data[brine_temp_c][workload_to_use][0]
-        heat_output_for_1_heat_pump = self.workloads_data[brine_temp_c][workload_to_use][1]
+        elec_needed_for_1_heat_pump = self.workloads_data.calculate_elec_needed(brine_temp_c, workload_to_use)
+        heat_output_for_1_heat_pump = self.workloads_data.calculate_heat_output(brine_temp_c, workload_to_use)
 
         # Now we have decided what workload to use. Next, construct bids
         bids = []
@@ -208,12 +206,7 @@ class BuildingAgent(IAgent):
         elec_sell_price = self.electricity_pricing.get_electricity_gross_internal_price(pred_elec_price)
         heat_sell_price = pred_heat_price if self.allow_sell_heat else 0
 
-        # Converting workload ordered dict into numpy array for faster computing
-        # Columns: Workload, electricity input, heating output
-        workload_elec_heat_array = np.array([np.array([workload, vals[0], vals[1]])
-                                             for workload, vals in self.workloads_data[brine_temp_c].items()])
-        elec = workload_elec_heat_array[:, 1]
-        heat = workload_elec_heat_array[:, 2]
+        workloads_arr, elec, heat = self.workloads_data.get_arrays(brine_temp_c)
 
         # Calculate electricity supply and demand
         elec_net_consumption_incl_pump = elec_net_consumption + elec * self.n_heat_pumps
@@ -232,7 +225,7 @@ class BuildingAgent(IAgent):
 
         # Find workload for minimum expected cost
         index_of_min_cost = np.argmin(expected_cost)
-        return workload_elec_heat_array[index_of_min_cost, 0]
+        return workloads_arr[index_of_min_cost]
 
 
 def supply(net_consumption_incl_pump: np.ndarray) -> np.ndarray:
@@ -243,21 +236,3 @@ def supply(net_consumption_incl_pump: np.ndarray) -> np.ndarray:
 def demand(net_consumption_incl_pump: np.ndarray) -> np.ndarray:
     """Return demand if consumption is positive, otherwise zero."""
     return np.maximum(np.zeros(len(net_consumption_incl_pump)), net_consumption_incl_pump)
-
-
-def construct_workloads_data(brine_temps_lst: List[float], coeff_of_perf: Optional[float], n_heat_pumps: int) -> \
-        Dict[float, OrderedDict]:
-    """
-    Will construct a dict with brine temperatures as keys, and ordered dicts as values, in which workload is key,
-    and input, output are the values.
-    If there are no heat pumps (n_heat_pumps = 0), the returned ordered dicts in the dict will have only one row,
-    which corresponds to not running a heat pump at all.
-    """
-    if n_heat_pumps == 0:
-        ordered_dict = OrderedDict()
-        ordered_dict[0] = (0.0, 0.0)
-        dct = {brine_temp_c: ordered_dict for brine_temp_c in brine_temps_lst}
-        return dct
-    if coeff_of_perf is None:
-        return HeatPump.calculate_for_all_workloads_for_all_brine_temps(brine_temps_lst)
-    return HeatPump.calculate_for_all_workloads_for_all_brine_temps(brine_temps_lst, coeff_of_perf=coeff_of_perf)
