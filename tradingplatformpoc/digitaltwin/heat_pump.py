@@ -18,7 +18,6 @@ HEAT_BRINE_TEMP_TIMES_RPM_COEF = 0.000188
 
 
 DEFAULT_COP = 4.6  # Specified in technical description of "Thermium Mega" heat pump
-DEFAULT_BRINE_TEMP = 0
 DEFAULT_FORWARD_TEMP = 55
 RPM_MIN = 1500
 RPM_MAX = 6000
@@ -37,8 +36,8 @@ class HeatPump:
     """
 
     @staticmethod
-    def calculate_energy(workload: int, forward_temp_c: float = DEFAULT_FORWARD_TEMP,
-                         brine_temp_c: float = DEFAULT_BRINE_TEMP, coeff_of_perf: float = DEFAULT_COP) -> \
+    def calculate_energy(workload: int, forward_temp_c: float,
+                         brine_temp_c: float, coeff_of_perf: float = DEFAULT_COP) -> \
             Tuple[float, float]:
         """
         Use simple linear models to calculate the electricity needed, and amount of heat produced, for a medium sized
@@ -73,8 +72,8 @@ class HeatPump:
         return predicted_elec, predicted_heat
 
     @staticmethod
-    def calculate_for_all_workloads(forward_temp_c: float = DEFAULT_FORWARD_TEMP,
-                                    brine_temp_c: float = DEFAULT_BRINE_TEMP, coeff_of_perf: float = DEFAULT_COP) -> \
+    def calculate_for_all_workloads(brine_temp_c: float, forward_temp_c: float = DEFAULT_FORWARD_TEMP,
+                                    coeff_of_perf: float = DEFAULT_COP) -> \
             OrderedDict[int, Tuple[float, float]]:
         """
         Returns an ordered dictionary where workload are keys, in increasing order. The values are pairs of floats, the
@@ -100,7 +99,7 @@ class HeatPump:
         """
         dct = {}
         for brine_temp_c in brine_temps:
-            dct[brine_temp_c] = HeatPump.calculate_for_all_workloads(forward_temp_c, brine_temp_c,
+            dct[brine_temp_c] = HeatPump.calculate_for_all_workloads(brine_temp_c, forward_temp_c,
                                                                      coeff_of_perf=coeff_of_perf)
 
         return dct

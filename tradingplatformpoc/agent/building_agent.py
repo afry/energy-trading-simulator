@@ -10,7 +10,7 @@ import pandas as pd
 from tradingplatformpoc import trading_platform_utils
 from tradingplatformpoc.agent.iagent import IAgent, get_price_and_market_to_use_when_buying, \
     get_price_and_market_to_use_when_selling
-from tradingplatformpoc.digitaltwin.heat_pump import DEFAULT_BRINE_TEMP, Workloads, \
+from tradingplatformpoc.digitaltwin.heat_pump import Workloads, \
     create_set_of_outdoor_brine_temps_pairs
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.market.bid import Action, GrossBid, NetBidWithAcceptanceStatus, Resource
@@ -42,8 +42,7 @@ class BuildingAgent(IAgent):
         self.n_heat_pumps = nbr_heat_pumps
         self.outdoor_temperatures = outdoor_temperatures
         self.temperature_pairs = create_set_of_outdoor_brine_temps_pairs(-20.0, 20.0, 41)
-        self.workloads_data = Workloads(list(self.temperature_pairs['brine_temp_c']) + [DEFAULT_BRINE_TEMP],
-                                        coeff_of_perf, nbr_heat_pumps)
+        self.workloads_data = Workloads(list(self.temperature_pairs['brine_temp_c']), coeff_of_perf, nbr_heat_pumps)
         self.allow_sell_heat = False
 
     def make_bids(self, period: datetime.datetime, clearing_prices_historical: Union[Dict[datetime.datetime, Dict[

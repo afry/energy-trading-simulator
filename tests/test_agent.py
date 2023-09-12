@@ -13,7 +13,7 @@ from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.digitaltwin.battery import Battery
-from tradingplatformpoc.digitaltwin.heat_pump import DEFAULT_BRINE_TEMP, Workloads
+from tradingplatformpoc.digitaltwin.heat_pump import Workloads
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.market.bid import Action, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.market.trade import Market, Trade
@@ -462,8 +462,9 @@ class TestBuildingAgentHeatPump(TestCase):
 
     def test_optimal_workload(self):
         """Test calculation of optimal workload"""
-        optimal_workload = self.building_agent_2_pumps_default_cop.calculate_optimal_workload(DEFAULT_BRINE_TEMP,
-                                                                                              12, 60, 2, 0.5)
+        brine_temperatures = self.building_agent_2_pumps_default_cop.workloads_data.get_brine_temperatures_lst()
+        optimal_workload = self.building_agent_2_pumps_default_cop.calculate_optimal_workload(
+            brine_temperatures[0], 12, 60, 2, 0.5)
         self.assertEqual(6, optimal_workload)  # 7 if agent is allowed to sell heat
 
     def test_bid_with_heat_pump(self):

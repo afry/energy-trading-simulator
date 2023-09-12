@@ -24,7 +24,7 @@ class Test(TestCase):
         """Test that calculate_for_all_workloads produces some results, and that the results are strictly increasing."""
         test_pump = heat_pump.HeatPump()
 
-        results = test_pump.calculate_for_all_workloads()
+        results = test_pump.calculate_for_all_workloads(0.0)
 
         self.assertEqual(11, len(results))
 
