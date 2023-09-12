@@ -43,8 +43,7 @@ def create_job_if_new_config(config_id: str,
     with session_generator() as db:
         exists = get_job_id_for_config(config_id, db)
         if not exists:
-            job_to_db = create_job(JobCreate(init_time=datetime.datetime.now(pytz.utc),
-                                             config_id=config_id), db=db)
+            job_to_db = create_job(JobCreate(config_id=config_id), db=db)
             logger.info('Job created with ID {}.'.format(job_to_db.id))
             return job_to_db.id
         else:
@@ -78,19 +77,19 @@ def get_job_id_for_config(config_id: str, db: Session):
     if job_for_config:
         return job_for_config.id
     else:
-        None
+        return None
 
 
-def update_job_with_end_time(job_id: str,
-                             session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope):
+def update_job_with_time(job_id: str, time_attribute: str,
+                         session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope):
     with session_generator() as db:
         job_to_update = db.get(Job, job_id)
 
         if not job_to_update:
-            # TODO: raise exception
             logger.error('No job to update in database with ID {}'.format(job_id))
+            raise Exception("No job to update in database with ID {}'.format(job_id)")
 
-        job_to_update.end_time = datetime.datetime.now(pytz.utc)
+        setattr(job_to_update, time_attribute, datetime.datetime.now(pytz.utc))
 
         db.add(job_to_update)
         db.commit()
@@ -100,5 +99,23 @@ def update_job_with_end_time(job_id: str,
 def get_all_ongoing_jobs(session_generator: Callable[[], _GeneratorContextManager[Session]]
                          = session_scope):
     with session_generator() as db:
-        res = db.query(Job.config_id).filter(Job.init_time.is_not(None), Job.end_time.is_(None)).all()
+        res = db.query(Job.config_id).filter(Job.start_time.is_not(None), Job.end_time.is_(None)).all()
         return [config_id for (config_id,) in res]
+
+
+def get_config_id_for_job_id(job_id: str,
+                             session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope):
+    with session_generator() as db:
+        res = db.query(Job.config_id.label('config_id')).filter(Job.id == job_id).first()
+        if res is not None:
+            return res.config_id
+        else:
+            raise Exception('Found no config ID for job ID.')
+
+
+def get_all_queued_jobs(session_generator: Callable[[], _GeneratorContextManager[Session]]
+                        = session_scope):
+    with session_generator() as db:
+        res = db.query(Job.id).filter(Job.start_time.is_(None), Job.end_time.is_(None)).\
+            order_by(Job.created_at.asc()).all()
+        return [job_id for (job_id,) in res]

@@ -1,12 +1,16 @@
+import functools
+import logging
+
 import numpy as np
 
 import pandas as pd
 
 from pkg_resources import resource_filename
 
-import polars as pl
 
 # This file contains functions used for reading and preprocessing data from files.
+
+logger = logging.getLogger(__name__)
 
 
 # Read CSVs
@@ -44,7 +48,7 @@ def read_irradiation_data(data_path: str = "tradingplatformpoc.data",
 
 def read_nordpool_data(data_path: str = "tradingplatformpoc.data",
                        external_price_file: str = "nordpool_area_grid_el_price.csv"
-                       ) -> pd.Series:
+                       ) -> pd.DataFrame:
     external_price_csv_path = resource_filename(data_path, external_price_file)
     price_data = pd.read_csv(external_price_csv_path, index_col=0)
     price_data = price_data.squeeze()
@@ -52,7 +56,9 @@ def read_nordpool_data(data_path: str = "tradingplatformpoc.data",
         # convert price from SEK per MWh to SEK per kWh
         price_data = price_data / 1000
     price_data.index = pd.to_datetime(price_data.index, utc=True)
-    return price_data
+    price_df = pd.DataFrame(price_data).reset_index()
+    price_df = price_df.rename(columns={'dayahead_SE3_el_price': 'dayahead_se3_el_price'})
+    return price_df
 
 
 def read_energy_data(data_path: str = "tradingplatformpoc.data",
@@ -60,11 +66,11 @@ def read_energy_data(data_path: str = "tradingplatformpoc.data",
     energy_data_csv_path = resource_filename(data_path, energy_data_file)
     energy_data = pd.read_csv(energy_data_csv_path, index_col=0)
     energy_data.index = pd.to_datetime(energy_data.index, utc=True)
-    return energy_data['tornet_electricity_consumed_household_kwh'], \
-        energy_data['coop_electricity_consumed_cooling_kwh'] + \
-        energy_data['coop_electricity_consumed_other_kwh'], \
-        energy_data['tornet_energy_consumed_heat_kwh'], \
-        np.maximum(energy_data['coop_net_heat_consumed'], 0)  # Indications are Coop has no excess heat so setting to 0
+    energy_data['coop_electricity_consumed'] = energy_data['coop_electricity_consumed_cooling_kwh'] \
+        + energy_data['coop_electricity_consumed_other_kwh']
+    # Indications are Coop has no excess heat so setting to 0
+    energy_data['coop_heating_consumed'] = np.maximum(energy_data['coop_net_heat_consumed'], 0)
+    return energy_data[['coop_electricity_consumed', 'coop_heating_consumed']].reset_index()
 
 
 def read_temperature_data(data_path: str = "tradingplatformpoc.data",
@@ -99,63 +105,27 @@ def read_heating_data(data_path: str = "tradingplatformpoc.data",
 # Preprocess data
 # ----------------------------------------------------------------------------------------------------------------------
 
-def create_inputs_df_for_mock_data_generation(
-        df_temp: pd.DataFrame,
-        df_irrd: pd.DataFrame,
-        df_heat: pd.DataFrame
-) -> pl.DataFrame:
+def clean(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Create pl.DataFrames with certain columns that are needed to predict from the household electricity linear model.
-    Will start reading CSVs as pd.DataFrames, since pandas is better at handling time zones, and then convert to polars.
-    @param df_temp: Dataframe with datetime-stamps and temperature readings, in degrees C.
-    @param df_irrd: Dataframe with datetime-stamps and solar irradiance readings, in W/m2.
-    @param df_heat: Dataframe with datetime-stamps and heating energy readings, in kW.
-    @return: A pl.DataFrames containing date/time-related columns, as well as outdoor temperature readings and
-             heating energy demand data from Vetelangden, which will be used to simulate electricity and heat demands,
-             and also irradiation data, which is used to estimate PV production.
+    Interpolate values for missing datetimes in dataframe range.
     """
-    df_inputs = df_temp.merge(df_irrd)
-
-    # In case there are any missing values
-    df_inputs[['temperature', 'irradiation']] = df_inputs[['temperature', 'irradiation']].interpolate(method='linear')
-
-    df_inputs['hour_of_day'] = df_inputs['datetime'].dt.hour + 1
-    df_inputs['day_of_week'] = df_inputs['datetime'].dt.dayofweek + 1
-    df_inputs['day_of_month'] = df_inputs['datetime'].dt.day
-    df_inputs['month_of_year'] = df_inputs['datetime'].dt.month
-    df_inputs['major_holiday'] = df_inputs['datetime'].apply(lambda dt: is_major_holiday_sweden(dt))
-    df_inputs['pre_major_holiday'] = df_inputs['datetime'].apply(lambda dt: is_day_before_major_holiday_sweden(dt))
-
-    df_inputs = df_inputs.merge(df_heat)
-
-    return pl.from_pandas(df_inputs)
+    df = df.set_index('datetime')
+    datetime_range = pd.date_range(start=df.index.min(), end=df.index.max(),
+                                   freq="1h", tz='utc')
+    missing_datetimes = datetime_range.difference(df.index)
+    if len(missing_datetimes) > 0:
+        logger.info("{} missing datetime/s in data. Will fill using linear interpolation."
+                    .format(len(missing_datetimes)))
+        df = df.reindex(datetime_range)
+        df = df.interpolate('linear')
+    return df
 
 
-def is_major_holiday_sweden(timestamp: pd.Timestamp) -> bool:
-    swedish_time = timestamp.tz_convert("Europe/Stockholm")
-    month_of_year = swedish_time.month
-    day_of_month = swedish_time.day
-    # Major holidays will naturally have a big impact on household electricity usage patterns, with people not working
-    # etc. Included here are: Christmas eve, Christmas day, Boxing day, New years day, epiphany, 1 may, national day.
-    # Some moveable ones not included (Easter etc)
-    return ((month_of_year == 12) & (day_of_month == 24)) | \
-           ((month_of_year == 12) & (day_of_month == 25)) | \
-           ((month_of_year == 12) & (day_of_month == 26)) | \
-           ((month_of_year == 1) & (day_of_month == 1)) | \
-           ((month_of_year == 1) & (day_of_month == 6)) | \
-           ((month_of_year == 5) & (day_of_month == 1)) | \
-           ((month_of_year == 6) & (day_of_month == 6))
-
-
-def is_day_before_major_holiday_sweden(timestamp: pd.Timestamp) -> bool:
-    swedish_time = timestamp.tz_convert("Europe/Stockholm")
-    month_of_year = swedish_time.month
-    day_of_month = swedish_time.day
-    # Major holidays will naturally have a big impact on household electricity usage patterns, with people not working
-    # etc. Included here are:
-    # Day before christmas eve, New years eve, day before epiphany, Valborg, day before national day.
-    return ((month_of_year == 12) & (day_of_month == 23)) | \
-           ((month_of_year == 12) & (day_of_month == 31)) | \
-           ((month_of_year == 1) & (day_of_month == 5)) | \
-           ((month_of_year == 4) & (day_of_month == 30)) | \
-           ((month_of_year == 6) & (day_of_month == 5))
+def read_and_process_input_data():
+    """
+    Create input dataframe.
+    """
+    dfs = [read_irradiation_data(), read_temperature_data(), read_heating_data(), read_energy_data()]
+    dfs_cleaned = [clean(df) for df in dfs]
+    df_merged = functools.reduce(lambda left, right: left.join(right, on='datetime', how='inner'), dfs_cleaned)
+    return df_merged.reset_index()

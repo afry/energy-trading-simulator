@@ -90,7 +90,7 @@
         "NHoursBack": {
             "display": "'N hours back'",
             "min_value": 1,
-            "max_value": 8760,
+            "max_value": 720,
             "default_value": 168,
             "help": "Used in the current BatteryAgent strategy: The agent will use the prices from NHoursBack to form an opinion on what its asking prices should be for upcoming periods",
             "type": "int"

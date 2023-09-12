@@ -18,19 +18,19 @@ logger = logging.getLogger(__name__)
 show_pages_from_config("tradingplatformpoc/app/pages_config/pages_subpages.toml")
 add_indentation()
 
-if 'choosen_id_to_view' in st.session_state.keys() and st.session_state.choosen_id_to_view is not None:
+if 'chosen_id_to_view' in st.session_state.keys() and st.session_state.chosen_id_to_view is not None:
 
     col_tax, col_fee = st.columns(2)
     with col_tax:
         st.metric(label="Total tax paid",
                   value="{:,.2f} SEK".format(get_total_tax_paid(
-                        job_id=st.session_state.choosen_id_to_view['job_id'])),
+                        job_id=st.session_state.chosen_id_to_view['job_id'])),
                   help="Tax paid includes taxes that the ElectricityGridAgent "
                        "are to pay, on sales to the microgrid.")
     with col_fee:
         st.metric(label="Total grid fees paid on internal trades",
                   value="{:,.2f} SEK".format(get_total_grid_fee_paid_on_internal_trades(
-                        job_id=st.session_state.choosen_id_to_view['job_id'])))
+                        job_id=st.session_state.chosen_id_to_view['job_id'])))
 
     tab_price_graph, tab_price_table = st.tabs(['Graph', 'Table'])
     with tab_price_graph:
@@ -38,9 +38,9 @@ if 'choosen_id_to_view' in st.session_state.keys() and st.session_state.choosen_
         st.spinner("Constructing price graph")
 
         local_price_df = db_to_construct_local_prices_df(
-            job_id=st.session_state.choosen_id_to_view['job_id'])
+            job_id=st.session_state.chosen_id_to_view['job_id'])
         combined_price_df = construct_combined_price_df(
-            local_price_df, read_config(st.session_state.choosen_id_to_view['config_id']))
+            local_price_df, read_config(st.session_state.chosen_id_to_view['config_id']))
         if not combined_price_df.empty:
             st.session_state.combined_price_df = combined_price_df
             price_chart = construct_price_chart(combined_price_df, Resource.ELECTRICITY)
@@ -58,9 +58,9 @@ if 'choosen_id_to_view' in st.session_state.keys() and st.session_state.choosen_
     agg_tabs = st.tabs([resource.name.capitalize() for resource in resources])
     for resource, tab in zip(resources, agg_tabs):
         with tab:
-            agg_buy_trades = db_to_aggregated_trade_df(st.session_state.choosen_id_to_view['job_id'],
+            agg_buy_trades = db_to_aggregated_trade_df(st.session_state.chosen_id_to_view['job_id'],
                                                        resource, Action.BUY)
-            agg_sell_trades = db_to_aggregated_trade_df(st.session_state.choosen_id_to_view['job_id'],
+            agg_sell_trades = db_to_aggregated_trade_df(st.session_state.chosen_id_to_view['job_id'],
                                                         resource, Action.SELL)
             
             agg_trades = agg_buy_trades.merge(agg_sell_trades, on='Agent', how='outer').transpose()

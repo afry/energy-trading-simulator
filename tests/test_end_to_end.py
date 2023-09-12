@@ -6,6 +6,7 @@ from unittest import TestCase, mock
 from dotenv import load_dotenv
 
 from tradingplatformpoc.market.bid import Action
+from tradingplatformpoc.sql.job.crud import create_job_if_new_config
 from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES
 
 dotenv_path = Path('.env')
@@ -39,8 +40,8 @@ class TestEndToEnd(TestCase):
         create_db_and_tables()
         try:
             create_config_if_not_in_db(config_data, 'end_to_end_config_id', 'Default setup')
-            simulator = TradingSimulator('end_to_end_config_id')
-            job_id = simulator.job_id
+            job_id = create_job_if_new_config('end_to_end_config_id')
+            simulator = TradingSimulator(job_id)
             simulator()
 
             all_trades = db_to_trade_df(job_id)

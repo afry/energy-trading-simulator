@@ -1,6 +1,5 @@
 import argparse
 import os
-import pickle
 from logging.handlers import TimedRotatingFileHandler
 
 from pkg_resources import resource_filename
@@ -11,7 +10,9 @@ from tradingplatformpoc.connection import SessionMaker
 from tradingplatformpoc.database import create_db_and_tables, insert_default_config_into_db
 
 from tradingplatformpoc.simulation_runner.trading_simulator import TradingSimulator
-from tradingplatformpoc.sql.job.crud import delete_job, get_job_id_for_config
+from tradingplatformpoc.sql.input_data.crud import insert_input_data_to_db_if_empty
+from tradingplatformpoc.sql.input_electricity_price.crud import insert_input_electricity_price_to_db_if_empty
+from tradingplatformpoc.sql.job.crud import delete_job, get_job_id_for_config, create_job_if_new_config
 
 # --- Read sys.argv to get logging level, if it is specified ---
 string_to_log_later = None
@@ -61,9 +62,13 @@ args = parser.parse_args()
 if __name__ == '__main__':
     logger.info("Running main with config {}.".format(args.config_id))
     create_db_and_tables()
+    insert_input_data_to_db_if_empty()
+    insert_input_electricity_price_to_db_if_empty()
     insert_default_config_into_db()
     with SessionMaker() as sess:
-        job_id = get_job_id_for_config(DEFAULT_CONFIG_NAME, sess)
-    delete_job(job_id)
-    simulator = TradingSimulator(args.config_id)
+        job_id = get_job_id_for_config(args.config_id, sess)
+    if job_id is not None:
+        delete_job(job_id)
+    new_job_id = create_job_if_new_config(args.config_id)
+    simulator = TradingSimulator(new_job_id)
     simulator()

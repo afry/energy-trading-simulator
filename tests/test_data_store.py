@@ -8,7 +8,7 @@ from pandas import DatetimeIndex
 
 from tests import utility_test_objects
 
-from tradingplatformpoc.data.preproccessing import read_electricitymap_data
+from tradingplatformpoc.data.preprocessing import read_electricitymap_data
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
 from tradingplatformpoc.trading_platform_utils import hourly_datetime_array_between
@@ -99,7 +99,7 @@ class TestDataStore(TestCase):
         self.assertEqual(1, len(ds.all_external_heating_sells))
         self.assertAlmostEqual(50.0, ds.all_external_heating_sells[FEB_1_1_AM])
         # Now add again for the same period, with different value
-        # First test that this logs as expectec
+        # First test that this logs as expected
         with self.assertLogs() as captured:
             ds.add_external_heating_sell(FEB_1_1_AM, 70.0)
         self.assertEqual(len(captured.records), 1)
