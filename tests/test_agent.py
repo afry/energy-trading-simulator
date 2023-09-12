@@ -462,11 +462,7 @@ class TestBuildingAgentHeatPump(TestCase):
 
     def test_optimal_workload(self):
         """Test calculation of optimal workload"""
-        optimal_workload = self.building_agent_2_pumps_default_cop.calculate_optimal_workload(-1.0,
-                                                                                              12,
-                                                                                              60,
-                                                                                              2,
-                                                                                              0.5)
+        optimal_workload = self.building_agent_2_pumps_default_cop.calculate_optimal_workload(-1.0, 12, 60, 2, 0.5)
         self.assertEqual(6, optimal_workload)  # 7 if agent is allowed to sell heat
 
     def test_bid_with_heat_pump(self):
