@@ -25,7 +25,7 @@ set_max_width('1000px')  # This tab looks a bit daft when it is too wide, so lim
 if len([thread for thread in get_running_threads() if 'run_' in thread.name]) == 0:
     run_started = run_next_job_in_queue()
     if run_started:
-        time.sleep(10)
+        time.sleep(5)
         st.experimental_rerun()
 
 config_ids = get_all_config_ids_in_db_without_jobs()
