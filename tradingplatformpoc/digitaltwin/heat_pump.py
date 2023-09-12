@@ -219,7 +219,8 @@ class Workloads:
     def __init__(self, brine_temps_lst: List[float], coeff_of_perf: Optional[float], nbr_heat_pumps: int):
         self.workloads_data = self.construct_workloads_data(brine_temps_lst, coeff_of_perf, nbr_heat_pumps)
 
-    def construct_workloads_data(self, brine_temps_lst: List[float], coeff_of_perf: Optional[float],
+    @staticmethod
+    def construct_workloads_data(brine_temps_lst: List[float], coeff_of_perf: Optional[float],
                                  n_heat_pumps: int) -> Dict[float, OrderedDict[int, Tuple[float, float]]]:
         """
         Will construct a dict with brine temperatures as keys, and ordered dicts as values, in which workload is key,
