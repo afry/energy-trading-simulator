@@ -44,8 +44,8 @@ class Test(TestCase):
             'datetime', 'irradiation', 'coop_electricity_consumed', 'coop_heating_consumed']].rename(
                 columns={'datetime': 'period'})
 
-        with (mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.create_job_if_new_config',
-                         return_value='fake_job_id'),
+        with (mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.get_config_id_for_job_id',
+                         return_value='fake_config_id'),
               mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.read_config',
                          return_value=fake_config),
               mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.get_all_agents_in_config',
@@ -57,7 +57,7 @@ class Test(TestCase):
               mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.read_inputs_df_for_agent_creation',
                          return_value=input_data)):
             with self.assertRaises(RuntimeError):
-                simulator = TradingSimulator('fake_config')
+                simulator = TradingSimulator('fake_job_id')
                 simulator.initialize_data()
                 simulator.initialize_agents()
 

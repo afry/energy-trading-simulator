@@ -347,6 +347,8 @@ def altair_period_chart(df: pd.DataFrame, domain: List[str], range_color: List[s
 def color_in(val):
     if 'Running' in val:
         color = '#f7a34f'
+    elif 'Pending' in val:
+        color = '#0675bb'
     elif 'Completed' in val:
         color = '#5eab7e'
     else:
