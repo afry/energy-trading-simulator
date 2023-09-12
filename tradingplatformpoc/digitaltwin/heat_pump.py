@@ -18,7 +18,6 @@ HEAT_BRINE_TEMP_TIMES_RPM_COEF = 0.000188
 
 
 DEFAULT_COP = 4.6  # Specified in technical description of "Thermium Mega" heat pump
-DEFAULT_BRINE_TEMP = 0
 DEFAULT_FORWARD_TEMP = 55
 RPM_MIN = 1500
 RPM_MAX = 6000
@@ -31,79 +30,71 @@ POSSIBLE_WORKLOADS_WHEN_RUNNING: List[int] = np.arange(MIN_WORKLOAD, MAX_WORKLOA
 logger = logging.getLogger(__name__)
 
 
-class HeatPump:
+def calculate_energy(workload: int, brine_temp_c: float, forward_temp_c: float = DEFAULT_FORWARD_TEMP,
+                     coeff_of_perf: float = DEFAULT_COP) -> \
+        Tuple[float, float]:
     """
-    A class to allow building agents to convert electricity to heat.
+    Use simple linear models to calculate the electricity needed, and amount of heat produced, for a medium-sized
+    "Thermia" heat pump. See "simple_heat_pump_model.ipynb" in data-exploration project.
+    Heat produced is then scaled using coeff_of_perf.
+
+    @param workload: An integer describing the workload, or gear, of the heat pump. This being 0 corresponds to
+        the heat pump not running at all, requiring no electricity and producing no heat.
+    @param brine_temp_c: The temperature of the brine fluid in degrees Celsius. Models were fit using only 3 unique
+        values; -5, 0 and 5, so this preferably shouldn't deviate too far from those.
+    @param forward_temp_c: The setpoint in degrees Celsius. Models were fit using only 2 unique values; 35 and 55,
+        so this preferably shouldn't deviate too far from those.
+    @param coeff_of_perf: The coefficient of performance for the heat pump. Calculated as (heat output) divided by
+        (elec input).
+
+    @return A Tuple: First value being the amount of electricity needed to run the heat pump with the given
+        settings, and the second value being the expected amount of heat produced by those settings. Units for both
+        is kilowatt.
     """
+    if workload == 0:
+        return 0, 0
 
-    @staticmethod
-    def calculate_energy(workload: int, forward_temp_c: float = DEFAULT_FORWARD_TEMP,
-                         brine_temp_c: float = DEFAULT_BRINE_TEMP, coeff_of_perf: float = DEFAULT_COP) -> \
-            Tuple[float, float]:
-        """
-        Use simple linear models to calculate the electricity needed, and amount of heat produced, for a medium sized
-        "Thermia" heat pump. See "simple_heat_pump_model.ipynb" in data-exploration project.
-        Heat produced is then scaled using self.coeff_of_perf.
+    # Convert workload to rpm
+    rpm = map_workload_to_rpm(workload)
 
-        @param workload: An integer describing the workload, or gear, of the heat pump. This being 0 corresponds to
-            the heat pump not running at all, requiring no electricity and producing no heat.
-        @param forward_temp_c: The setpoint in degrees Celsius. Models were fit using only 2 unique values; 35 and 55,
-            so this preferably shouldn't deviate too far from those.
-        @param brine_temp_c: The temperature of the brine fluid in degrees Celsius. Models were fit using only 3 unique
-            values; -5, 0 and 5, so this preferably shouldn't deviate too far from those.
-        @param coeff_of_perf: The coefficient of performance for the heat pump. Calculated as (heat output) divided by
-            (elec input).
+    # Calculate electricity needed, and heat output, for this setting
+    predicted_elec = model_elec_needed(forward_temp_c, rpm)
+    predicted_heat_normal_thermia = model_heat_output(forward_temp_c, rpm, brine_temp_c)
 
-        @return A Tuple: First value being the amount of electricity needed to run the heat pump with the given
-            settings, and the second value being the expected amount of heat produced by those settings. Units for both
-            is kilowatt.
-        """
-        if workload == 0:
-            return 0, 0
+    predicted_heat = predicted_heat_normal_thermia * coeff_of_perf / DEFAULT_COP
 
-        # Convert workload to rpm
-        rpm = map_workload_to_rpm(workload)
+    return predicted_elec, predicted_heat
 
-        # Calculate electricity needed, and heat output, for this setting
-        predicted_elec = model_elec_needed(forward_temp_c, rpm)
-        predicted_heat_normal_thermia = model_heat_output(forward_temp_c, rpm, brine_temp_c)
 
-        predicted_heat = predicted_heat_normal_thermia * coeff_of_perf / DEFAULT_COP
+def calculate_for_all_workloads(brine_temp_c: float, forward_temp_c: float = DEFAULT_FORWARD_TEMP,
+                                coeff_of_perf: float = DEFAULT_COP) -> \
+        OrderedDict[int, Tuple[float, float]]:
+    """
+    Returns an ordered dictionary where workload are keys, in increasing order. The values are pairs of floats, the
+    first one being electricity needed, and the second one heating produced.
+    """
+    # Want to evaluate all possible gears, and also to not run the heat pump at all
+    workloads: List[int] = [0] + POSSIBLE_WORKLOADS_WHEN_RUNNING
+    ordered_dict = OrderedDict()
+    for workload in workloads:
+        ordered_dict[workload] = calculate_energy(workload, brine_temp_c, forward_temp_c, coeff_of_perf=coeff_of_perf)
 
-        return predicted_elec, predicted_heat
+    return ordered_dict
 
-    @staticmethod
-    def calculate_for_all_workloads(forward_temp_c: float = DEFAULT_FORWARD_TEMP,
-                                    brine_temp_c: float = DEFAULT_BRINE_TEMP, coeff_of_perf: float = DEFAULT_COP) -> \
-            OrderedDict[int, Tuple[float, float]]:
-        """
-        Returns an ordered dictionary where workload are keys, in increasing order. The values are pairs of floats, the
-        first one being electricity needed, and the second one heating produced.
-        """
-        # Want to evaluate all possible gears, and also to not run the heat pump at all
-        workloads: List[int] = [0] + POSSIBLE_WORKLOADS_WHEN_RUNNING
-        ordered_dict = OrderedDict()
-        for workload in workloads:
-            ordered_dict[workload] = HeatPump.calculate_energy(workload, forward_temp_c, brine_temp_c,
-                                                               coeff_of_perf=coeff_of_perf)
 
-        return ordered_dict
-    
-    @staticmethod
-    def calculate_for_all_workloads_for_all_brine_temps(brine_temps: List[float],
-                                                        forward_temp_c: float = DEFAULT_FORWARD_TEMP,
-                                                        coeff_of_perf: float = DEFAULT_COP) -> \
-            Dict[float, OrderedDict]:
-        """
-        Returns an ordered dictionary where workload are keys, in increasing order. The values are pairs of floats, the
-        first one being electricity needed, and the second one heating produced.
-        """
-        dct = {}
-        for brine_temp_c in brine_temps:
-            dct[brine_temp_c] = HeatPump.calculate_for_all_workloads(forward_temp_c, brine_temp_c,
-                                                                     coeff_of_perf=coeff_of_perf)
+def calculate_for_all_workloads_for_all_brine_temps(brine_temps: List[float],
+                                                    forward_temp_c: float = DEFAULT_FORWARD_TEMP,
+                                                    coeff_of_perf: float = DEFAULT_COP) -> \
+        Dict[float, OrderedDict]:
+    """
+    Returns an ordered dictionary where workload are keys, in increasing order. The values are pairs of floats, the
+    first one being electricity needed, and the second one heating produced.
+    """
+    dct = {}
+    for brine_temp_c in brine_temps:
+        dct[brine_temp_c] = calculate_for_all_workloads(brine_temp_c, forward_temp_c, coeff_of_perf=coeff_of_perf)
 
-        return dct
+    return dct
 
 
 class ValueOutOfRangeError(Exception):
@@ -123,10 +114,10 @@ def model_elec_needed(forward_temp_c: float, rpm: float) -> float:
     This work is done in "simple_heat_pump_model.ipynb" in data-exploration project.
 
     @param forward_temp_c: A float describing the forward temperature in degrees Celsius. In the data used to fit this
-        model we only had two unique values of this parameter: 35 and 55. Therefore this method will log a warning if
+        model we only had two unique values of this parameter: 35 and 55. Therefore, this method will log a warning if
         this parameter is < 30 or > 60.
     @param rpm: A float describing the revolutions per minute. In the data used to fit this model, this parameter ranged
-        between 1500 and 6000. Therefore this method will log a warning if this parameter is < 1000 or > 7000.
+        between 1500 and 6000. Therefore, this method will log a warning if this parameter is < 1000 or > 7000.
 
     @return An estimate of the electricity needed, in kW, to run the heat pump with the given settings
     """
@@ -152,12 +143,12 @@ def model_heat_output(forward_temp_c: float, rpm: float, brine_temp_c: float) ->
     table. This work is done in "simple_heat_pump_model.ipynb" in data-exploration project.
 
     @param forward_temp_c: A float describing the forward temperature in degrees Celsius. In the data used to fit this
-        model we only had two unique values of this parameter: 35 and 55. Therefore this method will log a warning if
+        model we only had two unique values of this parameter: 35 and 55. Therefore, this method will log a warning if
         this parameter is < 30 or > 60.
     @param rpm: A float describing the revolutions per minute. In the data used to fit this model, this parameter ranged
-        between 1500 and 6000. Therefore this method will log a warning if this parameter is < 1000 or > 7000.
+        between 1500 and 6000. Therefore, this method will log a warning if this parameter is < 1000 or > 7000.
     @param brine_temp_c: A float describing the brine fluid temperature in degrees Celsius. In the data used to fit this
-        model we only had 3 unique values of this parameter: -5, 0 and 5. Therefore this method will log a warning if
+        model we only had 3 unique values of this parameter: -5, 0 and 5. Therefore, this method will log a warning if
         this parameter is < -10 or > 10.
 
     @return An estimate of the heat produced, in kW, to run the heat pump with the given settings
@@ -213,50 +204,48 @@ def create_set_of_outdoor_brine_temps_pairs(min_temp: float, max_temp: float, nu
     return disc_temps
 
 
-class Workloads:
-    workloads_data: Dict[float, OrderedDict[int, Tuple[float, float]]]
+def construct_heat_pump_io_table(brine_temps_lst: List[float], coeff_of_perf: Optional[float],
+                                 n_heat_pumps: int) -> Dict[float, OrderedDict[int, Tuple[float, float]]]:
+    """
+    Will construct a dict with brine temperatures as keys, and ordered dicts as values, in which workload is key,
+    and input, output are the values.
+    If there are no heat pumps (n_heat_pumps = 0), the returned ordered dicts in the dict will have only one row,
+    which corresponds to not running a heat pump at all.
+    """
+    if n_heat_pumps == 0:
+        ordered_dict = OrderedDict()
+        ordered_dict[0] = (0.0, 0.0)
+        dct = {brine_temp_c: ordered_dict for brine_temp_c in brine_temps_lst}
+        return dct
+    if coeff_of_perf is None:
+        return calculate_for_all_workloads_for_all_brine_temps(brine_temps_lst)
+    return calculate_for_all_workloads_for_all_brine_temps(brine_temps_lst, coeff_of_perf=coeff_of_perf)
+
+
+class HeatPump:
+    calibration_table: Dict[float, OrderedDict[int, Tuple[float, float]]]  # Brine temp -> workload -> I/O pair
 
     def __init__(self, brine_temps_lst: List[float], coeff_of_perf: Optional[float], nbr_heat_pumps: int):
-        self.workloads_data = self.construct_workloads_data(brine_temps_lst, coeff_of_perf, nbr_heat_pumps)
+        self.calibration_table = construct_heat_pump_io_table(brine_temps_lst, coeff_of_perf, nbr_heat_pumps)
 
-    @staticmethod
-    def construct_workloads_data(brine_temps_lst: List[float], coeff_of_perf: Optional[float],
-                                 n_heat_pumps: int) -> Dict[float, OrderedDict[int, Tuple[float, float]]]:
-        """
-        Will construct a dict with brine temperatures as keys, and ordered dicts as values, in which workload is key,
-        and input, output are the values.
-        If there are no heat pumps (n_heat_pumps = 0), the returned ordered dicts in the dict will have only one row,
-        which corresponds to not running a heat pump at all.
-        """
-        if n_heat_pumps == 0:
-            ordered_dict = OrderedDict()
-            ordered_dict[0] = (0.0, 0.0)
-            dct = {brine_temp_c: ordered_dict for brine_temp_c in brine_temps_lst}
-            return dct
-        if coeff_of_perf is None:
-            return HeatPump.calculate_for_all_workloads_for_all_brine_temps(brine_temps_lst)
-        return HeatPump.calculate_for_all_workloads_for_all_brine_temps(brine_temps_lst, coeff_of_perf=coeff_of_perf)
-
-    def calculate_elec_needed(self, brine_temp_c: float, workload_to_use) -> float:
-        return self.workloads_data[brine_temp_c][workload_to_use][0]
+    def get_elec_needed(self, brine_temp_c: float, workload_to_use: int) -> float:
+        return self.calibration_table[brine_temp_c][workload_to_use][0]
     
-    def calculate_heat_output(self, brine_temp_c: float, workload_to_use) -> float:
-        return self.workloads_data[brine_temp_c][workload_to_use][1]
+    def get_heat_output(self, brine_temp_c: float, workload_to_use: int) -> float:
+        return self.calibration_table[brine_temp_c][workload_to_use][1]
     
     def get_arrays(self, brine_temp_c: float) -> Tuple[np.array, np.array, np.array]:
         """
         Converting workload ordered dict into numpy array for faster computing
         Columns: Workload, electricity input, heating output
         """
+        # FIXME: Can raise KeyError if brine_temp_c has an unexpected value! Need something like get_closest_entry?
         workload_elec_heat_array = np.array([np.array([workload, vals[0], vals[1]])
-                                             for workload, vals in self.workloads_data[brine_temp_c].items()])
+                                             for workload, vals in self.calibration_table[brine_temp_c].items()])
         workloads = workload_elec_heat_array[:, 0]
         elec = workload_elec_heat_array[:, 1]
         heat = workload_elec_heat_array[:, 2]
         return workloads, elec, heat
 
     def get_brine_temperatures_lst(self) -> List[float]:
-        return list(self.workloads_data.keys())
-    
-    def get_workloads_data(self) -> Dict[float, OrderedDict[int, Tuple[float, float]]]:
-        return self.workloads_data
+        return list(self.calibration_table.keys())
