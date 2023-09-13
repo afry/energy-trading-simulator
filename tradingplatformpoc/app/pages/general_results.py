@@ -27,8 +27,8 @@ if 'chosen_id_to_view' in st.session_state.keys() and st.session_state.chosen_id
         st.metric(label="Total tax paid",
                   value="{:,.2f} SEK".format(get_total_tax_paid(
                         job_id=st.session_state.chosen_id_to_view['job_id'])),
-                  help="Tax paid includes taxes that the ElectricityGridAgent "
-                       "are to pay, on sales to the microgrid.")
+                  help="Tax paid includes taxes that the ElectricityGridAgent has paid"
+                  " on sales to the microgrid")
     with col_fee:
         st.metric(label="Total grid fees paid on internal trades",
                   value="{:,.2f} SEK".format(get_total_grid_fee_paid_on_internal_trades(
@@ -69,8 +69,8 @@ if 'chosen_id_to_view' in st.session_state.keys() and st.session_state.chosen_id
             agg_trades = agg_trades.style.set_properties(**{'width': '400px'})
             st.dataframe(agg_trades)
 
-            st.caption("For purchases, the quantities used for calculation is before losses but for "
-                       "sales the quantities after losses are used.")
+            st.caption("The quantities used for calculations are before losses for purchases but"
+                       " after losses for sales.")
 
     with st.expander('Total imported and exported electricity and heating:'):
         imp_exp_period_dict = aggregated_import_and_export_results_df_split_on_period(
@@ -103,6 +103,6 @@ if 'chosen_id_to_view' in st.session_state.keys() and st.session_state.chosen_id
 #     logger.info('Time to display aggregated results: {:.3f} seconds'.format(t_end - t_start))
             
 else:
-    st.write("There's no results to view yet.")
+    st.write("There are no results to view yet.")
 
 st.write(footer.html, unsafe_allow_html=True)
