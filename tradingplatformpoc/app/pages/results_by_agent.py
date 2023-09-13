@@ -4,12 +4,13 @@ import streamlit as st
 
 from tradingplatformpoc.app import footer
 from tradingplatformpoc.app.app_functions import download_df_as_csv_button
-from tradingplatformpoc.app.app_visualizations import construct_storage_level_chart, \
-    construct_traded_amount_by_agent_chart, get_savings_vs_only_external_buy, get_total_profit_net
+from tradingplatformpoc.app.app_visualizations import construct_building_with_heat_pump_chart, \
+    construct_storage_level_chart, construct_traded_amount_by_agent_chart, \
+    get_savings_vs_only_external_buy, get_total_profit_net, reconstruct_building_digital_twin
 from tradingplatformpoc.market.trade import TradeMetadataKey
-from tradingplatformpoc.sql.agent.crud import get_agent_type
+from tradingplatformpoc.sql.agent.crud import get_agent_config, get_agent_type
 from tradingplatformpoc.sql.bid.crud import db_to_viewable_bid_df_for_agent
-from tradingplatformpoc.sql.config.crud import get_all_agents_in_config
+from tradingplatformpoc.sql.config.crud import get_all_agents_in_config, get_mock_data_constants
 from tradingplatformpoc.sql.extra_cost.crud import db_to_viewable_extra_costs_df_by_agent
 from tradingplatformpoc.sql.level.crud import db_to_viewable_level_df_by_agent
 from tradingplatformpoc.sql.trade.crud import db_to_viewable_trade_df_by_agent, \
@@ -118,19 +119,21 @@ if 'chosen_id_to_view' in st.session_state.keys() and st.session_state.chosen_id
                     battery_agent_total_net_profit + battery_agent_tax_paid + battery_agent_grid_fee_paid),
                 help=r"Net profit plus what the {} paid for tax and grid fees.".format(agent_chosen_guid))
 
-
-# TODO: Update graphs to work with results taken from database
-# if 'simulation_results' in st.session_state:
-
-#     agent_chosen = get_agent(st.session_state.simulation_results.agents, agent_chosen_guid)
-
-#     if isinstance(agent_chosen, BuildingAgent) or isinstance(agent_chosen, PVAgent):
-#         # Any building agent with a StaticDigitalTwin
-#         with st.expander('Energy production/consumption'):
-#             hp_chart = construct_building_with_heat_pump_chart(agent_chosen, st.session_state.
-#                                                                simulation_results.heat_pump_levels_dict)
-#             st.altair_chart(hp_chart, use_container_width=True, theme=None)
-#             st.write("Click on a variable to highlight it.")
+    if agent_type in ["BuildingAgent"]:
+        # TODO: Any building agent with a StaticDigitalTwin, Fix this for PVAgent
+        with st.expander('Energy production/consumption'):
+            heat_pump_levels_df = db_to_viewable_level_df_by_agent(job_id=st.session_state.chosen_id_to_view['job_id'],
+                                                                   agent_guid=agent_chosen_guid,
+                                                                   level_type=TradeMetadataKey.HEAT_PUMP_WORKLOAD.name)
+            mock_data_constants = get_mock_data_constants(st.session_state.chosen_id_to_view['config_id'])
+            agent_config = get_agent_config(agent_specs[agent_chosen_guid])
+            building_digital_twin = reconstruct_building_digital_twin(
+                agent_specs[agent_chosen_guid], mock_data_constants,
+                agent_config['PVArea'], agent_config['PVEfficiency'])
+            hp_chart = construct_building_with_heat_pump_chart(agent_chosen_guid, building_digital_twin,
+                                                               heat_pump_levels_df.reset_index())
+            st.altair_chart(hp_chart, use_container_width=True, theme=None)
+            st.write("Click on a variable to highlight it.")
 
 else:
     st.write("There's no results to view yet.")
