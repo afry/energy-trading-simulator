@@ -30,6 +30,98 @@ POSSIBLE_WORKLOADS_WHEN_RUNNING: List[int] = np.arange(MIN_WORKLOAD, MAX_WORKLOA
 logger = logging.getLogger(__name__)
 
 
+class ValueOutOfRangeError(Exception):
+    """
+    Raised when an input is out of valid range.
+    """
+    pass
+
+
+def map_workload_to_rpm(workload: float, rpm_min: float = RPM_MIN, rpm_max: float = RPM_MAX) -> float:
+    """
+    Function to perform a linear mapping of an input workload into an output rpm.
+    The workload refers to the "intensity-step"/gear - setting on which the heat-pump shall work. As such, it is
+    expected to be in the range 1 - 10.
+    """
+    if workload < MIN_WORKLOAD or workload > MAX_WORKLOAD:
+        raise ValueOutOfRangeError("Input workload is out of range [0:100]")
+    # --- Define ranges
+    workload_range = MAX_WORKLOAD - MIN_WORKLOAD
+    rpm_range = rpm_max - rpm_min
+
+    # --- Convert the workload range into a 0-1 range
+    normalized_workload = (workload - MIN_WORKLOAD) / workload_range
+
+    # --- Convert the normalized range into an rpm
+    rpm = rpm_min + (normalized_workload * rpm_range)
+
+    return rpm
+
+
+def model_elec_needed(forward_temp_c: float, rpm: float) -> float:
+    """
+    This method calculates the electricity needed (in kW) for running the heat pump at the given RPM and forward
+    temperature.
+    Background: All data we had were a sparse table, provided by the heat pump manufacturer (Thermia), of electricity
+    needed for some different RPMs, forward temperatures, and brine temperatures. From this table, we constructed a
+    simple regression model, so that we can calculate it for more values than just the ones in the table.
+    This work is done in "simple_heat_pump_model.ipynb" in data-exploration project.
+
+    @param forward_temp_c: A float describing the forward temperature in degrees Celsius. In the data used to fit this
+        model we only had two unique values of this parameter: 35 and 55. Therefore, this method will log a warning if
+        this parameter is < 30 or > 60.
+    @param rpm: A float describing the revolutions per minute. In the data used to fit this model, this parameter ranged
+        between 1500 and 6000. Therefore, this method will log a warning if this parameter is < 1000 or > 7000.
+
+    @return An estimate of the electricity needed, in kW, to run the heat pump with the given settings
+    """
+    if forward_temp_c < 30 or forward_temp_c > 60:
+        logger.warning("Heat pump electricity consumption model was fit with forward temperature values of 35 and 55, "
+                       "but got {} as input!".format(forward_temp_c))
+    if rpm < 1000 or rpm > 7000:
+        logger.warning("Heat pump electricity consumption model was fit with RPM values from 1500 to 6000, "
+                       "but got {} as input!".format(rpm))
+    return ELEC_INTERCEPT_COEF + \
+        ELEC_RPM_SQUARED_COEF * rpm * rpm + \
+        ELEC_FORWARD_TEMP_COEF * forward_temp_c + \
+        ELEC_FORWARD_TEMP_TIMES_RPM_COEF * forward_temp_c * rpm
+
+
+def model_heat_output(forward_temp_c: float, rpm: float, brine_temp_c: float) -> float:
+    """
+    This method calculates the heat produced (in kW) when running the heat pump at the given RPM and forward
+    temperature.
+    Background: All data we had were a sparse table, provided by the heat pump manufacturer (Thermia), of heat produced
+    when running the heat pump for some different RPMs, forward temperatures, and brine temperatures. From this table,
+    we constructed a simple regression model, so that we can calculate it for more values than just the ones in the
+    table. This work is done in "simple_heat_pump_model.ipynb" in data-exploration project.
+
+    @param forward_temp_c: A float describing the forward temperature in degrees Celsius. In the data used to fit this
+        model we only had two unique values of this parameter: 35 and 55. Therefore, this method will log a warning if
+        this parameter is < 30 or > 60.
+    @param rpm: A float describing the revolutions per minute. In the data used to fit this model, this parameter ranged
+        between 1500 and 6000. Therefore, this method will log a warning if this parameter is < 1000 or > 7000.
+    @param brine_temp_c: A float describing the brine fluid temperature in degrees Celsius. In the data used to fit this
+        model we only had 3 unique values of this parameter: -5, 0 and 5. Therefore, this method will log a warning if
+        this parameter is < -10 or > 10.
+
+    @return An estimate of the heat produced, in kW, to run the heat pump with the given settings
+    """
+    if forward_temp_c < 30 or forward_temp_c > 60:
+        logger.warning("Heat pump electricity consumption model was fit with forward temperature values of 35 and 55, "
+                       "but got {} as input!".format(forward_temp_c))
+    if rpm < 1000 or rpm > 7000:
+        logger.warning("Heat pump electricity consumption model was fit with RPM values from 1500 to 6000, "
+                       "but got {} as input!".format(rpm))
+    if brine_temp_c < -10 or brine_temp_c > 10:
+        logger.warning("Heat pump electricity consumption model was fit with brine temperature values of -5, 0 and 5, "
+                       "but got {} as input!".format(brine_temp_c))
+    return HEAT_INTERCEPT_COEF + \
+        HEAT_RPM_COEF * rpm + \
+        HEAT_FORWARD_TEMP_TIMES_RPM_COEF * forward_temp_c * rpm + \
+        HEAT_BRINE_TEMP_TIMES_RPM_COEF * brine_temp_c * rpm
+
+
 def calculate_energy(workload: int, brine_temp_c: float, forward_temp_c: float = DEFAULT_FORWARD_TEMP,
                      coeff_of_perf: float = DEFAULT_COP) -> \
         Tuple[float, float]:
@@ -97,113 +189,6 @@ def calculate_for_all_workloads_for_all_brine_temps(brine_temps: List[float],
     return dct
 
 
-class ValueOutOfRangeError(Exception):
-    """
-    Raised when an input is out of valid range.
-    """
-    pass
-
-
-def model_elec_needed(forward_temp_c: float, rpm: float) -> float:
-    """
-    This method calculates the electricity needed (in kW) for running the heat pump at the given RPM and forward
-    temperature.
-    Background: All data we had were a sparse table, provided by the heat pump manufacturer (Thermia), of electricity
-    needed for some different RPMs, forward temperatures, and brine temperatures. From this table, we constructed a
-    simple regression model, so that we can calculate it for more values than just the ones in the table.
-    This work is done in "simple_heat_pump_model.ipynb" in data-exploration project.
-
-    @param forward_temp_c: A float describing the forward temperature in degrees Celsius. In the data used to fit this
-        model we only had two unique values of this parameter: 35 and 55. Therefore, this method will log a warning if
-        this parameter is < 30 or > 60.
-    @param rpm: A float describing the revolutions per minute. In the data used to fit this model, this parameter ranged
-        between 1500 and 6000. Therefore, this method will log a warning if this parameter is < 1000 or > 7000.
-
-    @return An estimate of the electricity needed, in kW, to run the heat pump with the given settings
-    """
-    if forward_temp_c < 30 or forward_temp_c > 60:
-        logger.warning("Heat pump electricity consumption model was fit with forward temperature values of 35 and 55, "
-                       "but got {} as input!".format(forward_temp_c))
-    if rpm < 1000 or rpm > 7000:
-        logger.warning("Heat pump electricity consumption model was fit with RPM values from 1500 to 6000, "
-                       "but got {} as input!".format(rpm))
-    return ELEC_INTERCEPT_COEF + \
-        ELEC_RPM_SQUARED_COEF * rpm * rpm + \
-        ELEC_FORWARD_TEMP_COEF * forward_temp_c + \
-        ELEC_FORWARD_TEMP_TIMES_RPM_COEF * forward_temp_c * rpm
-
-
-def model_heat_output(forward_temp_c: float, rpm: float, brine_temp_c: float) -> float:
-    """
-    This method calculates the heat produced (in kW) when running the heat pump at the given RPM and forward
-    temperature.
-    Background: All data we had were a sparse table, provided by the heat pump manufacturer (Thermia), of heat produced
-    when running the heat pump for some different RPMs, forward temperatures, and brine temperatures. From this table,
-    we constructed a simple regression model, so that we can calculate it for more values than just the ones in the
-    table. This work is done in "simple_heat_pump_model.ipynb" in data-exploration project.
-
-    @param forward_temp_c: A float describing the forward temperature in degrees Celsius. In the data used to fit this
-        model we only had two unique values of this parameter: 35 and 55. Therefore, this method will log a warning if
-        this parameter is < 30 or > 60.
-    @param rpm: A float describing the revolutions per minute. In the data used to fit this model, this parameter ranged
-        between 1500 and 6000. Therefore, this method will log a warning if this parameter is < 1000 or > 7000.
-    @param brine_temp_c: A float describing the brine fluid temperature in degrees Celsius. In the data used to fit this
-        model we only had 3 unique values of this parameter: -5, 0 and 5. Therefore, this method will log a warning if
-        this parameter is < -10 or > 10.
-
-    @return An estimate of the heat produced, in kW, to run the heat pump with the given settings
-    """
-    if forward_temp_c < 30 or forward_temp_c > 60:
-        logger.warning("Heat pump electricity consumption model was fit with forward temperature values of 35 and 55, "
-                       "but got {} as input!".format(forward_temp_c))
-    if rpm < 1000 or rpm > 7000:
-        logger.warning("Heat pump electricity consumption model was fit with RPM values from 1500 to 6000, "
-                       "but got {} as input!".format(rpm))
-    if brine_temp_c < -10 or brine_temp_c > 10:
-        logger.warning("Heat pump electricity consumption model was fit with brine temperature values of -5, 0 and 5, "
-                       "but got {} as input!".format(brine_temp_c))
-    return HEAT_INTERCEPT_COEF + \
-        HEAT_RPM_COEF * rpm + \
-        HEAT_FORWARD_TEMP_TIMES_RPM_COEF * forward_temp_c * rpm + \
-        HEAT_BRINE_TEMP_TIMES_RPM_COEF * brine_temp_c * rpm
-
-
-def map_workload_to_rpm(workload: float, rpm_min: float = RPM_MIN, rpm_max: float = RPM_MAX) -> float:
-    """
-    Function to perform a linear mapping of an input workload into an output rpm.
-    The workload refers to the "intensity-step"/gear - setting on which the heat-pump shall work. As such, it is
-    expected to be in the range 1 - 10.
-    """
-    if workload < MIN_WORKLOAD or workload > MAX_WORKLOAD:
-        raise ValueOutOfRangeError("Input workload is out of range [0:100]")
-    # --- Define ranges
-    workload_range = MAX_WORKLOAD - MIN_WORKLOAD
-    rpm_range = rpm_max - rpm_min
-
-    # --- Convert the workload range into a 0-1 range
-    normalized_workload = (workload - MIN_WORKLOAD) / workload_range
-
-    # --- Convert the normalized range into an rpm
-    rpm = rpm_min + (normalized_workload * rpm_range)
-
-    return rpm
-
-
-def calculate_brine_temp_c(outdoor_temp_c: pd.Series) -> pd.Series:
-    """
-    Brine temp: ca -1 degrees at outdoor temp -20 degrees,
-    and brine temp: ca 6 degrees at outdoor temp +20 degrees
-    """
-    return 7 / 40 * outdoor_temp_c + 5 / 2
-
-
-def create_set_of_outdoor_brine_temps_pairs(min_temp: float, max_temp: float, num_steps: int) -> pd.DataFrame:
-    """Create a dataframe with a set of outdoor temperature, brine temperature pairs to use for workload calculations"""
-    disc_temps = pd.DataFrame(np.linspace(min_temp, max_temp, num_steps), columns=['outdoor_temp_c'])
-    disc_temps['brine_temp_c'] = calculate_brine_temp_c(disc_temps['outdoor_temp_c'])
-    return disc_temps
-
-
 def construct_heat_pump_io_table(brine_temps_lst: List[float], coeff_of_perf: Optional[float],
                                  n_heat_pumps: int) -> Dict[float, OrderedDict[int, Tuple[float, float]]]:
     """
@@ -222,6 +207,21 @@ def construct_heat_pump_io_table(brine_temps_lst: List[float], coeff_of_perf: Op
     return calculate_for_all_workloads_for_all_brine_temps(brine_temps_lst, coeff_of_perf=coeff_of_perf)
 
 
+def calculate_brine_temp_c(outdoor_temp_c: pd.Series) -> pd.Series:
+    """
+    Brine temp: ca -1 degrees at outdoor temp -20 degrees,
+    and brine temp: ca 6 degrees at outdoor temp +20 degrees
+    """
+    return 7 / 40 * outdoor_temp_c + 5 / 2
+
+
+def create_set_of_outdoor_brine_temps_pairs(min_temp: float, max_temp: float, num_steps: int) -> pd.DataFrame:
+    """Create a dataframe with a set of outdoor temperature, brine temperature pairs to use for workload calculations"""
+    disc_temps = pd.DataFrame(np.linspace(min_temp, max_temp, num_steps), columns=['outdoor_temp_c'])
+    disc_temps['brine_temp_c'] = calculate_brine_temp_c(disc_temps['outdoor_temp_c'])
+    return disc_temps
+
+
 class HeatPump:
     calibration_table: Dict[float, OrderedDict[int, Tuple[float, float]]]  # Brine temp -> workload -> I/O pair
 
@@ -229,17 +229,25 @@ class HeatPump:
         self.calibration_table = construct_heat_pump_io_table(brine_temps_lst, coeff_of_perf, nbr_heat_pumps)
 
     def get_elec_needed(self, brine_temp_c: float, workload_to_use: int) -> float:
+        """
+        For a given brine temperature and workload, returns the electricity consumption of the heat pump.
+        Will raise KeyError if either brine_temp_c or workload_to_use has an unexpected value!
+        """
         return self.calibration_table[brine_temp_c][workload_to_use][0]
     
     def get_heat_output(self, brine_temp_c: float, workload_to_use: int) -> float:
+        """
+        For a given brine temperature and workload, returns the heat production of the heat pump.
+        Will raise KeyError if either brine_temp_c or workload_to_use has an unexpected value!
+        """
         return self.calibration_table[brine_temp_c][workload_to_use][1]
     
     def get_arrays(self, brine_temp_c: float) -> Tuple[np.array, np.array, np.array]:
         """
-        Converting workload ordered dict into numpy array for faster computing
+        Converting workload ordered dict into numpy array for faster computing.
+        Will raise KeyError if brine_temp_c has an unexpected value!
         Columns: Workload, electricity input, heating output
         """
-        # FIXME: Can raise KeyError if brine_temp_c has an unexpected value! Need something like get_closest_entry?
         workload_elec_heat_array = np.array([np.array([workload, vals[0], vals[1]])
                                              for workload, vals in self.calibration_table[brine_temp_c].items()])
         workloads = workload_elec_heat_array[:, 0]
