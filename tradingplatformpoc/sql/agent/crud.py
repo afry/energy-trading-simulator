@@ -69,3 +69,10 @@ def get_agent_type(agent_id: str,
     with session_generator() as db:
         res = db.execute(select(Agent.agent_type).where(Agent.id == agent_id)).first()
         return res[0] if res is not None else None
+    
+
+def get_agent_config(agent_id: str,
+                     session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope):
+    with session_generator() as db:
+        res = db.execute(select(Agent.agent_config).where(Agent.id == agent_id)).first()
+        return res[0] if res is not None else None
