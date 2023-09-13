@@ -25,6 +25,7 @@ if 'chosen_id_to_view' in st.session_state.keys() and st.session_state.chosen_id
     agent_specs = get_all_agents_in_config(st.session_state.chosen_id_to_view['config_id'])
     agent_ids = [name for name in agent_specs.keys()]
     agent_chosen_guid = st.sidebar.selectbox('Choose agent:', agent_ids)
+    agent_type = get_agent_type(agent_specs[agent_chosen_guid])
     st.write("Showing results for: " + agent_chosen_guid)
 
     with st.expander('Bids'):
@@ -71,7 +72,6 @@ if 'chosen_id_to_view' in st.session_state.keys() and st.session_state.chosen_id
             st.altair_chart(storage_chart, use_container_width=True, theme=None)
     
     # Exclude GridAgent
-    agent_type = get_agent_type(agent_specs[agent_chosen_guid])
     if agent_type != 'GridAgent':
 
         total_saved, extra_costs_for_bad_bids = get_savings_vs_only_external_buy(
