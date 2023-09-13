@@ -13,7 +13,7 @@ from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.digitaltwin.battery import Battery
-from tradingplatformpoc.digitaltwin.heat_pump import Workloads
+from tradingplatformpoc.digitaltwin.heat_pump import HeatPump
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.market.bid import Action, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.market.trade import Market, Trade
@@ -445,26 +445,24 @@ class TestBuildingAgentHeatPump(TestCase):
     def test_construct_workloads_df(self):
         """Test that when a BuildingAgent doesn't have any heat pumps, the workloads data frame is still created as
         expected, with just one row for each brine temp, corresponding to not running any heat pump."""
-        with_0_pumps = Workloads([-3.0, 2.0], None, 0)
-        for _brine_temp_c, ord_dict in with_0_pumps.get_workloads_data().items():
+        with_0_pumps = HeatPump([-3.0, 2.0], None, 0)
+        for _brine_temp_c, ord_dict in with_0_pumps.calibration_table.items():
             self.assertEqual(1, len(ord_dict))
             self.assertEqual(0, list(ord_dict.keys())[0])
 
     def test_workloads_data(self):
-        """Assert that when a different COP is specified, this is reflected in the workloads_data"""
-        workloads_data_low_cop = self.building_agent_3_pumps_custom_cop.workloads_data
-        workloads_data_high_cop = self.building_agent_2_pumps_default_cop.workloads_data
-        for brine_temp_c in workloads_data_low_cop.get_brine_temperatures_lst():
+        """Assert that when a different COP is specified, this is reflected in the heat pump output"""
+        heat_pump_low_cop = self.building_agent_3_pumps_custom_cop.heat_pump
+        heat_pump_high_cop = self.building_agent_2_pumps_default_cop.heat_pump
+        for brine_temp_c in heat_pump_low_cop.get_brine_temperatures_lst():
             for i in np.arange(1, 10):
-                lower_output = workloads_data_low_cop.calculate_heat_output(brine_temp_c, i)
-                higher_output = workloads_data_high_cop.calculate_heat_output(brine_temp_c, i)
+                lower_output = heat_pump_low_cop.get_heat_output(brine_temp_c, i)
+                higher_output = heat_pump_high_cop.get_heat_output(brine_temp_c, i)
                 self.assertTrue(lower_output < higher_output)
 
     def test_optimal_workload(self):
         """Test calculation of optimal workload"""
-        brine_temperatures = self.building_agent_2_pumps_default_cop.workloads_data.get_brine_temperatures_lst()
-        optimal_workload = self.building_agent_2_pumps_default_cop.calculate_optimal_workload(
-            brine_temperatures[0], 12, 60, 2, 0.5)
+        optimal_workload = self.building_agent_2_pumps_default_cop.calculate_optimal_workload(-1.0, 12, 60, 2, 0.5)
         self.assertEqual(6, optimal_workload)  # 7 if agent is allowed to sell heat
 
     def test_bid_with_heat_pump(self):
