@@ -79,7 +79,7 @@ if 'chosen_id_to_view' in st.session_state.keys() and st.session_state.chosen_id
             agent_guid=agent_chosen_guid)
 
         st.metric(
-            label="Savings by using local market, before taking penalties into account.",
+            label="Savings from using the local market before taking penalties into account.",
             value="{:,.2f} SEK".format(total_saved),
             help="Amount saved for agent {} by using local market, ".format(agent_chosen_guid)
             + r"as opposed to only using the external grid. "
