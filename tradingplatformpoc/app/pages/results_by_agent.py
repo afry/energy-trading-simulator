@@ -63,13 +63,15 @@ if 'chosen_id_to_view' in st.session_state.keys() and st.session_state.chosen_id
             st.dataframe(extra_costs_df.replace(float('inf'), 'inf'), height=TABLE_HEIGHT)
             download_df_as_csv_button(extra_costs_df, "extra_costs_for_agent_" + agent_chosen_guid,
                                       include_index=True)
-    levels_df = db_to_viewable_level_df_by_agent(job_id=st.session_state.chosen_id_to_view['job_id'],
-                                                 agent_guid=agent_chosen_guid,
-                                                 level_type=TradeMetadataKey.STORAGE_LEVEL.name)
-    if not levels_df.empty:
-        with st.expander('Charging level over time for ' + agent_chosen_guid + ':'):
-            storage_chart = construct_storage_level_chart(levels_df)
-            st.altair_chart(storage_chart, use_container_width=True, theme=None)
+            
+    if agent_type == 'BatteryAgent':
+        storage_levels_df = db_to_viewable_level_df_by_agent(job_id=st.session_state.chosen_id_to_view['job_id'],
+                                                             agent_guid=agent_chosen_guid,
+                                                             level_type=TradeMetadataKey.STORAGE_LEVEL.name)
+        if not storage_levels_df.empty:
+            with st.expander('Charging level over time for ' + agent_chosen_guid + ':'):
+                storage_chart = construct_storage_level_chart(storage_levels_df)
+                st.altair_chart(storage_chart, use_container_width=True, theme=None)
     
     # Exclude GridAgent
     if agent_type != 'GridAgent':
