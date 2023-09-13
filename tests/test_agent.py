@@ -445,7 +445,7 @@ class TestBuildingAgentHeatPump(TestCase):
     def test_construct_workloads_df(self):
         """Test that when a BuildingAgent doesn't have any heat pumps, the workloads data frame is still created as
         expected, with just one row for each brine temp, corresponding to not running any heat pump."""
-        with_0_pumps = HeatPump([-3.0, 2.0], None, 0)
+        with_0_pumps = HeatPump(None, 0)
         for _brine_temp_c, ord_dict in with_0_pumps.calibration_table.items():
             self.assertEqual(1, len(ord_dict))
             self.assertEqual(0, list(ord_dict.keys())[0])

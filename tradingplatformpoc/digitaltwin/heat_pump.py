@@ -16,7 +16,6 @@ HEAT_RPM_COEF = 0.007857
 HEAT_FORWARD_TEMP_TIMES_RPM_COEF = -0.000017
 HEAT_BRINE_TEMP_TIMES_RPM_COEF = 0.000188
 
-
 DEFAULT_COP = 4.6  # Specified in technical description of "Thermium Mega" heat pump
 DEFAULT_FORWARD_TEMP = 55
 RPM_MIN = 1500
@@ -25,7 +24,6 @@ RPM_MAX = 6000
 MIN_WORKLOAD = 1
 MAX_WORKLOAD = 10
 POSSIBLE_WORKLOADS_WHEN_RUNNING: List[int] = np.arange(MIN_WORKLOAD, MAX_WORKLOAD + 1).tolist()
-
 
 logger = logging.getLogger(__name__)
 
@@ -189,24 +187,6 @@ def calculate_for_all_workloads_for_all_brine_temps(brine_temps: List[float],
     return dct
 
 
-def construct_heat_pump_io_table(brine_temps_lst: List[float], coeff_of_perf: Optional[float],
-                                 n_heat_pumps: int) -> Dict[float, OrderedDict[int, Tuple[float, float]]]:
-    """
-    Will construct a dict with brine temperatures as keys, and ordered dicts as values, in which workload is key,
-    and input, output are the values.
-    If there are no heat pumps (n_heat_pumps = 0), the returned ordered dicts in the dict will have only one row,
-    which corresponds to not running a heat pump at all.
-    """
-    if n_heat_pumps == 0:
-        ordered_dict = OrderedDict()
-        ordered_dict[0] = (0.0, 0.0)
-        dct = {brine_temp_c: ordered_dict for brine_temp_c in brine_temps_lst}
-        return dct
-    if coeff_of_perf is None:
-        return calculate_for_all_workloads_for_all_brine_temps(brine_temps_lst)
-    return calculate_for_all_workloads_for_all_brine_temps(brine_temps_lst, coeff_of_perf=coeff_of_perf)
-
-
 def calculate_brine_temp_c(outdoor_temp_c: pd.Series) -> pd.Series:
     """
     Brine temp: ca -1 degrees at outdoor temp -20 degrees,
@@ -222,11 +202,44 @@ def create_set_of_outdoor_brine_temps_pairs(min_temp: float, max_temp: float, nu
     return disc_temps
 
 
+# We create an outdoor temp to brine temp lookup table, instead of calculating it on the fly, for efficiency
+TEMPERATURE_PAIRS = create_set_of_outdoor_brine_temps_pairs(-20.0, 20.0, 41)
+
+
+def construct_heat_pump_io_table(coeff_of_perf: Optional[float], n_heat_pumps: int) \
+        -> Dict[float, OrderedDict[int, Tuple[float, float]]]:
+    """
+    Will construct a dict with brine temperatures as keys, and ordered dicts as values, in which workload is key,
+    and input, output are the values.
+    If there are no heat pumps (n_heat_pumps = 0), the returned ordered dicts in the dict will have only one row,
+    which corresponds to not running a heat pump at all.
+    """
+    brine_temps_lst = list(TEMPERATURE_PAIRS['brine_temp_c'])
+    if n_heat_pumps == 0:
+        ordered_dict = OrderedDict()
+        ordered_dict[0] = (0.0, 0.0)
+        dct = {brine_temp_c: ordered_dict for brine_temp_c in brine_temps_lst}
+        return dct
+    if coeff_of_perf is None:
+        return calculate_for_all_workloads_for_all_brine_temps(brine_temps_lst)
+    return calculate_for_all_workloads_for_all_brine_temps(brine_temps_lst, coeff_of_perf=coeff_of_perf)
+
+
+def get_estimated_brine_temp(outdoor_temp: float) -> float:
+    """
+    Uses the pre-calculated outdoor temp to brine temp lookup table (TEMPERATURE_PAIRS), to first find the row in the
+    table with outdoor temperature closest to the input outdoor_temp, and then return the corresponding brine
+    temperature.
+    """
+    return TEMPERATURE_PAIRS.iloc[(TEMPERATURE_PAIRS['outdoor_temp_c'] - outdoor_temp).abs().argsort()
+                                  [0]]['brine_temp_c']
+
+
 class HeatPump:
     calibration_table: Dict[float, OrderedDict[int, Tuple[float, float]]]  # Brine temp -> workload -> I/O pair
 
-    def __init__(self, brine_temps_lst: List[float], coeff_of_perf: Optional[float], nbr_heat_pumps: int):
-        self.calibration_table = construct_heat_pump_io_table(brine_temps_lst, coeff_of_perf, nbr_heat_pumps)
+    def __init__(self, coeff_of_perf: Optional[float], nbr_heat_pumps: int):
+        self.calibration_table = construct_heat_pump_io_table(coeff_of_perf, nbr_heat_pumps)
 
     def get_elec_needed(self, brine_temp_c: float, workload_to_use: int) -> float:
         """
@@ -234,14 +247,14 @@ class HeatPump:
         Will raise KeyError if either brine_temp_c or workload_to_use has an unexpected value!
         """
         return self.calibration_table[brine_temp_c][workload_to_use][0]
-    
+
     def get_heat_output(self, brine_temp_c: float, workload_to_use: int) -> float:
         """
         For a given brine temperature and workload, returns the heat production of the heat pump.
         Will raise KeyError if either brine_temp_c or workload_to_use has an unexpected value!
         """
         return self.calibration_table[brine_temp_c][workload_to_use][1]
-    
+
     def get_arrays(self, brine_temp_c: float) -> Tuple[np.array, np.array, np.array]:
         """
         Converting workload ordered dict into numpy array for faster computing.
