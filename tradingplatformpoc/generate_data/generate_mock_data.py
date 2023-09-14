@@ -28,8 +28,8 @@ from tradingplatformpoc.generate_data.mock_data_utils import \
 from tradingplatformpoc.sql.agent.crud import get_building_agent_dicts_from_id_list
 from tradingplatformpoc.sql.config.crud import get_all_agents_in_config, get_mock_data_constants
 from tradingplatformpoc.sql.input_data.crud import read_inputs_df_for_mock_data_generation
-from tradingplatformpoc.sql.mock_data.crud import db_to_mock_data_df, get_mock_data_agent_pairs_in_db, \
-    mock_data_to_db_dict
+from tradingplatformpoc.sql.mock_data.crud import db_to_mock_data_df, db_to_mock_data_dict, \
+    get_mock_data_agent_pairs_in_db
 from tradingplatformpoc.sql.mock_data.models import MockData as TableMockData
 from tradingplatformpoc.trading_platform_utils import get_if_exists_else
 
@@ -88,7 +88,7 @@ def run(config_id: str) -> Union[pl.DataFrame, pl.LazyFrame]:
         dfs_new = simulate_for_agents(building_agents_to_simulate_for, mock_data_constants)
 
         # Insert simulated mock data into database
-        mock_data_dicts = [mock_data_to_db_dict(key, mock_data_constants, value) for key, value in dfs_new.items()]
+        mock_data_dicts = [db_to_mock_data_dict(key, mock_data_constants, value) for key, value in dfs_new.items()]
         bulk_insert(TableMockData, mock_data_dicts)
         logger.info('Mock data inserted into database.')
         

@@ -135,7 +135,7 @@ if 'chosen_id_to_view' in st.session_state.keys() and st.session_state.chosen_id
                     agent_config['PVArea'], agent_config['PVEfficiency'])
                 static_digital_twin_chart = construct_building_with_heat_pump_chart(
                     agent_chosen_guid, building_digital_twin, heat_pump_levels_df.reset_index())
-            else:
+            elif agent_type == 'PVAgent':
                 pv_digital_twin = reconstruct_pv_digital_twin(agent_config['PVArea'], agent_config['PVEfficiency'])
                 static_digital_twin_chart = construct_static_digital_twin_chart(pv_digital_twin, agent_chosen_guid)
 
