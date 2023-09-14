@@ -103,7 +103,3 @@ def get_local_price_if_exists_else_external_estimate(period: datetime.datetime, 
             to_return[pricing_for_resource.resource] = pricing_for_resource.get_estimated_retail_price(period,
                                                                                                        include_tax=True)
     return to_return
-
-
-def get_closest_entry(val: float, col_name: str, df: pd.DataFrame) -> pd.Series:
-    return df.iloc[(df[col_name] - val).abs().argsort()[0]]

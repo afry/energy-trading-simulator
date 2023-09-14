@@ -10,14 +10,13 @@ import pandas as pd
 from tradingplatformpoc import trading_platform_utils
 from tradingplatformpoc.agent.iagent import IAgent, get_price_and_market_to_use_when_buying, \
     get_price_and_market_to_use_when_selling
-from tradingplatformpoc.digitaltwin.heat_pump import HeatPump, create_set_of_outdoor_brine_temps_pairs
+from tradingplatformpoc.digitaltwin.heat_pump import HeatPump, get_estimated_brine_temp
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.market.bid import Action, GrossBid, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.market.trade import Trade, TradeMetadataKey
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
-from tradingplatformpoc.simulation_runner.simulation_utils import get_closest_entry, \
-    get_local_price_if_exists_else_external_estimate
+from tradingplatformpoc.simulation_runner.simulation_utils import get_local_price_if_exists_else_external_estimate
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +27,7 @@ class BuildingAgent(IAgent):
     electricity_pricing: ElectricityPrice
     digital_twin: StaticDigitalTwin
     n_heat_pumps: int
+    outdoor_temperatures: pd.Series
     heat_pump: HeatPump
     allow_sell_heat: bool
 
@@ -40,8 +40,7 @@ class BuildingAgent(IAgent):
         self.digital_twin = digital_twin
         self.n_heat_pumps = nbr_heat_pumps
         self.outdoor_temperatures = outdoor_temperatures
-        self.temperature_pairs = create_set_of_outdoor_brine_temps_pairs(-20.0, 20.0, 41)
-        self.heat_pump = HeatPump(list(self.temperature_pairs['brine_temp_c']), coeff_of_perf, nbr_heat_pumps)
+        self.heat_pump = HeatPump(coeff_of_perf, nbr_heat_pumps)
         self.allow_sell_heat = False
 
     def make_bids(self, period: datetime.datetime, clearing_prices_historical: Union[Dict[datetime.datetime, Dict[
@@ -89,8 +88,8 @@ class BuildingAgent(IAgent):
         heat_clearing_price = clearing_prices[Resource.HEATING]
 
         # Find brine temp for the closest outdoor temperature
-        temp = self.outdoor_temperatures.loc[period]
-        brine_temp_c = get_closest_entry(temp, 'outdoor_temp_c', self.temperature_pairs)['brine_temp_c']
+        outdoor_temp = self.outdoor_temperatures.loc[period]
+        brine_temp_c = get_estimated_brine_temp(outdoor_temp)
 
         # Re-calculate optimal workload, now that prices are known
         workload_to_use = self.calculate_optimal_workload(brine_temp_c, elec_net_consumption_pred,
@@ -159,8 +158,8 @@ class BuildingAgent(IAgent):
         """
 
         # Find brine temp for the closest outdoor temperature
-        temp = self.outdoor_temperatures.loc[period]
-        brine_temp_c = get_closest_entry(temp, 'outdoor_temp_c', self.temperature_pairs)['brine_temp_c']
+        outdoor_temp = self.outdoor_temperatures.loc[period]
+        brine_temp_c = get_estimated_brine_temp(outdoor_temp)
 
         heat_net_consumption = self.make_prognosis(period, Resource.HEATING)
         elec_net_consumption = self.make_prognosis(period, Resource.ELECTRICITY)  # Negative means net production
