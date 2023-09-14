@@ -2,9 +2,6 @@
 import datetime
 from typing import Any, Dict, List, Tuple
 
-from tradingplatformpoc.sql.mock_data.crud import db_to_mock_data_df, get_mock_data_agent_pairs_in_db
-from tradingplatformpoc.trading_platform_utils import calculate_solar_prod
-
 import altair as alt
 
 import pandas as pd
@@ -26,8 +23,10 @@ from tradingplatformpoc.sql.heating_price.crud import db_to_heating_price_dict
 from tradingplatformpoc.sql.input_data.crud import get_periods_from_db, read_input_column_df_from_db, \
     read_inputs_df_for_agent_creation
 from tradingplatformpoc.sql.input_electricity_price.crud import electricity_price_df_from_db
+from tradingplatformpoc.sql.mock_data.crud import db_to_mock_data_df, get_mock_data_agent_pairs_in_db
 from tradingplatformpoc.sql.trade.crud import db_to_trades_by_agent_and_resource_action, get_total_import_export, \
     get_total_traded_for_agent
+from tradingplatformpoc.trading_platform_utils import calculate_solar_prod
 
 
 def get_price_df_when_local_price_inbetween(prices_df: pd.DataFrame, resource: Resource) -> pd.DataFrame:
@@ -78,6 +77,12 @@ def reconstruct_building_digital_twin(agent_id: str, mock_data_constants: Dict[s
     return StaticDigitalTwin(electricity_usage=elec_cons_series,
                              electricity_production=pv_prod_series,
                              heating_usage=total_heat_cons_series)
+
+
+def reconstruct_pv_digital_twin(pv_area: float, pv_efficiency: float):
+    inputs_df = read_inputs_df_for_agent_creation()
+    pv_prod_series = calculate_solar_prod(inputs_df['irradiation'], pv_area, pv_efficiency)
+    return StaticDigitalTwin(electricity_production=pv_prod_series)
 
 
 def construct_static_digital_twin_chart(digital_twin: StaticDigitalTwin, agent_chosen_guid: str,
