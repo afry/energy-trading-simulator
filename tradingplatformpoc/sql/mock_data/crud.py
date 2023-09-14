@@ -16,8 +16,8 @@ from tradingplatformpoc.sql.mock_data.models import MockData
 logger = logging.getLogger(__name__)
 
 
-def db_to_mock_data_dict(db_agent_id: str, mock_data_constants: Dict[str, float],
-                         agent_mock_data_pl: pl.DataFrame):
+def mock_data_df_to_db_dict(db_agent_id: str, mock_data_constants: Dict[str, float],
+                            agent_mock_data_pl: pl.DataFrame):
     """
     Convert mock data from dataframe to binary in order to store in database.
     """
