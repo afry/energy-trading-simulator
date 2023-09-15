@@ -1,6 +1,6 @@
 
 import datetime
-from typing import Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple
 
 import altair as alt
 
@@ -13,15 +13,20 @@ from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
+from tradingplatformpoc.generate_data.mock_data_utils import get_elec_cons_key, get_hot_tap_water_cons_key, \
+    get_space_heat_cons_key
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.sql.electricity_price.crud import db_to_electricity_price_dict
 from tradingplatformpoc.sql.extra_cost.crud import db_to_aggregated_extra_costs_by_agent
 from tradingplatformpoc.sql.heating_price.crud import db_to_heating_price_dict
-from tradingplatformpoc.sql.input_data.crud import get_periods_from_db, read_input_column_df_from_db
+from tradingplatformpoc.sql.input_data.crud import get_periods_from_db, read_input_column_df_from_db, \
+    read_inputs_df_for_agent_creation
 from tradingplatformpoc.sql.input_electricity_price.crud import electricity_price_df_from_db
+from tradingplatformpoc.sql.mock_data.crud import db_to_mock_data_df, get_mock_data_agent_pairs_in_db
 from tradingplatformpoc.sql.trade.crud import db_to_trades_by_agent_and_resource_action, get_total_import_export, \
     get_total_traded_for_agent
+from tradingplatformpoc.trading_platform_utils import calculate_solar_prod
 
 
 def get_price_df_when_local_price_inbetween(prices_df: pd.DataFrame, resource: Resource) -> pd.DataFrame:
@@ -55,6 +60,29 @@ def construct_price_chart(prices_df: pd.DataFrame, resource: Resource) -> alt.Ch
                         alt.Tooltip(field='variable', title='Variable'),
                         alt.Tooltip(field='value', title='Value')]). \
         add_selection(selection).interactive(bind_y=False)
+
+
+def reconstruct_building_digital_twin(agent_id: str, mock_data_constants: Dict[str, Any],
+                                      pv_area: float, pv_efficiency: float):
+    mock_data_id = list(get_mock_data_agent_pairs_in_db([agent_id], mock_data_constants).keys())[0]
+    buildings_mock_data = db_to_mock_data_df(mock_data_id).to_pandas().set_index('datetime')
+
+    inputs_df = read_inputs_df_for_agent_creation()
+    pv_prod_series = calculate_solar_prod(inputs_df['irradiation'], pv_area, pv_efficiency)
+    elec_cons_series = buildings_mock_data[get_elec_cons_key(agent_id)]
+    space_heat_cons_series = buildings_mock_data[get_space_heat_cons_key(agent_id)]
+    hot_tap_water_cons_series = buildings_mock_data[get_hot_tap_water_cons_key(agent_id)]
+    total_heat_cons_series = space_heat_cons_series + hot_tap_water_cons_series
+
+    return StaticDigitalTwin(electricity_usage=elec_cons_series,
+                             electricity_production=pv_prod_series,
+                             heating_usage=total_heat_cons_series)
+
+
+def reconstruct_pv_digital_twin(pv_area: float, pv_efficiency: float):
+    inputs_df = read_inputs_df_for_agent_creation()
+    pv_prod_series = calculate_solar_prod(inputs_df['irradiation'], pv_area, pv_efficiency)
+    return StaticDigitalTwin(electricity_production=pv_prod_series)
 
 
 def construct_static_digital_twin_chart(digital_twin: StaticDigitalTwin, agent_chosen_guid: str,
@@ -98,20 +126,19 @@ def construct_static_digital_twin_chart(digital_twin: StaticDigitalTwin, agent_c
     return altair_period_chart(df, domain, range_color, "Energy production/consumption for " + agent_chosen_guid)
 
 
-def construct_building_with_heat_pump_chart(agent_chosen: Union[BuildingAgent, PVAgent],
-                                            heat_pump_levels_dict: Dict[str, Dict[datetime.datetime, float]]) -> \
+def construct_building_with_heat_pump_chart(agent_chosen_guid: str, digital_twin: StaticDigitalTwin,
+                                            heat_pump_df: pd.DataFrame) -> \
         alt.Chart:
     """
     Constructs a multi-line chart with energy production/consumption levels, with any heat pump workload data in the
     background. If there is no heat_pump_data, will just return construct_static_digital_twin_chart(digital_twin).
     """
 
-    heat_pump_data = heat_pump_levels_dict.get(agent_chosen.guid, {})
-    if heat_pump_data == {}:
-        return construct_static_digital_twin_chart(agent_chosen.digital_twin, agent_chosen.guid, False)
+    if heat_pump_df.empty:
+        return construct_static_digital_twin_chart(digital_twin, agent_chosen_guid, False)
 
     st.write('Note: Energy production/consumption values do not include production/consumption by the heat pumps.')
-    heat_pump_df = pd.DataFrame.from_dict(heat_pump_data, orient='index').reset_index()
+
     heat_pump_df.columns = ['period', 'Heat pump workload']
     heat_pump_area = alt.Chart(heat_pump_df). \
         mark_area(color=app_constants.HEAT_PUMP_CHART_COLOR, opacity=0.3, interpolate='step-after'). \
@@ -122,7 +149,7 @@ def construct_building_with_heat_pump_chart(agent_chosen: Union[BuildingAgent, P
                  alt.Tooltip(field='Heat pump workload', title='Heat pump workload', type='quantitative')]
     )
 
-    energy_multiline = construct_static_digital_twin_chart(agent_chosen.digital_twin, agent_chosen.guid, True)
+    energy_multiline = construct_static_digital_twin_chart(digital_twin, agent_chosen_guid, True)
     return alt.layer(heat_pump_area, energy_multiline).resolve_scale(y='independent')
 
 
