@@ -9,14 +9,14 @@ from pandas.io.formats.style import Styler
 
 import streamlit as st
 
-from tradingplatformpoc.agent.building_agent import BuildingAgent
-from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.generate_data.mock_data_utils import get_elec_cons_key, get_hot_tap_water_cons_key, \
     get_space_heat_cons_key
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
+from tradingplatformpoc.sql.agent.crud import get_agent_config, get_agent_type
+from tradingplatformpoc.sql.config.crud import get_all_agents_in_config, get_mock_data_constants
 from tradingplatformpoc.sql.electricity_price.crud import db_to_electricity_price_dict
 from tradingplatformpoc.sql.extra_cost.crud import db_to_aggregated_extra_costs_by_agent
 from tradingplatformpoc.sql.heating_price.crud import db_to_heating_price_dict
@@ -100,26 +100,30 @@ def construct_static_digital_twin_chart(digital_twin: StaticDigitalTwin, agent_c
         df = pd.concat((df, pd.DataFrame({'period': digital_twin.electricity_production.index,
                                           'value': digital_twin.electricity_production.values,
                                           'variable': app_constants.ELEC_PROD})))
-        domain.append(app_constants.ELEC_PROD)
-        range_color.append(app_constants.ALTAIR_BASE_COLORS[0])
+        if (df.value != 0).any():
+            domain.append(app_constants.ELEC_PROD)
+            range_color.append(app_constants.ALTAIR_BASE_COLORS[0])
     if digital_twin.electricity_usage is not None:
         df = pd.concat((df, pd.DataFrame({'period': digital_twin.electricity_usage.index,
                                           'value': digital_twin.electricity_usage.values,
                                           'variable': app_constants.ELEC_CONS})))
-        domain.append(app_constants.ELEC_CONS)
-        range_color.append(app_constants.ALTAIR_BASE_COLORS[1])
+        if (df.value != 0).any():
+            domain.append(app_constants.ELEC_CONS)
+            range_color.append(app_constants.ALTAIR_BASE_COLORS[1])
     if digital_twin.heating_production is not None:
         df = pd.concat((df, pd.DataFrame({'period': digital_twin.heating_production.index,
                                           'value': digital_twin.heating_production.values,
                                           'variable': app_constants.HEAT_PROD})))
-        domain.append(app_constants.HEAT_PROD)
-        range_color.append(app_constants.ALTAIR_BASE_COLORS[2])
+        if (df.value != 0).any():
+            domain.append(app_constants.HEAT_PROD)
+            range_color.append(app_constants.ALTAIR_BASE_COLORS[2])
     if digital_twin.heating_usage is not None:
         df = pd.concat((df, pd.DataFrame({'period': digital_twin.heating_usage.index,
                                           'value': digital_twin.heating_usage.values,
                                           'variable': app_constants.HEAT_CONS})))
-        domain.append(app_constants.HEAT_CONS)
-        range_color.append(app_constants.ALTAIR_BASE_COLORS[3])
+        if (df.value != 0).any():
+            domain.append(app_constants.HEAT_CONS)
+            range_color.append(app_constants.ALTAIR_BASE_COLORS[3])
     if should_add_hp_to_legend:
         domain.append('Heat pump workload')
         range_color.append(app_constants.HEAT_PUMP_CHART_COLOR)
@@ -246,22 +250,29 @@ def aggregated_import_and_export_results_df_split_on_temperature(job_id: str) ->
     return aggregated_import_and_export_results_df_split_on_mask(job_id, periods, ['Above'])
 
 
-def aggregated_local_production_df(job_id: str) -> pd.DataFrame:
+def aggregated_local_production_df(job_id: str, config_id: str) -> pd.DataFrame:
     """
     Computing total amount of locally produced resources.
     """
 
+    agent_specs = get_all_agents_in_config(config_id)
+
     production_electricity_lst = []
     usage_heating_lst = []
-    for agent in st.session_state.simulation_results.agents:
-        if isinstance(agent, BuildingAgent) or isinstance(agent, PVAgent):
-            production_electricity_lst.append(sum(agent.digital_twin.electricity_production))
+    for agent_id in agent_specs.values():
+        agent_type = get_agent_type(agent_id)
+        if agent_type in ["BuildingAgent", "PVAgent"]:
+            agent_config = get_agent_config(agent_id)
+            if agent_type == 'BuildingAgent':
+                mock_data_constants = get_mock_data_constants(config_id)
+                digital_twin = reconstruct_building_digital_twin(
+                    agent_id, mock_data_constants, agent_config['PVArea'], agent_config['PVEfficiency'])
+                usage_heating_lst.append(sum(digital_twin.heating_usage.dropna()))  # Issue with NaNs
+            elif agent_type == 'PVAgent':
+                digital_twin = reconstruct_pv_digital_twin(agent_config['PVArea'], agent_config['PVEfficiency'])
+            production_electricity_lst.append(sum(digital_twin.electricity_production))
     
     production_electricity = sum(production_electricity_lst)
-
-    for agent in st.session_state.simulation_results.agents:
-        if isinstance(agent, BuildingAgent):
-            usage_heating_lst.append(sum(agent.digital_twin.heating_usage.dropna()))  # Issue with NaNs
 
     production_heating = (sum(usage_heating_lst) - get_total_import_export(job_id, Resource.HEATING, Action.BUY)
                           + get_total_import_export(job_id, Resource.HEATING, Action.SELL))
