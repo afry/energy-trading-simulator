@@ -190,3 +190,20 @@ def get_total_grid_fee_paid_on_internal_trades(job_id: str, agent_guid: Optional
         res = query.first()
 
         return res.sum_grid_fee_paid_for_quantities if res.sum_grid_fee_paid_for_quantities is not None else 0.0
+
+
+def get_total_import_export(job_id: str, resource: Resource, action: Action,
+                            periods: Optional[List[datetime.datetime]] = None,
+                            session_generator: Callable[[], _GeneratorContextManager[Session]]
+                            = session_scope) -> float:
+    with session_generator() as db:
+        query = db.query(
+            func.sum(TableTrade.quantity_post_loss).label('sum_quantity_post_loss'),
+        ).filter(TableTrade.job_id == job_id,
+                 TableTrade.by_external,
+                 TableTrade.resource == resource,
+                 TableTrade.action == action)
+        if periods is not None:
+            query = query.filter(TableTrade.period.in_(periods))
+        res = query.first()
+        return res.sum_quantity_post_loss if res.sum_quantity_post_loss is not None else 0.0
