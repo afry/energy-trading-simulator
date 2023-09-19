@@ -1,6 +1,6 @@
 
 import datetime
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Tuple
 
 import altair as alt
 
@@ -9,18 +9,24 @@ from pandas.io.formats.style import Styler
 
 import streamlit as st
 
-from tradingplatformpoc.agent.building_agent import BuildingAgent
-from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
+from tradingplatformpoc.generate_data.mock_data_utils import get_elec_cons_key, get_hot_tap_water_cons_key, \
+    get_space_heat_cons_key
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
+from tradingplatformpoc.sql.agent.crud import get_agent_config, get_agent_type
+from tradingplatformpoc.sql.config.crud import get_all_agents_in_config, get_mock_data_constants
 from tradingplatformpoc.sql.electricity_price.crud import db_to_electricity_price_dict
 from tradingplatformpoc.sql.extra_cost.crud import db_to_aggregated_extra_costs_by_agent
 from tradingplatformpoc.sql.heating_price.crud import db_to_heating_price_dict
-from tradingplatformpoc.sql.input_data.crud import read_input_column_df_from_db
+from tradingplatformpoc.sql.input_data.crud import get_periods_from_db, read_input_column_df_from_db, \
+    read_inputs_df_for_agent_creation
 from tradingplatformpoc.sql.input_electricity_price.crud import electricity_price_df_from_db
-from tradingplatformpoc.sql.trade.crud import db_to_trades_by_agent_and_resource_action, get_total_traded_for_agent
+from tradingplatformpoc.sql.mock_data.crud import db_to_mock_data_df, get_mock_data_agent_pairs_in_db
+from tradingplatformpoc.sql.trade.crud import db_to_trades_by_agent_and_resource_action, get_total_import_export, \
+    get_total_traded_for_agent
+from tradingplatformpoc.trading_platform_utils import calculate_solar_prod
 
 
 def get_price_df_when_local_price_inbetween(prices_df: pd.DataFrame, resource: Resource) -> pd.DataFrame:
@@ -56,6 +62,29 @@ def construct_price_chart(prices_df: pd.DataFrame, resource: Resource) -> alt.Ch
         add_selection(selection).interactive(bind_y=False)
 
 
+def reconstruct_building_digital_twin(agent_id: str, mock_data_constants: Dict[str, Any],
+                                      pv_area: float, pv_efficiency: float):
+    mock_data_id = list(get_mock_data_agent_pairs_in_db([agent_id], mock_data_constants).keys())[0]
+    buildings_mock_data = db_to_mock_data_df(mock_data_id).to_pandas().set_index('datetime')
+
+    inputs_df = read_inputs_df_for_agent_creation()
+    pv_prod_series = calculate_solar_prod(inputs_df['irradiation'], pv_area, pv_efficiency)
+    elec_cons_series = buildings_mock_data[get_elec_cons_key(agent_id)]
+    space_heat_cons_series = buildings_mock_data[get_space_heat_cons_key(agent_id)]
+    hot_tap_water_cons_series = buildings_mock_data[get_hot_tap_water_cons_key(agent_id)]
+    total_heat_cons_series = space_heat_cons_series + hot_tap_water_cons_series
+
+    return StaticDigitalTwin(electricity_usage=elec_cons_series,
+                             electricity_production=pv_prod_series,
+                             heating_usage=total_heat_cons_series)
+
+
+def reconstruct_pv_digital_twin(pv_area: float, pv_efficiency: float):
+    inputs_df = read_inputs_df_for_agent_creation()
+    pv_prod_series = calculate_solar_prod(inputs_df['irradiation'], pv_area, pv_efficiency)
+    return StaticDigitalTwin(electricity_production=pv_prod_series)
+
+
 def construct_static_digital_twin_chart(digital_twin: StaticDigitalTwin, agent_chosen_guid: str,
                                         should_add_hp_to_legend: bool = False) -> \
         alt.Chart:
@@ -71,46 +100,49 @@ def construct_static_digital_twin_chart(digital_twin: StaticDigitalTwin, agent_c
         df = pd.concat((df, pd.DataFrame({'period': digital_twin.electricity_production.index,
                                           'value': digital_twin.electricity_production.values,
                                           'variable': app_constants.ELEC_PROD})))
-        domain.append(app_constants.ELEC_PROD)
-        range_color.append(app_constants.ALTAIR_BASE_COLORS[0])
+        if (df.value != 0).any():
+            domain.append(app_constants.ELEC_PROD)
+            range_color.append(app_constants.ALTAIR_BASE_COLORS[0])
     if digital_twin.electricity_usage is not None:
         df = pd.concat((df, pd.DataFrame({'period': digital_twin.electricity_usage.index,
                                           'value': digital_twin.electricity_usage.values,
                                           'variable': app_constants.ELEC_CONS})))
-        domain.append(app_constants.ELEC_CONS)
-        range_color.append(app_constants.ALTAIR_BASE_COLORS[1])
+        if (df.value != 0).any():
+            domain.append(app_constants.ELEC_CONS)
+            range_color.append(app_constants.ALTAIR_BASE_COLORS[1])
     if digital_twin.heating_production is not None:
         df = pd.concat((df, pd.DataFrame({'period': digital_twin.heating_production.index,
                                           'value': digital_twin.heating_production.values,
                                           'variable': app_constants.HEAT_PROD})))
-        domain.append(app_constants.HEAT_PROD)
-        range_color.append(app_constants.ALTAIR_BASE_COLORS[2])
+        if (df.value != 0).any():
+            domain.append(app_constants.HEAT_PROD)
+            range_color.append(app_constants.ALTAIR_BASE_COLORS[2])
     if digital_twin.heating_usage is not None:
         df = pd.concat((df, pd.DataFrame({'period': digital_twin.heating_usage.index,
                                           'value': digital_twin.heating_usage.values,
                                           'variable': app_constants.HEAT_CONS})))
-        domain.append(app_constants.HEAT_CONS)
-        range_color.append(app_constants.ALTAIR_BASE_COLORS[3])
+        if (df.value != 0).any():
+            domain.append(app_constants.HEAT_CONS)
+            range_color.append(app_constants.ALTAIR_BASE_COLORS[3])
     if should_add_hp_to_legend:
         domain.append('Heat pump workload')
         range_color.append(app_constants.HEAT_PUMP_CHART_COLOR)
     return altair_period_chart(df, domain, range_color, "Energy production/consumption for " + agent_chosen_guid)
 
 
-def construct_building_with_heat_pump_chart(agent_chosen: Union[BuildingAgent, PVAgent],
-                                            heat_pump_levels_dict: Dict[str, Dict[datetime.datetime, float]]) -> \
+def construct_building_with_heat_pump_chart(agent_chosen_guid: str, digital_twin: StaticDigitalTwin,
+                                            heat_pump_df: pd.DataFrame) -> \
         alt.Chart:
     """
     Constructs a multi-line chart with energy production/consumption levels, with any heat pump workload data in the
     background. If there is no heat_pump_data, will just return construct_static_digital_twin_chart(digital_twin).
     """
 
-    heat_pump_data = heat_pump_levels_dict.get(agent_chosen.guid, {})
-    if heat_pump_data == {}:
-        return construct_static_digital_twin_chart(agent_chosen.digital_twin, agent_chosen.guid, False)
+    if heat_pump_df.empty:
+        return construct_static_digital_twin_chart(digital_twin, agent_chosen_guid, False)
 
     st.write('Note: Energy production/consumption values do not include production/consumption by the heat pumps.')
-    heat_pump_df = pd.DataFrame.from_dict(heat_pump_data, orient='index').reset_index()
+
     heat_pump_df.columns = ['period', 'Heat pump workload']
     heat_pump_area = alt.Chart(heat_pump_df). \
         mark_area(color=app_constants.HEAT_PUMP_CHART_COLOR, opacity=0.3, interpolate='step-after'). \
@@ -121,7 +153,7 @@ def construct_building_with_heat_pump_chart(agent_chosen: Union[BuildingAgent, P
                  alt.Tooltip(field='Heat pump workload', title='Heat pump workload', type='quantitative')]
     )
 
-    energy_multiline = construct_static_digital_twin_chart(agent_chosen.digital_twin, agent_chosen.guid, True)
+    energy_multiline = construct_static_digital_twin_chart(digital_twin, agent_chosen_guid, True)
     return alt.layer(heat_pump_area, energy_multiline).resolve_scale(y='independent')
 
 
@@ -173,25 +205,7 @@ def aggregated_taxes_and_fees_results_df(tax_paid: float, grid_fees_paid_on_inte
                               ])
 
 
-def get_total_import_export(resource: Resource, action: Action,
-                            mask: Optional[pd.DataFrame] = None) -> float:
-    """
-    Extract total amount of resource imported to or exported from local market.
-    @param resource: A member of Resource enum specifying which resource
-    @param action: A member of Action enum specifying which action
-    @param mask: Optional dataframe, if specified used to extract subset of trades
-    @return: Total quantity post loss as float
-    """
-    conditions = (st.session_state.simulation_results.all_trades.by_external
-                  & (st.session_state.simulation_results.all_trades.resource.values == resource)
-                  & (st.session_state.simulation_results.all_trades.action.values == action))
-    if mask is not None:
-        conditions = (conditions & mask)
-
-    return st.session_state.simulation_results.all_trades.loc[conditions].quantity_post_loss.to_numpy().sum()
-
-
-def aggregated_import_and_export_results_df_split_on_mask(mask: pd.DataFrame,
+def aggregated_import_and_export_results_df_split_on_mask(job_id: str, periods: List[datetime.datetime],
                                                           mask_colnames: List[str]) -> Dict[str, pd.DataFrame]:
     """
     Display total import and export for electricity and heat, computed for specified subsets.
@@ -205,61 +219,63 @@ def aggregated_import_and_export_results_df_split_on_mask(mask: pd.DataFrame,
 
     res_dict = {}
     for colname, action in cols.items():
-        subdict = {'# trades': {mask_colnames[0]: "{:}".format(sum(mask)),
-                                mask_colnames[1]: "{:}".format(sum(~mask)),
-                                'Total': "{:}".format(len(mask))}}
+        subdict = {}
         for rowname, resource in rows.items():
-            w_mask = "{:.2f} MWh".format(get_total_import_export(resource, action, mask) / 10**3)
-            w_compl_mask = "{:.2f} MWh".format(get_total_import_export(resource, action, ~mask) / 10**3)
-            total = "{:.2f} MWh".format(get_total_import_export(resource, action) / 10**3)
-            subdict[rowname] = {mask_colnames[0]: w_mask, mask_colnames[1]: w_compl_mask, 'Total': total}
+            w_mask = "{:.2f} MWh".format(get_total_import_export(job_id, resource, action, periods) / 10**3)
+            total = "{:.2f} MWh".format(get_total_import_export(job_id, resource, action) / 10**3)
+            subdict[rowname] = {mask_colnames[0]: w_mask, 'Total': total}
         res_dict[colname] = pd.DataFrame.from_dict(subdict, orient='index')
 
     return res_dict
 
 
-def aggregated_import_and_export_results_df_split_on_period() -> Dict[str, pd.DataFrame]:
+def aggregated_import_and_export_results_df_split_on_period(job_id: str) -> Dict[str, pd.DataFrame]:
     """
     Dict of dataframes displaying total import and export of resources split for January and
     February against rest of the year.
     """
+    periods = get_periods_from_db()
+    jan_feb_periods = [period for period in periods if period.month in [1, 2]]
 
-    jan_feb_mask = st.session_state.simulation_results.all_trades.period.dt.month.isin([1, 2])
-
-    return aggregated_import_and_export_results_df_split_on_mask(jan_feb_mask, ['Jan-Feb', 'Mar-Dec'])
+    return aggregated_import_and_export_results_df_split_on_mask(job_id, jan_feb_periods, ['Jan-Feb'])
 
 
-def aggregated_import_and_export_results_df_split_on_temperature() -> Dict[str, pd.DataFrame]:
+def aggregated_import_and_export_results_df_split_on_temperature(job_id: str) -> Dict[str, pd.DataFrame]:
     """
     Dict of dataframes displaying total import and export of resources split for when the temperature was above
     or below 1 degree Celsius.
     """
     temperature_df = read_input_column_df_from_db('temperature')
-    temperature_df['above_1_degree'] = temperature_df['temperature'].values >= 1.0
-    period = st.session_state.simulation_results.all_trades.period
-    temp_mask = pd.DataFrame(period).merge(temperature_df, on='period', how='left')['above_1_degree']
-    return aggregated_import_and_export_results_df_split_on_mask(temp_mask, ['Above', 'Below'])
+    periods = list(temperature_df[temperature_df['temperature'].values >= 1.0].period)
+    return aggregated_import_and_export_results_df_split_on_mask(job_id, periods, ['Above'])
 
 
-def aggregated_local_production_df() -> pd.DataFrame:
+def aggregated_local_production_df(job_id: str, config_id: str) -> pd.DataFrame:
     """
     Computing total amount of locally produced resources.
     """
 
+    agent_specs = get_all_agents_in_config(config_id)
+
     production_electricity_lst = []
     usage_heating_lst = []
-    for agent in st.session_state.simulation_results.agents:
-        if isinstance(agent, BuildingAgent) or isinstance(agent, PVAgent):
-            production_electricity_lst.append(sum(agent.digital_twin.electricity_production))
+    for agent_id in agent_specs.values():
+        agent_type = get_agent_type(agent_id)
+        if agent_type in ["BuildingAgent", "PVAgent"]:
+            agent_config = get_agent_config(agent_id)
+            if agent_type == 'BuildingAgent':
+                mock_data_constants = get_mock_data_constants(config_id)
+                digital_twin = reconstruct_building_digital_twin(
+                    agent_id, mock_data_constants, agent_config['PVArea'], agent_config['PVEfficiency'])
+                usage_heating_lst.append(sum(digital_twin.heating_usage.dropna()))  # Issue with NaNs
+            elif agent_type == 'PVAgent':
+                digital_twin = reconstruct_pv_digital_twin(agent_config['PVArea'], agent_config['PVEfficiency'])
+            production_electricity_lst.append(sum(digital_twin.electricity_production))
     
     production_electricity = sum(production_electricity_lst)
 
-    for agent in st.session_state.simulation_results.agents:
-        if isinstance(agent, BuildingAgent):
-            usage_heating_lst.append(sum(agent.digital_twin.heating_usage.dropna()))  # Issue with NaNs
-
-    production_heating = (sum(usage_heating_lst) - get_total_import_export(Resource.HEATING, Action.BUY)
-                          + get_total_import_export(Resource.HEATING, Action.SELL))
+    production_heating = (sum(usage_heating_lst) - get_total_import_export(job_id, Resource.HEATING, Action.BUY)
+                          + get_total_import_export(job_id, Resource.HEATING, Action.SELL))
 
     data = [["{:.2f} MWh".format(production_electricity / 10**3)], ["{:.2f} MWh".format(production_heating / 10**3)]]
     return pd.DataFrame(data=data, index=['Electricity', 'Heating'], columns=['Total'])
@@ -347,6 +363,8 @@ def altair_period_chart(df: pd.DataFrame, domain: List[str], range_color: List[s
 def color_in(val):
     if 'Running' in val:
         color = '#f7a34f'
+    elif 'Pending' in val:
+        color = '#0675bb'
     elif 'Completed' in val:
         color = '#5eab7e'
     else:

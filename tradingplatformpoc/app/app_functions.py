@@ -4,8 +4,11 @@ import logging
 import pandas as pd
 
 import streamlit as st
+from streamlit.runtime.scriptrunner import add_script_run_ctx
 
+from tradingplatformpoc.app.app_threading import StoppableThread
 from tradingplatformpoc.simulation_runner.trading_simulator import TradingSimulator
+from tradingplatformpoc.sql.job.crud import get_all_queued_jobs
 
 
 logger = logging.getLogger(__name__)
@@ -53,15 +56,6 @@ def update_multiselect_style():
         unsafe_allow_html=True,
     )
 
-
-def run_simulation(chosen_config_id: str):
-    logger.info("Running simulation")
-    simulator = TradingSimulator(chosen_config_id)
-    simulator()
-    # TODO: Functionality to shut down job
-    # TODO: Delete job is not finished?
-    # TODO: Add functionality to schedule removal of potential uncompleted jobs
-
     
 def cleanup_config_description(description: str) -> str:
     """
@@ -82,3 +76,26 @@ def cleanup_config_name(name: str) -> str:
 
 def config_naming_is_valid(name: str) -> bool:
     return name.replace(' ', '').isalpha() and (len(name.replace(' ', '')) > 0)
+
+
+def run_simulation(job_id: str):
+    logger.info("Running simulation")
+    simulator = TradingSimulator(job_id)
+    simulator()
+    # TODO: Functionality to shut down job
+    # TODO: Delete job is not finished?
+    # TODO: Add functionality to schedule removal of potential uncompleted jobs
+
+
+def run_next_job_in_queue() -> bool:
+    queue = get_all_queued_jobs()
+    if len(queue) > 0:
+        job_id = queue[0]
+        logger.info('Running job with ID {}'.format(job_id))
+        t = StoppableThread(name='run_' + job_id, target=run_simulation, args=(job_id,))
+        add_script_run_ctx(t)
+        t.start()
+        return True
+    else:
+        logger.debug('No jobs in queue.')
+        return False

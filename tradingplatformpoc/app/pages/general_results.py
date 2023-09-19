@@ -1,11 +1,14 @@
 import logging
+import time
 
 from st_pages import add_indentation, show_pages_from_config
 
 import streamlit as st
 
 from tradingplatformpoc.app import footer
-from tradingplatformpoc.app.app_visualizations import construct_combined_price_df, construct_price_chart, \
+from tradingplatformpoc.app.app_visualizations import aggregated_import_and_export_results_df_split_on_period, \
+    aggregated_import_and_export_results_df_split_on_temperature, aggregated_local_production_df, \
+    construct_combined_price_df, construct_price_chart, \
     get_price_df_when_local_price_inbetween
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.sql.clearing_price.crud import db_to_construct_local_prices_df
@@ -25,8 +28,8 @@ if 'chosen_id_to_view' in st.session_state.keys() and st.session_state.chosen_id
         st.metric(label="Total tax paid",
                   value="{:,.2f} SEK".format(get_total_tax_paid(
                         job_id=st.session_state.chosen_id_to_view['job_id'])),
-                  help="Tax paid includes taxes that the ElectricityGridAgent "
-                       "are to pay, on sales to the microgrid.")
+                  help="Tax paid includes taxes that the ElectricityGridAgent has paid"
+                  " on sales to the microgrid")
     with col_fee:
         st.metric(label="Total grid fees paid on internal trades",
                   value="{:,.2f} SEK".format(get_total_grid_fee_paid_on_internal_trades(
@@ -67,39 +70,37 @@ if 'chosen_id_to_view' in st.session_state.keys() and st.session_state.chosen_id
             agg_trades = agg_trades.style.set_properties(**{'width': '400px'})
             st.dataframe(agg_trades)
 
-            st.caption("For purchases, the quantities used for calculation is before losses but for "
-                       "sales the quantities after losses are used.")
+            st.caption("The quantities used for calculations are before losses for purchases but"
+                       " after losses for sales.")
 
+    with st.expander('Total imported and exported electricity and heating:'):
+        imp_exp_period_dict = aggregated_import_and_export_results_df_split_on_period(
+            st.session_state.chosen_id_to_view['job_id'])
+        imp_exp_temp_dict = aggregated_import_and_export_results_df_split_on_temperature(
+            st.session_state.chosen_id_to_view['job_id'])
+        st.caption("Split on period of year:")
+        col1, col2 = st.columns(2)
+        col1.header('Imported')
+        col2.header("Exported")
+        col1.dataframe(imp_exp_period_dict['Imported'])
+        col2.dataframe(imp_exp_period_dict['Exported'])
+        st.caption("Split on temperature above or below 1 degree Celsius:")
+        col1, col2 = st.columns(2)
+        col1.dataframe(imp_exp_temp_dict['Imported'])
+        col2.dataframe(imp_exp_temp_dict['Exported'])
 
-# TODO: Update graphs to work with results taken from database
-# if 'simulation_results' in st.session_state:
+    t_start = time.time()
 
-#     t_start = time.time()
-
-#     with st.expander('Total imported and exported electricity and heating:'):
-#         imp_exp_period_dict = aggregated_import_and_export_results_df_split_on_period()
-#         imp_exp_temp_dict = aggregated_import_and_export_results_df_split_on_temperature()
-#         col1, col2 = st.columns(2)
-#         col1.header('Imported')
-#         col2.header("Exported")
-#         st.caption("Split on period of year:")
-#         col1, col2 = st.columns(2)
-#         col1.dataframe(imp_exp_period_dict['Imported'])
-#         col2.dataframe(imp_exp_period_dict['Exported'])
-#         st.caption("Split on temperature above or below 1 degree Celsius:")
-#         col1, col2 = st.columns(2)
-#         col1.dataframe(imp_exp_temp_dict['Imported'])
-#         col2.dataframe(imp_exp_temp_dict['Exported'])
-
-#     with st.expander('Total of locally produced heating and electricity:'):
-#         loc_prod = aggregated_local_production_df()
-#         st.dataframe(loc_prod)
-#         st.caption("Total amount of heating produced by local heat pumps "
-#                    + "and total amount of locally produced electricity.")
-#     t_end = time.time()
-#     logger.info('Time to display aggregated results: {:.3f} seconds'.format(t_end - t_start))
+    with st.expander('Total of locally produced heating and electricity:'):
+        loc_prod = aggregated_local_production_df(st.session_state.chosen_id_to_view['job_id'],
+                                                  st.session_state.chosen_id_to_view['config_id'])
+        st.dataframe(loc_prod)
+        st.caption("Total amount of heating produced by local heat pumps "
+                   + "and total amount of locally produced electricity.")
+    t_end = time.time()
+    logger.info('Time to display aggregated results: {:.3f} seconds'.format(t_end - t_start))
             
 else:
-    st.write("There's no results to view yet.")
+    st.write("There are no results to view yet.")
 
 st.write(footer.html, unsafe_allow_html=True)
