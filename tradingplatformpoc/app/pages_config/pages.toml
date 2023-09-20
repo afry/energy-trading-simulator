@@ -13,3 +13,7 @@ name = "Run simulation"
 [[pages]]
 path = "tradingplatformpoc/app/pages/view_results.py"
 name = "View results"
+
+[[pages]]
+path = "tradingplatformpoc/app/pages/scenario_comparison.py"
+name = "Scenario comparison"
