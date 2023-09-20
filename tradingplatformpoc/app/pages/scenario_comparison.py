@@ -27,6 +27,8 @@ if len(ids) >= 2:
         if chosen_config_id_to_view_2 is not None:
             st.session_state.chosen_config_id_to_view_2 = {'config_id': chosen_config_id_to_view_2,
                                                            'job_id': ids[chosen_config_id_to_view_2]}
+            
+    # TODO: Plots and visualizations should go here
 
 else:
     st.markdown('Too few scenarios to compare, set up a configuration in '
