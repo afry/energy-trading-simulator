@@ -56,7 +56,7 @@ if len(ids) >= 2:
             ['blue', 'green'],
             [[0, 0], [2, 4]])
         st.caption("Click on a variable in legend to highlight it in the graph.")
-        st.altair_chart(st.session_state.price_chart, use_container_width=True, theme=None)
+        st.altair_chart(price_chart, use_container_width=True, theme=None)
 
 else:
     st.markdown('Too few scenarios to compare, set up a configuration in '
