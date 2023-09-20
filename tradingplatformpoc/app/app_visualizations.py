@@ -43,11 +43,9 @@ def get_price_df_when_local_price_inbetween(prices_df: pd.DataFrame, resource: R
     return elec_prices.loc[local_price_between_external]
 
 
-def construct_price_chart(prices_df: pd.DataFrame, resource: Resource) -> alt.Chart:
+def construct_price_chart(prices_df: pd.DataFrame, resource: Resource, domain: List[str],
+                          range_color: List[str], range_dash: List[str]) -> alt.Chart:
     data_to_use = prices_df.loc[prices_df['Resource'] == resource].drop('Resource', axis=1)
-    domain = [app_constants.LOCAL_PRICE_STR, app_constants.RETAIL_PRICE_STR, app_constants.WHOLESALE_PRICE_STR]
-    range_color = ['blue', 'green', 'red']
-    range_dash = [[0, 0], [2, 4], [2, 4]]
     title = alt.TitleParams("Price over Time", anchor='middle')
     selection = alt.selection_single(fields=['variable'], bind='legend')
     return alt.Chart(data_to_use, title=title).mark_line(). \
