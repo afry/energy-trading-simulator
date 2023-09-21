@@ -11,15 +11,6 @@ path = "tradingplatformpoc/app/pages/run_simulation.py"
 name = "Run simulation"
 
 [[pages]]
-path = "tradingplatformpoc/app/pages/view_results.py"
-name = "View results"
-
-[[pages]]
-name = ""
-icon = ""
-is_section = true
-
-[[pages]]
 path = "tradingplatformpoc/app/pages/general_results.py"
 name = "General results"
 
