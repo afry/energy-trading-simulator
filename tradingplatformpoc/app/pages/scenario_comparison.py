@@ -7,10 +7,12 @@ from st_pages import add_indentation, show_pages_from_config
 import streamlit as st
 
 from tradingplatformpoc.app import app_constants, footer
-from tradingplatformpoc.app.app_visualizations import construct_price_chart
+from tradingplatformpoc.app.app_comparison import convert_to_altair_df
+from tradingplatformpoc.app.app_visualizations import altair_period_chart, construct_price_chart
 from tradingplatformpoc.market.bid import Resource
 from tradingplatformpoc.sql.clearing_price.crud import db_to_construct_local_prices_df
 from tradingplatformpoc.sql.config.crud import get_all_finished_job_config_id_pairs_in_db
+from tradingplatformpoc.sql.trade.crud import get_import_export_df
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +59,13 @@ if len(ids) >= 2:
             [[0, 0], [2, 4]])
         st.caption("Click on a variable in legend to highlight it in the graph.")
         st.altair_chart(price_chart, use_container_width=True, theme=None)
+
+        df = get_import_export_df([st.session_state.chosen_config_id_to_view_1['job_id'],
+                                   st.session_state.chosen_config_id_to_view_2['job_id']])
+        df, domain = convert_to_altair_df(df)
+        chart = altair_period_chart(df, domain,
+                                    app_constants.ALTAIR_BASE_COLORS[:len(domain)], '')
+        st.altair_chart(chart, use_container_width=True, theme=None)
 
 else:
     st.markdown('Too few scenarios to compare, set up a configuration in '
