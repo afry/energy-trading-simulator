@@ -26,13 +26,9 @@ add_indentation()
 ids = get_all_finished_job_config_id_pairs_in_db()
 if len(ids) > 0:
     chosen_config_id_to_view = st.selectbox('Choose a configuration to view results for', ids.keys())
-    if chosen_config_id_to_view is not None:
-        st.session_state.chosen_id_to_view = {'config_id': chosen_config_id_to_view,
-                                              'job_id': ids[chosen_config_id_to_view]}
-    else:
-        st.markdown('No results to view yet, set up a configuration in '
-                    '**Setup simulation** and run it in **Run simulation**.')
-
+    st.session_state.chosen_id_to_view = {'config_id': chosen_config_id_to_view,
+                                          'job_id': ids[chosen_config_id_to_view]}
+    
     agent_specs = get_all_agents_in_config(st.session_state.chosen_id_to_view['config_id'])
     agent_ids = [name for name in agent_specs.keys()]
     agent_chosen_guid = st.sidebar.selectbox('Choose agent:', agent_ids)
@@ -152,6 +148,7 @@ if len(ids) > 0:
             st.write("Click on a variable to highlight it.")
 
 else:
-    st.write("There's no results to view yet.")
+    st.markdown('No results to view yet, set up a configuration in '
+                '**Setup simulation** and run it in **Run simulation**.')
 
 st.write(footer.html, unsafe_allow_html=True)
