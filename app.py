@@ -73,7 +73,7 @@ if __name__ == '__main__':
 
         **Navigate** by using the sidebar menu to a page
         - *Setup simulation*: Create new scenario configurations
-        - *Run simulation*: Run or delete simulation for custom configuration
+        - *Run simulation*: Run or delete simulations for previously created configurations
         - *General results*: View general results for one scenario
         - *Results by agent*: View agent-specific results for one scenario
         - *Scenario comparison*: Compare results for two scenarios
