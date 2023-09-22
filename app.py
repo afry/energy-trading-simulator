@@ -71,10 +71,12 @@ if __name__ == '__main__':
         # Trading platform POC
         ## Prototype data presentation app for energy microgrid trading platform
 
-        **Navigate** by using the sidebar menu to either
-        - *Setup simulation*: Run simulation for custom configuration.
-        - *View results*: View simulation results.
-
+        **Navigate** by using the sidebar menu to a page
+        - *Setup simulation*: Create new scenario configurations
+        - *Run simulation*: Run or delete simulations for previously created configurations
+        - *General results*: View general results for one scenario
+        - *Results by agent*: View agent-specific results for one scenario
+        - *Scenario comparison*: Compare results for two scenarios
         """
     )
 
