@@ -78,7 +78,7 @@ if not config_df.empty:
                 default=False,
             )
         },
-        column_order=['Status', 'Config ID', 'Delete', 'Start time', 'End time', 'Description',  'Job ID'],
+        column_order=['Status', 'Config ID', 'Delete', 'Start time', 'End time', 'Description', 'Job ID'],
         hide_index=True,
         disabled=['Status', 'Config ID', 'Start time', 'End time', 'Description', 'Job ID']
     )
