@@ -26,17 +26,17 @@ add_indentation()
 ids = get_all_finished_job_config_id_pairs_in_db()
 if len(ids) > 0:
     chosen_config_id_to_view = st.selectbox('Choose a configuration to view results for', ids.keys())
-    st.session_state.chosen_id_to_view = {'config_id': chosen_config_id_to_view,
-                                          'job_id': ids[chosen_config_id_to_view]}
+    chosen_id_to_view = {'config_id': chosen_config_id_to_view,
+                         'job_id': ids[chosen_config_id_to_view]}
     
-    agent_specs = get_all_agents_in_config(st.session_state.chosen_id_to_view['config_id'])
+    agent_specs = get_all_agents_in_config(chosen_id_to_view['config_id'])
     agent_ids = [name for name in agent_specs.keys()]
     agent_chosen_guid = st.sidebar.selectbox('Choose agent:', agent_ids)
     agent_type = get_agent_type(agent_specs[agent_chosen_guid])
     st.write("Showing results for: " + agent_chosen_guid)
 
     with st.expander('Bids'):
-        bids_df = db_to_viewable_bid_df_for_agent(job_id=st.session_state.chosen_id_to_view['job_id'],
+        bids_df = db_to_viewable_bid_df_for_agent(job_id=chosen_id_to_view['job_id'],
                                                   agent_guid=agent_chosen_guid)
         if bids_df.empty:
             st.dataframe(bids_df, hide_index=True)
@@ -46,7 +46,7 @@ if len(ids) > 0:
                                       include_index=True)
 
     with st.expander('Trades'):
-        trades_df = db_to_viewable_trade_df_by_agent(job_id=st.session_state.chosen_id_to_view['job_id'],
+        trades_df = db_to_viewable_trade_df_by_agent(job_id=chosen_id_to_view['job_id'],
                                                      agent_guid=agent_chosen_guid)
         if trades_df.empty:
             st.dataframe(trades_df, hide_index=True)
@@ -61,7 +61,7 @@ if len(ids) > 0:
     with st.expander('Extra costs'):
         st.write('A negative cost means that the agent was owed money for the period, rather than owing the '
                  'money to someone else.')
-        extra_costs_df = db_to_viewable_extra_costs_df_by_agent(job_id=st.session_state.chosen_id_to_view['job_id'],
+        extra_costs_df = db_to_viewable_extra_costs_df_by_agent(job_id=chosen_id_to_view['job_id'],
                                                                 agent_guid=agent_chosen_guid)
         
         if extra_costs_df.empty:
@@ -72,7 +72,7 @@ if len(ids) > 0:
                                       include_index=True)
             
     if agent_type == 'BatteryAgent':
-        storage_levels_df = db_to_viewable_level_df_by_agent(job_id=st.session_state.chosen_id_to_view['job_id'],
+        storage_levels_df = db_to_viewable_level_df_by_agent(job_id=chosen_id_to_view['job_id'],
                                                              agent_guid=agent_chosen_guid,
                                                              level_type=TradeMetadataKey.STORAGE_LEVEL.name)
         if not storage_levels_df.empty:
@@ -84,7 +84,7 @@ if len(ids) > 0:
     if agent_type != 'GridAgent':
 
         total_saved, extra_costs_for_bad_bids = get_savings_vs_only_external_buy(
-            job_id=st.session_state.chosen_id_to_view['job_id'],
+            job_id=chosen_id_to_view['job_id'],
             agent_guid=agent_chosen_guid)
 
         st.metric(
@@ -107,17 +107,17 @@ if len(ids) > 0:
                                                                          total_saved - extra_costs_for_bad_bids))
         if agent_type == 'BatteryAgent':
             battery_agent_total_net_profit = get_total_profit_net(
-                job_id=st.session_state.chosen_id_to_view['job_id'],
+                job_id=chosen_id_to_view['job_id'],
                 agent_guid=agent_chosen_guid)
             st.metric(
                 label="Net profit.",
                 value="{:,.2f} SEK".format(battery_agent_total_net_profit),
                 help=r"What the {} sold minus what it bought.".format(agent_chosen_guid))
             battery_agent_tax_paid = get_total_tax_paid(
-                job_id=st.session_state.chosen_id_to_view['job_id'],
+                job_id=chosen_id_to_view['job_id'],
                 agent_guid=agent_chosen_guid)
             battery_agent_grid_fee_paid = get_total_grid_fee_paid_on_internal_trades(
-                job_id=st.session_state.chosen_id_to_view['job_id'],
+                job_id=chosen_id_to_view['job_id'],
                 agent_guid=agent_chosen_guid)
             st.metric(
                 label="Gross profit.",
@@ -131,10 +131,10 @@ if len(ids) > 0:
             agent_config = get_agent_config(agent_specs[agent_chosen_guid])
             if agent_type == 'BuildingAgent':
                 heat_pump_levels_df = db_to_viewable_level_df_by_agent(
-                    job_id=st.session_state.chosen_id_to_view['job_id'],
+                    job_id=chosen_id_to_view['job_id'],
                     agent_guid=agent_chosen_guid,
                     level_type=TradeMetadataKey.HEAT_PUMP_WORKLOAD.name)
-                mock_data_constants = get_mock_data_constants(st.session_state.chosen_id_to_view['config_id'])
+                mock_data_constants = get_mock_data_constants(chosen_id_to_view['config_id'])
                 building_digital_twin = reconstruct_building_digital_twin(
                     agent_specs[agent_chosen_guid], mock_data_constants,
                     agent_config['PVArea'], agent_config['PVEfficiency'])

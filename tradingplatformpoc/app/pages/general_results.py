@@ -24,20 +24,21 @@ add_indentation()
 ids = get_all_finished_job_config_id_pairs_in_db()
 if len(ids) > 0:
     chosen_config_id_to_view = st.selectbox('Choose a configuration to view results for', ids.keys())
-    st.session_state.chosen_id_to_view = {'config_id': chosen_config_id_to_view,
-                                          'job_id': ids[chosen_config_id_to_view]}
+    
+    chosen_id_to_view = {'config_id': chosen_config_id_to_view,
+                         'job_id': ids[chosen_config_id_to_view]}
     
     col_tax, col_fee = st.columns(2)
     with col_tax:
         st.metric(label="Total tax paid",
                   value="{:,.2f} SEK".format(get_total_tax_paid(
-                        job_id=st.session_state.chosen_id_to_view['job_id'])),
+                        job_id=chosen_id_to_view['job_id'])),
                   help="Tax paid includes taxes that the ElectricityGridAgent has paid"
                   " on sales to the microgrid")
     with col_fee:
         st.metric(label="Total grid fees paid on internal trades",
                   value="{:,.2f} SEK".format(get_total_grid_fee_paid_on_internal_trades(
-                        job_id=st.session_state.chosen_id_to_view['job_id'])))
+                        job_id=chosen_id_to_view['job_id'])))
 
     tab_price_graph, tab_price_table = st.tabs(['Graph', 'Table'])
     with tab_price_graph:
@@ -45,9 +46,9 @@ if len(ids) > 0:
         st.spinner("Constructing price graph")
 
         local_price_df = db_to_construct_local_prices_df(
-            job_id=st.session_state.chosen_id_to_view['job_id'])
+            job_id=chosen_id_to_view['job_id'])
         combined_price_df = construct_combined_price_df(
-            local_price_df, read_config(st.session_state.chosen_id_to_view['config_id']))
+            local_price_df, read_config(chosen_id_to_view['config_id']))
         if not combined_price_df.empty:
             st.session_state.combined_price_df = combined_price_df
             price_chart = construct_price_chart(combined_price_df, Resource.ELECTRICITY)
@@ -65,9 +66,9 @@ if len(ids) > 0:
     agg_tabs = st.tabs([resource.name.capitalize() for resource in resources])
     for resource, tab in zip(resources, agg_tabs):
         with tab:
-            agg_buy_trades = db_to_aggregated_trade_df(st.session_state.chosen_id_to_view['job_id'],
+            agg_buy_trades = db_to_aggregated_trade_df(chosen_id_to_view['job_id'],
                                                        resource, Action.BUY)
-            agg_sell_trades = db_to_aggregated_trade_df(st.session_state.chosen_id_to_view['job_id'],
+            agg_sell_trades = db_to_aggregated_trade_df(chosen_id_to_view['job_id'],
                                                         resource, Action.SELL)
             
             agg_trades = agg_buy_trades.merge(agg_sell_trades, on='Agent', how='outer').transpose()
@@ -79,9 +80,9 @@ if len(ids) > 0:
 
     with st.expander('Total imported and exported electricity and heating:'):
         imp_exp_period_dict = aggregated_import_and_export_results_df_split_on_period(
-            st.session_state.chosen_id_to_view['job_id'])
+            chosen_id_to_view['job_id'])
         imp_exp_temp_dict = aggregated_import_and_export_results_df_split_on_temperature(
-            st.session_state.chosen_id_to_view['job_id'])
+            chosen_id_to_view['job_id'])
         st.caption("Split on period of year:")
         col1, col2 = st.columns(2)
         col1.header('Imported')
@@ -96,8 +97,8 @@ if len(ids) > 0:
     t_start = time.time()
 
     with st.expander('Total of locally produced heating and electricity:'):
-        loc_prod = aggregated_local_production_df(st.session_state.chosen_id_to_view['job_id'],
-                                                  st.session_state.chosen_id_to_view['config_id'])
+        loc_prod = aggregated_local_production_df(chosen_id_to_view['job_id'],
+                                                  chosen_id_to_view['config_id'])
         st.dataframe(loc_prod)
         st.caption("Total amount of heating produced by local heat pumps "
                    + "and total amount of locally produced electricity.")
