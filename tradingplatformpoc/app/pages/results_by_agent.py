@@ -20,7 +20,7 @@ from tradingplatformpoc.sql.trade.crud import db_to_viewable_trade_df_by_agent, 
 
 TABLE_HEIGHT: int = 300
 
-show_pages_from_config("tradingplatformpoc/app/pages_config/pages_subpages.toml")
+show_pages_from_config("tradingplatformpoc/app/pages_config/pages.toml")
 add_indentation()
 
 ids = get_all_finished_job_config_id_pairs_in_db()

@@ -21,7 +21,7 @@ from tradingplatformpoc.sql.config.crud import read_config
 
 logger = logging.getLogger(__name__)
 
-show_pages_from_config("tradingplatformpoc/app/pages_config/pages.toml")
+show_pages_from_config("tradingplatformpoc/app/pages_config/pages_subpages.toml")
 add_indentation()
 
 set_max_width('1000px')  # This tab looks a bit daft when it is too wide, so limiting it here.
