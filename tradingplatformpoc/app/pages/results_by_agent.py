@@ -11,7 +11,8 @@ from tradingplatformpoc.app.app_visualizations import construct_building_with_he
 from tradingplatformpoc.market.trade import TradeMetadataKey
 from tradingplatformpoc.sql.agent.crud import get_agent_config, get_agent_type
 from tradingplatformpoc.sql.bid.crud import db_to_viewable_bid_df_for_agent
-from tradingplatformpoc.sql.config.crud import get_all_agents_in_config, get_mock_data_constants
+from tradingplatformpoc.sql.config.crud import get_all_agents_in_config, get_all_finished_job_config_id_pairs_in_db, \
+    get_mock_data_constants
 from tradingplatformpoc.sql.extra_cost.crud import db_to_viewable_extra_costs_df_by_agent
 from tradingplatformpoc.sql.level.crud import db_to_viewable_level_df_by_agent
 from tradingplatformpoc.sql.trade.crud import db_to_viewable_trade_df_by_agent, \
@@ -22,7 +23,15 @@ TABLE_HEIGHT: int = 300
 show_pages_from_config("tradingplatformpoc/app/pages_config/pages_subpages.toml")
 add_indentation()
 
-if 'chosen_id_to_view' in st.session_state.keys() and st.session_state.chosen_id_to_view is not None:
+ids = get_all_finished_job_config_id_pairs_in_db()
+if len(ids) > 0:
+    chosen_config_id_to_view = st.selectbox('Choose a configuration to view results for', ids.keys())
+    if chosen_config_id_to_view is not None:
+        st.session_state.chosen_id_to_view = {'config_id': chosen_config_id_to_view,
+                                              'job_id': ids[chosen_config_id_to_view]}
+    else:
+        st.markdown('No results to view yet, set up a configuration in '
+                    '**Setup simulation** and run it in **Run simulation**.')
 
     agent_specs = get_all_agents_in_config(st.session_state.chosen_id_to_view['config_id'])
     agent_ids = [name for name in agent_specs.keys()]

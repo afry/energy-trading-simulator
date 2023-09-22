@@ -12,7 +12,7 @@ from tradingplatformpoc.app.app_visualizations import aggregated_import_and_expo
     get_price_df_when_local_price_inbetween
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.sql.clearing_price.crud import db_to_construct_local_prices_df
-from tradingplatformpoc.sql.config.crud import read_config
+from tradingplatformpoc.sql.config.crud import get_all_finished_job_config_id_pairs_in_db, read_config
 from tradingplatformpoc.sql.trade.crud import db_to_aggregated_trade_df, \
     get_total_grid_fee_paid_on_internal_trades, get_total_tax_paid
 
@@ -21,7 +21,15 @@ logger = logging.getLogger(__name__)
 show_pages_from_config("tradingplatformpoc/app/pages_config/pages_subpages.toml")
 add_indentation()
 
-if 'chosen_id_to_view' in st.session_state.keys() and st.session_state.chosen_id_to_view is not None:
+ids = get_all_finished_job_config_id_pairs_in_db()
+if len(ids) > 0:
+    chosen_config_id_to_view = st.selectbox('Choose a configuration to view results for', ids.keys())
+    if chosen_config_id_to_view is not None:
+        st.session_state.chosen_id_to_view = {'config_id': chosen_config_id_to_view,
+                                              'job_id': ids[chosen_config_id_to_view]}
+    else:
+        st.markdown('No results to view yet, set up a configuration in '
+                    '**Setup simulation** and run it in **Run simulation**.')
 
     col_tax, col_fee = st.columns(2)
     with col_tax:
