@@ -345,7 +345,7 @@ def construct_traded_amount_by_agent_chart(agent_chosen_guid: str,
 def altair_period_chart(df: pd.DataFrame, domain: List[str], range_color: List[str],
                         title_str: str) -> alt.Chart:
     """Altair chart for one or more variables over period."""
-    selection = alt.selection_single(fields=['variable'], bind='legend')
+    selection = alt.selection_multi(fields=['variable'], bind='legend')
     alt_title = alt.TitleParams(title_str, anchor='middle')
     return alt.Chart(df, title=alt_title).mark_line(). \
         encode(x=alt.X('period:T', axis=alt.Axis(title='Period (UTC)'), scale=alt.Scale(type="utc")),
