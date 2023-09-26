@@ -1,5 +1,7 @@
 from typing import Dict, List
 
+import altair as alt
+
 import pandas as pd
 
 from tradingplatformpoc.app import app_constants
@@ -9,11 +11,11 @@ from tradingplatformpoc.sql.clearing_price.crud import db_to_construct_local_pri
 from tradingplatformpoc.sql.trade.crud import get_import_export_df
 
 
-def construct_comparison_price_chart(ids: List[Dict[str, str]]):
+def construct_comparison_price_chart(ids: List[Dict[str, str]]) -> alt.Chart:
     local_price_dfs = []
     for comp_id in ids:
         local_price_df = db_to_construct_local_prices_df(comp_id["job_id"])
-        local_price_df['variable'] = app_constants.LOCAL_PRICE_STR + ' ' + comp_id["config_id"]
+        local_price_df['variable'] = app_constants.LOCAL_PRICE_STR + ' - ' + comp_id["config_id"]
         local_price_dfs.append(local_price_df)
     
     combined_price_df = pd.concat(local_price_dfs)
@@ -26,7 +28,7 @@ def construct_comparison_price_chart(ids: List[Dict[str, str]]):
         [[0, 0], [2, 4]])
 
 
-def import_export_altair_period_chart(ids: List[Dict[str, str]]):
+def import_export_altair_period_chart(ids: List[Dict[str, str]]) -> alt.Chart:
 
     # Get data from database
     df = get_import_export_df([elem["job_id"] for elem in ids])
