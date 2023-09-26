@@ -5,9 +5,13 @@ import pandas as pd
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.app.app_visualizations import altair_period_chart
 from tradingplatformpoc.market.bid import Action, Resource
+from tradingplatformpoc.sql.trade.crud import get_import_export_df
 
 
-def import_export_altair_period_chart(df: pd.DataFrame, ids: List[Dict[str, str]]):
+def import_export_altair_period_chart(ids: List[Dict[str, str]]):
+
+    # Get data from database
+    df = get_import_export_df([elem["job_id"] for elem in ids])
 
     var_names = {
         (Action.BUY, Resource.HEATING): "Heat, imported",
@@ -15,6 +19,7 @@ def import_export_altair_period_chart(df: pd.DataFrame, ids: List[Dict[str, str]
         (Action.BUY, Resource.ELECTRICITY): "Electricity, imported",
         (Action.SELL, Resource.ELECTRICITY): "Electricity, exported"}
 
+    # Process data to be of a form that fits the altair chart
     new_df = pd.DataFrame()
     for action in [Action.BUY, Action.SELL]:
         for resource in [Resource.HEATING, Resource.ELECTRICITY]:

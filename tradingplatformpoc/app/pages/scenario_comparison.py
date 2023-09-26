@@ -12,7 +12,6 @@ from tradingplatformpoc.app.app_visualizations import construct_price_chart
 from tradingplatformpoc.market.bid import Resource
 from tradingplatformpoc.sql.clearing_price.crud import db_to_construct_local_prices_df
 from tradingplatformpoc.sql.config.crud import get_all_finished_job_config_id_pairs_in_db
-from tradingplatformpoc.sql.trade.crud import get_import_export_df
 
 logger = logging.getLogger(__name__)
 
@@ -61,11 +60,7 @@ if len(ids) >= 2:
         st.altair_chart(price_chart, use_container_width=True, theme=None)
 
         # Import export graph
-        import_export_df = get_import_export_df(
-            [st.session_state.chosen_config_id_to_view_1['job_id'],
-             st.session_state.chosen_config_id_to_view_2['job_id']])
         chart = import_export_altair_period_chart(
-            import_export_df,
             [st.session_state.chosen_config_id_to_view_1,
              st.session_state.chosen_config_id_to_view_2])
         st.caption("Hold *Shift* and click on multiple variables in the legend to highlight them in the graph.")
