@@ -36,9 +36,11 @@ if len(ids) >= 2:
         st.altair_chart(price_chart, use_container_width=True, theme=None)
 
         # Import export graph
-        chart = import_export_altair_period_chart(comparison_ids)
+        logger.info("Constructing import/export graph")
+        st.spinner("Constructing import/export graph")
+        imp_exp_chart = import_export_altair_period_chart(comparison_ids)
         st.caption("Hold *Shift* and click on multiple variables in the legend to highlight them in the graph.")
-        st.altair_chart(chart, use_container_width=True, theme=None)
+        st.altair_chart(imp_exp_chart, use_container_width=True, theme=None)
 
 else:
     st.markdown('Too few scenarios to compare, set up a configuration in '
