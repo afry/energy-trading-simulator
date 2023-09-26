@@ -24,36 +24,36 @@ if len(ids) >= 2:
     with first_col:
         chosen_config_id_to_view_1 = st.selectbox('Choose a first configuration to compare', ids.keys())
         if chosen_config_id_to_view_1 is not None:
-            st.session_state.chosen_config_id_to_view_1 = {'config_id': chosen_config_id_to_view_1,
-                                                           'job_id': ids[chosen_config_id_to_view_1]}
+            st.session_state.chosen_id_to_view_1 = {'config_id': chosen_config_id_to_view_1,
+                                                    'job_id': ids[chosen_config_id_to_view_1]}
     with second_col:
         chosen_config_id_to_view_2 = st.selectbox(
             'Choose a second configuration to compare',
-            [key for key in ids.keys() if key != st.session_state.chosen_config_id_to_view_1['config_id']])
+            [key for key in ids.keys() if key != st.session_state.chosen_id_to_view_1['config_id']])
         if chosen_config_id_to_view_2 is not None:
-            st.session_state.chosen_config_id_to_view_2 = {'config_id': chosen_config_id_to_view_2,
-                                                           'job_id': ids[chosen_config_id_to_view_2]}
+            st.session_state.chosen_id_to_view_2 = {'config_id': chosen_config_id_to_view_2,
+                                                    'job_id': ids[chosen_config_id_to_view_2]}
             
-    if ('chosen_config_id_to_view_1' in st.session_state.keys()) \
-       and ('chosen_config_id_to_view_2' in st.session_state.keys()):
+    if ('chosen_id_to_view_1' in st.session_state.keys()) \
+       and ('chosen_id_to_view_2' in st.session_state.keys()):
         # Price graph
         logger.info("Constructing price graph")
         st.spinner("Constructing price graph")
 
         local_price_df_1 = db_to_construct_local_prices_df(
-            job_id=st.session_state.chosen_config_id_to_view_1['job_id'])
+            job_id=st.session_state.chosen_id_to_view_1['job_id'])
         local_price_df_1['variable'] = app_constants.LOCAL_PRICE_STR \
-            + ' ' + st.session_state.chosen_config_id_to_view_1['config_id']
+            + ' ' + st.session_state.chosen_id_to_view_1['config_id']
         local_price_df_2 = db_to_construct_local_prices_df(
-            job_id=st.session_state.chosen_config_id_to_view_2['job_id'])
+            job_id=st.session_state.chosen_id_to_view_2['job_id'])
         local_price_df_2['variable'] = app_constants.LOCAL_PRICE_STR \
-            + ' ' + st.session_state.chosen_config_id_to_view_2['config_id']
+            + ' ' + st.session_state.chosen_id_to_view_2['config_id']
         combined_price_df = pd.concat([local_price_df_1, local_price_df_2])
         price_chart = construct_price_chart(
             combined_price_df,
             Resource.ELECTRICITY,
-            [app_constants.LOCAL_PRICE_STR + ' ' + st.session_state.chosen_config_id_to_view_1['config_id'],
-             app_constants.LOCAL_PRICE_STR + ' ' + st.session_state.chosen_config_id_to_view_2['config_id']],
+            [app_constants.LOCAL_PRICE_STR + ' ' + st.session_state.chosen_id_to_view_1['config_id'],
+             app_constants.LOCAL_PRICE_STR + ' ' + st.session_state.chosen_id_to_view_2['config_id']],
             ['blue', 'green'],
             [[0, 0], [2, 4]])
         st.caption("Click on a variable in legend to highlight it in the graph.")
@@ -61,8 +61,8 @@ if len(ids) >= 2:
 
         # Import export graph
         chart = import_export_altair_period_chart(
-            [st.session_state.chosen_config_id_to_view_1,
-             st.session_state.chosen_config_id_to_view_2])
+            [st.session_state.chosen_id_to_view_1,
+             st.session_state.chosen_id_to_view_2])
         st.caption("Hold *Shift* and click on multiple variables in the legend to highlight them in the graph.")
         st.altair_chart(chart, use_container_width=True, theme=None)
 
