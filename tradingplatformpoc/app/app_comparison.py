@@ -1,9 +1,19 @@
+from typing import Dict, List
+
 import pandas as pd
 
+from tradingplatformpoc.app import app_constants
+from tradingplatformpoc.app.app_visualizations import altair_period_chart
 from tradingplatformpoc.market.bid import Action, Resource
 
 
-def convert_to_altair_df(df: pd.DataFrame):
+def import_export_altair_period_chart(df: pd.DataFrame, ids: List[Dict[str, str]]):
+
+    var_names = {
+        (Action.BUY, Resource.HEATING): "Heat, imported",
+        (Action.SELL, Resource.HEATING): "Heat, exported",
+        (Action.BUY, Resource.ELECTRICITY): "Electricity, imported",
+        (Action.SELL, Resource.ELECTRICITY): "Electricity, exported"}
 
     new_df = pd.DataFrame()
     for action in [Action.BUY, Action.SELL]:
@@ -19,7 +29,10 @@ def convert_to_altair_df(df: pd.DataFrame):
                     subset = subset.reindex(datetime_range).fillna(0)
                     subset = subset.reset_index().rename(columns={'index': 'period'})
             
-                subset['variable'] = action.name + resource.name + job_id
+                subset['variable'] = var_names[(action, resource)] + ' - ' + \
+                    [elem['config_id'] for elem in ids if elem["job_id"] == job_id][0]
                 subset = subset.rename(columns={'quantity_post_loss': 'value'})
                 new_df = pd.concat((new_df, subset))
-    return new_df, list(pd.unique(new_df['variable']))
+    domain = list(pd.unique(new_df['variable']))
+    return altair_period_chart(new_df, domain, app_constants.ALTAIR_BASE_COLORS[:len(domain)],
+                               'Import and export of resources through trades with grid agents')
