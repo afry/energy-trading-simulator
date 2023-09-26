@@ -1,16 +1,11 @@
 import logging
 
-import pandas as pd
-
 from st_pages import add_indentation, show_pages_from_config
 
 import streamlit as st
 
-from tradingplatformpoc.app import app_constants, footer
-from tradingplatformpoc.app.app_comparison import import_export_altair_period_chart
-from tradingplatformpoc.app.app_visualizations import construct_price_chart
-from tradingplatformpoc.market.bid import Resource
-from tradingplatformpoc.sql.clearing_price.crud import db_to_construct_local_prices_df
+from tradingplatformpoc.app import footer
+from tradingplatformpoc.app.app_comparison import construct_comparison_price_chart, import_export_altair_period_chart
 from tradingplatformpoc.sql.config.crud import get_all_finished_job_config_id_pairs_in_db
 
 logger = logging.getLogger(__name__)
@@ -36,21 +31,7 @@ if len(ids) >= 2:
         # Price graph
         logger.info("Constructing price graph")
         st.spinner("Constructing price graph")
-
-        local_price_dfs = []
-        for comp_id in comparison_ids:
-            local_price_df = db_to_construct_local_prices_df(comp_id["job_id"])
-            local_price_df['variable'] = app_constants.LOCAL_PRICE_STR + ' ' + comp_id["config_id"]
-            local_price_dfs.append(local_price_df)
-        
-        combined_price_df = pd.concat(local_price_dfs)
-        combined_price_df_domain = list(pd.unique(combined_price_df['variable']))
-        price_chart = construct_price_chart(
-            combined_price_df,
-            Resource.ELECTRICITY,
-            combined_price_df_domain,
-            app_constants.ALTAIR_BASE_COLORS[:len(combined_price_df_domain)],
-            [[0, 0], [2, 4]])
+        price_chart = construct_comparison_price_chart(comparison_ids)
         st.caption("Click on a variable in legend to highlight it in the graph.")
         st.altair_chart(price_chart, use_container_width=True, theme=None)
 

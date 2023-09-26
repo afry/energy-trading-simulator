@@ -3,9 +3,27 @@ from typing import Dict, List
 import pandas as pd
 
 from tradingplatformpoc.app import app_constants
-from tradingplatformpoc.app.app_visualizations import altair_period_chart
+from tradingplatformpoc.app.app_visualizations import altair_period_chart, construct_price_chart
 from tradingplatformpoc.market.bid import Action, Resource
+from tradingplatformpoc.sql.clearing_price.crud import db_to_construct_local_prices_df
 from tradingplatformpoc.sql.trade.crud import get_import_export_df
+
+
+def construct_comparison_price_chart(ids: List[Dict[str, str]]):
+    local_price_dfs = []
+    for comp_id in ids:
+        local_price_df = db_to_construct_local_prices_df(comp_id["job_id"])
+        local_price_df['variable'] = app_constants.LOCAL_PRICE_STR + ' ' + comp_id["config_id"]
+        local_price_dfs.append(local_price_df)
+    
+    combined_price_df = pd.concat(local_price_dfs)
+    combined_price_df_domain = list(pd.unique(combined_price_df['variable']))
+    return construct_price_chart(
+        combined_price_df,
+        Resource.ELECTRICITY,
+        combined_price_df_domain,
+        app_constants.ALTAIR_BASE_COLORS[:len(combined_price_df_domain)],
+        [[0, 0], [2, 4]])
 
 
 def import_export_altair_period_chart(ids: List[Dict[str, str]]):
