@@ -44,7 +44,7 @@ def get_price_df_when_local_price_inbetween(prices_df: pd.DataFrame, resource: R
 
 
 def construct_price_chart(prices_df: pd.DataFrame, resource: Resource, domain: List[str],
-                          range_color: List[str], range_dash: List[str]) -> alt.Chart:
+                          range_color: List[str], range_dash: List[List[int]]) -> alt.Chart:
     data_to_use = prices_df.loc[prices_df['Resource'] == resource].drop('Resource', axis=1)
     title = alt.TitleParams("Price over Time", anchor='middle')
     selection = alt.selection_single(fields=['variable'], bind='legend')
