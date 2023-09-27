@@ -3,10 +3,12 @@ from st_pages import add_indentation, show_pages_from_config
 import streamlit as st
 
 from tradingplatformpoc.app import footer
-from tradingplatformpoc.app.app_functions import download_df_as_csv_button
-from tradingplatformpoc.app.app_visualizations import construct_building_with_heat_pump_chart, \
+from tradingplatformpoc.app.app_charts import construct_building_with_heat_pump_chart, \
     construct_static_digital_twin_chart, construct_storage_level_chart, \
-    construct_traded_amount_by_agent_chart, get_savings_vs_only_external_buy, get_total_profit_net, \
+    construct_traded_amount_by_agent_chart
+from tradingplatformpoc.app.app_functions import download_df_as_csv_button
+from tradingplatformpoc.app.app_visualizations import \
+    get_savings_vs_only_external_buy, get_total_profit_net, \
     reconstruct_building_digital_twin, reconstruct_pv_digital_twin
 from tradingplatformpoc.market.trade import TradeMetadataKey
 from tradingplatformpoc.sql.agent.crud import get_agent_config, get_agent_type

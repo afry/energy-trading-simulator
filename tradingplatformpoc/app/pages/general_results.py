@@ -6,9 +6,10 @@ from st_pages import add_indentation, show_pages_from_config
 import streamlit as st
 
 from tradingplatformpoc.app import footer
+from tradingplatformpoc.app.app_charts import construct_price_chart
 from tradingplatformpoc.app.app_visualizations import aggregated_import_and_export_results_df_split_on_period, \
     aggregated_import_and_export_results_df_split_on_temperature, aggregated_local_production_df, \
-    construct_combined_price_df, construct_price_chart, \
+    construct_combined_price_df, \
     get_price_df_when_local_price_inbetween
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.sql.clearing_price.crud import db_to_construct_local_prices_df
