@@ -129,6 +129,7 @@ if len(ids) > 0:
         # Any building agent with a StaticDigitalTwin
         with st.expander('Energy production/consumption'):
             agent_config = get_agent_config(agent_specs[agent_chosen_guid])
+            st.caption("Click on a variable to highlight it.")
             if agent_type == 'BuildingAgent':
                 heat_pump_levels_df = db_to_viewable_level_df_by_agent(
                     job_id=chosen_id_to_view['job_id'],
@@ -140,12 +141,15 @@ if len(ids) > 0:
                     agent_config['PVArea'], agent_config['PVEfficiency'])
                 static_digital_twin_chart = construct_building_with_heat_pump_chart(
                     agent_chosen_guid, building_digital_twin, heat_pump_levels_df.reset_index())
+                st.caption("Heat consumption here referes to the building agents heat demand, and does not consider "
+                           "the source of the heat. To investigate the effects of running heat pumps, this graph "
+                           "should be studied together with the graph displaying resources bought and sold further "
+                           "up the page under the *Trades*-expander.")
             elif agent_type == 'PVAgent':
                 pv_digital_twin = reconstruct_pv_digital_twin(agent_config['PVArea'], agent_config['PVEfficiency'])
                 static_digital_twin_chart = construct_static_digital_twin_chart(pv_digital_twin, agent_chosen_guid)
 
             st.altair_chart(static_digital_twin_chart, use_container_width=True, theme=None)
-            st.write("Click on a variable to highlight it.")
 
 else:
     st.markdown('No results to view yet, set up a configuration in '
