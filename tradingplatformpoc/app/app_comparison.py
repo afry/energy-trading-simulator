@@ -25,7 +25,7 @@ def construct_comparison_price_chart(ids: List[Dict[str, str]]) -> alt.Chart:
         Resource.ELECTRICITY,
         combined_price_df_domain,
         app_constants.ALTAIR_BASE_COLORS[:len(combined_price_df_domain)],
-        [[0, 0], [2, 4]])
+        app_constants.ALTAIR_STROKE_DASH[:len(combined_price_df_domain)])
 
 
 def import_export_altair_period_chart(ids: List[Dict[str, str]]) -> alt.Chart:
@@ -61,4 +61,5 @@ def import_export_altair_period_chart(ids: List[Dict[str, str]]) -> alt.Chart:
                 new_df = pd.concat((new_df, subset))
     domain = list(pd.unique(new_df['variable']))
     return altair_period_chart(new_df, domain, app_constants.ALTAIR_BASE_COLORS[:len(domain)],
+                               app_constants.ALTAIR_STROKE_DASH[:len(domain)],
                                'Import and export of resources through trades with grid agents')

@@ -125,7 +125,7 @@ def construct_static_digital_twin_chart(digital_twin: StaticDigitalTwin, agent_c
     if should_add_hp_to_legend:
         domain.append('Heat pump workload')
         range_color.append(app_constants.HEAT_PUMP_CHART_COLOR)
-    return altair_period_chart(df, domain, range_color, "Energy production/consumption for " + agent_chosen_guid)
+    return altair_period_chart(df, domain, range_color, [], "Energy production/consumption for " + agent_chosen_guid)
 
 
 def construct_building_with_heat_pump_chart(agent_chosen_guid: str, digital_twin: StaticDigitalTwin,
@@ -338,12 +338,12 @@ def construct_traded_amount_by_agent_chart(agent_chosen_guid: str,
                                           'value': 0.0,
                                           'variable': elem['title']})))
 
-    return altair_period_chart(df, domain, range_color, 'Electricity and Heating Amounts Traded for '
+    return altair_period_chart(df, domain, range_color, [], 'Electricity and Heating Amounts Traded for '
                                + agent_chosen_guid)
 
 
 def altair_period_chart(df: pd.DataFrame, domain: List[str], range_color: List[str],
-                        title_str: str) -> alt.Chart:
+                        range_dash: List[List[int]], title_str: str) -> alt.Chart:
     """Altair chart for one or more variables over period."""
     selection = alt.selection_multi(fields=['variable'], bind='legend')
     alt_title = alt.TitleParams(title_str, anchor='middle')
@@ -351,7 +351,8 @@ def altair_period_chart(df: pd.DataFrame, domain: List[str], range_color: List[s
         encode(x=alt.X('period:T', axis=alt.Axis(title='Period (UTC)'), scale=alt.Scale(type="utc")),
                y=alt.Y('value', axis=alt.Axis(title='Energy [kWh]')),
                color=alt.Color('variable', scale=alt.Scale(domain=domain, range=range_color)),
-               opacity=alt.condition(selection, alt.value(1), alt.value(0.2)),
+               strokeDash=alt.StrokeDash('variable', scale=alt.Scale(domain=domain, range=range_dash)),
+               opacity=alt.condition(selection, alt.value(0.7), alt.value(0.0)),
                tooltip=[alt.Tooltip(field='period', title='Period', type='temporal', format='%Y-%m-%d %H:%M'),
                         alt.Tooltip(field='variable', title='Variable'),
                         alt.Tooltip(field='value', title='Value')]). \
