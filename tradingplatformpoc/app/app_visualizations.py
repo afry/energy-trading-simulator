@@ -127,7 +127,7 @@ def construct_static_digital_twin_chart(digital_twin: StaticDigitalTwin, agent_c
     if should_add_hp_to_legend:
         domain.append('Heat pump workload')
         range_color.append(app_constants.HEAT_PUMP_CHART_COLOR)
-    return altair_period_chart(df, domain, range_color, "Energy production/consumption for " + agent_chosen_guid)
+    return altair_line_chart(df, domain, range_color, "Energy production/consumption for " + agent_chosen_guid)
 
 
 def construct_building_with_heat_pump_chart(agent_chosen_guid: str, digital_twin: StaticDigitalTwin,
@@ -340,16 +340,16 @@ def construct_traded_amount_by_agent_chart(agent_chosen_guid: str,
                                           'value': 0.0,
                                           'variable': elem['title']})))
 
-    return altair_period_chart(df, domain, range_color, 'Electricity and Heating Amounts Traded for '
-                               + agent_chosen_guid)
+    return altair_line_chart(df, domain, range_color, 'Electricity and Heating Amounts Traded for '
+                             + agent_chosen_guid)
 
 
-def altair_period_chart(df: pd.DataFrame, domain: List[str], range_color: List[str],
-                        title_str: str) -> alt.Chart:
-    """Altair chart for one or more variables over period."""
-    selection = alt.selection_single(fields=['variable'], bind='legend')
+def altair_base_chart(df: pd.DataFrame, domain: List[str], range_color: List[str],
+                      title_str: str) -> alt.Chart:
+    """Altair chart for one or more variables over period, without specified mark."""
+    selection = alt.selection_multi(fields=['variable'], bind='legend')
     alt_title = alt.TitleParams(title_str, anchor='middle')
-    return alt.Chart(df, title=alt_title).mark_line(). \
+    return alt.Chart(df, title=alt_title). \
         encode(x=alt.X('period:T', axis=alt.Axis(title='Period (UTC)'), scale=alt.Scale(type="utc")),
                y=alt.Y('value', axis=alt.Axis(title='Energy [kWh]')),
                color=alt.Color('variable', scale=alt.Scale(domain=domain, range=range_color)),
@@ -358,6 +358,17 @@ def altair_period_chart(df: pd.DataFrame, domain: List[str], range_color: List[s
                         alt.Tooltip(field='variable', title='Variable'),
                         alt.Tooltip(field='value', title='Value')]). \
         add_selection(selection).interactive(bind_y=False)
+
+
+def altair_line_chart(df: pd.DataFrame, domain: List[str], range_color: List[str],
+                      title_str: str) -> alt.Chart:
+    """Altair base chart with line mark."""
+    return altair_base_chart(df, domain, range_color, title_str).mark_line()
+
+
+def altair_area_chart(df: pd.DataFrame, domain: List[str], range_color: List[str], title_str: str) -> alt.Chart:
+    """Altair base chart with area mark."""
+    return altair_base_chart(df, domain, range_color, title_str).mark_area(interpolate='step-after')
 
 
 def color_in(val):
