@@ -17,7 +17,7 @@ HEAT_BRINE_TEMP_TIMES_RPM_COEF = 0.000188
 
 
 DEFAULT_COP = 4.6  # Specified in technical description of "Thermium Mega" heat pump
-DEFAULT_BRINE_TEMP = 0
+DEFAULT_BRINE_TEMP = 3.8  # See https://doc.afdrift.se/display/RPJ/Brine+temperature+model for details
 DEFAULT_FORWARD_TEMP = 55
 RPM_MIN = 1500
 RPM_MAX = 6000
