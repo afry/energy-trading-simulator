@@ -33,11 +33,12 @@ def import_export_altair_period_chart(ids: List[Dict[str, str]]) -> alt.Chart:
     # Get data from database
     df = get_import_export_df([elem["job_id"] for elem in ids])
 
+    # What's sold by the external grid agents is imported by the local grid and vice versa
     var_names = {
-        (Action.BUY, Resource.HEATING): "Heat, imported",
-        (Action.SELL, Resource.HEATING): "Heat, exported",
-        (Action.BUY, Resource.ELECTRICITY): "Electricity, imported",
-        (Action.SELL, Resource.ELECTRICITY): "Electricity, exported"}
+        (Action.SELL, Resource.HEATING): "Heat, imported",
+        (Action.BUY, Resource.HEATING): "Heat, exported",
+        (Action.SELL, Resource.ELECTRICITY): "Electricity, imported",
+        (Action.BUY, Resource.ELECTRICITY): "Electricity, exported"}
 
     # Process data to be of a form that fits the altair chart
     new_df = pd.DataFrame()
