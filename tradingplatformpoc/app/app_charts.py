@@ -169,10 +169,12 @@ def construct_heat_pump_chart(heat_pump_df: pd.DataFrame) -> alt.Chart:
     return altair_area_chart(heat_pump_df, domain, range_color, "", "")
 
 
-def construct_storage_level_chart(storage_levels: pd.DataFrame) -> alt.Chart:
-    return alt.Chart(storage_levels.reset_index()).mark_line(). \
-        encode(x=alt.X('period', axis=alt.Axis(title='Period (UTC)'), scale=alt.Scale(type="utc")),
-               y=alt.Y('level', axis=alt.Axis(title='Capacity [kWh]')),
-               tooltip=[alt.Tooltip(field='period', title='Period', type='temporal', format='%Y-%m-%d %H:%M'),
-                        alt.Tooltip(field='level', title='Capacity [kWh]')]). \
-        interactive(bind_y=False)
+def construct_storage_level_chart(storage_levels_df: pd.DataFrame) -> alt.Chart:
+    storage_levels_df = storage_levels_df.reset_index()
+    storage_levels_df['variable'] = 'Charging level'
+    storage_levels_df = storage_levels_df.rename(columns={'level': 'value'})
+    domain = list(pd.unique(storage_levels_df['variable']))
+    range_color = [app_constants.BATTERY_CHART_COLOR]
+    range_dash = [[0, 0]]
+    return altair_line_chart(storage_levels_df, domain, range_color, range_dash,
+                             "Capacity [kWh]", "Charging level")
