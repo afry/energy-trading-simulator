@@ -153,8 +153,7 @@ def construct_building_with_heat_pump_chart(agent_chosen_guid: str, digital_twin
     if heat_pump_df.empty:
         return construct_static_digital_twin_chart(digital_twin, agent_chosen_guid, False)
 
-    heat_pump_area = construct_heat_pump_chart(heat_pump_df)
-
+    heat_pump_area = construct_heat_pump_chart(heat_pump_df.reset_index())
     energy_multiline = construct_static_digital_twin_chart(digital_twin, agent_chosen_guid, True)
     return alt.layer(energy_multiline, heat_pump_area).resolve_scale(
         y='independent', color='independent', stroke="independent", strokeDash='independent',

@@ -141,7 +141,7 @@ if len(ids) > 0:
                     agent_specs[agent_chosen_guid], mock_data_constants,
                     agent_config['PVArea'], agent_config['PVEfficiency'])
                 static_digital_twin_chart = construct_building_with_heat_pump_chart(
-                    agent_chosen_guid, building_digital_twin, heat_pump_levels_df.reset_index())
+                    agent_chosen_guid, building_digital_twin, heat_pump_levels_df)
             elif agent_type == 'PVAgent':
                 pv_digital_twin = reconstruct_pv_digital_twin(agent_config['PVArea'], agent_config['PVEfficiency'])
                 static_digital_twin_chart = construct_static_digital_twin_chart(pv_digital_twin, agent_chosen_guid)
