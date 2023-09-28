@@ -60,9 +60,9 @@ def construct_price_chart(prices_df: pd.DataFrame, resource: Resource, domain: L
         add_selection(selection).interactive(bind_y=False)
 
 
-def construct_heat_pump_comparison_chart(heat_df: pd.DataFrame) -> alt.Chart:
-    title = alt.TitleParams("Heat Pump Comparison", anchor='middle')
-    chart = alt.Chart(heat_df, title=title).mark_line(). \
+def construct_agent_comparison_chart(heat_df: pd.DataFrame, title: str) -> alt.Chart:
+    chart_title = alt.TitleParams(title, anchor='middle')
+    chart = alt.Chart(heat_df, title=chart_title).mark_line(). \
         encode(x=alt.X('period:T', axis=alt.Axis(title='Period (UTC)'), scale=alt.Scale(type="utc")),
                y='level:Q',
                color='variable:N')

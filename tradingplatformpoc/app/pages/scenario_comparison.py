@@ -9,7 +9,7 @@ import streamlit as st
 from tradingplatformpoc.app import app_constants, footer
 from tradingplatformpoc.app.app_comparison import convert_to_altair_df
 from tradingplatformpoc.app.app_visualizations import altair_period_chart, \
-    construct_heat_pump_comparison_chart, construct_price_chart
+    construct_agent_comparison_chart, construct_price_chart
 from tradingplatformpoc.market.bid import Resource
 from tradingplatformpoc.market.trade import TradeMetadataKey
 from tradingplatformpoc.sql.agent.crud import get_agent_type
@@ -101,11 +101,29 @@ if len(ids) >= 2:
 
             combined_heat_df = pd.concat([heat_pump_levels_agent_1_df, heat_pump_levels_agent_2_df],
                                          axis=0, join="outer").reset_index()
-            
-            heat_pump_chart = construct_heat_pump_comparison_chart(combined_heat_df)
-            
+            heat_pump_chart = construct_agent_comparison_chart(combined_heat_df,
+                                                               "Heat Pump Comparison")
             st.altair_chart(heat_pump_chart, use_container_width=True, theme=None)
+
+        if agent_1_type == "BatteryAgent":
+            # make a battery storage level comparison graph
+
+            storage_levels_agent_1_df = db_to_viewable_level_df_by_agent(
+                job_id=st.session_state.chosen_config_id_to_view_1['job_id'],
+                agent_guid=chosen_agent_id_to_view_1,
+                level_type=TradeMetadataKey.STORAGE_LEVEL.name). \
+                assign(variable=st.session_state.chosen_config_id_to_view_1['config_id'])
+            storage_levels_agent_2_df = db_to_viewable_level_df_by_agent(
+                job_id=st.session_state.chosen_config_id_to_view_2['job_id'],
+                agent_guid=chosen_agent_id_to_view_2,
+                level_type=TradeMetadataKey.STORAGE_LEVEL.name). \
+                assign(variable=st.session_state.chosen_config_id_to_view_2['config_id'])
             
+            combined_battery_df = pd.concat([storage_levels_agent_1_df, storage_levels_agent_2_df],
+                                            axis=0, join="outer").reset_index()
+            battery_pump_chart = construct_agent_comparison_chart(combined_battery_df,
+                                                                  "Battery Storage Comparison")
+            st.altair_chart(battery_pump_chart, use_container_width=True, theme=None)
 
 else:
     st.markdown('Too few scenarios to compare, set up a configuration in '
