@@ -42,7 +42,7 @@ def get_price_df_when_local_price_inbetween(prices_df: pd.DataFrame, resource: R
 
 
 def reconstruct_building_digital_twin(agent_id: str, mock_data_constants: Dict[str, Any],
-                                      pv_area: float, pv_efficiency: float):
+                                      pv_area: float, pv_efficiency: float) -> StaticDigitalTwin:
     mock_data_id = list(get_mock_data_agent_pairs_in_db([agent_id], mock_data_constants).keys())[0]
     buildings_mock_data = db_to_mock_data_df(mock_data_id).to_pandas().set_index('datetime')
 
@@ -58,7 +58,7 @@ def reconstruct_building_digital_twin(agent_id: str, mock_data_constants: Dict[s
                              heating_usage=total_heat_cons_series)
 
 
-def reconstruct_pv_digital_twin(pv_area: float, pv_efficiency: float):
+def reconstruct_pv_digital_twin(pv_area: float, pv_efficiency: float) -> StaticDigitalTwin:
     inputs_df = read_inputs_df_for_agent_creation()
     pv_prod_series = calculate_solar_prod(inputs_df['irradiation'], pv_area, pv_efficiency)
     return StaticDigitalTwin(electricity_production=pv_prod_series)
@@ -197,40 +197,28 @@ def results_by_agent_as_df_with_highlight(df: pd.DataFrame, agent_chosen_guid: s
     return formatted_df
 
 
-def color_in(val):
-    if 'Running' in val:
-        color = '#f7a34f'
-    elif 'Pending' in val:
-        color = '#0675bb'
-    elif 'Completed' in val:
-        color = '#5eab7e'
-    else:
-        color = '#f01d5c'
-    return 'color: %s' % color
-
-
-def get_savings_vs_only_external_buy_heat(job_id: str, agent_guid: str):
+def get_savings_vs_only_external_buy_heat(job_id: str, agent_guid: str) -> float:
     buy_trades = db_to_trades_by_agent_and_resource_action(job_id, agent_guid, Resource.HEATING, Action.BUY)
     retail_prices = db_to_heating_price_dict(job_id, "exact_retail_price")
     return sum([trade.quantity_pre_loss * (retail_prices[(trade.year, trade.month)] - trade.price)
                 for trade in buy_trades])
 
 
-def get_savings_vs_only_external_sell_heat(job_id: str, agent_guid: str):
+def get_savings_vs_only_external_sell_heat(job_id: str, agent_guid: str) -> float:
     sell_trades = db_to_trades_by_agent_and_resource_action(job_id, agent_guid, Resource.HEATING, Action.SELL)
     wholesale_prices = db_to_heating_price_dict(job_id, "exact_wholesale_price")
     return sum([trade.quantity_post_loss * (trade.price - wholesale_prices[(trade.year, trade.month)])
                 for trade in sell_trades])
 
 
-def get_savings_vs_only_external_buy_elec(job_id: str, agent_guid: str):
+def get_savings_vs_only_external_buy_elec(job_id: str, agent_guid: str) -> float:
     buy_trades = db_to_trades_by_agent_and_resource_action(job_id, agent_guid, Resource.ELECTRICITY, Action.BUY)
     retail_prices = db_to_electricity_price_dict(job_id, "retail_price")
     return sum([trade.quantity_pre_loss * (retail_prices[trade.period] - trade.price)
                 for trade in buy_trades])
 
 
-def get_savings_vs_only_external_sell_elec(job_id: str, agent_guid: str):
+def get_savings_vs_only_external_sell_elec(job_id: str, agent_guid: str) -> float:
     sell_trades = db_to_trades_by_agent_and_resource_action(job_id, agent_guid, Resource.ELECTRICITY, Action.SELL)
     wholesale_prices = db_to_electricity_price_dict(job_id, "wholesale_price")
     return sum([trade.quantity_post_loss * (trade.price - wholesale_prices[trade.period])
