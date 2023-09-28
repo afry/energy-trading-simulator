@@ -64,8 +64,8 @@ def construct_heat_pump_comparison_chart(heat_df: pd.DataFrame) -> alt.Chart:
     title = alt.TitleParams("Heat Pump Comparison", anchor='middle')
     chart = alt.Chart(heat_df, title=title).mark_line(). \
         encode(x=alt.X('period:T', axis=alt.Axis(title='Period (UTC)'), scale=alt.Scale(type="utc")),
-               y='level',
-               color='variable_name:N')
+               y='level:Q',
+               color='variable:N')
     return chart
 
 
