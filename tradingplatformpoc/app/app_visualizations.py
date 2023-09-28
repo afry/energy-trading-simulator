@@ -60,6 +60,15 @@ def construct_price_chart(prices_df: pd.DataFrame, resource: Resource, domain: L
         add_selection(selection).interactive(bind_y=False)
 
 
+def construct_heat_pump_comparison_chart(heat_df: pd.DataFrame) -> alt.Chart:
+    title = alt.TitleParams("Heat Pump Comparison", anchor='middle')
+    chart = alt.Chart(heat_df, title=title).mark_line(). \
+        encode(x=alt.X('period:T', axis=alt.Axis(title='Period (UTC)'), scale=alt.Scale(type="utc")),
+               y='level',
+               color='variable_name:N')
+    return chart
+
+
 def reconstruct_building_digital_twin(agent_id: str, mock_data_constants: Dict[str, Any],
                                       pv_area: float, pv_efficiency: float):
     mock_data_id = list(get_mock_data_agent_pairs_in_db([agent_id], mock_data_constants).keys())[0]

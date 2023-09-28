@@ -8,11 +8,14 @@ import streamlit as st
 
 from tradingplatformpoc.app import app_constants, footer
 from tradingplatformpoc.app.app_comparison import convert_to_altair_df
-from tradingplatformpoc.app.app_visualizations import altair_period_chart, construct_price_chart
+from tradingplatformpoc.app.app_visualizations import altair_period_chart, \
+    construct_heat_pump_comparison_chart, construct_price_chart
 from tradingplatformpoc.market.bid import Resource
+from tradingplatformpoc.market.trade import TradeMetadataKey
 from tradingplatformpoc.sql.agent.crud import get_agent_type
 from tradingplatformpoc.sql.clearing_price.crud import db_to_construct_local_prices_df
 from tradingplatformpoc.sql.config.crud import get_all_agents_in_config, get_all_finished_job_config_id_pairs_in_db
+from tradingplatformpoc.sql.level.crud import db_to_viewable_level_df_by_agent
 from tradingplatformpoc.sql.trade.crud import get_import_export_df
 
 logger = logging.getLogger(__name__)
@@ -81,6 +84,28 @@ if len(ids) >= 2:
             agent_2_names = [name for name, id in agent_2_specs.items() if get_agent_type(id) == agent_1_type]
             chosen_agent_id_to_view_2 = st.selectbox('Select an agent from the second configuration',
                                                      agent_2_names)
+        
+        if agent_1_type == "BuildingAgent":
+            # Make a heat pump workload comparison graph
+
+            heat_pump_levels_agent_1_df = db_to_viewable_level_df_by_agent(
+                job_id=st.session_state.chosen_config_id_to_view_1['job_id'],
+                agent_guid=chosen_agent_id_to_view_1,
+                level_type=TradeMetadataKey.HEAT_PUMP_WORKLOAD.name). \
+                assign(variable_name='Heat Pump 1 Workload')
+            heat_pump_levels_agent_2_df = db_to_viewable_level_df_by_agent(
+                job_id=st.session_state.chosen_config_id_to_view_2['job_id'],
+                agent_guid=chosen_agent_id_to_view_2,
+                level_type=TradeMetadataKey.HEAT_PUMP_WORKLOAD.name). \
+                assign(variable_name='Heat Pump 2 Workload')
+
+            combined_heat_df = pd.concat([heat_pump_levels_agent_1_df, heat_pump_levels_agent_2_df],
+                                         axis=0, join="outer")
+            st.markdown(combined_heat_df)
+            heat_pump_chart = construct_heat_pump_comparison_chart(combined_heat_df)
+            
+            st.altair_chart(heat_pump_chart, use_container_width=True, theme=None)
+            
 
 else:
     st.markdown('Too few scenarios to compare, set up a configuration in '
