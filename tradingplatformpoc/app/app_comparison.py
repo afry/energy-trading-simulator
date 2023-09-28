@@ -39,8 +39,16 @@ def import_export_altair_period_chart(ids: List[Dict[str, str]]) -> alt.Chart:
         (Action.BUY, Resource.HEATING): "Heat, exported",
         (Action.SELL, Resource.ELECTRICITY): "Electricity, imported",
         (Action.BUY, Resource.ELECTRICITY): "Electricity, exported"}
+    
+    colors: List[str] = [""] * (len(app_constants.ALTAIR_BASE_COLORS[:4]) + len(app_constants.ALTAIR_DARK_COLORS[:4]))
+    colors[::2] = app_constants.ALTAIR_BASE_COLORS[:4]
+    colors[1::2] = app_constants.ALTAIR_DARK_COLORS[:4]
 
     # Process data to be of a form that fits the altair chart
+    domain: List[str] = []
+    range_color: List[str] = []
+    range_dash: List[List[int]] = []
+    j = 0
     new_df = pd.DataFrame()
     for action in [Action.BUY, Action.SELL]:
         for resource in [Resource.HEATING, Resource.ELECTRICITY]:
@@ -54,12 +62,16 @@ def import_export_altair_period_chart(ids: List[Dict[str, str]]) -> alt.Chart:
                                                    freq="1h", tz='utc')
                     subset = subset.reindex(datetime_range).fillna(0)
                     subset = subset.reset_index().rename(columns={'index': 'period'})
-            
-                subset['variable'] = var_names[(action, resource)] + ' - ' + \
-                    [elem['config_id'] for elem in ids if elem["job_id"] == job_id][0]
-                subset = subset.rename(columns={'quantity_post_loss': 'value'})
-                new_df = pd.concat((new_df, subset))
-    domain = list(pd.unique(new_df['variable']))
-    return altair_period_chart(new_df, domain, app_constants.ALTAIR_BASE_COLORS[:len(domain)],
-                               app_constants.ALTAIR_STROKE_DASH[:len(domain)],
+                    variable = var_names[(action, resource)] + ' - ' + \
+                        [elem['config_id'] for elem in ids if elem["job_id"] == job_id][0]
+                    subset['variable'] = variable
+                    subset = subset.rename(columns={'quantity_post_loss': 'value'})
+
+                    domain.append(variable)
+                    range_color.append(colors[j])
+                    range_dash.append(app_constants.ALTAIR_STROKE_DASH[j % 2])
+
+                    new_df = pd.concat((new_df, subset))
+                j = j + 1
+    return altair_period_chart(new_df, domain, range_color, range_dash,
                                'Import and export of resources through trades with grid agents')
