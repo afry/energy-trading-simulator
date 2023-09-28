@@ -10,32 +10,37 @@ from tradingplatformpoc.market.bid import Action, Resource
 
 
 def altair_base_chart(df: pd.DataFrame, domain: List[str], range_color: List[str],
-                      var_title_str: str, title_str: str) -> alt.Chart:
+                      var_title_str: str, title_str: str, legend: bool) -> alt.Chart:
     """Altair chart for one or more variables over period, without specified mark."""
     selection = alt.selection_multi(fields=['variable'], bind='legend')
     alt_title = alt.TitleParams(title_str, anchor='middle')
-    return alt.Chart(df, title=alt_title). \
+    chart = alt.Chart(df, title=alt_title). \
         encode(x=alt.X('period:T', axis=alt.Axis(title='Period (UTC)'), scale=alt.Scale(type="utc")),
                y=alt.Y('value', axis=alt.Axis(title=var_title_str)),
-               color=alt.Color('variable', scale=alt.Scale(domain=domain, range=range_color)),
                opacity=alt.condition(selection, alt.value(1), alt.value(0.2)),
                tooltip=[alt.Tooltip(field='period', title='Period', type='temporal', format='%Y-%m-%d %H:%M'),
                         alt.Tooltip(field='variable', title='Variable'),
                         alt.Tooltip(field='value', title='Value')]). \
         add_selection(selection).interactive(bind_y=False)
+    if legend:
+        return chart.encode(color=alt.Color('variable', scale=alt.Scale(domain=domain, range=range_color)))
+    else:
+        return chart.encode(color=alt.Color('variable', scale=alt.Scale(domain=domain, range=range_color), legend=None))
 
 
 def altair_line_chart(df: pd.DataFrame, domain: List[str], range_color: List[str],
-                      range_dash: List[List[int]], var_title_str: str, title_str: str) -> alt.Chart:
+                      range_dash: List[List[int]], var_title_str: str, title_str: str,
+                      legend: bool = True) -> alt.Chart:
     """Altair base chart with line mark."""
-    return altair_base_chart(df, domain, range_color, var_title_str, title_str).encode(
+    return altair_base_chart(df, domain, range_color, var_title_str, title_str, legend).encode(
         strokeDash=alt.StrokeDash('variable', scale=alt.Scale(domain=domain, range=range_dash))).mark_line()
 
 
 def altair_area_chart(df: pd.DataFrame, domain: List[str], range_color: List[str],
-                      var_title_str: str, title_str: str) -> alt.Chart:
+                      var_title_str: str, title_str: str, legend: bool = False) -> alt.Chart:
     """Altair base chart with area mark."""
-    return altair_base_chart(df, domain, range_color, var_title_str, title_str).mark_area(interpolate='step-after')
+    return altair_base_chart(df, domain, range_color, var_title_str, title_str, legend)\
+        .mark_area(interpolate='step-after')
 
 
 def construct_static_digital_twin_chart(digital_twin: StaticDigitalTwin, agent_chosen_guid: str,
@@ -148,18 +153,20 @@ def construct_building_with_heat_pump_chart(agent_chosen_guid: str, digital_twin
     if heat_pump_df.empty:
         return construct_static_digital_twin_chart(digital_twin, agent_chosen_guid, False)
 
-    heat_pump_df.columns = ['period', 'Heat pump workload']
-    heat_pump_area = alt.Chart(heat_pump_df). \
-        mark_area(color=app_constants.HEAT_PUMP_CHART_COLOR, opacity=0.3, interpolate='step-after'). \
-        encode(
-        x=alt.X('period:T', axis=alt.Axis(title='Period (UTC)'), scale=alt.Scale(type="utc")),
-        y=alt.Y('Heat pump workload', axis=alt.Axis(title='Heat pump workload', titleColor='gray')),
-        tooltip=[alt.Tooltip(field='period', title='Period', type='temporal', format='%Y-%m-%d %H:%M'),
-                 alt.Tooltip(field='Heat pump workload', title='Heat pump workload', type='quantitative')]
-    )
+    heat_pump_area = construct_heat_pump_chart(heat_pump_df)
 
     energy_multiline = construct_static_digital_twin_chart(digital_twin, agent_chosen_guid, True)
-    return alt.layer(heat_pump_area, energy_multiline).resolve_scale(y='independent')
+    return alt.layer(energy_multiline, heat_pump_area).resolve_scale(
+        y='independent', color='independent', stroke="independent", strokeDash='independent',
+        shape='independent', opacity='independent', fill='independent', strokeWidth='independent')
+
+
+def construct_heat_pump_chart(heat_pump_df: pd.DataFrame) -> alt.Chart:
+    heat_pump_df['variable'] = 'Heat pump workload'
+    heat_pump_df = heat_pump_df.rename(columns={'level': 'value'})
+    domain = list(pd.unique(heat_pump_df['variable']))
+    range_color = [app_constants.HEAT_PUMP_CHART_COLOR]
+    return altair_area_chart(heat_pump_df, domain, range_color, "", "")
 
 
 def construct_storage_level_chart(storage_levels: pd.DataFrame) -> alt.Chart:
