@@ -75,7 +75,8 @@ if len(ids) >= 2:
         first_col, second_col = st.columns(2)
         with first_col:
             agent_1_specs = get_all_agents_in_config(st.session_state.chosen_config_id_to_view_1['config_id'])
-            agent_1_names = [name for name in agent_1_specs.keys()]
+            agent_1_names = [name for name, id in agent_1_specs.items()
+                             if get_agent_type(id) in ["BuildingAgent", "BatteryAgent"]]
             chosen_agent_name_to_view_1 = st.selectbox('Select an agent from the first configuration',
                                                        agent_1_names)
             agent_1_type = get_agent_type(agent_1_specs.get(chosen_agent_name_to_view_1))
