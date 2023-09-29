@@ -141,7 +141,7 @@ if len(ids) > 0:
                     agent_config['PVArea'], agent_config['PVEfficiency'])
                 static_digital_twin_chart = construct_building_with_heat_pump_chart(
                     agent_chosen_guid, building_digital_twin, heat_pump_levels_df.reset_index())
-                st.caption("Heat consumption here referes to the building agents heat demand, and does not consider "
+                st.caption("Heat consumption here refers to the building agent's heat demand, and does not consider "
                            "the source of the heat. To investigate the effects of running heat pumps, this graph "
                            "should be studied together with the graph displaying resources bought and sold further "
                            "up the page under the *Trades*-expander.")
