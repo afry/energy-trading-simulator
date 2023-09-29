@@ -5,9 +5,11 @@ import altair as alt
 import pandas as pd
 
 from tradingplatformpoc.app import app_constants
-from tradingplatformpoc.app.app_charts import altair_line_chart
+from tradingplatformpoc.app.app_charts import altair_area_chart, altair_line_chart
 from tradingplatformpoc.market.bid import Action, Resource
+from tradingplatformpoc.market.trade import TradeMetadataKey
 from tradingplatformpoc.sql.clearing_price.crud import db_to_construct_local_prices_df
+from tradingplatformpoc.sql.level.crud import db_to_viewable_level_df_by_agent
 from tradingplatformpoc.sql.trade.crud import get_import_export_df
 
 
@@ -77,3 +79,25 @@ def import_export_altair_period_chart(ids: List[Dict[str, str]]) -> alt.Chart:
                 j = j + 1
     return altair_line_chart(new_df, domain, range_color, range_dash, "Energy [kWh]",
                              'Import and export of resources through trades with grid agents')
+
+
+def construct_level_comparison_chart(ids: List[Dict[str, str]], agent_names: List[str],
+                                     level_type: TradeMetadataKey, var_title_str: str, title_str: str,
+                                     num_letters: int = 7) -> alt.Chart:
+    heat_pump_level_dfs = []
+    for comp_id, agent_name in zip(ids, agent_names):
+        agent_var = agent_name[:num_letters] + '...' + agent_name[-num_letters:] \
+            if (len(agent_name) > 2 * num_letters) else agent_name
+        heat_pump_level_dfs.append(db_to_viewable_level_df_by_agent(
+            job_id=comp_id['job_id'],
+            agent_guid=agent_name,
+            level_type=level_type.name)
+            .assign(variable=agent_var + ' - ' + comp_id['config_id']))
+
+        combined_heat_df = pd.concat(heat_pump_level_dfs, axis=0, join="outer").reset_index()
+
+    combined_heat_df = combined_heat_df.rename(columns={'level': 'value'})
+    domain = list(pd.unique(combined_heat_df['variable']))
+    range_color = app_constants.ALTAIR_BASE_COLORS[:len(domain)]
+
+    return altair_area_chart(combined_heat_df, domain, range_color, var_title_str, title_str, True)
