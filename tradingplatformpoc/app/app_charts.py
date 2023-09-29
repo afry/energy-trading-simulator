@@ -177,3 +177,15 @@ def construct_storage_level_chart(storage_levels_df: pd.DataFrame) -> alt.Chart:
     range_dash = [[0, 0]]
     return altair_line_chart(storage_levels_df, domain, range_color, range_dash,
                              "Capacity [kWh]", "Charging level")
+
+
+def construct_agent_comparison_chart(df: pd.DataFrame, title: str, ylabel: str) -> alt.Chart:
+    chart_title = alt.TitleParams(title, anchor='middle')
+    selection = alt.selection_single(fields=['variable'], bind='legend')
+    chart = alt.Chart(df, title=chart_title).mark_area(opacity=0.8). \
+        encode(x=alt.X('period', axis=alt.Axis(title='Period (UTC)'), scale=alt.Scale(type="utc")),
+               y=alt.Y('level', axis=alt.Axis(title=ylabel), stack=None),
+               opacity=alt.condition(selection, alt.value(1), alt.value(0.2)),
+               color='variable'). \
+        add_selection(selection).interactive(bind_y=False)
+    return chart

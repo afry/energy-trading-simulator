@@ -207,3 +207,26 @@ def get_total_import_export(job_id: str, resource: Resource, action: Action,
             query = query.filter(TableTrade.period.in_(periods))
         res = query.first()
         return res.sum_quantity_post_loss if res.sum_quantity_post_loss is not None else 0.0
+
+
+def get_import_export_df(job_ids: List[str],
+                         session_generator: Callable[[], _GeneratorContextManager[Session]]
+                         = session_scope) -> float:
+    with session_generator() as db:
+        res = db.query(
+            TableTrade.job_id.label('job_id'),
+            TableTrade.period.label('period'),
+            TableTrade.resource.label('resource'),
+            TableTrade.action.label('action'),
+            TableTrade.quantity_post_loss.label('quantity_post_loss'),
+        ).filter(TableTrade.job_id.in_(job_ids),
+                 TableTrade.by_external).all()
+        if len(res) > 0:
+            return pd.DataFrame.from_records([{'job_id': elem.job_id,
+                                               'period': elem.period,
+                                               'action': elem.action,
+                                               'resource': elem.resource,
+                                               'quantity_post_loss': elem.quantity_post_loss}
+                                              for elem in res])
+        else:
+            return pd.DataFrame(columns=['job_id', 'period', 'action', 'resource', 'quantity_post_loss'])

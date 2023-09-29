@@ -51,17 +51,14 @@ if len(ids) > 0:
         combined_price_df = construct_combined_price_df(
             local_price_df, read_config(chosen_id_to_view['config_id']))
         if not combined_price_df.empty:
-            st.session_state.combined_price_df = combined_price_df
-            price_chart = construct_price_chart(combined_price_df, Resource.ELECTRICITY)
-            st.session_state.price_chart = price_chart
-
-        if 'price_chart' in st.session_state:
-            st.caption("Click on a variable in legend to highlight it in the graph.")
-            st.altair_chart(st.session_state.price_chart, use_container_width=True, theme=None)
+            price_chart = construct_price_chart(combined_price_df, Resource.ELECTRICITY,)
+        st.caption("Click on a variable in legend to highlight it in the graph.")
+        st.altair_chart(price_chart, use_container_width=True, theme=None)
+        
         with tab_price_table:
             st.caption("Periods where local electricity price was "
                        "between external retail and wholesale price:")
-            st.dataframe(get_price_df_when_local_price_inbetween(st.session_state.combined_price_df,
+            st.dataframe(get_price_df_when_local_price_inbetween(combined_price_df,
                                                                  Resource.ELECTRICITY))
     resources = [Resource.ELECTRICITY, Resource.HEATING]
     agg_tabs = st.tabs([resource.name.capitalize() for resource in resources])

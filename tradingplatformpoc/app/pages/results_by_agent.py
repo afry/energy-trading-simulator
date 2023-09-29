@@ -32,8 +32,8 @@ if len(ids) > 0:
                          'job_id': ids[chosen_config_id_to_view]}
     
     agent_specs = get_all_agents_in_config(chosen_id_to_view['config_id'])
-    agent_ids = [name for name in agent_specs.keys()]
-    agent_chosen_guid = st.sidebar.selectbox('Choose agent:', agent_ids)
+    agent_names = [name for name in agent_specs.keys()]
+    agent_chosen_guid = st.sidebar.selectbox('Choose agent:', agent_names)
     agent_type = get_agent_type(agent_specs[agent_chosen_guid])
     st.write("Showing results for: " + agent_chosen_guid)
 
