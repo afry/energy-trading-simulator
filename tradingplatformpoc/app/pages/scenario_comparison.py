@@ -76,56 +76,60 @@ if len(ids) >= 2:
         with first_col:
             agent_1_specs = get_all_agents_in_config(st.session_state.chosen_config_id_to_view_1['config_id'])
             agent_1_names = [name for name in agent_1_specs.keys()]
-            chosen_agent_id_to_view_1 = st.selectbox('Select an agent from the first configuration',
-                                                     agent_1_names)
-            agent_1_type = get_agent_type(agent_1_specs.get(chosen_agent_id_to_view_1))
+            chosen_agent_name_to_view_1 = st.selectbox('Select an agent from the first configuration',
+                                                       agent_1_names)
+            agent_1_type = get_agent_type(agent_1_specs.get(chosen_agent_name_to_view_1))
         with second_col:
             agent_2_specs = get_all_agents_in_config(st.session_state.chosen_config_id_to_view_2['config_id'])
-            agent_2_names = [name for name, id in agent_2_specs.items() if get_agent_type(id) == agent_1_type]
-            chosen_agent_id_to_view_2 = st.selectbox('Select an agent from the second configuration',
-                                                     agent_2_names)
-        
-        if agent_1_type == "BuildingAgent":
-            # Make a heat pump workload comparison graph
+            agent_2_names = [name for name, id in agent_2_specs.items()
+                             if get_agent_type(id) == agent_1_type]
+            chosen_agent_name_to_view_2 = st.selectbox('Select an agent from the second configuration',
+                                                       agent_2_names)
+        st.markdown(f"Creating a {agent_1_type} graph")
 
-            heat_pump_levels_agent_1_df = db_to_viewable_level_df_by_agent(
-                job_id=st.session_state.chosen_config_id_to_view_1['job_id'],
-                agent_guid=chosen_agent_id_to_view_1,
-                level_type=TradeMetadataKey.HEAT_PUMP_WORKLOAD.name). \
-                assign(variable=chosen_agent_id_to_view_1 + " Scenario 1")
-            heat_pump_levels_agent_2_df = db_to_viewable_level_df_by_agent(
-                job_id=st.session_state.chosen_config_id_to_view_2['job_id'],
-                agent_guid=chosen_agent_id_to_view_2,
-                level_type=TradeMetadataKey.HEAT_PUMP_WORKLOAD.name). \
-                assign(variable=chosen_agent_id_to_view_2 + " Scenario 2")
+        if not agent_2_names:
+            st.markdown("There is no relevant agent in the second configuration")
+        else:
 
-            combined_heat_df = pd.concat([heat_pump_levels_agent_1_df, heat_pump_levels_agent_2_df],
-                                         axis=0, join="outer").reset_index()
-            heat_pump_chart = construct_agent_comparison_chart(combined_heat_df,
-                                                               title="Heat Pump Comparison",
-                                                               ylabel='Heat pump workload')
-            st.altair_chart(heat_pump_chart, use_container_width=True, theme=None)
+            if agent_1_type == "BuildingAgent":
+                # Make a heat pump workload comparison graph
+                heat_pump_levels_agent_1_df = db_to_viewable_level_df_by_agent(
+                    job_id=st.session_state.chosen_config_id_to_view_1['job_id'],
+                    agent_guid=chosen_agent_name_to_view_1,
+                    level_type=TradeMetadataKey.HEAT_PUMP_WORKLOAD.name). \
+                    assign(variable=chosen_agent_name_to_view_1 + " Scenario 1")
+                heat_pump_levels_agent_2_df = db_to_viewable_level_df_by_agent(
+                    job_id=st.session_state.chosen_config_id_to_view_2['job_id'],
+                    agent_guid=chosen_agent_name_to_view_2,
+                    level_type=TradeMetadataKey.HEAT_PUMP_WORKLOAD.name). \
+                    assign(variable=chosen_agent_name_to_view_2 + " Scenario 2")
 
-        if agent_1_type == "BatteryAgent":
-            # make a battery storage level comparison graph
+                combined_heat_df = pd.concat([heat_pump_levels_agent_1_df, heat_pump_levels_agent_2_df],
+                                             axis=0, join="outer").reset_index()
+                heat_pump_chart = construct_agent_comparison_chart(combined_heat_df,
+                                                                   title="Heat Pump Comparison",
+                                                                   ylabel='Heat pump workload')
+                st.altair_chart(heat_pump_chart, use_container_width=True, theme=None)
 
-            storage_levels_agent_1_df = db_to_viewable_level_df_by_agent(
-                job_id=st.session_state.chosen_config_id_to_view_1['job_id'],
-                agent_guid=chosen_agent_id_to_view_1,
-                level_type=TradeMetadataKey.STORAGE_LEVEL.name). \
-                assign(variable=chosen_agent_id_to_view_1 + " Scenario 1")
-            storage_levels_agent_2_df = db_to_viewable_level_df_by_agent(
-                job_id=st.session_state.chosen_config_id_to_view_2['job_id'],
-                agent_guid=chosen_agent_id_to_view_2,
-                level_type=TradeMetadataKey.STORAGE_LEVEL.name). \
-                assign(variable=chosen_agent_id_to_view_2 + " Scenario 2")
-            
-            combined_battery_df = pd.concat([storage_levels_agent_1_df, storage_levels_agent_2_df],
-                                            axis=0, join="outer").reset_index()
-            battery_chart = construct_agent_comparison_chart(combined_battery_df,
-                                                             title="Battery Storage Comparison",
-                                                             ylabel="Charge Level")
-            st.altair_chart(battery_chart, use_container_width=True, theme=None)
+            if agent_1_type == "BatteryAgent":
+                # make a battery storage level comparison graph
+                storage_levels_agent_1_df = db_to_viewable_level_df_by_agent(
+                    job_id=st.session_state.chosen_config_id_to_view_1['job_id'],
+                    agent_guid=chosen_agent_name_to_view_1,
+                    level_type=TradeMetadataKey.STORAGE_LEVEL.name). \
+                    assign(variable=chosen_agent_name_to_view_1 + " Scenario 1")
+                storage_levels_agent_2_df = db_to_viewable_level_df_by_agent(
+                    job_id=st.session_state.chosen_config_id_to_view_2['job_id'],
+                    agent_guid=chosen_agent_name_to_view_2,
+                    level_type=TradeMetadataKey.STORAGE_LEVEL.name). \
+                    assign(variable=chosen_agent_name_to_view_2 + " Scenario 2")
+                
+                combined_battery_df = pd.concat([storage_levels_agent_1_df, storage_levels_agent_2_df],
+                                                axis=0, join="outer").reset_index()
+                battery_chart = construct_agent_comparison_chart(combined_battery_df,
+                                                                 title="Battery Storage Comparison",
+                                                                 ylabel="Charge Level")
+                st.altair_chart(battery_chart, use_container_width=True, theme=None)
 
 else:
     st.markdown('Too few scenarios to compare, set up a configuration in '
