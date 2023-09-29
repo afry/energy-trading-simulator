@@ -90,19 +90,19 @@ if len(ids) >= 2:
         if not agent_2_names:
             st.markdown("There is no relevant agent in the second configuration")
         else:
-
             if agent_1_type == "BuildingAgent":
+                N = 10
                 # Make a heat pump workload comparison graph
                 heat_pump_levels_agent_1_df = db_to_viewable_level_df_by_agent(
                     job_id=st.session_state.chosen_config_id_to_view_1['job_id'],
                     agent_guid=chosen_agent_name_to_view_1,
                     level_type=TradeMetadataKey.HEAT_PUMP_WORKLOAD.name). \
-                    assign(variable=chosen_agent_name_to_view_1)
+                    assign(variable=chosen_agent_name_to_view_1[:N] + "... Scenario 1")
                 heat_pump_levels_agent_2_df = db_to_viewable_level_df_by_agent(
                     job_id=st.session_state.chosen_config_id_to_view_2['job_id'],
                     agent_guid=chosen_agent_name_to_view_2,
                     level_type=TradeMetadataKey.HEAT_PUMP_WORKLOAD.name). \
-                    assign(variable=chosen_agent_name_to_view_2)
+                    assign(variable=chosen_agent_name_to_view_2[:N] + "... Scenario 2")
 
                 combined_heat_df = pd.concat([heat_pump_levels_agent_1_df, heat_pump_levels_agent_2_df],
                                              axis=0, join="outer").reset_index()
