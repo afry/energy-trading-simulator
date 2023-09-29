@@ -60,6 +60,18 @@ def construct_price_chart(prices_df: pd.DataFrame, resource: Resource, domain: L
         add_selection(selection).interactive(bind_y=False)
 
 
+def construct_agent_comparison_chart(df: pd.DataFrame, title: str, ylabel: str) -> alt.Chart:
+    chart_title = alt.TitleParams(title, anchor='middle')
+    selection = alt.selection_single(fields=['variable'], bind='legend')
+    chart = alt.Chart(df, title=chart_title).mark_area(opacity=0.8). \
+        encode(x=alt.X('period', axis=alt.Axis(title='Period (UTC)'), scale=alt.Scale(type="utc")),
+               y=alt.Y('level', axis=alt.Axis(title=ylabel), stack=None),
+               opacity=alt.condition(selection, alt.value(1), alt.value(0.2)),
+               color='variable'). \
+        add_selection(selection).interactive(bind_y=False)
+    return chart
+
+
 def reconstruct_building_digital_twin(agent_id: str, mock_data_constants: Dict[str, Any],
                                       pv_area: float, pv_efficiency: float):
     mock_data_id = list(get_mock_data_agent_pairs_in_db([agent_id], mock_data_constants).keys())[0]
@@ -143,10 +155,10 @@ def construct_building_with_heat_pump_chart(agent_chosen_guid: str, digital_twin
 
     heat_pump_df.columns = ['period', 'Heat pump workload']
     heat_pump_area = alt.Chart(heat_pump_df). \
-        mark_area(color=app_constants.HEAT_PUMP_CHART_COLOR, opacity=0.3, interpolate='step-after'). \
+        mark_area(color=app_constants.HEAT_PUMP_CHART_COLOR, opacity=0.5, interpolate='step-after'). \
         encode(
         x=alt.X('period:T', axis=alt.Axis(title='Period (UTC)'), scale=alt.Scale(type="utc")),
-        y=alt.Y('Heat pump workload', axis=alt.Axis(title='Heat pump workload', titleColor='gray')),
+        y=alt.Y('Heat pump workload', axis=alt.Axis(title='Heat pump workload', titleColor='gray'), stack=None),
         tooltip=[alt.Tooltip(field='period', title='Period', type='temporal', format='%Y-%m-%d %H:%M'),
                  alt.Tooltip(field='Heat pump workload', title='Heat pump workload', type='quantitative')]
     )
@@ -352,7 +364,7 @@ def altair_period_chart(df: pd.DataFrame, domain: List[str], range_color: List[s
                y=alt.Y('value', axis=alt.Axis(title='Energy [kWh]')),
                color=alt.Color('variable', scale=alt.Scale(domain=domain, range=range_color)),
                strokeDash=alt.StrokeDash('variable', scale=alt.Scale(domain=domain, range=range_dash)),
-               opacity=alt.condition(selection, alt.value(0.7), alt.value(0.0)),
+               opacity=alt.condition(selection, alt.value(1), alt.value(0.2)),
                tooltip=[alt.Tooltip(field='period', title='Period', type='temporal', format='%Y-%m-%d %H:%M'),
                         alt.Tooltip(field='variable', title='Variable'),
                         alt.Tooltip(field='value', title='Value')]). \
