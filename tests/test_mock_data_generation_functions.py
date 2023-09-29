@@ -1,7 +1,7 @@
 import datetime
 from unittest import TestCase
 
-from tradingplatformpoc.mock_data_generation_functions import is_break
+from tradingplatformpoc.generate_data.generation_functions.non_residential.school import is_break
 
 
 class Test(TestCase):

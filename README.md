@@ -33,6 +33,27 @@ Install package as editable (command automatically searches for the setup.py fil
         
         pip install -e .
 
+## Access Azure Database through pgAdmin
+The following guide is for using pgAdmin to access the Azure Database, but this is optional and you can choose GUI after your liking.
+
+Make sure you have an active subscription on Azure and access to the relevant Resource group: _JonstakaPOC_.
+Make sure pgAdmin is installed and setup with password (personal, will not affect the access of others).
+Make sure your ip address is in JonstakaPOC/database_jonstaka/Networking. 
+
+To access the server:
+
+- Right click Server in the left drop down menu in pgAdmin and choose Register -> Server...
+- 
+- Under the General tab fill Name (of your choosing).
+- Under the Connection tab add info from _JonstakaPOC_ in Azure:
+- 
+  - _Host name/adress_: Corresponds to the Server name in the Database Overview.
+  - _Username_: Here use the Admin username in the Database Overview. (everything before the @)
+  - _Password_: This is found in Key vault -> Secrets. Copy the CURRENT VERSION of the admin password and Save.
+  - Save the password in pdAdmin. 
+
+NOTE: Do not use admin user with python.
+
 ## Model file for mock data generation
 Note that in order to generate mock data, one needs to have a .pickle-file located in
 data/models/household_electricity_model.pickle
@@ -45,7 +66,7 @@ For more info on this model, see https://doc.afdrift.se/display/RPJ/Household+el
 * Verify that you have a json config file under the data folder specifying the area to be simulated.
 * Run the mock data generation script:
 
-        python tradingplatformpoc/generate_mock_data.py
+        python tradingplatformpoc/generate_data/generate_mock_data.py
 
 The resulting data is stored in a pickle file. To verify its contents, save an extract in a .csv file using the 
 [extraction script](scripts/extract_df_from_mock_datas_pickle_file.py).

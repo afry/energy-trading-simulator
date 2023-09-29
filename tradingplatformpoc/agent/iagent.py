@@ -4,20 +4,18 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
-from ..bid import Action, GrossBid, NetBidWithAcceptanceStatus, Resource
-from ..data_store import DataStore
-from ..trade import Market, Trade, TradeMetadataKey
+
+from ..market.bid import Action, GrossBid, NetBidWithAcceptanceStatus, Resource
+from ..market.trade import Market, Trade, TradeMetadataKey
 
 
 class IAgent(ABC):
     """Interface for agents to implement"""
 
     guid: str
-    data_store: DataStore
 
-    def __init__(self, guid: str, data_store: DataStore):
+    def __init__(self, guid: str):
         self.guid = guid
-        self.data_store = data_store
 
     @abstractmethod
     def make_bids(self, period: datetime.datetime, clearing_prices_historical: Union[Dict[datetime.datetime, Dict[
@@ -46,49 +44,45 @@ class IAgent(ABC):
         @return: A tuple: 1. Some trades - but not more than 1 per resource. 2. Metadata
         """
         pass
-
-    def construct_elec_bid(self, action: Action, quantity: float, price: float,
+    
+    def construct_elec_bid(self, period: datetime.datetime, action: Action, quantity: float, price: float,
                            co2_intensity: Optional[float]) -> GrossBid:
-        return GrossBid(action, Resource.ELECTRICITY, quantity, price, self.guid, False, co2_intensity)
+        return GrossBid(period, action, Resource.ELECTRICITY, quantity, price, self.guid, False, co2_intensity)
 
-    def construct_sell_heat_bid(self, quantity: float, price: float, co2_intensity: float) -> GrossBid:
+    def construct_sell_heat_bid(self, period: datetime.datetime, quantity: float, price: float,
+                                heat_transfer_loss_per_side: float, co2_intensity: float) -> GrossBid:
         # Heat transfer loss added
-        quantity_after_loss = quantity * (1 - self.data_store.heat_transfer_loss_per_side)
-        return GrossBid(Action.SELL, Resource.HEATING, quantity_after_loss, price, self.guid, False, co2_intensity)
+        quantity_after_loss = quantity * (1 - heat_transfer_loss_per_side)
+        return GrossBid(period, Action.SELL, Resource.HEATING, quantity_after_loss, price, self.guid, False,
+                        co2_intensity)
 
-    def construct_buy_heat_bid(self, quantity_needed: float, price: float) -> GrossBid:
+    def construct_buy_heat_bid(self, period: datetime.datetime, quantity_needed: float, price: float,
+                               heat_transfer_loss_per_side: float) -> GrossBid:
         # The heat transfer loss needs to be accounted for
-        quantity_to_buy = quantity_needed / (1 - self.data_store.heat_transfer_loss_per_side)
-        return GrossBid(Action.BUY, Resource.HEATING, quantity_to_buy, price, self.guid, False)
-
-    def construct_elec_trade(self, action: Action, quantity: float, price: float, market: Market,
-                             period: datetime.datetime, tax_paid: float = 0.0, grid_fee_paid: float = 0.0) -> Trade:
-        return Trade(action, Resource.ELECTRICITY, quantity, price, self.guid, False, market, period, tax_paid=tax_paid,
+        quantity_to_buy = quantity_needed / (1 - heat_transfer_loss_per_side)
+        return GrossBid(period, Action.BUY, Resource.HEATING, quantity_to_buy, price, self.guid, False)
+    
+    def construct_elec_trade(self, period: datetime.datetime, action: Action, quantity: float, price: float,
+                             market: Market, tax_paid: float = 0.0, grid_fee_paid: float = 0.0) -> Trade:
+        return Trade(period=period, action=action, resource=Resource.ELECTRICITY, quantity=quantity, price=price,
+                     source=self.guid, by_external=False, market=market, tax_paid=tax_paid,
                      grid_fee_paid=grid_fee_paid)
 
-    def construct_sell_heat_trade(self, quantity: float, price: float, market: Market, period: datetime.datetime) -> \
-            Trade:
+    def construct_sell_heat_trade(self, period: datetime.datetime, quantity: float, price: float, market: Market,
+                                  heat_transfer_loss_per_side: float) -> Trade:
         # Heat transfer loss added
-        quantity_after_loss = quantity * (1 - self.data_store.heat_transfer_loss_per_side)
-        return Trade(Action.SELL, Resource.HEATING, quantity_after_loss, price, self.guid, False, market, period,
-                     loss=self.data_store.heat_transfer_loss_per_side)
+        quantity_after_loss = quantity * (1 - heat_transfer_loss_per_side)
+        return Trade(period=period, action=Action.SELL, resource=Resource.HEATING, quantity=quantity_after_loss,
+                     price=price, source=self.guid, by_external=False, market=market,
+                     loss=heat_transfer_loss_per_side)
 
-    def construct_buy_heat_trade(self, quantity_needed: float, price: float, market: Market,
-                                 period: datetime.datetime) -> Trade:
+    def construct_buy_heat_trade(self, period: datetime.datetime, quantity_needed: float, price: float,
+                                 market: Market, heat_transfer_loss_per_side: float) -> Trade:
         # The heat transfer loss needs to be accounted for
-        quantity_to_buy = quantity_needed / (1 - self.data_store.heat_transfer_loss_per_side)
-        return Trade(Action.BUY, Resource.HEATING, quantity_to_buy, price, self.guid, False, market, period,
-                     loss=self.data_store.heat_transfer_loss_per_side)
-
-    def get_external_grid_buy_price(self, period: datetime.datetime, resource: Resource):
-        wholesale_price = self.data_store.get_estimated_wholesale_price(period, resource)
-
-        # Per https://doc.afdrift.se/pages/viewpage.action?pageId=17072325, Varberg Energi can pay an extra
-        # remuneration on top of the Nordpool spot price. This can vary, "depending on for example membership".
-        # Might make sense to make this number configurable.
-        remuneration_modifier = 0
-
-        return wholesale_price + remuneration_modifier
+        quantity_to_buy = quantity_needed / (1 - heat_transfer_loss_per_side)
+        return Trade(period=period, action=Action.BUY, resource=Resource.HEATING, quantity=quantity_to_buy,
+                     price=price, source=self.guid, by_external=False, market=market,
+                     loss=heat_transfer_loss_per_side)
 
 
 def get_price_and_market_to_use_when_buying(clearing_price: float, retail_price: float):

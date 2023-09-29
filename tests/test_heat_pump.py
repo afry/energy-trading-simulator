@@ -1,7 +1,7 @@
 from unittest import TestCase
 
-from tradingplatformpoc import heat_pump
-from tradingplatformpoc.heat_pump import HeatPump, ValueOutOfRangeError
+from tradingplatformpoc.digitaltwin import heat_pump
+from tradingplatformpoc.digitaltwin.heat_pump import HeatPump, ValueOutOfRangeError
 
 
 class Test(TestCase):
