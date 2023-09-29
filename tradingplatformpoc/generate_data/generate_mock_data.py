@@ -82,6 +82,10 @@ def run(config_id: str) -> Union[pl.DataFrame, pl.LazyFrame]:
                                    if agent_id not in mock_data_agent_ids_dict.values()]
     building_agents_to_simulate_for = get_building_agent_dicts_from_id_list(agent_ids_without_mock_data)
     existing_mock_data_ids = mock_data_agent_ids_dict.keys()
+    
+    if (len(existing_mock_data_ids) == 0) and (len(building_agents_to_simulate_for) == 0):
+        logger.info('No mock data needed.')
+        return pl.DataFrame(columns=['datetime'])
 
     if len(building_agents_to_simulate_for) > 0:
         # Simulate mock data for building agents
