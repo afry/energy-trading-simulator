@@ -240,6 +240,6 @@ def get_savings_vs_only_external_buy(job_id: str, agent_guid: str) -> Tuple[floa
     return total_saved, extra_costs_for_bad_bids
 
 
-def get_total_profit_net(job_id: str, agent_guid: str) -> float:
+def get_agent_total_profit_net(job_id: str, agent_guid: str) -> float:
     return get_total_traded_for_agent(job_id, agent_guid, Action.SELL) \
         - get_total_traded_for_agent(job_id, agent_guid, Action.BUY)
