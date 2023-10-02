@@ -5,7 +5,7 @@ from st_pages import add_indentation, show_pages_from_config
 
 import streamlit as st
 
-from tradingplatformpoc.app import footer
+from tradingplatformpoc.app import app_constants, footer
 from tradingplatformpoc.app.app_visualizations import aggregated_import_and_export_results_df_split_on_period, \
     aggregated_import_and_export_results_df_split_on_temperature, aggregated_local_production_df, \
     construct_combined_price_df, construct_price_chart, \
@@ -51,7 +51,14 @@ if len(ids) > 0:
             local_price_df, read_config(chosen_id_to_view['config_id']))
         if not combined_price_df.empty:
             st.session_state.combined_price_df = combined_price_df
-            price_chart = construct_price_chart(combined_price_df, Resource.ELECTRICITY)
+            price_chart = construct_price_chart(
+                combined_price_df,
+                Resource.ELECTRICITY,
+                [app_constants.LOCAL_PRICE_STR,
+                 app_constants.RETAIL_PRICE_STR,
+                 app_constants.WHOLESALE_PRICE_STR],
+                ['blue', 'green', 'red'],
+                [[0, 0], [2, 4], [2, 4]])
             st.session_state.price_chart = price_chart
 
         if 'price_chart' in st.session_state:

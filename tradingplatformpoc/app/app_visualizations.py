@@ -43,11 +43,9 @@ def get_price_df_when_local_price_inbetween(prices_df: pd.DataFrame, resource: R
     return elec_prices.loc[local_price_between_external]
 
 
-def construct_price_chart(prices_df: pd.DataFrame, resource: Resource) -> alt.Chart:
+def construct_price_chart(prices_df: pd.DataFrame, resource: Resource, domain: List[str],
+                          range_color: List[str], range_dash: List[List[int]]) -> alt.Chart:
     data_to_use = prices_df.loc[prices_df['Resource'] == resource].drop('Resource', axis=1)
-    domain = [app_constants.LOCAL_PRICE_STR, app_constants.RETAIL_PRICE_STR, app_constants.WHOLESALE_PRICE_STR]
-    range_color = ['blue', 'green', 'red']
-    range_dash = [[0, 0], [2, 4], [2, 4]]
     title = alt.TitleParams("Price over Time", anchor='middle')
     selection = alt.selection_single(fields=['variable'], bind='legend')
     return alt.Chart(data_to_use, title=title).mark_line(). \
@@ -60,6 +58,18 @@ def construct_price_chart(prices_df: pd.DataFrame, resource: Resource) -> alt.Ch
                         alt.Tooltip(field='variable', title='Variable'),
                         alt.Tooltip(field='value', title='Value')]). \
         add_selection(selection).interactive(bind_y=False)
+
+
+def construct_agent_comparison_chart(df: pd.DataFrame, title: str, ylabel: str) -> alt.Chart:
+    chart_title = alt.TitleParams(title, anchor='middle')
+    selection = alt.selection_single(fields=['variable'], bind='legend')
+    chart = alt.Chart(df, title=chart_title).mark_area(opacity=0.8). \
+        encode(x=alt.X('period', axis=alt.Axis(title='Period (UTC)'), scale=alt.Scale(type="utc")),
+               y=alt.Y('level', axis=alt.Axis(title=ylabel), stack=None),
+               opacity=alt.condition(selection, alt.value(1), alt.value(0.2)),
+               color='variable'). \
+        add_selection(selection).interactive(bind_y=False)
+    return chart
 
 
 def reconstruct_building_digital_twin(agent_id: str, mock_data_constants: Dict[str, Any],
@@ -127,7 +137,7 @@ def construct_static_digital_twin_chart(digital_twin: StaticDigitalTwin, agent_c
     if should_add_hp_to_legend:
         domain.append('Heat pump workload')
         range_color.append(app_constants.HEAT_PUMP_CHART_COLOR)
-    return altair_period_chart(df, domain, range_color, "Energy production/consumption for " + agent_chosen_guid)
+    return altair_period_chart(df, domain, range_color, [], "Energy production/consumption for " + agent_chosen_guid)
 
 
 def construct_building_with_heat_pump_chart(agent_chosen_guid: str, digital_twin: StaticDigitalTwin,
@@ -141,14 +151,12 @@ def construct_building_with_heat_pump_chart(agent_chosen_guid: str, digital_twin
     if heat_pump_df.empty:
         return construct_static_digital_twin_chart(digital_twin, agent_chosen_guid, False)
 
-    st.write('Note: Energy production/consumption values do not include production/consumption by the heat pumps.')
-
     heat_pump_df.columns = ['period', 'Heat pump workload']
     heat_pump_area = alt.Chart(heat_pump_df). \
-        mark_area(color=app_constants.HEAT_PUMP_CHART_COLOR, opacity=0.3, interpolate='step-after'). \
+        mark_area(color=app_constants.HEAT_PUMP_CHART_COLOR, opacity=0.5, interpolate='step-after'). \
         encode(
         x=alt.X('period:T', axis=alt.Axis(title='Period (UTC)'), scale=alt.Scale(type="utc")),
-        y=alt.Y('Heat pump workload', axis=alt.Axis(title='Heat pump workload', titleColor='gray')),
+        y=alt.Y('Heat pump workload', axis=alt.Axis(title='Heat pump workload', titleColor='gray'), stack=None),
         tooltip=[alt.Tooltip(field='period', title='Period', type='temporal', format='%Y-%m-%d %H:%M'),
                  alt.Tooltip(field='Heat pump workload', title='Heat pump workload', type='quantitative')]
     )
@@ -340,19 +348,20 @@ def construct_traded_amount_by_agent_chart(agent_chosen_guid: str,
                                           'value': 0.0,
                                           'variable': elem['title']})))
 
-    return altair_period_chart(df, domain, range_color, 'Electricity and Heating Amounts Traded for '
+    return altair_period_chart(df, domain, range_color, [], 'Electricity and Heating Amounts Traded for '
                                + agent_chosen_guid)
 
 
 def altair_period_chart(df: pd.DataFrame, domain: List[str], range_color: List[str],
-                        title_str: str) -> alt.Chart:
+                        range_dash: List[List[int]], title_str: str) -> alt.Chart:
     """Altair chart for one or more variables over period."""
-    selection = alt.selection_single(fields=['variable'], bind='legend')
+    selection = alt.selection_multi(fields=['variable'], bind='legend')
     alt_title = alt.TitleParams(title_str, anchor='middle')
     return alt.Chart(df, title=alt_title).mark_line(). \
         encode(x=alt.X('period:T', axis=alt.Axis(title='Period (UTC)'), scale=alt.Scale(type="utc")),
                y=alt.Y('value', axis=alt.Axis(title='Energy [kWh]')),
                color=alt.Color('variable', scale=alt.Scale(domain=domain, range=range_color)),
+               strokeDash=alt.StrokeDash('variable', scale=alt.Scale(domain=domain, range=range_dash)),
                opacity=alt.condition(selection, alt.value(1), alt.value(0.2)),
                tooltip=[alt.Tooltip(field='period', title='Period', type='temporal', format='%Y-%m-%d %H:%M'),
                         alt.Tooltip(field='variable', title='Variable'),
