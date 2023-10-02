@@ -151,8 +151,6 @@ def construct_building_with_heat_pump_chart(agent_chosen_guid: str, digital_twin
     if heat_pump_df.empty:
         return construct_static_digital_twin_chart(digital_twin, agent_chosen_guid, False)
 
-    st.write('Note: Energy production/consumption values do not include production/consumption by the heat pumps.')
-
     heat_pump_df.columns = ['period', 'Heat pump workload']
     heat_pump_area = alt.Chart(heat_pump_df). \
         mark_area(color=app_constants.HEAT_PUMP_CHART_COLOR, opacity=0.5, interpolate='step-after'). \
