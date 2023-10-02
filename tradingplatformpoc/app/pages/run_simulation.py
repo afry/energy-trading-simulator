@@ -8,9 +8,8 @@ from st_pages import add_indentation, show_pages_from_config
 import streamlit as st
 
 from tradingplatformpoc.app import footer
-from tradingplatformpoc.app.app_functions import run_next_job_in_queue, set_max_width
+from tradingplatformpoc.app.app_functions import color_in, run_next_job_in_queue, set_max_width
 from tradingplatformpoc.app.app_threading import get_running_threads
-from tradingplatformpoc.app.app_visualizations import color_in
 from tradingplatformpoc.sql.config.crud import \
     get_all_config_ids_in_db_with_jobs_df, get_all_config_ids_in_db_without_jobs, read_config
 from tradingplatformpoc.sql.job.crud import create_job_if_new_config, delete_job

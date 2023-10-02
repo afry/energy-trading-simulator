@@ -5,9 +5,11 @@ import altair as alt
 import pandas as pd
 
 from tradingplatformpoc.app import app_constants
-from tradingplatformpoc.app.app_visualizations import altair_period_chart, construct_price_chart
+from tradingplatformpoc.app.app_charts import altair_area_chart, altair_line_chart
 from tradingplatformpoc.market.bid import Action, Resource
+from tradingplatformpoc.market.trade import TradeMetadataKey
 from tradingplatformpoc.sql.clearing_price.crud import db_to_construct_local_prices_df
+from tradingplatformpoc.sql.level.crud import db_to_viewable_level_df_by_agent
 from tradingplatformpoc.sql.trade.crud import get_import_export_df
 
 
@@ -20,12 +22,14 @@ def construct_comparison_price_chart(ids: List[Dict[str, str]]) -> alt.Chart:
     
     combined_price_df = pd.concat(local_price_dfs)
     combined_price_df_domain = list(pd.unique(combined_price_df['variable']))
-    return construct_price_chart(
-        combined_price_df,
-        Resource.ELECTRICITY,
-        combined_price_df_domain,
-        app_constants.ALTAIR_BASE_COLORS[:len(combined_price_df_domain)],
-        app_constants.ALTAIR_STROKE_DASH[:len(combined_price_df_domain)])
+
+    data_to_use = combined_price_df.loc[
+        combined_price_df['Resource'] == Resource.ELECTRICITY].drop('Resource', axis=1)
+
+    return altair_line_chart(data_to_use, combined_price_df_domain,
+                             app_constants.ALTAIR_BASE_COLORS[:len(combined_price_df_domain)],
+                             app_constants.ALTAIR_STROKE_DASH[:len(combined_price_df_domain)],
+                             "Price [SEK]", "Price over Time")
 
 
 def import_export_altair_period_chart(ids: List[Dict[str, str]]) -> alt.Chart:
@@ -73,5 +77,27 @@ def import_export_altair_period_chart(ids: List[Dict[str, str]]) -> alt.Chart:
 
                     new_df = pd.concat((new_df, subset))
                 j = j + 1
-    return altair_period_chart(new_df, domain, range_color, range_dash,
-                               'Import and export of resources through trades with grid agents')
+    return altair_line_chart(new_df, domain, range_color, range_dash, "Energy [kWh]",
+                             'Import and export of resources through trades with grid agents')
+
+
+def construct_level_comparison_chart(ids: List[Dict[str, str]], agent_names: List[str],
+                                     level_type: TradeMetadataKey, var_title_str: str, title_str: str,
+                                     num_letters: int = 7) -> alt.Chart:
+    level_dfs = []
+    for comp_id, agent_name in zip(ids, agent_names):
+        agent_var = agent_name[:num_letters] + '...' + agent_name[-num_letters:] \
+            if (len(agent_name) > 2 * num_letters) else agent_name
+        level_dfs.append(db_to_viewable_level_df_by_agent(
+            job_id=comp_id['job_id'],
+            agent_guid=agent_name,
+            level_type=level_type.name)
+            .assign(variable=agent_var + ' - ' + comp_id['config_id']))
+
+        combined_level_df = pd.concat(level_dfs, axis=0, join="outer").reset_index()
+
+    combined_level_df = combined_level_df.rename(columns={'level': 'value'})
+    domain = list(pd.unique(combined_level_df['variable']))
+    range_color = app_constants.ALTAIR_BASE_COLORS[:len(domain)]
+
+    return altair_area_chart(combined_level_df, domain, range_color, var_title_str, title_str, True)

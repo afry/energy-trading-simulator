@@ -5,10 +5,11 @@ from st_pages import add_indentation, show_pages_from_config
 
 import streamlit as st
 
-from tradingplatformpoc.app import app_constants, footer
-from tradingplatformpoc.app.app_visualizations import aggregated_import_and_export_results_df_split_on_period, \
+from tradingplatformpoc.app import footer
+from tradingplatformpoc.app.app_charts import construct_price_chart
+from tradingplatformpoc.app.app_data_display import aggregated_import_and_export_results_df_split_on_period, \
     aggregated_import_and_export_results_df_split_on_temperature, aggregated_local_production_df, \
-    construct_combined_price_df, construct_price_chart, \
+    construct_combined_price_df, \
     get_price_df_when_local_price_inbetween
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.sql.clearing_price.crud import db_to_construct_local_prices_df
@@ -50,24 +51,14 @@ if len(ids) > 0:
         combined_price_df = construct_combined_price_df(
             local_price_df, read_config(chosen_id_to_view['config_id']))
         if not combined_price_df.empty:
-            st.session_state.combined_price_df = combined_price_df
-            price_chart = construct_price_chart(
-                combined_price_df,
-                Resource.ELECTRICITY,
-                [app_constants.LOCAL_PRICE_STR,
-                 app_constants.RETAIL_PRICE_STR,
-                 app_constants.WHOLESALE_PRICE_STR],
-                ['blue', 'green', 'red'],
-                [[0, 0], [2, 4], [2, 4]])
-            st.session_state.price_chart = price_chart
-
-        if 'price_chart' in st.session_state:
-            st.caption("Click on a variable in legend to highlight it in the graph.")
-            st.altair_chart(st.session_state.price_chart, use_container_width=True, theme=None)
+            price_chart = construct_price_chart(combined_price_df, Resource.ELECTRICITY,)
+        st.caption("Click on a variable in legend to highlight it in the graph.")
+        st.altair_chart(price_chart, use_container_width=True, theme=None)
+        
         with tab_price_table:
             st.caption("Periods where local electricity price was "
                        "between external retail and wholesale price:")
-            st.dataframe(get_price_df_when_local_price_inbetween(st.session_state.combined_price_df,
+            st.dataframe(get_price_df_when_local_price_inbetween(combined_price_df,
                                                                  Resource.ELECTRICITY))
     resources = [Resource.ELECTRICITY, Resource.HEATING]
     agg_tabs = st.tabs([resource.name.capitalize() for resource in resources])
