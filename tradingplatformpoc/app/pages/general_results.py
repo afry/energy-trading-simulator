@@ -44,16 +44,16 @@ if len(ids) > 0:
     tab_price_graph, tab_price_table = st.tabs(['Graph', 'Table'])
     with tab_price_graph:
         logger.info("Constructing price graph")
-        st.spinner("Constructing price graph")
+        with st.spinner("Constructing price graph"):
 
-        local_price_df = db_to_construct_local_prices_df(
-            job_id=chosen_id_to_view['job_id'])
-        combined_price_df = construct_combined_price_df(
-            local_price_df, read_config(chosen_id_to_view['config_id']))
-        if not combined_price_df.empty:
-            price_chart = construct_price_chart(combined_price_df, Resource.ELECTRICITY,)
-        st.caption("Click on a variable in legend to highlight it in the graph.")
-        st.altair_chart(price_chart, use_container_width=True, theme=None)
+            local_price_df = db_to_construct_local_prices_df(
+                job_id=chosen_id_to_view['job_id'])
+            combined_price_df = construct_combined_price_df(
+                local_price_df, read_config(chosen_id_to_view['config_id']))
+            if not combined_price_df.empty:
+                price_chart = construct_price_chart(combined_price_df, Resource.ELECTRICITY,)
+            st.caption("Click on a variable in legend to highlight it in the graph.")
+            st.altair_chart(price_chart, use_container_width=True, theme=None)
         
         with tab_price_table:
             st.caption("Periods where local electricity price was "
