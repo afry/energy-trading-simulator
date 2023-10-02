@@ -84,17 +84,17 @@ def import_export_altair_period_chart(ids: List[Dict[str, str]]) -> alt.Chart:
 def construct_level_comparison_chart(ids: List[Dict[str, str]], agent_names: List[str],
                                      level_type: TradeMetadataKey, var_title_str: str, title_str: str,
                                      num_letters: int = 7) -> alt.Chart:
-    heat_pump_level_dfs = []
+    level_dfs = []
     for comp_id, agent_name in zip(ids, agent_names):
         agent_var = agent_name[:num_letters] + '...' + agent_name[-num_letters:] \
             if (len(agent_name) > 2 * num_letters) else agent_name
-        heat_pump_level_dfs.append(db_to_viewable_level_df_by_agent(
+        level_dfs.append(db_to_viewable_level_df_by_agent(
             job_id=comp_id['job_id'],
             agent_guid=agent_name,
             level_type=level_type.name)
             .assign(variable=agent_var + ' - ' + comp_id['config_id']))
 
-        combined_heat_df = pd.concat(heat_pump_level_dfs, axis=0, join="outer").reset_index()
+        combined_heat_df = pd.concat(level_dfs, axis=0, join="outer").reset_index()
 
     combined_heat_df = combined_heat_df.rename(columns={'level': 'value'})
     domain = list(pd.unique(combined_heat_df['variable']))
