@@ -7,7 +7,7 @@ from tradingplatformpoc.app.app_charts import construct_building_with_heat_pump_
     construct_static_digital_twin_chart, construct_storage_level_chart, \
     construct_traded_amount_by_agent_chart
 from tradingplatformpoc.app.app_data_display import \
-    get_savings_vs_only_external_buy, get_total_profit_net, \
+    get_savings_vs_only_external_buy, get_agent_total_profit_net,\
     reconstruct_building_digital_twin, reconstruct_pv_digital_twin
 from tradingplatformpoc.app.app_functions import download_df_as_csv_button
 from tradingplatformpoc.market.trade import TradeMetadataKey
@@ -108,7 +108,7 @@ if len(ids) > 0:
                  r"total savings after penalties to {:,.2f} SEK.".format(agent_chosen_guid, extra_costs_for_bad_bids,
                                                                          total_saved - extra_costs_for_bad_bids))
         if agent_type == 'BatteryAgent':
-            battery_agent_total_net_profit = get_total_profit_net(
+            battery_agent_total_net_profit = get_agent_total_profit_net(
                 job_id=chosen_id_to_view['job_id'],
                 agent_guid=agent_chosen_guid)
             st.metric(
