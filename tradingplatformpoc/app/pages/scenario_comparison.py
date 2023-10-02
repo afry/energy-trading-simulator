@@ -34,7 +34,8 @@ if len(ids) >= 2:
         logger.info("Constructing price graph")
         with st.spinner("Constructing price graph"):
             price_chart = construct_comparison_price_chart(comparison_ids)
-            st.caption("Hold *Shift* and click on multiple variables in the legend to highlight them in the graph.")
+            st.caption("Click on a variable in the legend to highlight "
+                       "it in the graph.")
             st.altair_chart(price_chart, use_container_width=True, theme=None)
 
         # Import export graph
@@ -72,8 +73,8 @@ if len(ids) >= 2:
                     heat_pump_comparison_chart = construct_level_comparison_chart(
                         comparison_ids, [chosen_agent_name_to_view_1, chosen_agent_name_to_view_2],
                         TradeMetadataKey.HEAT_PUMP_WORKLOAD, "Workload", "Heat pump workload comparison")
-                    st.caption("Hold *Shift* and click on multiple variables in the legend to highlight "
-                               "them in the graph.")
+                    st.caption("Click on a variable in the legend to highlight "
+                               "it in the graph.")
                     st.altair_chart(heat_pump_comparison_chart, use_container_width=True, theme=None)
 
                 if agent_1_type == "BatteryAgent":
@@ -81,8 +82,8 @@ if len(ids) >= 2:
                     battery_comparison_chart = construct_level_comparison_chart(
                         comparison_ids, [chosen_agent_name_to_view_1, chosen_agent_name_to_view_2],
                         TradeMetadataKey.STORAGE_LEVEL, "Capacity [kWh]", "Charging level comparison")
-                    st.caption("Hold *Shift* and click on multiple variables in the legend to highlight them "
-                               "in the graph.")
+                    st.caption("Click on a variable in the legend to highlight "
+                               "it in the graph.")
                     st.altair_chart(battery_comparison_chart, use_container_width=True, theme=None)
 
 else:
