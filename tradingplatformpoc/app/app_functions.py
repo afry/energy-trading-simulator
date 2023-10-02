@@ -56,6 +56,18 @@ def update_multiselect_style():
         unsafe_allow_html=True,
     )
 
+
+def color_in(val):
+    if 'Running' in val:
+        color = '#f7a34f'
+    elif 'Pending' in val:
+        color = '#0675bb'
+    elif 'Completed' in val:
+        color = '#5eab7e'
+    else:
+        color = '#f01d5c'
+    return 'color: %s' % color
+
     
 def cleanup_config_description(description: str) -> str:
     """

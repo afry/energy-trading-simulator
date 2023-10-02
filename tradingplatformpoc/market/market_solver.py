@@ -32,10 +32,8 @@ def resolve_bids(period: datetime.datetime, bids: Iterable[NetBid]) -> \
         else:
             price_points = get_price_points(bids_for_resource)
 
-            demand_which_needs_to_be_filled = 0.0
-            for bid in buy_bids_resource:
-                if bid.price == float("inf"):
-                    demand_which_needs_to_be_filled = demand_which_needs_to_be_filled + bid.quantity
+            demand_which_needs_to_be_filled = sum([bid.quantity for bid in buy_bids_resource
+                                                   if bid.price == float("inf")])
 
             clearing_price, supply_for_price_point = calculate_clearing_price(demand_which_needs_to_be_filled,
                                                                               price_points, sell_bids_resource)
@@ -116,11 +114,7 @@ def calculate_clearing_price(demand_which_needs_to_be_filled: float, price_point
     """
     for price_point in sorted(price_points):
         # Going through price points in ascending order
-        supply_for_price_point = 0.0
-        for bid in sell_bids_resource:
-            if bid.price <= price_point:
-                supply_for_price_point = supply_for_price_point + bid.quantity
-
+        supply_for_price_point = sum([bid.quantity for bid in sell_bids_resource if bid.price <= price_point])
         if supply_for_price_point >= demand_which_needs_to_be_filled and supply_for_price_point > 0:
             # Found an acceptable price!
             return price_point, supply_for_price_point
