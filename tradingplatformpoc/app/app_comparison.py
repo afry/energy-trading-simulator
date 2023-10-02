@@ -94,10 +94,10 @@ def construct_level_comparison_chart(ids: List[Dict[str, str]], agent_names: Lis
             level_type=level_type.name)
             .assign(variable=agent_var + ' - ' + comp_id['config_id']))
 
-        combined_heat_df = pd.concat(level_dfs, axis=0, join="outer").reset_index()
+        combined_level_df = pd.concat(level_dfs, axis=0, join="outer").reset_index()
 
-    combined_heat_df = combined_heat_df.rename(columns={'level': 'value'})
-    domain = list(pd.unique(combined_heat_df['variable']))
+    combined_level_df = combined_level_df.rename(columns={'level': 'value'})
+    domain = list(pd.unique(combined_level_df['variable']))
     range_color = app_constants.ALTAIR_BASE_COLORS[:len(domain)]
 
-    return altair_area_chart(combined_heat_df, domain, range_color, var_title_str, title_str, True)
+    return altair_area_chart(combined_level_df, domain, range_color, var_title_str, title_str, True)
