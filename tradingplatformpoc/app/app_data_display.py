@@ -22,8 +22,8 @@ from tradingplatformpoc.sql.input_data.crud import get_periods_from_db, read_inp
     read_inputs_df_for_agent_creation
 from tradingplatformpoc.sql.input_electricity_price.crud import electricity_price_df_from_db
 from tradingplatformpoc.sql.mock_data.crud import db_to_mock_data_df, get_mock_data_agent_pairs_in_db
-from tradingplatformpoc.sql.trade.crud import db_to_trades_by_agent_and_resource_action, get_total_import_export, \
-    get_total_traded_for_agent
+from tradingplatformpoc.sql.trade.crud import db_to_trades_by_agent_and_resource_action, get_total_import_export,\
+    get_total_traded, get_total_traded_for_agent
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod
 
 
@@ -243,3 +243,8 @@ def get_savings_vs_only_external_buy(job_id: str, agent_guid: str) -> Tuple[floa
 def get_agent_total_profit_net(job_id: str, agent_guid: str) -> float:
     return get_total_traded_for_agent(job_id, agent_guid, Action.SELL) \
         - get_total_traded_for_agent(job_id, agent_guid, Action.BUY)
+
+
+def get_total_profit_net(job_id: str) -> Tuple[float, float]:
+    # first is gross profit, second is expenses, but need grid fees and taxes paid too
+    return get_total_traded(job_id, Action.SELL), get_total_traded(job_id, Action.BUY)

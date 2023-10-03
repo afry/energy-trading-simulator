@@ -7,15 +7,14 @@ import streamlit as st
 
 from tradingplatformpoc.app import footer
 from tradingplatformpoc.app.app_charts import construct_price_chart
+from tradingplatformpoc.app.app_comparison import get_net_profit_metrics
 from tradingplatformpoc.app.app_data_display import aggregated_import_and_export_results_df_split_on_period, \
     aggregated_import_and_export_results_df_split_on_temperature, aggregated_local_production_df, \
-    construct_combined_price_df, \
-    get_price_df_when_local_price_inbetween
+    construct_combined_price_df, get_price_df_when_local_price_inbetween
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.sql.clearing_price.crud import db_to_construct_local_prices_df
 from tradingplatformpoc.sql.config.crud import get_all_finished_job_config_id_pairs_in_db, read_config
-from tradingplatformpoc.sql.trade.crud import db_to_aggregated_trade_df, \
-    get_total_grid_fee_paid_on_internal_trades, get_total_tax_paid
+from tradingplatformpoc.sql.trade.crud import db_to_aggregated_trade_df
 
 logger = logging.getLogger(__name__)
 
@@ -29,17 +28,31 @@ if len(ids) > 0:
     chosen_id_to_view = {'config_id': chosen_config_id_to_view,
                          'job_id': ids[chosen_config_id_to_view]}
     
-    col_tax, col_fee = st.columns(2)
+    net_profit, sold, bought, tax, grid_fee = get_net_profit_metrics(
+        job_id=chosen_id_to_view['job_id'])
+    
+    col_net_profit, col_sold = st.columns(2)
+    with col_net_profit:
+        st.metric(label="Net Profit",
+                  value="{:,.2f} SEK".format(net_profit),
+                  help="Net Profit = Gross Profit - Bought - Tax - Grid Fees")
+    with col_sold:
+        st.metric(label="Gross profit",
+                  value="{:,.2f} SEK".format(sold),
+                  help="Total amount sold")
+
+    col_bought, col_tax, col_fee = st.columns(3)
+    with col_bought:
+        st.metric(label="Amount bought",
+                  value="{:,.2f} SEK".format(bought))
     with col_tax:
         st.metric(label="Total tax paid",
-                  value="{:,.2f} SEK".format(get_total_tax_paid(
-                        job_id=chosen_id_to_view['job_id'])),
+                  value=f"{tax:,.2f} SEK",
                   help="Tax paid includes taxes that the ElectricityGridAgent has paid"
                   " on sales to the microgrid")
     with col_fee:
         st.metric(label="Total grid fees paid on internal trades",
-                  value="{:,.2f} SEK".format(get_total_grid_fee_paid_on_internal_trades(
-                        job_id=chosen_id_to_view['job_id'])))
+                  value=f"{grid_fee:,.2f} SEK")
 
     tab_price_graph, tab_price_table = st.tabs(['Graph', 'Table'])
     with tab_price_graph:

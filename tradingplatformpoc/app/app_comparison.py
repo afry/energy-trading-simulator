@@ -6,11 +6,21 @@ import pandas as pd
 
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.app.app_charts import altair_area_chart, altair_line_chart
+from tradingplatformpoc.app.app_data_display import get_total_profit_net
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.market.trade import TradeMetadataKey
 from tradingplatformpoc.sql.clearing_price.crud import db_to_construct_local_prices_df
 from tradingplatformpoc.sql.level.crud import db_to_viewable_level_df_by_agent
-from tradingplatformpoc.sql.trade.crud import get_import_export_df
+from tradingplatformpoc.sql.trade.crud import get_import_export_df, get_total_grid_fee_paid_on_internal_trades, \
+    get_total_tax_paid
+
+
+def get_net_profit_metrics(job_id: str) -> List[float]:
+    sold, bought = get_total_profit_net(job_id)
+    tax = get_total_tax_paid(job_id)
+    grid_fee = get_total_grid_fee_paid_on_internal_trades(job_id=job_id)
+    net_profit = sold - bought - tax - grid_fee
+    return [net_profit, sold, bought, tax, grid_fee]
 
 
 def construct_comparison_price_chart(ids: List[Dict[str, str]]) -> alt.Chart:
