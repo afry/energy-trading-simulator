@@ -107,7 +107,8 @@ def aggregated_import_and_export_results_df_split_on_mask(job_id: str, periods: 
                                                           mask_colnames: List[str]) -> Dict[str, pd.DataFrame]:
     """
     Display total import and export for electricity and heat, computed for specified subsets.
-    @param mask: Dataframe used to extract subset of trades
+    @param job_id: Which job to get trades for
+    @param periods: What periods to get trades for
     @param mask_colnames: List with strings to display as subset names
     @return: Dict of dataframes displaying total import and export of resources split by the mask
     """
