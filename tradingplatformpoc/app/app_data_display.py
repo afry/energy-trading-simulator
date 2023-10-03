@@ -51,11 +51,11 @@ def reconstruct_building_digital_twin(agent_id: str, mock_data_constants: Dict[s
     elec_cons_series = buildings_mock_data[get_elec_cons_key(agent_id)]
     space_heat_cons_series = buildings_mock_data[get_space_heat_cons_key(agent_id)]
     hot_tap_water_cons_series = buildings_mock_data[get_hot_tap_water_cons_key(agent_id)]
-    total_heat_cons_series = space_heat_cons_series + hot_tap_water_cons_series
 
     return StaticDigitalTwin(electricity_usage=elec_cons_series,
-                             electricity_production=pv_prod_series,
-                             heating_usage=total_heat_cons_series)
+                             space_heating_usage=space_heat_cons_series,
+                             hot_water_usage=hot_tap_water_cons_series,
+                             electricity_production=pv_prod_series)
 
 
 def reconstruct_pv_digital_twin(pv_area: float, pv_efficiency: float) -> StaticDigitalTwin:
@@ -165,7 +165,9 @@ def aggregated_local_production_df(job_id: str, config_id: str) -> pd.DataFrame:
                 mock_data_constants = get_mock_data_constants(config_id)
                 digital_twin = reconstruct_building_digital_twin(
                     agent_id, mock_data_constants, agent_config['PVArea'], agent_config['PVEfficiency'])
-                usage_heating_lst.append(sum(digital_twin.heating_usage.dropna()))  # Issue with NaNs
+                # TODO: Replace with low-temp and high-temp heat separated
+                if digital_twin.total_heating_usage is not None:
+                    usage_heating_lst.append(sum(digital_twin.total_heating_usage.dropna()))  # Issue with NaNs
             elif agent_type == 'PVAgent':
                 digital_twin = reconstruct_pv_digital_twin(agent_config['PVArea'], agent_config['PVEfficiency'])
             production_electricity_lst.append(sum(digital_twin.electricity_production))

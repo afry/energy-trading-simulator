@@ -116,14 +116,10 @@ class TradingSimulator:
                 space_heat_cons_series = buildings_mock_data[get_space_heat_cons_key(agent_id)]
                 hot_tap_water_cons_series = buildings_mock_data[get_hot_tap_water_cons_key(agent_id)]
 
-                # We're not currently supporting different temperatures of heating,
-                # it's just "heating" as a very simplifiedS
-                # entity. Therefore we'll bunch them together here for now.
-                total_heat_cons_series = space_heat_cons_series + hot_tap_water_cons_series
-
                 building_digital_twin = StaticDigitalTwin(electricity_usage=elec_cons_series,
-                                                          electricity_production=pv_prod_series,
-                                                          heating_usage=total_heat_cons_series)
+                                                          space_heating_usage=space_heat_cons_series,
+                                                          hot_water_usage=hot_tap_water_cons_series,
+                                                          electricity_production=pv_prod_series)
 
                 agents.append(BuildingAgent(heat_pricing=self.heat_pricing,
                                             electricity_pricing=self.electricity_pricing,
@@ -145,10 +141,10 @@ class TradingSimulator:
                 pv_digital_twin = StaticDigitalTwin(electricity_production=pv_prod_series)
                 agents.append(PVAgent(self.electricity_pricing, pv_digital_twin, guid=agent_name))
             elif agent_type == "GroceryStoreAgent":
-                grocery_store_digital_twin = StaticDigitalTwin(
-                    electricity_usage=inputs_df['coop_electricity_consumed'],
-                    heating_usage=inputs_df['coop_heating_consumed'],
-                    electricity_production=pv_prod_series)
+                grocery_store_digital_twin = StaticDigitalTwin(electricity_usage=inputs_df['coop_electricity_consumed'],
+                                                               space_heating_usage=inputs_df['coop_heating_consumed'],
+                                                               # TODO: Grocery store tap water consumption
+                                                               electricity_production=pv_prod_series)
                 agents.append(BuildingAgent(heat_pricing=self.heat_pricing,
                                             electricity_pricing=self.electricity_pricing,
                                             digital_twin=grocery_store_digital_twin,
