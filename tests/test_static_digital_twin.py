@@ -17,7 +17,7 @@ class TestStaticDigitalTwin(TestCase):
     ones_series = pd.Series(np.ones(shape=len(datetime_array)), index=datetime_array)
 
     building_digital_twin = StaticDigitalTwin(electricity_usage=ones_series * 150,
-                                              heating_usage=ones_series * 250)
+                                              space_heating_usage=ones_series * 250)
 
     def test_get_electricity_consumed(self):
         self.assertAlmostEqual(150, self.building_digital_twin.get_consumption(FEB_1ST_1AM, Resource.ELECTRICITY))

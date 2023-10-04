@@ -289,16 +289,17 @@ class TestBuildingAgent(TestCase):
     elec_values = np.random.uniform(0, 100.0, len(DATETIME_ARRAY))
     heat_values = np.random.uniform(0, 100.0, len(DATETIME_ARRAY))
     building_digital_twin_cons = StaticDigitalTwin(electricity_usage=pd.Series(elec_values, index=DATETIME_ARRAY),
-                                                   heating_usage=pd.Series(heat_values, index=DATETIME_ARRAY))
+                                                   space_heating_usage=pd.Series(heat_values, index=DATETIME_ARRAY))
     building_agent_cons = BuildingAgent(heat_pricing=heat_pricing,
                                         electricity_pricing=electricity_pricing,
                                         digital_twin=building_digital_twin_cons)
     building_digital_twin_prod = StaticDigitalTwin(electricity_usage=-pd.Series(elec_values, index=DATETIME_ARRAY),
-                                                   heating_usage=-pd.Series(heat_values, index=DATETIME_ARRAY))
+                                                   space_heating_usage=-pd.Series(heat_values, index=DATETIME_ARRAY))
     building_agent_prod = BuildingAgent(heat_pricing=heat_pricing, electricity_pricing=electricity_pricing,
                                         digital_twin=building_digital_twin_prod)
     building_digital_twin_zeros = StaticDigitalTwin(electricity_usage=pd.Series(elec_values * 0, index=DATETIME_ARRAY),
-                                                    heating_usage=pd.Series(heat_values * 0, index=DATETIME_ARRAY))
+                                                    space_heating_usage=pd.Series(heat_values * 0,
+                                                                                  index=DATETIME_ARRAY))
     building_agent_zeros = BuildingAgent(heat_pricing=heat_pricing,
                                          electricity_pricing=electricity_pricing,
                                          digital_twin=building_digital_twin_zeros)
@@ -422,7 +423,7 @@ class TestBuildingAgentHeatPump(TestCase):
     elec_values = rng.uniform(0, 100.0, len(DATETIME_ARRAY))
     heat_values = rng.uniform(0, 100.0, len(DATETIME_ARRAY))
     building_digital_twin = StaticDigitalTwin(electricity_usage=pd.Series(elec_values, index=DATETIME_ARRAY),
-                                              heating_usage=pd.Series(heat_values, index=DATETIME_ARRAY))
+                                              space_heating_usage=pd.Series(heat_values, index=DATETIME_ARRAY))
     # Create agent with 2 heat pumps, default COP
     building_agent_2_pumps_default_cop = BuildingAgent(electricity_pricing=electricity_pricing,
                                                        heat_pricing=heat_pricing,

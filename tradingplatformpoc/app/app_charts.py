@@ -68,16 +68,17 @@ def construct_static_digital_twin_chart(digital_twin: StaticDigitalTwin, agent_c
         if (df.value != 0).any():
             domain.append(app_constants.ELEC_CONS)
             range_color.append(app_constants.ALTAIR_BASE_COLORS[1])
-    if digital_twin.heating_production is not None:
-        df = pd.concat((df, pd.DataFrame({'period': digital_twin.heating_production.index,
-                                          'value': digital_twin.heating_production.values,
+    # TODO: Replace with low-temp and high-temp heat separated
+    if digital_twin.total_heating_production is not None:
+        df = pd.concat((df, pd.DataFrame({'period': digital_twin.total_heating_production.index,
+                                          'value': digital_twin.total_heating_production.values,
                                           'variable': app_constants.HEAT_PROD})))
         if (df.value != 0).any():
             domain.append(app_constants.HEAT_PROD)
             range_color.append(app_constants.ALTAIR_BASE_COLORS[2])
-    if digital_twin.heating_usage is not None:
-        df = pd.concat((df, pd.DataFrame({'period': digital_twin.heating_usage.index,
-                                          'value': digital_twin.heating_usage.values,
+    if digital_twin.total_heating_usage is not None:
+        df = pd.concat((df, pd.DataFrame({'period': digital_twin.total_heating_usage.index,
+                                          'value': digital_twin.total_heating_usage.values,
                                           'variable': app_constants.HEAT_CONS})))
         if (df.value != 0).any():
             domain.append(app_constants.HEAT_CONS)
