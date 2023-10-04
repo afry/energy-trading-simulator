@@ -111,3 +111,13 @@ def run_next_job_in_queue() -> bool:
     else:
         logger.debug('No jobs in queue.')
         return False
+
+
+def make_room_for_menu_in_sidebar():
+    st.sidebar.markdown("""
+        <style>
+        [data-testid='stSidebarNav'] > ul {
+            min-height: 47vh;
+        }
+        </style>
+        """, unsafe_allow_html=True)

@@ -8,7 +8,7 @@ import streamlit as st
 
 from tradingplatformpoc.app import app_constants, footer
 from tradingplatformpoc.app.app_functions import cleanup_config_description, cleanup_config_name, \
-    config_naming_is_valid, set_max_width, update_multiselect_style
+    config_naming_is_valid, make_room_for_menu_in_sidebar, set_max_width, update_multiselect_style
 from tradingplatformpoc.app.app_inputs import add_battery_agent, add_building_agent, add_grocery_store_agent, \
     add_params_to_form, add_pv_agent, agent_inputs, duplicate_agent, remove_agent, remove_all_building_agents
 from tradingplatformpoc.config.access_config import fill_agents_with_defaults, fill_with_default_params, \
@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 show_pages_from_config("tradingplatformpoc/app/pages_config/pages.toml")
 add_indentation()
+make_room_for_menu_in_sidebar()
 
 set_max_width('1000px')  # This tab looks a bit daft when it is too wide, so limiting it here.
 
