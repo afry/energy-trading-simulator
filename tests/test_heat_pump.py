@@ -26,15 +26,15 @@ class Test(TestCase):
 
         results = test_pump.calculate_for_all_workloads()
 
-        self.assertEqual(11, len(results))
+        self.assertEqual(11, results.shape[0])
 
         def strictly_increasing(some_list):
             return all(x < y for x, y in zip(some_list, some_list[1:]))
 
-        self.assertTrue(strictly_increasing(list(results.keys())))
+        self.assertTrue(strictly_increasing(list(results[:, 0])))
         # When sorted by workload, both input and output should be steadily increasing
-        self.assertTrue(strictly_increasing([x[0] for x in results.values()]))  # Tests input electricity
-        self.assertTrue(strictly_increasing([x[1] for x in results.values()]))  # Tests output heating
+        self.assertTrue(strictly_increasing(results[:, 1]))  # Tests input electricity
+        self.assertTrue(strictly_increasing(results[:, 2]))  # Tests output heating
 
     def test_logging(self):
         """Test that heat pump methods log warnings when inputs are outside of expected range"""

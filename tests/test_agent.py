@@ -439,22 +439,22 @@ class TestBuildingAgentHeatPump(TestCase):
         """Test that when a BuildingAgent doesn't have any heat pumps, the workloads data frame is still created as
         expected, with just one row, corresponding to not running any heat pump."""
         with_0_pumps = construct_workloads_data(None, 0)
-        self.assertEqual(1, len(with_0_pumps))
-        self.assertEqual(0, list(with_0_pumps.keys())[0])
+        self.assertEqual(1, with_0_pumps.shape[0])
+        self.assertEqual(0, with_0_pumps[0, 0])
 
     def test_workloads_data(self):
         """Assert that when a different COP is specified, this is reflected in the workloads_data"""
         workloads_data_low_cop = self.building_agent_3_pumps_custom_cop.workloads_data
         workloads_data_high_cop = self.building_agent_2_pumps_default_cop.workloads_data
         for i in np.arange(1, 10):
-            lower_output = workloads_data_low_cop[i][1]
-            higher_output = workloads_data_high_cop[i][1]
+            lower_output = workloads_data_low_cop[i, 2]
+            higher_output = workloads_data_high_cop[i, 2]
             self.assertTrue(lower_output < higher_output)
 
     def test_optimal_workload(self):
         """Test calculation of optimal workload"""
         optimal_workload = self.building_agent_2_pumps_default_cop.calculate_optimal_workload(12, 60, 2, 0.5)
-        self.assertEqual(6, optimal_workload)  # 7 if agent is allowed to sell heat
+        self.assertEqual(6, optimal_workload[0])  # 7 if agent is allowed to sell heat
 
     def test_bid_with_heat_pump(self):
         """Test that bidding works as intended in a building agent which has some heat pumps."""

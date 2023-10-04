@@ -1,5 +1,4 @@
 import logging
-from collections import OrderedDict
 from typing import List, Tuple
 
 import numpy as np
@@ -74,19 +73,20 @@ class HeatPump:
     @staticmethod
     def calculate_for_all_workloads(forward_temp_c: float = DEFAULT_FORWARD_TEMP,
                                     brine_temp_c: float = DEFAULT_BRINE_TEMP, coeff_of_perf: float = DEFAULT_COP) -> \
-            OrderedDict[int, Tuple[float, float]]:
+            np.array:
         """
         Returns an ordered dictionary where workload are keys, in increasing order. The values are pairs of floats, the
         first one being electricity needed, and the second one heating produced.
         """
         # Want to evaluate all possible gears, and also to not run the heat pump at all
         workloads: List[int] = [0] + POSSIBLE_WORKLOADS_WHEN_RUNNING
-        ordered_dict = OrderedDict()
-        for workload in workloads:
-            ordered_dict[workload] = HeatPump.calculate_energy(workload, forward_temp_c, brine_temp_c,
-                                                               coeff_of_perf=coeff_of_perf)
+        arr = np.empty([len(workloads), 3])
+        for i in range(len(workloads)):
+            arr[i, 0] = workloads[i]
+            arr[i, 1:] = HeatPump.calculate_energy(workloads[i], forward_temp_c, brine_temp_c,
+                                                   coeff_of_perf=coeff_of_perf)
 
-        return ordered_dict
+        return arr
 
 
 class ValueOutOfRangeError(Exception):
