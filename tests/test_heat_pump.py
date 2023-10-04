@@ -1,20 +1,19 @@
 from unittest import TestCase
 
 from tradingplatformpoc.digitaltwin import heat_pump
-from tradingplatformpoc.digitaltwin.heat_pump import HeatPump, ValueOutOfRangeError
+from tradingplatformpoc.digitaltwin.heat_pump import ValueOutOfRangeError
 
 
 class Test(TestCase):
 
     def test_throughput_calculation(self):
         """Test that calculate_energy works in a reasonable way, and that specifying a COP works as intended"""
-        elec_input, heat_output = HeatPump.calculate_energy(workload=6, forward_temp_c=60, brine_temp_c=0)
+        elec_input, heat_output = heat_pump.calculate_energy_for_high_heat(workload=6, brine_temp_c=0)
         cop_output = heat_output / elec_input
-        self.assertAlmostEqual(2.7613787873898135, cop_output)
+        self.assertAlmostEqual(2.55054754119921, cop_output)
 
         # If we want a "better" heat pump, assert that output COP increases by the correct amount
-        elec_input, heat_output = HeatPump.calculate_energy(workload=6, forward_temp_c=60, brine_temp_c=0,
-                                                            coeff_of_perf=5)
+        elec_input, heat_output = heat_pump.calculate_energy_for_high_heat(workload=6, brine_temp_c=0, coeff_of_perf=5)
         better_cop_output = heat_output / elec_input
         cop_output_percent_increase = better_cop_output / cop_output
         cop_input_percent_increase = 5 / heat_pump.DEFAULT_COP
@@ -22,9 +21,7 @@ class Test(TestCase):
 
     def test_calculate_for_all_workloads(self):
         """Test that calculate_for_all_workloads produces some results, and that the results are strictly increasing."""
-        test_pump = heat_pump.HeatPump()
-
-        results = test_pump.calculate_for_all_workloads()
+        results = heat_pump.calculate_for_all_workloads_for_high_heat()
 
         self.assertEqual(11, len(results))
 
@@ -37,7 +34,7 @@ class Test(TestCase):
         self.assertTrue(strictly_increasing([x[1] for x in results.values()]))  # Tests output heating
 
     def test_logging(self):
-        """Test that heat pump methods log warnings when inputs are outside of expected range"""
+        """Test that heat pump methods log warnings when inputs are outside expected range"""
         with self.assertLogs() as captured:
             elec_needed = heat_pump.model_elec_needed(70, 8000)
             self.assertAlmostEqual(25.3237594, elec_needed)

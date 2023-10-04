@@ -2,14 +2,14 @@ import datetime
 import logging
 import math
 from collections import OrderedDict
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
 from tradingplatformpoc import trading_platform_utils
 from tradingplatformpoc.agent.iagent import IAgent, get_price_and_market_to_use_when_buying, \
     get_price_and_market_to_use_when_selling
-from tradingplatformpoc.digitaltwin.heat_pump import HeatPump
+from tradingplatformpoc.digitaltwin import heat_pump
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.market.bid import Action, GrossBid, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.market.trade import Trade, TradeMetadataKey
@@ -26,7 +26,8 @@ class BuildingAgent(IAgent):
     electricity_pricing: ElectricityPrice
     digital_twin: StaticDigitalTwin
     n_heat_pumps: int
-    workloads_data: OrderedDict[int, Tuple[float, float]]  # Keys should be strictly increasing
+    workloads_data_high_heat: OrderedDict[int, Tuple[float, float]]  # Keys should be strictly increasing
+    workloads_data_low_heat: OrderedDict[int, Tuple[float, float]]  # Keys should be strictly increasing
     allow_sell_heat: bool
 
     def __init__(self, heat_pricing: HeatingPrice, electricity_pricing: ElectricityPrice,
@@ -37,7 +38,10 @@ class BuildingAgent(IAgent):
         self.electricity_pricing = electricity_pricing
         self.digital_twin = digital_twin
         self.n_heat_pumps = nbr_heat_pumps
-        self.workloads_data = construct_workloads_data(coeff_of_perf, nbr_heat_pumps)
+        self.workloads_data_high_heat = construct_workloads_data(coeff_of_perf, nbr_heat_pumps,
+                                                                 heat_pump.calculate_for_all_workloads_for_high_heat)
+        self.workloads_data_low_heat = construct_workloads_data(coeff_of_perf, nbr_heat_pumps,
+                                                                heat_pump.calculate_for_all_workloads_for_low_heat)
         self.allow_sell_heat = False
 
     def make_bids(self, period: datetime.datetime, clearing_prices_historical: Union[Dict[datetime.datetime, Dict[
@@ -79,6 +83,8 @@ class BuildingAgent(IAgent):
         heat_wholesale_price = self.heat_pricing.\
             get_estimated_wholesale_price(period)
 
+        # TODO: Get demand of low- and high-heat, figure out what can be bought on the local market, and what we'll have
+        #  to generate ourselves
         elec_net_consumption_pred = self.make_prognosis(period, Resource.ELECTRICITY)
         heat_net_consumption_pred = self.make_prognosis(period, Resource.HEATING)
         elec_clearing_price = clearing_prices[Resource.ELECTRICITY]
@@ -86,8 +92,8 @@ class BuildingAgent(IAgent):
         # Re-calculate optimal workload, now that prices are known
         workload_to_use = self.calculate_optimal_workload(elec_net_consumption_pred, heat_net_consumption_pred,
                                                           elec_clearing_price, heat_clearing_price)
-        elec_needed_for_1_heat_pump = self.workloads_data[workload_to_use][0]
-        heat_output_for_1_heat_pump = self.workloads_data[workload_to_use][1]
+        elec_needed_for_1_heat_pump = self.workloads_data_high_heat[workload_to_use][0]
+        heat_output_for_1_heat_pump = self.workloads_data_high_heat[workload_to_use][1]
 
         # Now, the trading period "happens", some resources are consumed, some produced...
         elec_usage = self.get_actual_usage(period, Resource.ELECTRICITY)
@@ -147,12 +153,15 @@ class BuildingAgent(IAgent):
         Note that if the agent doesn't have any heat pumps, this method will still work.
         """
 
+        # TODO: Get demand of low- and high-heat, figure out what can be bought on the local market, and what we'll have
+        #  to generate ourselves
+
         heat_net_consumption = self.make_prognosis(period, Resource.HEATING)
         elec_net_consumption = self.make_prognosis(period, Resource.ELECTRICITY)  # Negative means net production
         workload_to_use = self.calculate_optimal_workload(elec_net_consumption, heat_net_consumption, pred_elec_price,
                                                           pred_heat_price)
-        elec_needed_for_1_heat_pump = self.workloads_data[workload_to_use][0]
-        heat_output_for_1_heat_pump = self.workloads_data[workload_to_use][1]
+        elec_needed_for_1_heat_pump = self.workloads_data_high_heat[workload_to_use][0]
+        heat_output_for_1_heat_pump = self.workloads_data_high_heat[workload_to_use][1]
 
         # Now we have decided what workload to use. Next, construct bids
         bids = []
@@ -176,7 +185,7 @@ class BuildingAgent(IAgent):
             bids.append(self.construct_sell_heat_bid(period, -heat_net_consumption_incl_pump, pred_heat_price,
                                                      self.heat_pricing.heat_transfer_loss_per_side))
         return bids
-    
+
     def calculate_optimal_workload(self, elec_net_consumption: float, heat_net_consumption: float,
                                    pred_elec_price: float, pred_heat_price: float) -> int:
         """
@@ -184,6 +193,7 @@ class BuildingAgent(IAgent):
         lowest cost - the cost stemming from the import of electricity and/or heating, minus any income from electricity
         sold.
         """
+        # TODO: Probably also calculate whether to generate high- or low-tempered heat
         # Gross price, since we are interested in calculating our potential profit
         elec_sell_price = self.electricity_pricing.get_electricity_gross_internal_price(pred_elec_price)
         heat_sell_price = pred_heat_price if self.allow_sell_heat else 0
@@ -191,7 +201,7 @@ class BuildingAgent(IAgent):
         # Converting workload ordered dict into numpy array for faster computing
         # Columns: Workload, electricity input, heating output
         workload_elec_heat_array = np.array([np.array([workload, vals[0], vals[1]])
-                                             for workload, vals in self.workloads_data.items()])
+                                             for workload, vals in self.workloads_data_high_heat.items()])
         elec = workload_elec_heat_array[:, 1]
         heat = workload_elec_heat_array[:, 2]
 
@@ -225,7 +235,7 @@ def demand(net_consumption_incl_pump: np.ndarray) -> np.ndarray:
     return np.maximum(np.zeros(len(net_consumption_incl_pump)), net_consumption_incl_pump)
 
 
-def construct_workloads_data(coeff_of_perf: Optional[float], n_heat_pumps: int) -> \
+def construct_workloads_data(coeff_of_perf: Optional[float], n_heat_pumps: int, heat_pump_method: Callable) -> \
         OrderedDict[int, Tuple[float, float]]:
     """
     Will construct a pd.DataFrame with three columns: workload, input, and output.
@@ -237,5 +247,5 @@ def construct_workloads_data(coeff_of_perf: Optional[float], n_heat_pumps: int) 
         ordered_dict[0] = (0.0, 0.0)
         return ordered_dict
     if coeff_of_perf is None:
-        return HeatPump.calculate_for_all_workloads()
-    return HeatPump.calculate_for_all_workloads(coeff_of_perf=coeff_of_perf)
+        return heat_pump_method()
+    return heat_pump_method(coeff_of_perf=coeff_of_perf)
