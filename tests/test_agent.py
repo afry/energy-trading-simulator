@@ -263,7 +263,7 @@ class TestBatteryAgent(unittest.TestCase):
 
     def test_make_bids_without_historical_prices_and_only_5_days_of_nordpool_prices(self):
         """Test that an INFO is logged when calling BatteryAgent's make_bids for a time period when there are only
-        five day's worth of entries of Nordpool data available."""
+        five days worth of entries of Nordpool data available."""
         quite_early_datetime = electricity_pricing.get_external_price_data_datetimes()[120]
         with self.assertLogs() as captured:
             self.battery_agent.make_bids(quite_early_datetime, {})
@@ -438,14 +438,14 @@ class TestBuildingAgentHeatPump(TestCase):
     def test_construct_workloads_df(self):
         """Test that when a BuildingAgent doesn't have any heat pumps, the workloads data frame is still created as
         expected, with just one row, corresponding to not running any heat pump."""
-        with_0_pumps = construct_workloads_data(None, 0)
+        with_0_pumps = construct_workloads_data(None, 0, 55)
         self.assertEqual(1, len(with_0_pumps))
         self.assertEqual(0, list(with_0_pumps.keys())[0])
 
     def test_workloads_data(self):
         """Assert that when a different COP is specified, this is reflected in the workloads_data"""
-        workloads_data_low_cop = self.building_agent_3_pumps_custom_cop.workloads_data
-        workloads_data_high_cop = self.building_agent_2_pumps_default_cop.workloads_data
+        workloads_data_low_cop = self.building_agent_3_pumps_custom_cop.workloads_data_high_heat
+        workloads_data_high_cop = self.building_agent_2_pumps_default_cop.workloads_data_high_heat
         for i in np.arange(1, 10):
             lower_output = workloads_data_low_cop[i][1]
             higher_output = workloads_data_high_cop[i][1]
