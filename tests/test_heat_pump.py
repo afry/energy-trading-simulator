@@ -1,19 +1,21 @@
 from unittest import TestCase
 
 from tradingplatformpoc.digitaltwin import heat_pump
-from tradingplatformpoc.digitaltwin.heat_pump import ValueOutOfRangeError
+from tradingplatformpoc.digitaltwin.heat_pump import HIGH_HEAT_FORWARD_TEMP, ValueOutOfRangeError
 
 
 class Test(TestCase):
 
     def test_throughput_calculation(self):
         """Test that calculate_energy works in a reasonable way, and that specifying a COP works as intended"""
-        elec_input, heat_output = heat_pump.calculate_energy_for_high_heat(workload=6, brine_temp_c=0)
+        elec_input, heat_output = heat_pump.calculate_energy(workload=6, brine_temp_c=0,
+                                                             forward_temp_c=HIGH_HEAT_FORWARD_TEMP)
         cop_output = heat_output / elec_input
         self.assertAlmostEqual(2.55054754119921, cop_output)
 
         # If we want a "better" heat pump, assert that output COP increases by the correct amount
-        elec_input, heat_output = heat_pump.calculate_energy_for_high_heat(workload=6, brine_temp_c=0, coeff_of_perf=5)
+        elec_input, heat_output = heat_pump.calculate_energy(workload=6, brine_temp_c=0, coeff_of_perf=5,
+                                                             forward_temp_c=HIGH_HEAT_FORWARD_TEMP)
         better_cop_output = heat_output / elec_input
         cop_output_percent_increase = better_cop_output / cop_output
         cop_input_percent_increase = 5 / heat_pump.DEFAULT_COP
@@ -21,7 +23,7 @@ class Test(TestCase):
 
     def test_calculate_for_all_workloads(self):
         """Test that calculate_for_all_workloads produces some results, and that the results are strictly increasing."""
-        results = heat_pump.calculate_for_all_workloads_for_high_heat()
+        results = heat_pump.calculate_for_all_workloads(forward_temp_c=HIGH_HEAT_FORWARD_TEMP)
 
         self.assertEqual(11, len(results))
 

@@ -2,14 +2,15 @@ import datetime
 import logging
 import math
 from collections import OrderedDict
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
 from tradingplatformpoc import trading_platform_utils
 from tradingplatformpoc.agent.iagent import IAgent, get_price_and_market_to_use_when_buying, \
     get_price_and_market_to_use_when_selling
-from tradingplatformpoc.digitaltwin import heat_pump
+from tradingplatformpoc.digitaltwin.heat_pump import HIGH_HEAT_FORWARD_TEMP, LOW_HEAT_FORWARD_TEMP, \
+    calculate_for_all_workloads
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.market.bid import Action, GrossBid, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.market.trade import Trade, TradeMetadataKey
@@ -38,10 +39,8 @@ class BuildingAgent(IAgent):
         self.electricity_pricing = electricity_pricing
         self.digital_twin = digital_twin
         self.n_heat_pumps = nbr_heat_pumps
-        self.workloads_data_high_heat = construct_workloads_data(coeff_of_perf, nbr_heat_pumps,
-                                                                 heat_pump.calculate_for_all_workloads_for_high_heat)
-        self.workloads_data_low_heat = construct_workloads_data(coeff_of_perf, nbr_heat_pumps,
-                                                                heat_pump.calculate_for_all_workloads_for_low_heat)
+        self.workloads_data_high_heat = construct_workloads_data(coeff_of_perf, nbr_heat_pumps, HIGH_HEAT_FORWARD_TEMP)
+        self.workloads_data_low_heat = construct_workloads_data(coeff_of_perf, nbr_heat_pumps, LOW_HEAT_FORWARD_TEMP)
         self.allow_sell_heat = False
 
     def make_bids(self, period: datetime.datetime, clearing_prices_historical: Union[Dict[datetime.datetime, Dict[
@@ -235,17 +234,18 @@ def demand(net_consumption_incl_pump: np.ndarray) -> np.ndarray:
     return np.maximum(np.zeros(len(net_consumption_incl_pump)), net_consumption_incl_pump)
 
 
-def construct_workloads_data(coeff_of_perf: Optional[float], n_heat_pumps: int, heat_pump_method: Callable) -> \
+def construct_workloads_data(coeff_of_perf: Optional[float], n_heat_pumps: int, forward_temp_c: float) -> \
         OrderedDict[int, Tuple[float, float]]:
     """
     Will construct a pd.DataFrame with three columns: workload, input, and output.
     If there are no heat pumps (n_heat_pumps = 0), the returned data frame will have only one row, which corresponds
     to not running a heat pump at all.
     """
+    # Could move this to heat_pump?
     if n_heat_pumps == 0:
         ordered_dict = OrderedDict()
         ordered_dict[0] = (0.0, 0.0)
         return ordered_dict
     if coeff_of_perf is None:
-        return heat_pump_method()
-    return heat_pump_method(coeff_of_perf=coeff_of_perf)
+        return calculate_for_all_workloads(forward_temp_c=forward_temp_c)
+    return calculate_for_all_workloads(forward_temp_c=forward_temp_c, coeff_of_perf=coeff_of_perf)

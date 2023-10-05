@@ -12,7 +12,6 @@ from tradingplatformpoc.agent.battery_agent import BatteryAgent
 from tradingplatformpoc.agent.building_agent import BuildingAgent, construct_workloads_data
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
-from tradingplatformpoc.digitaltwin import heat_pump
 from tradingplatformpoc.digitaltwin.battery import Battery
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.market.bid import Action, NetBidWithAcceptanceStatus, Resource
@@ -439,7 +438,7 @@ class TestBuildingAgentHeatPump(TestCase):
     def test_construct_workloads_df(self):
         """Test that when a BuildingAgent doesn't have any heat pumps, the workloads data frame is still created as
         expected, with just one row, corresponding to not running any heat pump."""
-        with_0_pumps = construct_workloads_data(None, 0, heat_pump.calculate_energy_for_high_heat)
+        with_0_pumps = construct_workloads_data(None, 0, 55)
         self.assertEqual(1, len(with_0_pumps))
         self.assertEqual(0, list(with_0_pumps.keys())[0])
 

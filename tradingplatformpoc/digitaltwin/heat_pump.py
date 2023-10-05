@@ -123,8 +123,8 @@ def model_heat_output(forward_temp_c: float, rpm: float, brine_temp_c: float) ->
         HEAT_BRINE_TEMP_TIMES_RPM_COEF * brine_temp_c * rpm
 
 
-def calculate_energy(workload: int, forward_temp_c: float, brine_temp_c: float, coeff_of_perf: float) -> \
-        Tuple[float, float]:
+def calculate_energy(workload: int, forward_temp_c: float, brine_temp_c: float = DEFAULT_BRINE_TEMP,
+                     coeff_of_perf: float = DEFAULT_COP) -> Tuple[float, float]:
     """
     Use simple linear models to calculate the electricity needed, and amount of heat produced, for a medium-sized
     "Thermia" heat pump. See "simple_heat_pump_model.ipynb" in data-exploration project.
@@ -158,8 +158,8 @@ def calculate_energy(workload: int, forward_temp_c: float, brine_temp_c: float, 
     return predicted_elec, predicted_heat
 
 
-def calculate_for_all_workloads(forward_temp_c: float, brine_temp_c: float, coeff_of_perf: float) -> \
-        OrderedDict[int, Tuple[float, float]]:
+def calculate_for_all_workloads(forward_temp_c: float, brine_temp_c: float = DEFAULT_BRINE_TEMP,
+                                coeff_of_perf: float = DEFAULT_COP) -> OrderedDict[int, Tuple[float, float]]:
     """
     Returns an ordered dictionary where workload are keys, in increasing order. The values are pairs of floats, the
     first one being electricity needed, and the second one heating produced.
@@ -171,27 +171,3 @@ def calculate_for_all_workloads(forward_temp_c: float, brine_temp_c: float, coef
         ordered_dict[workload] = calculate_energy(workload, forward_temp_c, brine_temp_c, coeff_of_perf=coeff_of_perf)
 
     return ordered_dict
-
-
-def calculate_energy_for_high_heat(workload: int, brine_temp_c: float = DEFAULT_BRINE_TEMP,
-                                   coeff_of_perf: float = DEFAULT_COP) -> \
-        Tuple[float, float]:
-    return calculate_energy(workload, HIGH_HEAT_FORWARD_TEMP, brine_temp_c, coeff_of_perf)
-
-
-def calculate_energy_for_low_heat(workload: int, brine_temp_c: float = DEFAULT_BRINE_TEMP,
-                                  coeff_of_perf: float = DEFAULT_COP) -> \
-        Tuple[float, float]:
-    return calculate_energy(workload, LOW_HEAT_FORWARD_TEMP, brine_temp_c, coeff_of_perf)
-
-
-def calculate_for_all_workloads_for_high_heat(brine_temp_c: float = DEFAULT_BRINE_TEMP,
-                                              coeff_of_perf: float = DEFAULT_COP) -> \
-        OrderedDict[int, Tuple[float, float]]:
-    return calculate_for_all_workloads(HIGH_HEAT_FORWARD_TEMP, brine_temp_c, coeff_of_perf)
-
-
-def calculate_for_all_workloads_for_low_heat(brine_temp_c: float = DEFAULT_BRINE_TEMP,
-                                             coeff_of_perf: float = DEFAULT_COP) -> \
-        OrderedDict[int, Tuple[float, float]]:
-    return calculate_for_all_workloads(LOW_HEAT_FORWARD_TEMP, brine_temp_c, coeff_of_perf)
