@@ -1,20 +1,21 @@
 from unittest import TestCase
 
 from tradingplatformpoc.digitaltwin import heat_pump
-from tradingplatformpoc.digitaltwin.heat_pump import HeatPump, ValueOutOfRangeError
+from tradingplatformpoc.digitaltwin.heat_pump import HIGH_HEAT_FORWARD_TEMP, ValueOutOfRangeError
 
 
 class Test(TestCase):
 
     def test_throughput_calculation(self):
         """Test that calculate_energy works in a reasonable way, and that specifying a COP works as intended"""
-        elec_input, heat_output = HeatPump.calculate_energy(workload=6, forward_temp_c=60, brine_temp_c=0)
+        elec_input, heat_output = heat_pump.calculate_energy(workload=6, brine_temp_c=0,
+                                                             forward_temp_c=HIGH_HEAT_FORWARD_TEMP)
         cop_output = heat_output / elec_input
-        self.assertAlmostEqual(2.7613787873898135, cop_output)
+        self.assertAlmostEqual(2.55054754119921, cop_output)
 
         # If we want a "better" heat pump, assert that output COP increases by the correct amount
-        elec_input, heat_output = HeatPump.calculate_energy(workload=6, forward_temp_c=60, brine_temp_c=0,
-                                                            coeff_of_perf=5)
+        elec_input, heat_output = heat_pump.calculate_energy(workload=6, brine_temp_c=0, coeff_of_perf=5,
+                                                             forward_temp_c=HIGH_HEAT_FORWARD_TEMP)
         better_cop_output = heat_output / elec_input
         cop_output_percent_increase = better_cop_output / cop_output
         cop_input_percent_increase = 5 / heat_pump.DEFAULT_COP
@@ -22,9 +23,7 @@ class Test(TestCase):
 
     def test_calculate_for_all_workloads(self):
         """Test that calculate_for_all_workloads produces some results, and that the results are strictly increasing."""
-        test_pump = heat_pump.HeatPump()
-
-        results = test_pump.calculate_for_all_workloads()
+        results = heat_pump.calculate_for_all_workloads(forward_temp_c=HIGH_HEAT_FORWARD_TEMP)
 
         self.assertEqual(11, results.shape[0])
 
@@ -37,16 +36,16 @@ class Test(TestCase):
         self.assertTrue(strictly_increasing(results[:, 2]))  # Tests output heating
 
     def test_logging(self):
-        """Test that heat pump methods log warnings when inputs are outside of expected range"""
+        """Test that heat pump methods log warnings when inputs are outside expected range"""
         with self.assertLogs() as captured:
             elec_needed = heat_pump.model_elec_needed(70, 8000)
             self.assertAlmostEqual(25.3237594, elec_needed)
-        self.assertEqual(len(captured.records), 2)
+        self.assertEqual(len(captured.records), 1)
 
         with self.assertLogs() as captured:
             heat_output = heat_pump.model_heat_output(70, 8000, -11)
             self.assertAlmostEqual(37.312527, heat_output)
-        self.assertEqual(len(captured.records), 3)
+        self.assertEqual(len(captured.records), 2)
 
     def test_map_workload_to_rpm(self):
         """Test that map_workload_to_rpm throws an error when input is outside expected range"""
