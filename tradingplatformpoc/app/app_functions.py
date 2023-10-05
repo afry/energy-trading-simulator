@@ -117,7 +117,7 @@ def make_room_for_menu_in_sidebar():
     st.sidebar.markdown("""
         <style>
         [data-testid='stSidebarNav'] > ul {
-            min-height: 47vh;
+            min-height: 58vh;
         }
         </style>
         """, unsafe_allow_html=True)
