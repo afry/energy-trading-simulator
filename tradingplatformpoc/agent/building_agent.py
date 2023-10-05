@@ -8,8 +8,7 @@ import numpy as np
 from tradingplatformpoc import trading_platform_utils
 from tradingplatformpoc.agent.iagent import IAgent, get_price_and_market_to_use_when_buying, \
     get_price_and_market_to_use_when_selling
-from tradingplatformpoc.digitaltwin.heat_pump import HIGH_HEAT_FORWARD_TEMP, LOW_HEAT_FORWARD_TEMP, \
-    calculate_for_all_workloads
+from tradingplatformpoc.digitaltwin.heat_pump import HIGH_HEAT_FORWARD_TEMP, LOW_HEAT_FORWARD_TEMP, Workloads
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.market.bid import Action, GrossBid, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.market.trade import Trade, TradeMetadataKey
@@ -26,8 +25,8 @@ class BuildingAgent(IAgent):
     electricity_pricing: ElectricityPrice
     digital_twin: StaticDigitalTwin
     n_heat_pumps: int
-    workloads_data_high_heat: np.array  # Keys should be strictly increasing
-    workloads_data_low_heat: np.array  # Keys should be strictly increasing
+    workloads_high_heat: Workloads
+    workloads_low_heat: Workloads
     allow_sell_heat: bool
 
     def __init__(self, heat_pricing: HeatingPrice, electricity_pricing: ElectricityPrice,
@@ -38,8 +37,8 @@ class BuildingAgent(IAgent):
         self.electricity_pricing = electricity_pricing
         self.digital_twin = digital_twin
         self.n_heat_pumps = nbr_heat_pumps
-        self.workloads_data_high_heat = construct_workloads_data(coeff_of_perf, nbr_heat_pumps, HIGH_HEAT_FORWARD_TEMP)
-        self.workloads_data_low_heat = construct_workloads_data(coeff_of_perf, nbr_heat_pumps, LOW_HEAT_FORWARD_TEMP)
+        self.workloads_high_heat = Workloads(coeff_of_perf, nbr_heat_pumps, HIGH_HEAT_FORWARD_TEMP)
+        self.workloads_low_heat = Workloads(coeff_of_perf, nbr_heat_pumps, LOW_HEAT_FORWARD_TEMP)
         self.allow_sell_heat = False
 
     def make_bids(self, period: datetime.datetime, clearing_prices_historical: Union[Dict[datetime.datetime, Dict[
@@ -183,7 +182,7 @@ class BuildingAgent(IAgent):
         return bids
 
     def calculate_optimal_workload(self, elec_net_consumption: float, heat_net_consumption: float,
-                                   pred_elec_price: float, pred_heat_price: float) -> np.array:
+                                   pred_elec_price: float, pred_heat_price: float) -> np.ndarray:
         """
         Calculates the optimal workload to run the agent's heat pumps. "Optimal" is the workload which leads to the
         lowest cost - the cost stemming from the import of electricity and/or heating, minus any income from electricity
@@ -195,8 +194,8 @@ class BuildingAgent(IAgent):
         heat_sell_price = pred_heat_price if self.allow_sell_heat else 0
 
         # Columns: Workload, electricity input, heating output
-        elec = self.workloads_data_high_heat[:, 1]
-        heat = self.workloads_data_high_heat[:, 2]
+        elec = self.workloads_high_heat.workloads_data[:, 1]
+        heat = self.workloads_high_heat.workloads_data[:, 2]
 
         # Calculate electricity supply and demand
         elec_net_consumption_incl_pump = elec_net_consumption + elec * self.n_heat_pumps
@@ -215,7 +214,7 @@ class BuildingAgent(IAgent):
 
         # Find workload for minimum expected cost
         index_of_min_cost = np.argmin(expected_cost)
-        return self.workloads_data_high_heat[index_of_min_cost, :]
+        return self.workloads_high_heat.workloads_data[index_of_min_cost, :]
 
 
 def supply(net_consumption_incl_pump: np.ndarray) -> np.ndarray:
@@ -226,18 +225,3 @@ def supply(net_consumption_incl_pump: np.ndarray) -> np.ndarray:
 def demand(net_consumption_incl_pump: np.ndarray) -> np.ndarray:
     """Return demand if consumption is positive, otherwise zero."""
     return np.maximum(np.zeros(len(net_consumption_incl_pump)), net_consumption_incl_pump)
-
-
-def construct_workloads_data(coeff_of_perf: Optional[float], n_heat_pumps: int, forward_temp_c: float) -> \
-        np.array:
-    """
-    Will construct a pd.DataFrame with three columns: workload, input, and output.
-    If there are no heat pumps (n_heat_pumps = 0), the returned data frame will have only one row, which corresponds
-    to not running a heat pump at all.
-    """
-    # Could move this to heat_pump?
-    if n_heat_pumps == 0:
-        return np.zeros([1, 3])
-    if coeff_of_perf is None:
-        return calculate_for_all_workloads(forward_temp_c=forward_temp_c)
-    return calculate_for_all_workloads(forward_temp_c=forward_temp_c, coeff_of_perf=coeff_of_perf)
