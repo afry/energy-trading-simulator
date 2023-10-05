@@ -99,8 +99,9 @@ def model_heat_output(forward_temp_c: float, rpm: float, brine_temp_c: float) ->
     table. This work is done in "simple_heat_pump_model.ipynb" in data-exploration project.
 
     @param forward_temp_c: A float describing the forward temperature in degrees Celsius. In the data used to fit this
-        model we only had two unique values of this parameter: 35 and 55. Therefore, this method will log a warning if
-        this parameter is < 30 or > 60.
+        model we only had two unique values of this parameter: 35 and 55. Our models use this parameter linearly, so
+        it won't do anything crazy outside of this interval, but it will likely be less accurate. Therefore, this method
+        will log a debug-warning if this parameter is < 30 or > 60.
     @param rpm: A float describing the revolutions per minute. In the data used to fit this model, this parameter ranged
         between 1500 and 6000. Therefore, this method will log a warning if this parameter is < 1000 or > 7000.
     @param brine_temp_c: A float describing the brine fluid temperature in degrees Celsius. In the data used to fit this
@@ -110,8 +111,8 @@ def model_heat_output(forward_temp_c: float, rpm: float, brine_temp_c: float) ->
     @return An estimate of the heat produced, in kW, to run the heat pump with the given settings
     """
     if forward_temp_c < 30 or forward_temp_c > 60:
-        logger.warning("Heat pump electricity consumption model was fit with forward temperature values of 35 and 55, "
-                       "but got {} as input!".format(forward_temp_c))
+        logger.debug("Heat pump electricity consumption model was fit with forward temperature values of 35 and 55, "
+                     "but got {} as input!".format(forward_temp_c))
     if rpm < 1000 or rpm > 7000:
         logger.warning("Heat pump electricity consumption model was fit with RPM values from 1500 to 6000, "
                        "but got {} as input!".format(rpm))

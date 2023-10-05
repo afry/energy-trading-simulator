@@ -40,12 +40,12 @@ class Test(TestCase):
         with self.assertLogs() as captured:
             elec_needed = heat_pump.model_elec_needed(70, 8000)
             self.assertAlmostEqual(25.3237594, elec_needed)
-        self.assertEqual(len(captured.records), 2)
+        self.assertEqual(len(captured.records), 1)
 
         with self.assertLogs() as captured:
             heat_output = heat_pump.model_heat_output(70, 8000, -11)
             self.assertAlmostEqual(37.312527, heat_output)
-        self.assertEqual(len(captured.records), 3)
+        self.assertEqual(len(captured.records), 2)
 
     def test_map_workload_to_rpm(self):
         """Test that map_workload_to_rpm throws an error when input is outside expected range"""
