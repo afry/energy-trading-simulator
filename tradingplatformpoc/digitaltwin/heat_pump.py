@@ -45,7 +45,7 @@ def map_workload_to_rpm(workload: float, rpm_min: float = RPM_MIN, rpm_max: floa
     expected to be in the range 1 - 10.
     """
     if workload < MIN_WORKLOAD or workload > MAX_WORKLOAD:
-        raise ValueOutOfRangeError("Input workload is out of range [0:100]")
+        raise ValueOutOfRangeError("Input workload is out of range [1:10]")
     # --- Define ranges
     workload_range = MAX_WORKLOAD - MIN_WORKLOAD
     rpm_range = rpm_max - rpm_min
@@ -69,16 +69,17 @@ def model_elec_needed(forward_temp_c: float, rpm: float) -> float:
     This work is done in "simple_heat_pump_model.ipynb" in data-exploration project.
 
     @param forward_temp_c: A float describing the forward temperature in degrees Celsius. In the data used to fit this
-        model we only had two unique values of this parameter: 35 and 55. Therefore, this method will log a warning if
-        this parameter is < 30 or > 60.
+        model we only had two unique values of this parameter: 35 and 55. Our models use this parameter linearly, so
+        it won't do anything crazy outside of this interval, but it will likely be less accurate. Therefore, this method
+        will log a debug-warning if this parameter is < 30 or > 60.
     @param rpm: A float describing the revolutions per minute. In the data used to fit this model, this parameter ranged
         between 1500 and 6000. Therefore, this method will log a warning if this parameter is < 1000 or > 7000.
 
     @return An estimate of the electricity needed, in kW, to run the heat pump with the given settings
     """
     if forward_temp_c < 30 or forward_temp_c > 60:
-        logger.warning("Heat pump electricity consumption model was fit with forward temperature values of 35 and 55, "
-                       "but got {} as input!".format(forward_temp_c))
+        logger.debug("Heat pump electricity consumption model was fit with forward temperature values of 35 and 55, "
+                     "but got {} as input!".format(forward_temp_c))
     if rpm < 1000 or rpm > 7000:
         logger.warning("Heat pump electricity consumption model was fit with RPM values from 1500 to 6000, "
                        "but got {} as input!".format(rpm))
