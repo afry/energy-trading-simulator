@@ -194,8 +194,8 @@ class BuildingAgent(IAgent):
         heat_sell_price = pred_heat_price if self.allow_sell_heat else 0
 
         # Columns: Workload, electricity input, heating output
-        elec = self.workloads_high_heat.workloads_data[:, 1]
-        heat = self.workloads_high_heat.workloads_data[:, 2]
+        elec = self.workloads_high_heat.get_electricity_in_for_workloads()
+        heat = self.workloads_high_heat.get_heating_out_for_workloads()
 
         # Calculate electricity supply and demand
         elec_net_consumption_incl_pump = elec_net_consumption + elec * self.n_heat_pumps
@@ -214,7 +214,7 @@ class BuildingAgent(IAgent):
 
         # Find workload for minimum expected cost
         index_of_min_cost = np.argmin(expected_cost)
-        return self.workloads_high_heat.workloads_data[index_of_min_cost, :]
+        return self.workloads_high_heat.get_workloads_data_from_index(index_of_min_cost)
 
 
 def supply(net_consumption_incl_pump: np.ndarray) -> np.ndarray:

@@ -196,3 +196,23 @@ class Workloads:
         if coeff_of_perf is None:
             return calculate_for_all_workloads(forward_temp_c=forward_temp_c)
         return calculate_for_all_workloads(forward_temp_c=forward_temp_c, coeff_of_perf=coeff_of_perf)
+    
+    def get_lookup_table(self) -> np.ndarray:
+        """Get workloads lookup table"""
+        return self.workloads_data
+
+    def get_possible_workloads(self) -> np.ndarray:
+        """Get all possible workloads in lookup table"""
+        return self.workloads_data[:, 0]
+    
+    def get_electricity_in_for_workloads(self) -> np.ndarray:
+        """Get quantities of electricity needed, correspondig to the workloads in the lookup table"""
+        return self.workloads_data[:, 1]
+
+    def get_heating_out_for_workloads(self) -> np.ndarray:
+        """Get quantities of heating outputed, correspondig to the workloads in the lookup table"""
+        return self.workloads_data[:, 2]
+
+    def get_workloads_data_from_index(self, index) -> np.ndarray:
+        """Get workload, electricity in and workload out for specified index in the lookup table"""
+        return self.workloads_data[index, :]
