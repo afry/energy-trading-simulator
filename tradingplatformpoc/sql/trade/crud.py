@@ -42,23 +42,20 @@ def electr_trades_for_periods_to_df(job_id: str, resource: Resource, action: Act
                                     = session_scope) -> pd.DataFrame:
     """Get the summed amount of electricity used each period for all agents combined.
     """
-
     with session_generator() as db:
-        trades = db.execute(select((TableTrade.period,
-                                    TableTrade.job_id,
-                                    TableTrade.resource,
-                                    TableTrade.action,
-                                    TableTrade.quantity_pre_loss),
-                            func.sum(TableTrade.quantity_pre_loss))
+        trades = db.execute(select(TableTrade.period,
+                            func.sum(TableTrade.quantity_pre_loss).label("total_quantity"),
+                            func.to_char(TableTrade.period, 'D').label("weekday"))
+                            .where(TableTrade.job_id == job_id,
+                                   TableTrade.resource == resource,
+                                   TableTrade.action == action,
+                                   TableTrade.period.in_(trading_periods))
                             .group_by(TableTrade.period)
-                            .order_by(TableTrade.period)
-                            .filter(TableTrade.job_id == job_id,
-                                    TableTrade.resource == resource,
-                                    TableTrade.action == action,
-                                    TableTrade.period.in_(trading_periods))).all()
+                            .order_by(TableTrade.period)).all()
         return pd.DataFrame.from_records([{'period': trade.period,
-                                           'quantity_pre_loss': trade.quantity_pre_loss,
-                                           } for (trade, ) in trades])
+                                           'total_quantity': trade.total_quantity,
+                                           'weekday': trade.weekday
+                                           } for trade in trades])
 
 
 def db_to_trade_df(job_id: str,
