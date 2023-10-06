@@ -1,6 +1,7 @@
 
 import datetime
 from typing import Any, Dict, List, Tuple
+import numpy as np
 
 import pandas as pd
 from pandas.io.formats.style import Styler
@@ -116,8 +117,19 @@ def aggregated_import_results_df_split_on_winter(job_id: str) -> Tuple[pd.DataFr
   
     winter = electr_trades_for_periods_to_df(job_id, Resource.ELECTRICITY, Action.BUY, jan_feb_periods)
     summer = electr_trades_for_periods_to_df(job_id, Resource.ELECTRICITY, Action.BUY, march_to_dec_periods)
-    return winter, summer
+    return avg_weekday_electricity(winter), avg_weekday_electricity(summer)
 
+
+def avg_weekday_electricity(df: pd.DataFrame) -> pd.DataFrame:
+
+    mean_df = df.groupby(['weekday', 'hour']).agg({'total_quantity': [np.mean, np.std]})
+    mean_df.columns = ['mean_total_elec', 'std_total_elec']
+    mean_df.reset_index(inplace=True)
+    mean_df['hour'] = mean_df['hour'].astype('int')
+    # mean_df['Time'] = pd.to_timedelta(df['hour'].astype('int'), unit='h').astype('str')
+
+    return mean_df
+  
 
 def aggregated_import_and_export_results_df_split_on_mask(job_id: str, periods: List[datetime.datetime],
                                                           mask_colnames: List[str]) -> Dict[str, pd.DataFrame]:

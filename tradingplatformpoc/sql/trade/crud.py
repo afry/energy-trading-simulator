@@ -45,7 +45,8 @@ def electr_trades_for_periods_to_df(job_id: str, resource: Resource, action: Act
     with session_generator() as db:
         trades = db.execute(select(TableTrade.period,
                             func.sum(TableTrade.quantity_pre_loss).label("total_quantity"),
-                            func.to_char(TableTrade.period, 'D').label("weekday"))
+                            func.to_char(TableTrade.period, 'D').label("weekday"),
+                            func.extract("HOUR", TableTrade.period).label("hour"))
                             .where(TableTrade.job_id == job_id,
                                    TableTrade.resource == resource,
                                    TableTrade.action == action,
@@ -54,7 +55,8 @@ def electr_trades_for_periods_to_df(job_id: str, resource: Resource, action: Act
                             .order_by(TableTrade.period)).all()
         return pd.DataFrame.from_records([{'period': trade.period,
                                            'total_quantity': trade.total_quantity,
-                                           'weekday': trade.weekday
+                                           'weekday': trade.weekday,
+                                           'hour': trade.hour
                                            } for trade in trades])
 
 

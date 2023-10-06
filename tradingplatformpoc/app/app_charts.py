@@ -178,3 +178,19 @@ def construct_storage_level_chart(storage_levels_df: pd.DataFrame) -> alt.Chart:
     range_dash = [[0, 0]]
     return altair_line_chart(storage_levels_df, domain, range_color, range_dash,
                              "Capacity [kWh]", "Charging level")
+
+
+def construct_avg_day_elec_chart(elec_use_df: pd.DataFrame) -> alt.Chart:
+
+    error_bars = alt.Chart(elec_use_df).mark_errorbar(extent="stdev").encode(
+        x=alt.X("hour"),
+        y=alt.Y("std_total_elec"))
+
+    points = alt.Chart(elec_use_df).mark_point(
+        filled=True, color="black"
+    ).encode(
+        x=alt.Y("hour"),
+        y=alt.X("mean_total_elec"),
+        color=alt.Color('weekday', scale=None))
+
+    return points + error_bars
