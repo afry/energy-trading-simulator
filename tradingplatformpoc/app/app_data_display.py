@@ -22,8 +22,8 @@ from tradingplatformpoc.sql.input_data.crud import get_periods_from_db, read_inp
     read_inputs_df_for_agent_creation
 from tradingplatformpoc.sql.input_electricity_price.crud import electricity_price_df_from_db
 from tradingplatformpoc.sql.mock_data.crud import db_to_mock_data_df, get_mock_data_agent_pairs_in_db
-from tradingplatformpoc.sql.trade.crud import db_to_trades_by_agent_and_resource_action, electr_trades_for_periods_to_df, get_total_import_export, \
-    get_total_traded_for_agent
+from tradingplatformpoc.sql.trade.crud import db_to_trades_by_agent_and_resource_action, \
+    electr_trades_for_periods_to_df, get_total_import_export, get_total_traded_for_agent
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod
 
 
