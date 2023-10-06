@@ -182,7 +182,8 @@ class Workloads:
     def __init__(self, coeff_of_perf: Optional[float], nbr_heat_pumps: int, forward_temp_c: float):
         self.workloads_data = self.construct_workloads_data(coeff_of_perf, nbr_heat_pumps, forward_temp_c)
 
-    def construct_workloads_data(self, coeff_of_perf: Optional[float], n_heat_pumps: int, forward_temp_c: float) -> \
+    @staticmethod
+    def construct_workloads_data(coeff_of_perf: Optional[float], n_heat_pumps: int, forward_temp_c: float) -> \
             np.ndarray:
         """
         Will construct a pd.DataFrame with three columns: workload, input (electricity), and output (heating).
