@@ -209,7 +209,7 @@ class BuildingAgent(IAgent):
 
         # Calculate expected cost
         incomes = elec_supply * elec_sell_price + heat_supply * heat_sell_price
-        expenditures = elec_demand * pred_elec_price + heat_demand + pred_heat_price
+        expenditures = elec_demand * pred_elec_price + heat_demand * pred_heat_price
         expected_cost = expenditures - incomes
 
         # Find workload for minimum expected cost
