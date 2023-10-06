@@ -22,7 +22,7 @@ from tradingplatformpoc.sql.input_data.crud import get_periods_from_db, read_inp
     read_inputs_df_for_agent_creation
 from tradingplatformpoc.sql.input_electricity_price.crud import electricity_price_df_from_db
 from tradingplatformpoc.sql.mock_data.crud import db_to_mock_data_df, get_mock_data_agent_pairs_in_db
-from tradingplatformpoc.sql.trade.crud import db_to_trades_by_agent_and_resource_action, get_total_import_export, \
+from tradingplatformpoc.sql.trade.crud import db_to_trades_by_agent_and_resource_action, electr_trades_for_periods_to_df, get_total_import_export, \
     get_total_traded_for_agent
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod
 
@@ -101,6 +101,22 @@ def aggregated_taxes_and_fees_results_df(tax_paid: float, grid_fees_paid_on_inte
                         data=["{:.2f} SEK".format(tax_paid),
                               "{:.2f} SEK".format(grid_fees_paid_on_internal_trades)
                               ])
+
+
+def aggregated_import_results_df_split_on_winter(job_id: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Display total import and export for electricity and heat, computed for specified subsets.
+    @param job_id: Which job to get trades for
+    @return: Tuple of dataframes split by time period
+    """
+    periods = get_periods_from_db()
+    jan_feb_periods = [period for period in periods if period.month in [1, 2]]
+    march_to_dec_periods = [period for period in periods if period.month in
+                            [3, 4, 5, 6, 7, 8, 9, 10, 11, 12]]
+  
+    winter = electr_trades_for_periods_to_df(job_id, Resource.ELECTRICITY, Action.BUY, jan_feb_periods)
+    summer = electr_trades_for_periods_to_df(job_id, Resource.ELECTRICITY, Action.BUY, march_to_dec_periods)
+    return winter, summer
 
 
 def aggregated_import_and_export_results_df_split_on_mask(job_id: str, periods: List[datetime.datetime],
