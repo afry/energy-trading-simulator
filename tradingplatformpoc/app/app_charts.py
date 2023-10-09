@@ -4,6 +4,9 @@ import altair as alt
 
 import pandas as pd
 
+import plotly.express as px
+import plotly.graph_objects as go
+
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.market.bid import Action, Resource
@@ -180,8 +183,30 @@ def construct_storage_level_chart(storage_levels_df: pd.DataFrame) -> alt.Chart:
                              "Capacity [kWh]", "Charging level")
 
 
+"""
+fig = px.scatter(df, x="sepal_width", y="sepal_length", color="species",
+                 error_x="e", error_y="e")"""
+
+
 def construct_avg_day_elec_chart(elec_use_df: pd.DataFrame) -> alt.Chart:
 
+    """fig = go.Figure(data=go.Scatter(
+        x="hour",
+        y="mean_total_elec",
+        error_y="std_total_elec",
+        color="weekday")
+    )"""
+    
+    fig = px.line(elec_use_df, x='hour', y='mean_total_elec', error_y="std_total_elec",
+                  color='weekday', markers=True)
+
+
+    #fig = px.scatter(elec_use_df, x="hour", y="mean_total_elec", color="weekday",
+    #                 error_y="std_total_elec")
+    return fig
+
+    """
+    # 
     error_bars = alt.Chart(elec_use_df).mark_errorbar(extent="stdev").encode(
         x=alt.X("hour"),
         y=alt.Y("std_total_elec"))
@@ -189,8 +214,9 @@ def construct_avg_day_elec_chart(elec_use_df: pd.DataFrame) -> alt.Chart:
     points = alt.Chart(elec_use_df).mark_point(
         filled=True, color="black"
     ).encode(
-        x=alt.Y("hour"),
-        y=alt.X("mean_total_elec"),
-        color=alt.Color('weekday', scale=None))
+        y=alt.X("hour")
+        x=alt.Y("mean_total_elec"),
+        #color=alt.Color('weekday', scale=None)
+    )
 
-    return points + error_bars
+    return points + error_bars"""

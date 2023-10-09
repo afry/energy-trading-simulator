@@ -67,8 +67,9 @@ if len(ids) > 0:
                 chosen_id_to_view['job_id'])
             # st.dataframe(winter_elec_bought)
 
-            st.altair_chart(construct_avg_day_elec_chart(winter_elec_bought),
-                            use_container_width=True, theme=None)
+            st.plotly_chart(construct_avg_day_elec_chart(winter_elec_bought))
+            #st.altair_chart(construct_avg_day_elec_chart(winter_elec_bought),
+            #                use_container_width=True, theme=None)
 
             agg_buy_trades = db_to_aggregated_trade_df(chosen_id_to_view['job_id'],
                                                        resource, Action.BUY)
