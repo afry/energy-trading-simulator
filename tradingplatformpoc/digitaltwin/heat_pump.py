@@ -206,11 +206,11 @@ class Workloads:
         return self.workloads_data[:, 0]
     
     def get_electricity_in_for_workloads(self) -> np.ndarray:
-        """Get quantities of electricity needed, correspondig to the workloads in the lookup table"""
+        """Get quantities of electricity needed, corresponding to the workloads in the lookup table"""
         return self.workloads_data[:, 1]
 
     def get_heating_out_for_workloads(self) -> np.ndarray:
-        """Get quantities of heating outputed, correspondig to the workloads in the lookup table"""
+        """Get quantities of heating outputed, corresponding to the workloads in the lookup table"""
         return self.workloads_data[:, 2]
 
     def get_workloads_data_from_index(self, index) -> np.ndarray:
