@@ -9,10 +9,11 @@ import pandas as pd
 from tests import utility_test_objects
 
 from tradingplatformpoc.agent.battery_agent import BatteryAgent
-from tradingplatformpoc.agent.building_agent import BuildingAgent, construct_workloads_data
+from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.digitaltwin.battery import Battery
+from tradingplatformpoc.digitaltwin.heat_pump import Workloads
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.market.bid import Action, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.market.trade import Market, Trade
@@ -438,23 +439,24 @@ class TestBuildingAgentHeatPump(TestCase):
     def test_construct_workloads_df(self):
         """Test that when a BuildingAgent doesn't have any heat pumps, the workloads data frame is still created as
         expected, with just one row, corresponding to not running any heat pump."""
-        with_0_pumps = construct_workloads_data(None, 0, 55)
-        self.assertEqual(1, len(with_0_pumps))
-        self.assertEqual(0, list(with_0_pumps.keys())[0])
+        with_0_pumps = Workloads(None, 0, 55)
+        self.assertEqual(1, with_0_pumps.get_lookup_table().shape[0])
+        self.assertEqual(0, with_0_pumps.get_lookup_table()[0, 0])
 
     def test_workloads_data(self):
         """Assert that when a different COP is specified, this is reflected in the workloads_data"""
-        workloads_data_low_cop = self.building_agent_3_pumps_custom_cop.workloads_data_high_heat
-        workloads_data_high_cop = self.building_agent_2_pumps_default_cop.workloads_data_high_heat
+        workloads_data_low_cop = self.building_agent_3_pumps_custom_cop.workloads_high_heat.get_lookup_table()
+        workloads_data_high_cop = self.building_agent_2_pumps_default_cop.workloads_high_heat.get_lookup_table()
         for i in np.arange(1, 10):
-            lower_output = workloads_data_low_cop[i][1]
-            higher_output = workloads_data_high_cop[i][1]
+            lower_output = workloads_data_low_cop[i, 2]
+            higher_output = workloads_data_high_cop[i, 2]
             self.assertTrue(lower_output < higher_output)
 
     def test_optimal_workload(self):
         """Test calculation of optimal workload"""
-        optimal_workload = self.building_agent_2_pumps_default_cop.calculate_optimal_workload(12, 60, 2, 0.5)
-        self.assertEqual(6, optimal_workload)  # 7 if agent is allowed to sell heat
+
+        optimal_workload = self.building_agent_2_pumps_default_cop.calculate_optimal_workload(-10, 60, 2, 2.5)
+        self.assertEqual(6, optimal_workload[0])  # 10 if agent is allowed to sell heat
 
     def test_bid_with_heat_pump(self):
         """Test that bidding works as intended in a building agent which has some heat pumps."""

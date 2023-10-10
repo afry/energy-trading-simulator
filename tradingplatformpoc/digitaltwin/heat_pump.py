@@ -1,6 +1,5 @@
 import logging
-from collections import OrderedDict
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import numpy as np
 
@@ -161,15 +160,59 @@ def calculate_energy(workload: int, forward_temp_c: float, brine_temp_c: float =
 
 
 def calculate_for_all_workloads(forward_temp_c: float, brine_temp_c: float = DEFAULT_BRINE_TEMP,
-                                coeff_of_perf: float = DEFAULT_COP) -> OrderedDict[int, Tuple[float, float]]:
+                                coeff_of_perf: float = DEFAULT_COP) -> np.ndarray:
     """
     Returns an ordered dictionary where workload are keys, in increasing order. The values are pairs of floats, the
     first one being electricity needed, and the second one heating produced.
     """
     # Want to evaluate all possible gears, and also to not run the heat pump at all
     workloads: List[int] = [0] + POSSIBLE_WORKLOADS_WHEN_RUNNING
-    ordered_dict = OrderedDict()
-    for workload in workloads:
-        ordered_dict[workload] = calculate_energy(workload, forward_temp_c, brine_temp_c, coeff_of_perf=coeff_of_perf)
+    arr = np.empty([len(workloads), 3])
+    for i in range(len(workloads)):
+        arr[i, 0] = workloads[i]
+        arr[i, 1:] = calculate_energy(workloads[i], forward_temp_c, brine_temp_c,
+                                      coeff_of_perf=coeff_of_perf)
 
-    return ordered_dict
+    return arr
+
+
+class Workloads:
+    workloads_data: np.ndarray
+
+    def __init__(self, coeff_of_perf: Optional[float], nbr_heat_pumps: int, forward_temp_c: float):
+        self.workloads_data = self.construct_workloads_data(coeff_of_perf, nbr_heat_pumps, forward_temp_c)
+
+    @staticmethod
+    def construct_workloads_data(coeff_of_perf: Optional[float], n_heat_pumps: int, forward_temp_c: float) -> \
+            np.ndarray:
+        """
+        Will construct a pd.DataFrame with three columns: workload, input (electricity), and output (heating).
+        If there are no heat pumps (n_heat_pumps = 0), the returned data frame will have only one row, which corresponds
+        to not running a heat pump at all.
+        """
+        # Could move this to heat_pump?
+        if n_heat_pumps == 0:
+            return np.zeros([1, 3])
+        if coeff_of_perf is None:
+            return calculate_for_all_workloads(forward_temp_c=forward_temp_c)
+        return calculate_for_all_workloads(forward_temp_c=forward_temp_c, coeff_of_perf=coeff_of_perf)
+    
+    def get_lookup_table(self) -> np.ndarray:
+        """Get workloads lookup table"""
+        return self.workloads_data
+
+    def get_possible_workloads(self) -> np.ndarray:
+        """Get all possible workloads in lookup table"""
+        return self.workloads_data[:, 0]
+    
+    def get_electricity_in_for_workloads(self) -> np.ndarray:
+        """Get quantities of electricity needed, corresponding to the workloads in the lookup table"""
+        return self.workloads_data[:, 1]
+
+    def get_heating_out_for_workloads(self) -> np.ndarray:
+        """Get quantities of heating outputed, corresponding to the workloads in the lookup table"""
+        return self.workloads_data[:, 2]
+
+    def get_workloads_data_from_index(self, index) -> np.ndarray:
+        """Get workload, electricity in and workload out for specified index in the lookup table"""
+        return self.workloads_data[index, :]
