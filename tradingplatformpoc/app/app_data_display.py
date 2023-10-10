@@ -1,5 +1,6 @@
 
 import datetime
+from time import strptime
 from typing import Any, Dict, List, Tuple
 import numpy as np
 
@@ -104,20 +105,23 @@ def aggregated_taxes_and_fees_results_df(tax_paid: float, grid_fees_paid_on_inte
                               ])
 
 
-def aggregated_import_results_df_split_on_winter(job_id: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
+def aggregated_import_results_df_split_on_period(job_id: str, period: tuple) -> pd.DataFrame:
     """
-    Display total import and export for electricity and heat, computed for specified subsets.
+    Display total import and export for electricity and heat, computed for specified time period.
     @param job_id: Which job to get trades for
-    @return: Tuple of dataframes split by time period
+    @param period: The time period of interest (a tuple of strings)
+    @return: Dataframe split by time period
     """
-    periods = get_periods_from_db()
-    jan_feb_periods = [period for period in periods if period.month in [1, 2]]
-    march_to_dec_periods = [period for period in periods if period.month in
-                            [3, 4, 5, 6, 7, 8, 9, 10, 11, 12]]
+
+    start = strptime(period[0], '%b').tm_mon
+    end = strptime(period[1], '%b').tm_mon
+
+    all_periods = get_periods_from_db()
+    selected_period = [period for period in all_periods if period.month in
+                       list(range(start, end + 1, 1))]
   
-    winter = electr_trades_for_periods_to_df(job_id, Resource.ELECTRICITY, Action.BUY, jan_feb_periods)
-    summer = electr_trades_for_periods_to_df(job_id, Resource.ELECTRICITY, Action.BUY, march_to_dec_periods)
-    return avg_weekday_electricity(winter), avg_weekday_electricity(summer)
+    period_df = electr_trades_for_periods_to_df(job_id, Resource.ELECTRICITY, Action.BUY, selected_period)
+    return avg_weekday_electricity(period_df)
 
 
 def avg_weekday_electricity(df: pd.DataFrame) -> pd.DataFrame:

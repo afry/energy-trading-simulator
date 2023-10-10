@@ -8,7 +8,7 @@ import streamlit as st
 from tradingplatformpoc.app import footer
 from tradingplatformpoc.app.app_charts import construct_avg_day_elec_chart, construct_price_chart
 from tradingplatformpoc.app.app_data_display import aggregated_import_and_export_results_df_split_on_period, \
-    aggregated_import_and_export_results_df_split_on_temperature, aggregated_import_results_df_split_on_winter, \
+    aggregated_import_and_export_results_df_split_on_temperature, aggregated_import_results_df_split_on_period, \
     aggregated_local_production_df, construct_combined_price_df, get_price_df_when_local_price_inbetween
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.sql.clearing_price.crud import db_to_construct_local_prices_df
@@ -63,13 +63,17 @@ if len(ids) > 0:
     agg_tabs = st.tabs([resource.name.capitalize() for resource in resources])
     for resource, tab in zip(resources, agg_tabs):
         with tab:
-            winter_elec_bought, summer_elec_bought = aggregated_import_results_df_split_on_winter(
-                chosen_id_to_view['job_id'])
-            col_winter, col_summer = st.columns(2)
-            with col_winter:
-                st.altair_chart(construct_avg_day_elec_chart(winter_elec_bought, "Jan-Feb Electricity Trends"))
-            with col_summer:
-                st.altair_chart(construct_avg_day_elec_chart(summer_elec_bought, "Mar-Dec Electricity Trends"))
+
+            time_period = st.select_slider('Select which months to view',
+                                           options=['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                                                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                                           value=('Jan', 'Mar'))
+
+            time_period_elec_bought = aggregated_import_results_df_split_on_period(
+                chosen_id_to_view['job_id'], time_period)
+            
+            st.altair_chart(construct_avg_day_elec_chart(time_period_elec_bought, time_period),
+                            use_container_width=True)
 
             agg_buy_trades = db_to_aggregated_trade_df(chosen_id_to_view['job_id'],
                                                        resource, Action.BUY)
