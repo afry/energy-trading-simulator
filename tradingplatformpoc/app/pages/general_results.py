@@ -65,11 +65,11 @@ if len(ids) > 0:
         with tab:
             winter_elec_bought, summer_elec_bought = aggregated_import_results_df_split_on_winter(
                 chosen_id_to_view['job_id'])
-            # st.dataframe(winter_elec_bought)
-
-            st.plotly_chart(construct_avg_day_elec_chart(winter_elec_bought))
-            #st.altair_chart(construct_avg_day_elec_chart(winter_elec_bought),
-            #                use_container_width=True, theme=None)
+            col_winter, col_summer = st.columns(2)
+            with col_winter:
+                st.altair_chart(construct_avg_day_elec_chart(winter_elec_bought, "Jan-Feb Electricity Trends"))
+            with col_summer:
+                st.altair_chart(construct_avg_day_elec_chart(summer_elec_bought, "Mar-Dec Electricity Trends"))
 
             agg_buy_trades = db_to_aggregated_trade_df(chosen_id_to_view['job_id'],
                                                        resource, Action.BUY)

@@ -4,9 +4,6 @@ import altair as alt
 
 import pandas as pd
 
-import plotly.express as px
-import plotly.graph_objects as go
-
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.market.bid import Action, Resource
@@ -182,41 +179,37 @@ def construct_storage_level_chart(storage_levels_df: pd.DataFrame) -> alt.Chart:
     return altair_line_chart(storage_levels_df, domain, range_color, range_dash,
                              "Capacity [kWh]", "Charging level")
 
-
-"""
-fig = px.scatter(df, x="sepal_width", y="sepal_length", color="species",
-                 error_x="e", error_y="e")"""
-
-
-def construct_avg_day_elec_chart(elec_use_df: pd.DataFrame) -> alt.Chart:
-
-    """fig = go.Figure(data=go.Scatter(
-        x="hour",
-        y="mean_total_elec",
-        error_y="std_total_elec",
-        color="weekday")
-    )"""
     
-    fig = px.line(elec_use_df, x='hour', y='mean_total_elec', error_y="std_total_elec",
-                  color='weekday', markers=True)
+def construct_avg_day_elec_chart(elec_use_df: pd.DataFrame, title: str) -> alt.Chart:
 
+    title_str = title
+    var_title_str = "Total electricity consumed"
+    domain = list(pd.unique(elec_use_df['weekday']))
+    range_color = app_constants.ALTAIR_BASE_COLORS[:len(domain)]
 
-    #fig = px.scatter(elec_use_df, x="hour", y="mean_total_elec", color="weekday",
-    #                 error_y="std_total_elec")
-    return fig
+    alt_title = alt.TitleParams(title_str, anchor='middle')
+    selection = alt.selection_multi(fields=['weekday'], bind='legend')
 
-    """
-    # 
-    error_bars = alt.Chart(elec_use_df).mark_errorbar(extent="stdev").encode(
-        x=alt.X("hour"),
-        y=alt.Y("std_total_elec"))
+    elec_use_df['ymin'] = elec_use_df['mean_total_elec'] - elec_use_df['std_total_elec']
+    elec_use_df['ymax'] = elec_use_df['mean_total_elec'] + elec_use_df['std_total_elec']
 
-    points = alt.Chart(elec_use_df).mark_point(
-        filled=True, color="black"
-    ).encode(
-        y=alt.X("hour")
-        x=alt.Y("mean_total_elec"),
-        #color=alt.Color('weekday', scale=None)
+    base = alt.Chart(elec_use_df, title=alt_title)
+
+    points = base.mark_point(filled=True, size=80).encode(
+        x=alt.X('hour', axis=alt.Axis(title='Hour')),
+        y=alt.Y('mean_total_elec:Q', axis=alt.Axis(title=var_title_str), scale=alt.Scale(zero=False)),
+        color=alt.Color('weekday', scale=alt.Scale(domain=domain, range=range_color)),
+        opacity=alt.condition(selection, alt.value(0.7), alt.value(0.0))
     )
 
-    return points + error_bars"""
+    error_bars = base.mark_rule(strokeWidth=2).encode(
+        x='hour',
+        y='ymin:Q',
+        y2='ymax:Q',
+        color=alt.Color('weekday', scale=alt.Scale(domain=domain, range=range_color)),
+        opacity=alt.condition(selection, alt.value(0.8), alt.value(0.0))
+    )
+
+    combined_chart = points + error_bars
+
+    return combined_chart.add_selection(selection).interactive(bind_y=False)
