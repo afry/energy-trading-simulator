@@ -182,7 +182,7 @@ def construct_storage_level_chart(storage_levels_df: pd.DataFrame) -> alt.Chart:
     
 def construct_avg_day_elec_chart(elec_use_df: pd.DataFrame, period: tuple) -> alt.Chart:
 
-    title_str = "Electricity consumed from " + period[0] + " to " + period[1]
+    title_str = "Average hourly electricity consumed from " + period[0] + " to " + period[1]
     var_title_str = "Total electricity consumed"
     domain = list(pd.unique(elec_use_df['weekday']))
     range_color = app_constants.ALTAIR_BASE_COLORS[:len(domain)]

@@ -63,17 +63,17 @@ if len(ids) > 0:
     agg_tabs = st.tabs([resource.name.capitalize() for resource in resources])
     for resource, tab in zip(resources, agg_tabs):
         with tab:
+            if resource == Resource.ELECTRICITY:
+                time_period = st.select_slider('Select which months to view',
+                                               options=['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                                                        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                                               value=('Jan', 'Mar'))
 
-            time_period = st.select_slider('Select which months to view',
-                                           options=['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                                                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-                                           value=('Jan', 'Mar'))
+                time_period_elec_bought = aggregated_import_results_df_split_on_period(
+                    chosen_id_to_view['job_id'], time_period)
 
-            time_period_elec_bought = aggregated_import_results_df_split_on_period(
-                chosen_id_to_view['job_id'], time_period)
-            
-            st.altair_chart(construct_avg_day_elec_chart(time_period_elec_bought, time_period),
-                            use_container_width=True)
+                st.altair_chart(construct_avg_day_elec_chart(time_period_elec_bought, time_period),
+                                use_container_width=True)
 
             agg_buy_trades = db_to_aggregated_trade_df(chosen_id_to_view['job_id'],
                                                        resource, Action.BUY)
