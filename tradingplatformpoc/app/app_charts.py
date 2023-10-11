@@ -181,6 +181,10 @@ def construct_storage_level_chart(storage_levels_df: pd.DataFrame) -> alt.Chart:
 
     
 def construct_avg_day_elec_chart(elec_use_df: pd.DataFrame, period: tuple) -> alt.Chart:
+    """
+    Creates a chart of average monthly electricity use with points and error bars.
+    The points are colored by the weekday.
+    """
 
     title_str = "Average hourly electricity consumed from " + period[0] + " to " + period[1]
     var_title_str = "Average of total electricity consumed [kWh]"
