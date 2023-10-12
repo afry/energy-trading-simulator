@@ -71,13 +71,11 @@ if len(ids) > 0:
 
                 time_period_elec_bought = aggregated_import_results_df_split_on_period(
                     chosen_id_to_view['job_id'], time_period)
-                
+                st.caption("Hold *Shift* and click on multiple days in the legend to highlight them in the graph.")
                 st.altair_chart(construct_avg_day_elec_chart(time_period_elec_bought, time_period),
-                                use_container_width=True)
-                st.caption("Hold *Shift* and click on multiple days in the legend to highlight them in the graph. \
-                           The error bars are the standard deviation of the electricity used. The energy use is \
-                            calculated from trades, and therefore includes the electricity used for running heat \
-                            pumps.")
+                                use_container_width=True, theme=None)
+                st.caption("The energy use is calculated from trades, and therefore includes the electricity used \
+                           for running heat pumps. The error bars are the standard deviation of the electricity used.")
                 
             agg_buy_trades = db_to_aggregated_trade_df(chosen_id_to_view['job_id'],
                                                        resource, Action.BUY)
