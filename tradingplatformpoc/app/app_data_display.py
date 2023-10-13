@@ -1,6 +1,9 @@
 
 import datetime
+from time import strptime
 from typing import Any, Dict, List, Tuple
+
+import numpy as np
 
 import pandas as pd
 from pandas.io.formats.style import Styler
@@ -22,8 +25,8 @@ from tradingplatformpoc.sql.input_data.crud import get_periods_from_db, read_inp
     read_inputs_df_for_agent_creation
 from tradingplatformpoc.sql.input_electricity_price.crud import electricity_price_df_from_db
 from tradingplatformpoc.sql.mock_data.crud import db_to_mock_data_df, get_mock_data_agent_pairs_in_db
-from tradingplatformpoc.sql.trade.crud import db_to_trades_by_agent_and_resource_action, get_total_import_export, \
-    get_total_traded_for_agent
+from tradingplatformpoc.sql.trade.crud import db_to_trades_by_agent_and_resource_action, \
+    electr_trades_for_periods_to_df, get_total_import_export, get_total_traded_for_agent
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod
 
 
@@ -102,6 +105,39 @@ def aggregated_taxes_and_fees_results_df(tax_paid: float, grid_fees_paid_on_inte
                               "{:.2f} SEK".format(grid_fees_paid_on_internal_trades)
                               ])
 
+
+def aggregated_import_results_df_split_on_period(job_id: str, period: tuple) -> pd.DataFrame:
+    """
+    Display total import and export for electricity and heat, computed for specified time period.
+    @param job_id: Which job to get trades for
+    @param period: The time period of interest (a tuple of strings)
+    @return: Dataframe split by time period
+    """
+
+    start = strptime(period[0], '%b').tm_mon
+    end = strptime(period[1], '%b').tm_mon
+
+    all_periods = get_periods_from_db()
+    selected_period = [period for period in all_periods if period.month in
+                       list(range(start, end + 1, 1))]
+  
+    period_df = electr_trades_for_periods_to_df(job_id, Resource.ELECTRICITY, Action.BUY, selected_period)
+    return avg_weekday_electricity(period_df)
+
+
+def avg_weekday_electricity(df: pd.DataFrame) -> pd.DataFrame:
+
+    mean_df = df.groupby(['weekday', 'hour']).agg({'total_quantity': [np.mean, np.std]})
+    mean_df.columns = ['mean_total_elec', 'std_total_elec']
+    mean_df.reset_index(inplace=True)
+    mean_df['hour'] = mean_df['hour'].astype('int')
+    mean_df = mean_df.replace({"weekday": {"1": "Sunday", "2": "Monday",
+                                           "3": "Tuesday", "4": "Wednesday",
+                                           "5": "Thursday", "6": "Friday",
+                                           "7": "Saturday"}
+                               })
+    return mean_df
+  
 
 def aggregated_import_and_export_results_df_split_on_mask(job_id: str, periods: List[datetime.datetime],
                                                           mask_colnames: List[str]) -> Dict[str, pd.DataFrame]:

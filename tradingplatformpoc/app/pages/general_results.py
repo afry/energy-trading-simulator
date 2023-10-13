@@ -6,11 +6,10 @@ from st_pages import add_indentation, show_pages_from_config
 import streamlit as st
 
 from tradingplatformpoc.app import footer
-from tradingplatformpoc.app.app_charts import construct_price_chart
+from tradingplatformpoc.app.app_charts import construct_avg_day_elec_chart, construct_price_chart
 from tradingplatformpoc.app.app_data_display import aggregated_import_and_export_results_df_split_on_period, \
-    aggregated_import_and_export_results_df_split_on_temperature, aggregated_local_production_df, \
-    construct_combined_price_df, \
-    get_price_df_when_local_price_inbetween
+    aggregated_import_and_export_results_df_split_on_temperature, aggregated_import_results_df_split_on_period, \
+    aggregated_local_production_df, construct_combined_price_df, get_price_df_when_local_price_inbetween
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.sql.clearing_price.crud import db_to_construct_local_prices_df
 from tradingplatformpoc.sql.config.crud import get_all_finished_job_config_id_pairs_in_db, read_config
@@ -64,6 +63,22 @@ if len(ids) > 0:
     agg_tabs = st.tabs([resource.name.capitalize() for resource in resources])
     for resource, tab in zip(resources, agg_tabs):
         with tab:
+            if resource == Resource.ELECTRICITY:
+                # TODO: Make it possible to choose ex. Dec-Jan
+                time_period = st.select_slider('Select which months to view',
+                                               options=['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                                                        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                                               value=('Jan', 'Mar'))
+
+                time_period_elec_bought = aggregated_import_results_df_split_on_period(
+                    chosen_id_to_view['job_id'], time_period)
+                st.caption("Hold *Shift* and click on multiple days in the legend to highlight them in the graph.")
+                st.altair_chart(construct_avg_day_elec_chart(time_period_elec_bought, time_period),
+                                use_container_width=True, theme=None)
+                st.caption("The energy use is calculated from trades, and therefore includes the electricity used \
+                           for running heat pumps. The error bars are the standard deviation of the electricity used.")
+                st.divider()
+                
             agg_buy_trades = db_to_aggregated_trade_df(chosen_id_to_view['job_id'],
                                                        resource, Action.BUY)
             agg_sell_trades = db_to_aggregated_trade_df(chosen_id_to_view['job_id'],

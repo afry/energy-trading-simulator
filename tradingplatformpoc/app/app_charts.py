@@ -178,3 +178,42 @@ def construct_storage_level_chart(storage_levels_df: pd.DataFrame) -> alt.Chart:
     range_dash = [[0, 0]]
     return altair_line_chart(storage_levels_df, domain, range_color, range_dash,
                              "Capacity [kWh]", "Charging level")
+
+    
+def construct_avg_day_elec_chart(elec_use_df: pd.DataFrame, period: tuple) -> alt.Chart:
+    """
+    Creates a chart of average monthly electricity use with points and error bars.
+    The points are colored by the weekday.
+    """
+
+    title_str = "Average hourly electricity consumed from " + period[0] + " to " + period[1]
+    var_title_str = "Average of total electricity consumed [kWh]"
+    domain = list(pd.unique(elec_use_df['weekday']))
+    range_color = app_constants.ALTAIR_BASE_COLORS[:len(domain)]
+
+    alt_title = alt.TitleParams(title_str, anchor='middle')
+    selection = alt.selection_multi(fields=['weekday'], bind='legend')
+
+    elec_use_df['ymin'] = elec_use_df['mean_total_elec'] - elec_use_df['std_total_elec']
+    elec_use_df['ymax'] = elec_use_df['mean_total_elec'] + elec_use_df['std_total_elec']
+
+    base = alt.Chart(elec_use_df, title=alt_title)
+
+    points = base.mark_point(filled=True, size=80).encode(
+        x=alt.X('hour', axis=alt.Axis(title='Hour')),
+        y=alt.Y('mean_total_elec:Q', axis=alt.Axis(title=var_title_str), scale=alt.Scale(zero=False)),
+        color=alt.Color('weekday', scale=alt.Scale(domain=domain, range=range_color)),
+        opacity=alt.condition(selection, alt.value(0.7), alt.value(0.0))
+    )
+
+    error_bars = base.mark_rule(strokeWidth=2).encode(
+        x='hour',
+        y='ymin:Q',
+        y2='ymax:Q',
+        color=alt.Color('weekday', scale=alt.Scale(domain=domain, range=range_color)),
+        opacity=alt.condition(selection, alt.value(0.8), alt.value(0.0))
+    )
+
+    combined_chart = points + error_bars
+
+    return combined_chart.add_selection(selection).interactive(bind_y=False)

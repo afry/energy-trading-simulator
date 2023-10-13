@@ -35,6 +35,29 @@ def heat_trades_from_db_for_periods(trading_periods, job_id: str,
 
         return dict((period, list(vals)) for period, vals in
                     itertools.groupby(trades_for_month, operator.itemgetter(0)))
+    
+
+def electr_trades_for_periods_to_df(job_id: str, resource: Resource, action: Action, trading_periods,
+                                    session_generator: Callable[[], _GeneratorContextManager[Session]]
+                                    = session_scope) -> pd.DataFrame:
+    """Get the summed amount of electricity used each period for all agents combined.
+    """
+    with session_generator() as db:
+        trades = db.execute(select(TableTrade.period,
+                            func.sum(TableTrade.quantity_pre_loss).label("total_quantity"),
+                            func.to_char(TableTrade.period, 'D').label("weekday"),
+                            func.extract("HOUR", TableTrade.period).label("hour"))
+                            .where(TableTrade.job_id == job_id,
+                                   TableTrade.resource == resource,
+                                   TableTrade.action == action,
+                                   TableTrade.period.in_(trading_periods))
+                            .group_by(TableTrade.period)
+                            .order_by(TableTrade.period)).all()
+        return pd.DataFrame.from_records([{'period': trade.period,
+                                           'total_quantity': trade.total_quantity,
+                                           'weekday': trade.weekday,
+                                           'hour': trade.hour
+                                           } for trade in trades])
 
 
 def db_to_trade_df(job_id: str,
