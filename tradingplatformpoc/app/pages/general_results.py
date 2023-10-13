@@ -64,6 +64,7 @@ if len(ids) > 0:
     for resource, tab in zip(resources, agg_tabs):
         with tab:
             if resource == Resource.ELECTRICITY:
+                # TODO: Make it possible to choose ex. Dec-Jan
                 time_period = st.select_slider('Select which months to view',
                                                options=['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                                                         'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
@@ -76,6 +77,7 @@ if len(ids) > 0:
                                 use_container_width=True, theme=None)
                 st.caption("The energy use is calculated from trades, and therefore includes the electricity used \
                            for running heat pumps. The error bars are the standard deviation of the electricity used.")
+                st.divider()
                 
             agg_buy_trades = db_to_aggregated_trade_df(chosen_id_to_view['job_id'],
                                                        resource, Action.BUY)
