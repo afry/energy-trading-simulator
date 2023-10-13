@@ -188,7 +188,7 @@ def construct_avg_day_elec_chart(elec_use_df: pd.DataFrame, period: tuple) -> al
 
     title_str = "Average hourly net electricity consumed from " + period[0] + " to " + period[1]
     var_title_str = "Average of net electricity consumed [kWh]"
-    domain = list(pd.unique(elec_use_df['weekday']))
+    domain = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturaday', 'Sunday']
     range_color = app_constants.ALTAIR_BASE_COLORS[:len(domain)]
 
     alt_title = alt.TitleParams(title_str, anchor='middle')

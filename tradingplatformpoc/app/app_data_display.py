@@ -131,11 +131,6 @@ def avg_weekday_electricity(df: pd.DataFrame) -> pd.DataFrame:
     mean_df.columns = ['mean_total_elec', 'std_total_elec']
     mean_df.reset_index(inplace=True)
     mean_df['hour'] = mean_df['hour'].astype('int')
-    mean_df = mean_df.replace({"weekday": {"1": "Sunday", "2": "Monday",
-                                           "3": "Tuesday", "4": "Wednesday",
-                                           "5": "Thursday", "6": "Friday",
-                                           "7": "Saturday"}
-                               })
     return mean_df
   
 
