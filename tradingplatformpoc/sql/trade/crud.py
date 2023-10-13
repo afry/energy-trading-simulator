@@ -37,27 +37,41 @@ def heat_trades_from_db_for_periods(trading_periods, job_id: str,
                     itertools.groupby(trades_for_month, operator.itemgetter(0)))
     
 
-def electr_trades_for_periods_to_df(job_id: str, resource: Resource, action: Action, trading_periods,
-                                    session_generator: Callable[[], _GeneratorContextManager[Session]]
-                                    = session_scope) -> pd.DataFrame:
+def elec_trades_by_external_for_periods_to_df(job_id: str, trading_periods,
+                                              session_generator: Callable[[], _GeneratorContextManager[Session]]
+                                              = session_scope) -> pd.DataFrame:
     """Get the summed amount of electricity used each period for all agents combined.
     """
     with session_generator() as db:
         trades = db.execute(select(TableTrade.period,
-                            func.sum(TableTrade.quantity_pre_loss).label("total_quantity"),
+                                   TableTrade.action,
+                            func.sum(TableTrade.quantity_pre_loss).label("total_quantity_pre"),
+                            func.sum(TableTrade.quantity_post_loss).label("total_quantity_post"),
                             func.to_char(TableTrade.period, 'D').label("weekday"),
                             func.extract("HOUR", TableTrade.period).label("hour"))
                             .where(TableTrade.job_id == job_id,
-                                   TableTrade.resource == resource,
-                                   TableTrade.action == action,
+                                   TableTrade.by_external,
+                                   TableTrade.resource == Resource.ELECTRICITY,
                                    TableTrade.period.in_(trading_periods))
-                            .group_by(TableTrade.period)
+                            .group_by(TableTrade.period, TableTrade.action)
                             .order_by(TableTrade.period)).all()
-        return pd.DataFrame.from_records([{'period': trade.period,
-                                           'total_quantity': trade.total_quantity,
-                                           'weekday': trade.weekday,
-                                           'hour': trade.hour
-                                           } for trade in trades])
+        df = pd.DataFrame.from_records([{'period': trade.period,
+                                         'action': trade.action,
+                                         'total_quantity_pre': trade.total_quantity_pre,
+                                         'total_quantity_post': trade.total_quantity_post,
+                                         'weekday': trade.weekday,
+                                         'hour': trade.hour
+                                         } for trade in trades])
+        df_export = df[df.action == Action.BUY].drop(columns=['action', 'total_quantity_post']).rename(
+            columns={'total_quantity_pre': 'total_import_quantity'})  # GridAgent buys --> local grid exports
+        df_import = df[df.action == Action.SELL].drop(columns=['action', 'total_quantity_pre']).rename(
+            columns={'total_quantity_post': 'total_export_quantity'})  # GridAgent sells --> local grid imports
+
+        trades_df = df_import.merge(df_export, on=['period', 'weekday', 'hour'], how='outer')
+        trades_df[['total_import_quantity', 'total_export_quantity']] = \
+            trades_df[['total_import_quantity', 'total_export_quantity']].fillna(0.0)
+        trades_df['net_import_quantity'] = trades_df.total_import_quantity - trades_df.total_export_quantity
+        return trades_df
 
 
 def db_to_trade_df(job_id: str,

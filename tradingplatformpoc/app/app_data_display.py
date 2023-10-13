@@ -26,7 +26,7 @@ from tradingplatformpoc.sql.input_data.crud import get_periods_from_db, read_inp
 from tradingplatformpoc.sql.input_electricity_price.crud import electricity_price_df_from_db
 from tradingplatformpoc.sql.mock_data.crud import db_to_mock_data_df, get_mock_data_agent_pairs_in_db
 from tradingplatformpoc.sql.trade.crud import db_to_trades_by_agent_and_resource_action, \
-    electr_trades_for_periods_to_df, get_total_import_export, get_total_traded_for_agent
+    elec_trades_by_external_for_periods_to_df, get_total_import_export, get_total_traded_for_agent
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod
 
 
@@ -106,9 +106,9 @@ def aggregated_taxes_and_fees_results_df(tax_paid: float, grid_fees_paid_on_inte
                               ])
 
 
-def aggregated_import_results_df_split_on_period(job_id: str, period: tuple) -> pd.DataFrame:
+def aggregated_net_elec_import_results_df_split_on_period(job_id: str, period: tuple) -> pd.DataFrame:
     """
-    Display total import and export for electricity and heat, computed for specified time period.
+    Display total import and export for electricity, computed for specified time period.
     @param job_id: Which job to get trades for
     @param period: The time period of interest (a tuple of strings)
     @return: Dataframe split by time period
@@ -121,13 +121,13 @@ def aggregated_import_results_df_split_on_period(job_id: str, period: tuple) -> 
     selected_period = [period for period in all_periods if period.month in
                        list(range(start, end + 1, 1))]
   
-    period_df = electr_trades_for_periods_to_df(job_id, Resource.ELECTRICITY, Action.BUY, selected_period)
+    period_df = elec_trades_by_external_for_periods_to_df(job_id, selected_period)
     return avg_weekday_electricity(period_df)
 
 
 def avg_weekday_electricity(df: pd.DataFrame) -> pd.DataFrame:
 
-    mean_df = df.groupby(['weekday', 'hour']).agg({'total_quantity': [np.mean, np.std]})
+    mean_df = df.groupby(['weekday', 'hour']).agg({'net_import_quantity': [np.mean, np.std]})
     mean_df.columns = ['mean_total_elec', 'std_total_elec']
     mean_df.reset_index(inplace=True)
     mean_df['hour'] = mean_df['hour'].astype('int')
