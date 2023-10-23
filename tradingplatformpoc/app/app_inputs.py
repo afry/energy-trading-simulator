@@ -141,3 +141,13 @@ def add_params_to_form(form, param_spec_dict: dict, info_type: str):
         st.session_state.config_data[info_type][key] = form.number_input(
             val['display'], **params,
             value=current_config[info_type][key])
+
+
+def add_radio_to_form(form, param_spec_dict: dict, info_type: str):
+    """Populate radio button forms."""
+    current_config = st.session_state.config_data
+    options = [True, False]
+    for key, val in param_spec_dict[info_type].items():
+        st.session_state.config_data[info_type][key] = form.radio(
+            label=val['display'], help=val['help'],
+            options=options, index=options.index(current_config[info_type][key]))
