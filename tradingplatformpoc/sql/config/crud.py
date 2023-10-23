@@ -39,7 +39,8 @@ def create_config_if_not_in_db(config: dict, config_id: str, description: str,
                                                   description=description,
                                                   agents_spec=agent_name_and_ids,
                                                   area_info=config['AreaInfo'],
-                                                  mock_data_constants=config['MockDataConstants']))
+                                                  mock_data_constants=config['MockDataConstants'],
+                                                  general=config['General']))
         logger.info('Configuration with ID {} created!'.format(db_config_id))
         return {'created': True, 'id': db_config_id, 'message': 'Config created with ID {}'.format(db_config_id)}
     else:
@@ -89,7 +90,8 @@ def read_config(config_id: str,
             agents = [{'Name': [name for name, aid in config.agents_spec.items() if aid == agent.id][0],
                        'Type': agent.agent_type, **agent.agent_config} for (agent,) in res]
             return {'Agents': agents, 'AreaInfo': config.area_info,
-                    'MockDataConstants': config.mock_data_constants}
+                    'MockDataConstants': config.mock_data_constants,
+                    'General': config.general}
         else:
             logger.error('Configuration with ID {} not found.'.format(config_id))
             return None

@@ -43,6 +43,12 @@ class Config(SQLModel, table=True):
         nullable=True,
         sa_column=Column(JSONB(none_as_null=True))
     )
+    general: Optional[dict] = Field(
+        primary_key=False,
+        title="General settings",
+        nullable=True,
+        sa_column=Column(JSONB(none_as_null=True))
+    )
 
 
 class ConfigCreate(SQLModel):
@@ -51,3 +57,4 @@ class ConfigCreate(SQLModel):
     agents_spec: Dict[str, str]
     area_info: Dict[str, Any]
     mock_data_constants: Dict[str, Any]
+    general: Dict[str, Any]

@@ -26,7 +26,7 @@ def config_data_json_screening(config_data: dict) -> Optional[str]:
 def config_data_keys_screening(config_data: dict) -> Optional[str]:
     """Check that config is structured as expected."""
     # Make sure no unrecognized keys are passed
-    unreq = [key for key in config_data.keys() if key not in ['Agents', 'AreaInfo', 'MockDataConstants']]
+    unreq = [key for key in config_data.keys() if key not in ['Agents', 'AreaInfo', 'MockDataConstants', 'General']]
     if len(unreq) > 0:
         return 'Unrecognized key/keys: [\'{}\'] in uploaded config.'.format(', '.join(unreq))
     
@@ -37,6 +37,10 @@ def config_data_keys_screening(config_data: dict) -> Optional[str]:
     if 'MockDataConstants' in config_data:
         if not isinstance(config_data['MockDataConstants'], dict):
             return '\'MockDataConstants\' should be provided as a dict.'
+        
+    if 'General' in config_data:
+        if not isinstance(config_data['General'], dict):
+            return '\'General\' should be provided as a dict.'
         
     # Make sure agents are provided as list
     if 'Agents' not in config_data:
@@ -54,10 +58,10 @@ def config_data_keys_screening(config_data: dict) -> Optional[str]:
 def config_data_param_screening(config_data: dict) -> Optional[str]:
     """Check that config json contains reasonable parameters."""
 
-    param_specs = read_param_specs(['AreaInfo', 'MockDataConstants'])
+    param_specs = read_param_specs(['AreaInfo', 'MockDataConstants', 'General'])
 
     # Check params for correct keys and values in ranges
-    for info_type in [c for c in ['AreaInfo', 'MockDataConstants'] if c in config_data]:
+    for info_type in [c for c in ['AreaInfo', 'MockDataConstants', 'General'] if c in config_data]:
         for key, val in config_data[info_type].items():
             if key in param_specs[info_type].keys():
 
@@ -69,6 +73,10 @@ def config_data_param_screening(config_data: dict) -> Optional[str]:
                     if val > param_specs[info_type][key]["max_value"]:
                         return "Specified {}: {} > {}.".format(key, val, param_specs[
                             info_type][key]["max_value"])
+                if "default" in param_specs[info_type][key].keys():
+                    param_type = type(param_specs[info_type][key]['default'])
+                    if not isinstance(val, param_type):
+                        return "Provided value for {} should be of type {}!".format(key, param_type)
             else:
                 return "Parameter {} is not a valid parameter.".format(key)
     return None
