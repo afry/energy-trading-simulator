@@ -99,15 +99,15 @@ class BuildingAgent(IAgent):
 
         if elec_net_consumption_incl_pump > 0:
             # Positive net consumption, so need to buy electricity
-            price_to_use, market_to_use = get_price_and_market_to_use_when_buying(elec_clearing_price,
-                                                                                  elec_retail_price)
+            price_to_use, market_to_use = get_price_and_market_to_use_when_buying(
+                elec_clearing_price, elec_retail_price, True)
             trades.append(self.construct_elec_trade(period=period, action=Action.BUY,
                                                     quantity=elec_net_consumption_incl_pump,
                                                     price=price_to_use, market=market_to_use))
         elif elec_net_consumption_incl_pump < 0:
             # Negative net consumption, meaning there is a surplus, which the agent will sell
-            price_to_use, market_to_use = get_price_and_market_to_use_when_selling(elec_clearing_price,
-                                                                                   elec_wholesale_price)
+            price_to_use, market_to_use = get_price_and_market_to_use_when_selling(
+                elec_clearing_price, elec_wholesale_price, True)
             # NOTE: Here we assume that even if we sell electricity on the "external market", we still pay
             # the internal electricity tax, and the internal grid fee
             trades.append(self.construct_elec_trade(period=period, action=Action.SELL,
@@ -118,8 +118,8 @@ class BuildingAgent(IAgent):
                                                     .elec_grid_fee_internal))
         if heat_net_consumption_incl_pump > 0:
             # Positive net consumption, so need to buy heating
-            price_to_use, market_to_use = get_price_and_market_to_use_when_buying(heat_clearing_price,
-                                                                                  heat_retail_price)
+            price_to_use, market_to_use = get_price_and_market_to_use_when_buying(
+                heat_clearing_price, heat_retail_price, True)
             trades.append(self.construct_buy_heat_trade(period=period, quantity_needed=heat_net_consumption_incl_pump,
                                                         price=price_to_use, market=market_to_use,
                                                         heat_transfer_loss_per_side=self.heat_pricing
@@ -127,8 +127,8 @@ class BuildingAgent(IAgent):
         elif heat_net_consumption_incl_pump < 0:
             # Negative net consumption, meaning there is a surplus, which the agent will sell
             if self.allow_sell_heat:
-                price_to_use, market_to_use = get_price_and_market_to_use_when_selling(heat_clearing_price,
-                                                                                       heat_wholesale_price)
+                price_to_use, market_to_use = get_price_and_market_to_use_when_selling(
+                    heat_clearing_price, heat_wholesale_price, True)
                 trades.append(self.construct_sell_heat_trade(period=period, quantity=-heat_net_consumption_incl_pump,
                                                              price=price_to_use, market=market_to_use,
                                                              heat_transfer_loss_per_side=self.heat_pricing

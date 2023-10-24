@@ -83,15 +83,17 @@ class IAgent(ABC):
                      loss=heat_transfer_loss_per_side)
 
 
-def get_price_and_market_to_use_when_buying(clearing_price: float, retail_price: float):
-    if clearing_price != np.nan and clearing_price <= retail_price:
+def get_price_and_market_to_use_when_buying(clearing_price: float, retail_price: float,
+                                            use_local_market: bool):
+    if clearing_price != np.nan and clearing_price <= retail_price and use_local_market:
         return clearing_price, Market.LOCAL
     else:
         return retail_price, Market.EXTERNAL
 
 
-def get_price_and_market_to_use_when_selling(clearing_price: float, wholesale_price: float):
-    if clearing_price != np.nan and clearing_price >= wholesale_price:
+def get_price_and_market_to_use_when_selling(clearing_price: float, wholesale_price: float,
+                                             use_local_market: bool):
+    if clearing_price != np.nan and clearing_price >= wholesale_price and use_local_market:
         return clearing_price, Market.LOCAL
     else:
         return wholesale_price, Market.EXTERNAL
