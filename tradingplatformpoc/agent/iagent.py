@@ -4,6 +4,8 @@ from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
 
+from tradingplatformpoc.price.electricity_price import ElectricityPrice
+
 
 from ..market.bid import Action, GrossBid, NetBidWithAcceptanceStatus, Resource
 from ..market.trade import Market, Trade, TradeMetadataKey
@@ -61,7 +63,13 @@ class IAgent(ABC):
         return GrossBid(period, Action.BUY, Resource.HEATING, quantity_to_buy, price, self.guid, False)
     
     def construct_elec_trade(self, period: datetime.datetime, action: Action, quantity: float, price: float,
-                             market: Market, tax_paid: float = 0.0, grid_fee_paid: float = 0.0) -> Trade:
+                             market: Market, electricity_pricing: ElectricityPrice) -> Trade:
+        if market == Market.LOCAL:
+            tax_paid = electricity_pricing.elec_tax_internal
+            grid_fee_paid = electricity_pricing.elec_grid_fee_internal
+        else:
+            tax_paid = electricity_pricing.elec_tax
+            grid_fee_paid = electricity_pricing.elec_grid_fee
         return Trade(period=period, action=action, resource=Resource.ELECTRICITY, quantity=quantity, price=price,
                      source=self.guid, by_external=False, market=market, tax_paid=tax_paid,
                      grid_fee_paid=grid_fee_paid)
