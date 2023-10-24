@@ -74,6 +74,8 @@ class TradingSimulator:
     def initialize_data(self):
         self.config_data = self.config_data
 
+        self.use_local_market = self.config_data['General']['LocalMarket']
+
         self.heat_pricing: HeatingPrice = HeatingPrice(
             heating_wholesale_price_fraction=self.config_data['AreaInfo']['ExternalHeatingWholesalePriceFraction'],
             heat_transfer_loss=self.config_data['AreaInfo']["HeatTransferLoss"])
@@ -199,6 +201,7 @@ class TradingSimulator:
                     info_string = "Simulations entering {:%B}".format(period)
                     logger.info(info_string)
 
+                # TODO: Skipp bidding if self.use_local_market and go straight to trades
                 # Get all bids
                 bids = [agent.make_bids(period, self.clearing_prices_historical) for agent in self.agents]
 
