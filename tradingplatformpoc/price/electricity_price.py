@@ -78,7 +78,13 @@ class ElectricityPrice(IPrice):
         See also https://doc.afdrift.se/pages/viewpage.action?pageId=17072325
         """
         return nordpool_price + self.elec_grid_fee
-
+    
+    def get_electricity_net_internal_price_from_nordpool_price(self, nordpool_price: float) -> float:
+        """
+        TODO
+        """
+        return nordpool_price + self.elec_tax_internal + self.elec_grid_fee_internal
+    
     def get_electricity_net_external_price(self, gross_price: float) -> float:
         """
         Net external price = gross external price (i.e. what the seller receives) + tax

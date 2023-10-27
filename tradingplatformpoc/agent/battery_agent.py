@@ -9,7 +9,6 @@ from tradingplatformpoc.digitaltwin.battery import Battery
 from tradingplatformpoc.market.bid import Action, GrossBid, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.market.trade import Market, Trade, TradeMetadataKey
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
-from tradingplatformpoc.trading_platform_utils import minus_n_hours
 
 LOWEST_BID_QUANTITY = 0.001  # Bids with a lower quantity than this won't have any real effect, will only clog things up
 
@@ -54,36 +53,28 @@ class BatteryAgent(IAgent):
             Resource, float]], None]) -> List[GrossBid]:
         bids = []
 
-        if clearing_prices_historical is not None:
-            clearing_prices_for_resource = self.get_clearing_prices_for_resource(dict(clearing_prices_historical))
-        else:
-            logger.warning('No historical clearing prices were provided to BatteryAgent! Will use Nordpool spot '
-                           'prices instead.')
-            clearing_prices_for_resource = {}
-
-        # TODO: Only works for electricity!
         nordpool_prices_last_n_hours_dict = self.electricity_pricing.get_nordpool_prices_last_n_hours_dict(
             period, self.go_back_n_hours)
-        prices_last_n_hours = get_prices_last_n_hours(period, self.go_back_n_hours, clearing_prices_for_resource,
-                                                      nordpool_prices_last_n_hours_dict)
-        if len(prices_last_n_hours) < self.need_at_least_n_hours:
+        if len(nordpool_prices_last_n_hours_dict.values()) < self.need_at_least_n_hours:
             raise RuntimeError("BatteryAgent '{}' needed at least {} hours of historical prices to function, but was "
                                "only provided with {} hours.".
-                               format(self.guid, self.need_at_least_n_hours, len(prices_last_n_hours)))
+                               format(self.guid, self.need_at_least_n_hours, len(nordpool_prices_last_n_hours_dict)))
 
         buy_quantity = self.calculate_buy_quantity()
         if buy_quantity >= LOWEST_BID_QUANTITY:
             bids.append(self.construct_elec_bid(period=period,
                                                 action=Action.BUY,
                                                 quantity=buy_quantity,
-                                                price=self.calculate_buy_price(prices_last_n_hours)))
+                                                price=self.calculate_buy_price(
+                                                    list(nordpool_prices_last_n_hours_dict.values()))))
 
         sell_quantity = self.calculate_sell_quantity()
         if sell_quantity >= LOWEST_BID_QUANTITY:
             bids.append(self.construct_elec_bid(period=period,
                                                 action=Action.SELL,
                                                 quantity=sell_quantity,
-                                                price=self.calculate_sell_price(prices_last_n_hours)))
+                                                price=self.calculate_sell_price(
+                                                    list(nordpool_prices_last_n_hours_dict.values()))))
         return bids
 
     def get_clearing_prices_for_resource(self, clearing_prices_hist: Dict[datetime.datetime, Dict[Resource, float]]) \
@@ -125,10 +116,12 @@ class BatteryAgent(IAgent):
         return trades, {TradeMetadataKey.STORAGE_LEVEL: self.digital_twin.capacity_kwh}
 
     def calculate_buy_price(self, prices_last_n_hours: List[float]):
-        return np.percentile(prices_last_n_hours, self.if_lower_than_this_percentile_then_buy)
+        buy_price = np.percentile(prices_last_n_hours, self.if_lower_than_this_percentile_then_buy)
+        return self.electricity_pricing.get_electricity_net_internal_price_from_nordpool_price(buy_price)
 
     def calculate_sell_price(self, prices_last_n_hours: List[float]):
-        return np.percentile(prices_last_n_hours, self.if_higher_than_this_percentile_then_sell)
+        sell_price = np.percentile(prices_last_n_hours, self.if_higher_than_this_percentile_then_sell)
+        return self.electricity_pricing.get_electricity_wholesale_price_from_nordpool_price(sell_price)
 
     def calculate_buy_quantity(self):
         """Will buy 50% of remaining empty space, but not more than the digital twin's charge limit"""
@@ -138,25 +131,3 @@ class BatteryAgent(IAgent):
     def calculate_sell_quantity(self):
         """Will sell 50% of current charge level, but not more than the digital twin's discharge limit"""
         return min([self.digital_twin.capacity_kwh / 2.0, self.digital_twin.discharge_limit_kwh])
-
-
-def get_prices_last_n_hours(period: datetime.datetime, n_hours: int, clearing_prices_historical: dict,
-                            external_prices_last_n_hours_dict: dict) -> List[float]:
-    """
-    Tries to get the clearing price for the last n hours. If it doesn't exist (i.e. if the market was just started up)
-    it will get the Nordpool spot price instead.
-    @param period: Current trading period
-    @param n_hours: How many hours to go back
-    @param clearing_prices_historical: dict with datetime keys, float values
-    @param external_prices_last_n_hours_dict: dict with datetime keys, float values
-    @return: A list with length at most n_hours with floats. Can be shorter than n_hours if there is no data available
-        far enough back.
-    """
-    ts = [minus_n_hours(period, i + 1) for i in range(n_hours)]
-    prices_last_n_hours = [clearing_prices_historical[t] if t in clearing_prices_historical
-                           else external_prices_last_n_hours_dict[t] if t in external_prices_last_n_hours_dict
-                           else None for t in ts]
-    if None in prices_last_n_hours:
-        logger.info('Missing prices in last {} hours.'.format(n_hours))
-        return [price for price in prices_last_n_hours if price is not None]
-    return prices_last_n_hours

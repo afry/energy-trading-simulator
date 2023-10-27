@@ -241,14 +241,6 @@ class TestBatteryAgent(unittest.TestCase):
         self.assertEqual(1, len(bids))
         self.assertEqual(Action.SELL, bids[0].action)
 
-    def test_make_bids_without_historical_prices(self):
-        """Test that a warning is logged when calling BatteryAgent's make_bids with None clearing_prices_dict"""
-        with self.assertLogs() as captured:
-            self.battery_agent.make_bids(SOME_DATETIME, None)
-        self.assertTrue(len(captured.records) > 0)
-        log_levels_captured = [rec.levelname for rec in captured.records]
-        self.assertTrue('WARNING' in log_levels_captured)
-
     def test_make_bids_without_historical_prices_or_nordpool_prices(self):
         """Test that an error is raised when calling BatteryAgent's make_bids for a time period when there is no price
         data available whatsoever, local nor Nordpool"""
