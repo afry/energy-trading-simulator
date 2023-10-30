@@ -21,22 +21,19 @@ class Job(SQLModel, table=True):
         nullable=False
     )
     created_at: Optional[datetime.datetime] = Field(
-        primary_key=False,
         title='Created time, with tz',
         nullable=False,
-        sa_column=Column(DateTime(timezone=True), server_default=func.now())
+        sa_column=Column(DateTime(timezone=True), server_default=func.now(), primary_key=False)
     )
     start_time: Optional[datetime.datetime] = Field(
-        primary_key=False,
         title="Timestamp of simulation initialization, with tz",
         nullable=True,
-        sa_column=Column(DateTime(timezone=True))
+        sa_column=Column(DateTime(timezone=True), primary_key=False)
     )
     end_time: Optional[datetime.datetime] = Field(
-        primary_key=False,
         title="Timestamp of simulation end, with tz",
         nullable=True,
-        sa_column=Column(DateTime(timezone=True))
+        sa_column=Column(DateTime(timezone=True), primary_key=False)
     )
     config_id: str = Field(
         primary_key=False,

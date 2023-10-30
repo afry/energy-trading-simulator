@@ -19,26 +19,22 @@ class MockData(SQLModel, table=True):
         nullable=False
     )
     created_at: Optional[datetime.datetime] = Field(
-        primary_key=False,
         title='Created time, with tz',
         nullable=False,
-        sa_column=Column(DateTime(timezone=True), server_default=func.now())
+        sa_column=Column(DateTime(timezone=True), server_default=func.now(), primary_key=False)
     )
     agent_id: str = Field(
-        primary_key=False,
         title="Agent ID",
         nullable=False,
-        sa_column=Column(String)
+        sa_column=Column(String, primary_key=False)
     )
     mock_data_constants: dict = Field(
-        primary_key=False,
         title="Mock data constants",
         nullable=False,
-        sa_column=Column(JSONB(none_as_null=True))
+        sa_column=Column(JSONB(none_as_null=True), primary_key=False)
     )
     mock_data: Optional[bytes] = Field(
-        primary_key=False,
         title="Mock data for agent",
         nullable=True,
-        sa_column=Column(BYTEA)
+        sa_column=Column(BYTEA, primary_key=False)
     )
