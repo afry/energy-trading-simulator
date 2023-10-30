@@ -24,16 +24,13 @@ class MockData(SQLModel, table=True):
     )
     agent_id: str = Field(
         title="Agent ID",
-        nullable=False,
-        sa_column=Column(String, primary_key=False)
+        sa_column=Column(String, primary_key=False, nullable=False)
     )
     mock_data_constants: dict = Field(
         title="Mock data constants",
-        nullable=False,
-        sa_column=Column(JSONB(none_as_null=True), primary_key=False)
+        sa_column=Column(JSONB(none_as_null=True), primary_key=False, nullable=False)
     )
     mock_data: Optional[bytes] = Field(
         title="Mock data for agent",
-        nullable=True,
-        sa_column=Column(BYTEA, primary_key=False)
+        sa_column=Column(BYTEA, primary_key=False, nullable=True)
     )
