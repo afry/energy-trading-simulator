@@ -226,7 +226,7 @@
 		"ChargeRate": 0.4,
 		"DischargeRate": 0.4,
 		"RoundTripEfficiency": 0.93,
-		"NHoursBack": 168,
+		"NHours": 12,
 		"BuyPricePercentile": 20,
 		"SellPricePercentile": 80
 	},

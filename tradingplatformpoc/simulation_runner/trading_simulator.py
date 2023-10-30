@@ -133,7 +133,7 @@ class TradingSimulator:
                                                max_discharge_rate_fraction=agent["DischargeRate"],
                                                discharging_efficiency=agent["RoundTripEfficiency"])
                 agents.append(BatteryAgent(self.electricity_pricing, storage_digital_twin,
-                                           n_hours_to_look_back=agent["NHoursBack"],
+                                           n_hours_to_look_forward=agent["NHours"],
                                            buy_price_percentile=agent["BuyPricePercentile"],
                                            sell_price_percentile=agent["SellPricePercentile"],
                                            guid=agent_name))

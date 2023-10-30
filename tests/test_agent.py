@@ -209,7 +209,7 @@ class TestGridAgent(unittest.TestCase):
 class TestBatteryAgent(unittest.TestCase):
     twin = Battery(max_capacity_kwh=1000, max_charge_rate_fraction=0.1, max_discharge_rate_fraction=0.1,
                    discharging_efficiency=0.93)
-    battery_agent = BatteryAgent(electricity_pricing, twin, 168, 20, 80)
+    battery_agent = BatteryAgent(electricity_pricing, twin, 12, 20, 80)
 
     def test_make_bids(self):
         """Test basic functionality of BatteryAgent's make_bids method."""
@@ -227,7 +227,7 @@ class TestBatteryAgent(unittest.TestCase):
         non_empty_twin = Battery(max_capacity_kwh=1000, max_charge_rate_fraction=0.1,
                                  max_discharge_rate_fraction=0.1, discharging_efficiency=0.93,
                                  start_capacity_kwh=500)
-        ba = BatteryAgent(electricity_pricing, non_empty_twin, 168, 20, 80)
+        ba = BatteryAgent(electricity_pricing, non_empty_twin, 12, 20, 80)
         bids = ba.make_bids(SOME_DATETIME, {})
         self.assertEqual(2, len(bids))
 
@@ -236,7 +236,7 @@ class TestBatteryAgent(unittest.TestCase):
         full_twin = Battery(max_capacity_kwh=1000, max_charge_rate_fraction=0.1,
                             max_discharge_rate_fraction=0.1, discharging_efficiency=0.93,
                             start_capacity_kwh=1000)
-        ba = BatteryAgent(electricity_pricing, full_twin, 168, 20, 80)
+        ba = BatteryAgent(electricity_pricing, full_twin, 12, 20, 80)
         bids = ba.make_bids(SOME_DATETIME, {})
         self.assertEqual(1, len(bids))
         self.assertEqual(Action.SELL, bids[0].action)

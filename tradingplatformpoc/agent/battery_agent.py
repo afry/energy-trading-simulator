@@ -26,20 +26,20 @@ class BatteryAgent(IAgent):
     electricity_pricing: ElectricityPrice
     digital_twin: Battery
     resource: Resource = Resource.ELECTRICITY
-    go_back_n_hours: int
+    go_forward_n_hours: int
     if_lower_than_this_percentile_then_buy: int
     if_higher_than_this_percentile_then_sell: int
-    # If there isn't {go_back_n_hours} data available, will allow down to {need_at_least_n_hours} hours of data. If
-    # there is even less than that available, will throw an error.
+    # If there isn't {go_forward_n_hours} data available, will allow down to {need_at_least_n_hours} hours of data. If
+    # there is even less than that available, will do nothing.
     need_at_least_n_hours: int
 
     def __init__(self, electricity_pricing: ElectricityPrice,
-                 digital_twin: Battery, n_hours_to_look_back: int,
+                 digital_twin: Battery, n_hours_to_look_forward: int,
                  buy_price_percentile: int, sell_price_percentile: int, guid="BatteryAgent"):
         super().__init__(guid)
         self.electricity_pricing = electricity_pricing
         self.digital_twin = digital_twin
-        self.go_forward_n_hours = 12
+        self.go_forward_n_hours = n_hours_to_look_forward
         # Upper and lower thresholds
         if sell_price_percentile < buy_price_percentile:
             logger.warning('In BatteryAgent, sell_price_percentile should be higher than buy_price_percentile, but had '

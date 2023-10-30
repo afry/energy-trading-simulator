@@ -87,12 +87,12 @@
             "help": "A number specifying the round-trip efficiency. This value being equal to 1 would mean that there are no losses for the storage entity; if one charges it with X kWh, one can later discharge exactly the same amount. Must be a positive number, no larger than 1",
             "type": "float"
         },
-        "NHoursBack": {
-            "display": "'N hours back'",
+        "NHours": {
+            "display": "'N hours forward'",
             "min_value": 1,
-            "max_value": 720,
-            "default_value": 168,
-            "help": "Used in the current BatteryAgent strategy: The agent will use the prices from NHoursBack to form an opinion on what its asking prices should be for upcoming periods",
+            "max_value": 12,
+            "default_value": 12,
+            "help": "Used in the current BatteryAgent strategy: The agent will use the prices from NHours forward to form an opinion on what its asking prices should be for the upcoming period",
             "type": "int"
         },
         "BuyPricePercentile": {
