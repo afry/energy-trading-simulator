@@ -39,7 +39,7 @@ class BatteryAgent(IAgent):
         super().__init__(guid)
         self.electricity_pricing = electricity_pricing
         self.digital_twin = digital_twin
-        self.go_back_n_hours = n_hours_to_look_back
+        self.go_forward_n_hours = 12
         # Upper and lower thresholds
         if sell_price_percentile < buy_price_percentile:
             logger.warning('In BatteryAgent, sell_price_percentile should be higher than buy_price_percentile, but had '
@@ -47,18 +47,22 @@ class BatteryAgent(IAgent):
                                                                                          sell_price_percentile))
         self.if_lower_than_this_percentile_then_buy = buy_price_percentile
         self.if_higher_than_this_percentile_then_sell = sell_price_percentile
-        self.need_at_least_n_hours = int(self.go_back_n_hours / 2)
+        self.need_at_least_n_hours = int(self.go_forward_n_hours / 2)
 
     def make_bids(self, period: datetime.datetime, clearing_prices_historical: Union[Dict[datetime.datetime, Dict[
             Resource, float]], None]) -> List[GrossBid]:
-        bids = []
+        bids: List[GrossBid] = []
 
-        nordpool_prices_last_n_hours_dict = self.electricity_pricing.get_nordpool_prices_last_n_hours_dict(
-            period, self.go_back_n_hours)
-        if len(nordpool_prices_last_n_hours_dict.values()) < self.need_at_least_n_hours:
-            raise RuntimeError("BatteryAgent '{}' needed at least {} hours of historical prices to function, but was "
-                               "only provided with {} hours.".
-                               format(self.guid, self.need_at_least_n_hours, len(nordpool_prices_last_n_hours_dict)))
+        prices_comming_n_hours = self.electricity_pricing.get_nordpool_prices_comming_n_hours_dict(period, 12)
+
+        if period not in prices_comming_n_hours.keys():
+            raise RuntimeError("Period {} not available in nordpool data.".format(period))
+   
+        if len(prices_comming_n_hours.values()) < self.need_at_least_n_hours:
+            logger.warning("BatteryAgent '{}' needed at least {} hours of prices to function, but was "
+                           "only provided with {} hours.".
+                           format(self.guid, self.need_at_least_n_hours, len(prices_comming_n_hours)))
+            return bids
 
         buy_quantity = self.calculate_buy_quantity()
         if buy_quantity >= LOWEST_BID_QUANTITY:
@@ -66,7 +70,7 @@ class BatteryAgent(IAgent):
                                                 action=Action.BUY,
                                                 quantity=buy_quantity,
                                                 price=self.calculate_buy_price(
-                                                    list(nordpool_prices_last_n_hours_dict.values()))))
+                                                    list(prices_comming_n_hours.values()))))
 
         sell_quantity = self.calculate_sell_quantity()
         if sell_quantity >= LOWEST_BID_QUANTITY:
@@ -74,7 +78,7 @@ class BatteryAgent(IAgent):
                                                 action=Action.SELL,
                                                 quantity=sell_quantity,
                                                 price=self.calculate_sell_price(
-                                                    list(nordpool_prices_last_n_hours_dict.values()))))
+                                                    list(prices_comming_n_hours.values()))))
         return bids
 
     def get_clearing_prices_for_resource(self, clearing_prices_hist: Dict[datetime.datetime, Dict[Resource, float]]) \

@@ -5,7 +5,7 @@ import pandas as pd
 
 from tradingplatformpoc.market.bid import Resource
 from tradingplatformpoc.price.iprice import IPrice
-from tradingplatformpoc.trading_platform_utils import minus_n_hours
+from tradingplatformpoc.trading_platform_utils import plus_n_hours
 
 
 logger = logging.getLogger(__name__)
@@ -120,16 +120,19 @@ class ElectricityPrice(IPrice):
     def get_nordpool_price_for_period(self, period: datetime.datetime):
         return self.nordpool_data.loc[period]
     
-    def get_nordpool_prices_last_n_hours_dict(self, period: datetime.datetime, go_back_n_hours: int):
-        mask = (self.nordpool_data.index < period) & \
-            (self.nordpool_data.index >= minus_n_hours(period, go_back_n_hours))
-        nordpool_prices_last_n_hours = self.nordpool_data.loc[mask]
-        if len(nordpool_prices_last_n_hours.index) != go_back_n_hours:
-            logger.info('No Nordpool data before {}. Returning get_nordpool_prices_last_n_hours_dict with {} '
-                        'entries instead of the desired {}'.
-                        format(nordpool_prices_last_n_hours.index.min(), len(nordpool_prices_last_n_hours.index),
-                               go_back_n_hours))
-        return nordpool_prices_last_n_hours.to_dict()
+    def get_nordpool_prices_comming_n_hours_dict(self, period: datetime.datetime, go_forward_n_hours: int):
+        """
+        Return Wholesale price = Nordpool spot price + self.elec_wholesale_offset for n_hours_back
+        """
+        mask = (self.nordpool_data.index >= period) & \
+            (self.nordpool_data.index < plus_n_hours(period, go_forward_n_hours))
+        nordpool_prices_n_hours_forward = self.nordpool_data.loc[mask]
+        if len(nordpool_prices_n_hours_forward.index) != go_forward_n_hours:
+            logger.info('No Nordpool data after {}. Returning get_electricity_wholesale_prices_last_n_hours_dict '
+                        'with {} entries instead of the desired {}'.format(
+                            nordpool_prices_n_hours_forward.index.min(), len(nordpool_prices_n_hours_forward.index),
+                            go_forward_n_hours))
+        return nordpool_prices_n_hours_forward.to_dict()
 
     def get_external_price_data_datetimes(self):
         return self.nordpool_data.index.tolist()

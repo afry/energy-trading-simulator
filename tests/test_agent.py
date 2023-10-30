@@ -241,28 +241,21 @@ class TestBatteryAgent(unittest.TestCase):
         self.assertEqual(1, len(bids))
         self.assertEqual(Action.SELL, bids[0].action)
 
-    def test_make_bids_without_historical_prices_or_nordpool_prices(self):
+    def test_make_bids_without_nordpool_prices_for_period(self):
         """Test that an error is raised when calling BatteryAgent's make_bids for a time period when there is no price
-        data available whatsoever, local nor Nordpool"""
+        data available"""
         with self.assertRaises(RuntimeError):
             self.battery_agent.make_bids(datetime(1990, 1, 1, tzinfo=timezone.utc), {})
 
-    def test_make_bids_without_historical_prices_and_only_1_day_of_nordpool_prices(self):
-        """Test that an error is raised when calling BatteryAgent's make_bids for a time period when there is only
+    def test_make_bids_with_only_1_day_of_nordpool_prices(self):
+        """Test that a warning is logged when calling BatteryAgent's make_bids for a time period when there is only
         one day's worth of entries of Nordpool data available."""
-        early_datetime = electricity_pricing.get_external_price_data_datetimes()[24]
-        with self.assertRaises(RuntimeError):
-            self.battery_agent.make_bids(early_datetime, {})
-
-    def test_make_bids_without_historical_prices_and_only_5_days_of_nordpool_prices(self):
-        """Test that an INFO is logged when calling BatteryAgent's make_bids for a time period when there are only
-        five days worth of entries of Nordpool data available."""
-        quite_early_datetime = electricity_pricing.get_external_price_data_datetimes()[120]
+        late_datetime = electricity_pricing.get_external_price_data_datetimes()[-1]
         with self.assertLogs() as captured:
-            self.battery_agent.make_bids(quite_early_datetime, {})
+            self.battery_agent.make_bids(late_datetime, {})
         self.assertTrue(len(captured.records) > 0)
         log_levels_captured = [rec.levelname for rec in captured.records]
-        self.assertTrue('INFO' in log_levels_captured)
+        self.assertTrue('WARNING' in log_levels_captured)
 
     def test_make_trade_with_2_accepted_bids(self):
         """Test that an error is raised when trying to calculate what trade to make, with more than 1 accepted bid."""
