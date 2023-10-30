@@ -20,8 +20,7 @@ class MockData(SQLModel, table=True):
     )
     created_at: Optional[datetime.datetime] = Field(
         title='Created time, with tz',
-        nullable=False,
-        sa_column=Column(DateTime(timezone=True), server_default=func.now(), primary_key=False)
+        sa_column=Column(DateTime(timezone=True), server_default=func.now(), primary_key=False, nullable=False)
     )
     agent_id: str = Field(
         title="Agent ID",

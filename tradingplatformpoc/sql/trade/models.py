@@ -26,8 +26,7 @@ class Trade(SQLModel, table=True):
     )
     period: datetime.datetime = Field(
         title="Period",
-        nullable=False,
-        sa_column=Column(DateTime(timezone=True), primary_key=False)
+        sa_column=Column(DateTime(timezone=True), primary_key=False, nullable=False)
     )
     action: Action = Field(
         title='Action',
