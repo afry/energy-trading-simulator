@@ -24,8 +24,7 @@ class ClearingPrice(SQLModel, table=True):
     )
     period: datetime.datetime = Field(
         title="Period",
-        nullable=False,
-        sa_column=Column(DateTime(timezone=True), primary_key=False)
+        sa_column=Column(DateTime(timezone=True), primary_key=False, nullable=False)
     )
     resource: Resource = Field(
         title='Resource',
