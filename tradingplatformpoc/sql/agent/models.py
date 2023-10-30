@@ -19,22 +19,19 @@ class Agent(SQLModel, table=True):
         nullable=False
     )
     created_at: Optional[datetime.datetime] = Field(
-        primary_key=False,
         title='Created time, with tz',
         nullable=False,
-        sa_column=Column(DateTime(timezone=True), server_default=func.now())
+        sa_column=Column(DateTime(timezone=True), server_default=func.now(), primary_key=False)
     )
     agent_type: str = Field(
-        primary_key=False,
         title='Agent type',
         nullable=False,
-        sa_column=Column(String(50))
+        sa_column=Column(String(50), primary_key=False)
     )
     agent_config: Dict[str, Any] = Field(
-        primary_key=False,
         title="Agent",
         nullable=False,
-        sa_column=Column(JSONB(none_as_null=True))
+        sa_column=Column(JSONB(none_as_null=True), primary_key=False)
     )
 
     # TODO: Have a declared attribute that returns {'Type': self.agent_type, **self.agent_config}
