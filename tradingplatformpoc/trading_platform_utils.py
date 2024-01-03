@@ -15,16 +15,15 @@ ALL_AGENT_TYPES = ["BuildingAgent", "PVAgent", "BatteryAgent", "GridAgent", "Gro
 logger = logging.getLogger(__name__)
 
 
-def minus_n_hours(t1: datetime, n_hours: int):
-    new_time = t1 - timedelta(hours=n_hours)
-    return new_time
+def minus_n_hours(t1: datetime, n_hours: int) -> datetime:
+    return t1 - timedelta(hours=n_hours)
 
 
-def plus_n_hours(t1: datetime, n_hours: int):
+def plus_n_hours(t1: datetime, n_hours: int) -> datetime:
     return t1 + timedelta(hours=n_hours)
 
 
-def hourly_datetime_array_between(from_dt: datetime, to_dt: datetime):
+def hourly_datetime_array_between(from_dt: datetime, to_dt: datetime) -> List[datetime]:
     delta = to_dt - from_dt
     delta_hours = int(delta.days * 24 + delta.seconds / 3600)
     to_return = [from_dt]
@@ -39,7 +38,7 @@ def get_intersection(collection1: Collection, collection2: Collection) -> List:
     return [value for value in collection1 if value in temp]
 
 
-def calculate_solar_prod(irradiation_data: pd.Series, pv_sqm: float, pv_efficiency: float):
+def calculate_solar_prod(irradiation_data: pd.Series, pv_sqm: float, pv_efficiency: float) -> pd.Series:
     """
     Calculates the solar energy production from some solar panels, given irradiation, total size of solar panels, and
     their efficiency.
@@ -90,7 +89,7 @@ def get_if_exists_else(some_dict: Dict[str, Any], key: str, default_value: Any) 
     return some_dict[key] if key in some_dict else default_value
 
 
-# TODO: move to simulation_runner_utils.py
+# TODO: move to simulation_utils.py
 def add_to_nested_dict(nested_dict: dict, key1, key2, value):
     if key1 in nested_dict:
         nested_dict[key1][key2] = value
