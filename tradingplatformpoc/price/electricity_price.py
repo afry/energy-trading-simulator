@@ -120,7 +120,7 @@ class ElectricityPrice(IPrice):
     def get_nordpool_price_for_period(self, period: datetime.datetime):
         return self.nordpool_data.loc[period]
     
-    def get_nordpool_prices_comming_n_hours_dict(self, period: datetime.datetime, go_forward_n_hours: int):
+    def get_nordpool_prices_coming_n_hours_dict(self, period: datetime.datetime, go_forward_n_hours: int):
         """
         Return Wholesale price = Nordpool spot price + self.elec_wholesale_offset for n_hours_back
         """

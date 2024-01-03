@@ -21,8 +21,7 @@ def minus_n_hours(t1: datetime, n_hours: int):
 
 
 def plus_n_hours(t1: datetime, n_hours: int):
-    new_time = t1 + timedelta(hours=n_hours)
-    return new_time
+    return t1 + timedelta(hours=n_hours)
 
 
 def hourly_datetime_array_between(from_dt: datetime, to_dt: datetime):

@@ -53,15 +53,15 @@ class BatteryAgent(IAgent):
             Resource, float]], None]) -> List[GrossBid]:
         bids: List[GrossBid] = []
 
-        prices_comming_n_hours = self.electricity_pricing.get_nordpool_prices_comming_n_hours_dict(period, 12)
+        prices_coming_n_hours = self.electricity_pricing.get_nordpool_prices_coming_n_hours_dict(period, 12)
 
-        if period not in prices_comming_n_hours.keys():
-            raise RuntimeError("Period {} not available in nordpool data.".format(period))
+        if period not in prices_coming_n_hours.keys():
+            raise RuntimeError("Period {} not available in Nordpool data.".format(period))
    
-        if len(prices_comming_n_hours.values()) < self.need_at_least_n_hours:
+        if len(prices_coming_n_hours.values()) < self.need_at_least_n_hours:
             logger.warning("BatteryAgent '{}' needed at least {} hours of prices to function, but was "
                            "only provided with {} hours.".
-                           format(self.guid, self.need_at_least_n_hours, len(prices_comming_n_hours)))
+                           format(self.guid, self.need_at_least_n_hours, len(prices_coming_n_hours)))
             return bids
 
         buy_quantity = self.calculate_buy_quantity()
@@ -70,7 +70,7 @@ class BatteryAgent(IAgent):
                                                 action=Action.BUY,
                                                 quantity=buy_quantity,
                                                 price=self.calculate_buy_price(
-                                                    list(prices_comming_n_hours.values()))))
+                                                    list(prices_coming_n_hours.values()))))
 
         sell_quantity = self.calculate_sell_quantity()
         if sell_quantity >= LOWEST_BID_QUANTITY:
@@ -78,7 +78,7 @@ class BatteryAgent(IAgent):
                                                 action=Action.SELL,
                                                 quantity=sell_quantity,
                                                 price=self.calculate_sell_price(
-                                                    list(prices_comming_n_hours.values()))))
+                                                    list(prices_coming_n_hours.values()))))
         return bids
 
     def get_clearing_prices_for_resource(self, clearing_prices_hist: Dict[datetime.datetime, Dict[Resource, float]]) \
