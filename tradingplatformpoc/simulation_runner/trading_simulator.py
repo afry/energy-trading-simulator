@@ -74,7 +74,7 @@ class TradingSimulator:
     def initialize_data(self):
         self.config_data = self.config_data
 
-        self.use_local_market = self.config_data['General']['LocalMarket']
+        self.local_market_enabled = self.config_data['General']['LocalMarketEnabled']
 
         self.heat_pricing: HeatingPrice = HeatingPrice(
             heating_wholesale_price_fraction=self.config_data['AreaInfo']['ExternalHeatingWholesalePriceFraction'],
@@ -227,8 +227,8 @@ class TradingSimulator:
                 for agent in self.agents:
                     accepted_bids_for_agent = [bid for bid in bids_with_acceptance_status
                                                if bid.source == agent.guid and bid.accepted_quantity > 0]
-                    trades, metadata = agent.make_trades_given_clearing_price(period, clearing_prices,
-                                                                              accepted_bids_for_agent)
+                    trades, metadata = agent.make_trades_given_clearing_price(self.local_market_enabled, period,
+                                                                              clearing_prices, accepted_bids_for_agent)
                     trades_excl_external.extend(trades)
                     go_through_trades_metadata(metadata, period, agent.guid, self.heat_pump_levels_dict,
                                                self.storage_levels_dict)

@@ -282,7 +282,8 @@ class TestBatteryAgent(unittest.TestCase):
         ]
         clearing_prices = {Resource.ELECTRICITY: 1.0, Resource.HEATING: np.nan}
         with self.assertRaises(RuntimeError):
-            self.battery_agent.make_trades_given_clearing_price(SOME_DATETIME, clearing_prices, accepted_bids_for_agent)
+            self.battery_agent.make_trades_given_clearing_price(True, SOME_DATETIME, clearing_prices,
+                                                                accepted_bids_for_agent)
 
 
 class TestBuildingAgent(TestCase):
@@ -352,7 +353,7 @@ class TestBuildingAgent(TestCase):
     def test_make_trades_given_clearing_price_consumer(self):
         """Test basic functionality of BuildingAgent's make_trades_given_clearing_price method."""
         clearing_prices = {Resource.ELECTRICITY: 0.01, Resource.HEATING: np.nan}
-        trades, md = self.building_agent_cons.make_trades_given_clearing_price(SOME_DATETIME, clearing_prices, [])
+        trades, md = self.building_agent_cons.make_trades_given_clearing_price(True, SOME_DATETIME, clearing_prices, [])
         self.assertEqual(2, len(trades))
         elec_trades = [x for x in trades if x.resource == Resource.ELECTRICITY]
         heat_trades = [x for x in trades if x.resource == Resource.HEATING]
@@ -372,7 +373,7 @@ class TestBuildingAgent(TestCase):
     def test_make_trades_given_low_clearing_price_producer(self):
         """Test basic functionality of BuildingAgent's make_trades_given_clearing_price method."""
         clearing_prices = {Resource.ELECTRICITY: 0.01, Resource.HEATING: np.nan}
-        trades, md = self.building_agent_prod.make_trades_given_clearing_price(SOME_DATETIME, clearing_prices, [])
+        trades, md = self.building_agent_prod.make_trades_given_clearing_price(True, SOME_DATETIME, clearing_prices, [])
         self.assertEqual(1, len(trades))
         elec_trades = [x for x in trades if x.resource == Resource.ELECTRICITY]
         heat_trades = [x for x in trades if x.resource == Resource.HEATING]
@@ -392,7 +393,7 @@ class TestBuildingAgent(TestCase):
     def test_make_trades_given_high_clearing_price_producer(self):
         """Test basic functionality of BuildingAgent's make_trades_given_clearing_price method."""
         clearing_prices = {Resource.ELECTRICITY: 100.0, Resource.HEATING: np.nan}
-        trades, md = self.building_agent_prod.make_trades_given_clearing_price(SOME_DATETIME, clearing_prices, [])
+        trades, md = self.building_agent_prod.make_trades_given_clearing_price(True, SOME_DATETIME, clearing_prices, [])
         self.assertEqual(1, len(trades))
         elec_trades = [x for x in trades if x.resource == Resource.ELECTRICITY]
         heat_trades = [x for x in trades if x.resource == Resource.HEATING]
@@ -413,7 +414,8 @@ class TestBuildingAgent(TestCase):
         """Test that when the net consumption is 0, BuildingAgent's make_trades_given_clearing_price method returns an
         empty list."""
         clearing_prices = {Resource.ELECTRICITY: 1.0, Resource.HEATING: np.nan}
-        trades, md = self.building_agent_zeros.make_trades_given_clearing_price(SOME_DATETIME, clearing_prices, [])
+        trades, md = self.building_agent_zeros.make_trades_given_clearing_price(True, SOME_DATETIME, clearing_prices,
+                                                                                [])
         self.assertEqual(0, len(trades))
 
 
@@ -468,7 +470,7 @@ class TestBuildingAgentHeatPump(TestCase):
     def test_trade_with_heat_pump(self):
         """Test that constructing of trades works as intended in a building agent which has some heat pumps."""
         clearing_prices = {Resource.ELECTRICITY: 1.0, Resource.HEATING: 1.5}
-        trades, md = self.building_agent_2_pumps_default_cop.make_trades_given_clearing_price(SOME_DATETIME,
+        trades, md = self.building_agent_2_pumps_default_cop.make_trades_given_clearing_price(True, SOME_DATETIME,
                                                                                               clearing_prices, [])
         self.assertEqual(2, len(trades))
         heat_trade = [x for x in trades if x.resource == Resource.HEATING]

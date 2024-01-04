@@ -55,10 +55,11 @@ class GridAgent(IAgent):
     def get_actual_usage(self, period: datetime.datetime, resource: Resource) -> float:
         pass
 
-    def make_trades_given_clearing_price(self, period: datetime.datetime, clearing_prices: Dict[Resource, float],
+    def make_trades_given_clearing_price(self, local_market_enabled: bool, period: datetime.datetime,
+                                         clearing_prices: Dict[Resource, float],
                                          accepted_bids_for_agent: List[NetBidWithAcceptanceStatus]) -> \
             Tuple[List[Trade], Dict[TradeMetadataKey, Any]]:
-        # The external grid is used to make up for any differences on the local market. Therefore these will be
+        # The external grid is used to make up for any differences on the local market. Therefore, these will be
         # calculated at a later stage (in calculate_external_trades)
         return [], {}
 

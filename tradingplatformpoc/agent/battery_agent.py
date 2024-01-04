@@ -96,32 +96,36 @@ class BatteryAgent(IAgent):
     def get_actual_usage(self, period: datetime.datetime, resource: Resource) -> float:
         pass
 
-    def make_trades_given_clearing_price(self, period: datetime.datetime, clearing_prices: Dict[Resource, float],
+    def make_trades_given_clearing_price(self, local_market_enabled: bool, period: datetime.datetime,
+                                         clearing_prices: Dict[Resource, float],
                                          accepted_bids_for_agent: List[NetBidWithAcceptanceStatus]) -> \
             Tuple[List[Trade], Dict[TradeMetadataKey, Any]]:
         trades = []
-        # In this implementation, the battery never sells or buys directly from the external grid.
-        if len(accepted_bids_for_agent) > 1:
-            # Only supporting one Resource, this would be unexpected
-            raise RuntimeError("More than 1 accepted bid in period {} for storage agent '{}'".format(period, self.guid))
-        elif len(accepted_bids_for_agent) == 1:
-            accepted_quantity = accepted_bids_for_agent[0].accepted_quantity
-            clearing_price = clearing_prices[self.resource]
-            if accepted_bids_for_agent[0].action == Action.BUY:
-                actual_charge_quantity = self.digital_twin.charge(accepted_quantity)
-                if actual_charge_quantity > 0:
-                    trades = [self.construct_elec_trade(period=period, action=Action.BUY,
-                                                        quantity=actual_charge_quantity,
-                                                        price=clearing_price, market=Market.LOCAL)]
-            else:  # action was SELL
-                actual_discharge_quantity = self.digital_twin.discharge(accepted_quantity)
-                if actual_discharge_quantity > 0:
-
-                    trades = [self.construct_elec_trade(period=period, action=Action.SELL,
-                                                        quantity=actual_discharge_quantity, price=clearing_price,
-                                                        market=Market.LOCAL,
-                                                        tax_paid=self.electricity_pricing.elec_tax_internal,
-                                                        grid_fee_paid=self.electricity_pricing.elec_grid_fee_internal)]
+        # FIXME: In this implementation, the battery never sells or buys directly from the external grid!
+        if local_market_enabled:
+            if len(accepted_bids_for_agent) > 1:
+                # Only supporting one Resource, this would be unexpected
+                raise RuntimeError("More than 1 accepted bid in period {} for storage agent '{}'".
+                                   format(period, self.guid))
+            elif len(accepted_bids_for_agent) == 1:
+                accepted_quantity = accepted_bids_for_agent[0].accepted_quantity
+                clearing_price = clearing_prices[self.resource]
+                if accepted_bids_for_agent[0].action == Action.BUY:
+                    actual_charge_quantity = self.digital_twin.charge(accepted_quantity)
+                    if actual_charge_quantity > 0:
+                        trades = [self.construct_elec_trade(period=period, action=Action.BUY,
+                                                            quantity=actual_charge_quantity,
+                                                            price=clearing_price, market=Market.LOCAL)]
+                else:  # action was SELL
+                    actual_discharge_quantity = self.digital_twin.discharge(accepted_quantity)
+                    if actual_discharge_quantity > 0:
+                        tax = self.electricity_pricing.elec_tax_internal
+                        grid_fee = self.electricity_pricing.elec_grid_fee_internal
+                        trades = [self.construct_elec_trade(period=period, action=Action.SELL,
+                                                            quantity=actual_discharge_quantity, price=clearing_price,
+                                                            market=Market.LOCAL,
+                                                            tax_paid=tax,
+                                                            grid_fee_paid=grid_fee)]
         return trades, {TradeMetadataKey.STORAGE_LEVEL: self.digital_twin.capacity_kwh}
 
     def calculate_buy_price(self, prices_last_n_hours: List[float]):

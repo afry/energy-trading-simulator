@@ -35,7 +35,8 @@ class IAgent(ABC):
         pass
 
     @abstractmethod
-    def make_trades_given_clearing_price(self, period: datetime.datetime, clearing_prices: Dict[Resource, float],
+    def make_trades_given_clearing_price(self, local_market_enabled: bool, period: datetime.datetime,
+                                         clearing_prices: Dict[Resource, float],
                                          accepted_bids_for_agent: List[NetBidWithAcceptanceStatus]) -> \
             Tuple[List[Trade], Dict[TradeMetadataKey, Any]]:
         """
@@ -84,16 +85,16 @@ class IAgent(ABC):
 
 
 def get_price_and_market_to_use_when_buying(clearing_price: float, retail_price: float,
-                                            use_local_market: bool):
-    if clearing_price != np.nan and clearing_price <= retail_price and use_local_market:
+                                            local_market_enabled: bool):
+    if clearing_price != np.nan and clearing_price <= retail_price and local_market_enabled:
         return clearing_price, Market.LOCAL
     else:
         return retail_price, Market.EXTERNAL
 
 
 def get_price_and_market_to_use_when_selling(clearing_price: float, wholesale_price: float,
-                                             use_local_market: bool):
-    if clearing_price != np.nan and clearing_price >= wholesale_price and use_local_market:
+                                             local_market_enabled: bool):
+    if clearing_price != np.nan and clearing_price >= wholesale_price and local_market_enabled:
         return clearing_price, Market.LOCAL
     else:
         return wholesale_price, Market.EXTERNAL
