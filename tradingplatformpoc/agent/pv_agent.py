@@ -54,11 +54,10 @@ class PVAgent(IAgent):
             clearing_price = clearing_prices[Resource.ELECTRICITY]
             price_to_use, market_to_use = get_price_and_market_to_use_when_selling(
                 clearing_price, wholesale_price, True)
-            # NOTE: Here we assume that even if we sell electricity on the "external market", we still pay
-            # the internal electricity tax, and the internal grid fee
+            tax = self.electricity_pricing.get_tax(market_to_use)
+            grid_fee = self.electricity_pricing.get_grid_fee(market_to_use)
             return [self.construct_elec_trade(period=period, action=Action.SELL, quantity=-usage,
                                               price=price_to_use, market=market_to_use,
-                                              tax_paid=self.electricity_pricing.elec_tax_internal,
-                                              grid_fee_paid=self.electricity_pricing.elec_grid_fee_internal)], {}
+                                              tax_paid=tax, grid_fee_paid=grid_fee)], {}
         else:
             return [], {}

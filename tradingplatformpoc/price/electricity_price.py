@@ -4,6 +4,7 @@ import logging
 import pandas as pd
 
 from tradingplatformpoc.market.bid import Resource
+from tradingplatformpoc.market.trade import Market
 from tradingplatformpoc.price.iprice import IPrice
 from tradingplatformpoc.trading_platform_utils import minus_n_hours
 
@@ -127,3 +128,9 @@ class ElectricityPrice(IPrice):
 
     def get_external_price_data_datetimes(self):
         return self.nordpool_data.index.tolist()
+
+    def get_tax(self, market: Market) -> float:
+        return self.elec_tax_internal if market == Market.LOCAL else self.elec_tax
+
+    def get_grid_fee(self, market: Market) -> float:
+        return self.elec_grid_fee_internal if market == Market.LOCAL else self.elec_grid_fee
