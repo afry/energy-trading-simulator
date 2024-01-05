@@ -1,3 +1,4 @@
+from typing import Optional
 
 
 class Battery:
@@ -6,7 +7,7 @@ class Battery:
                  max_charge_rate_fraction: float,
                  max_discharge_rate_fraction: float,
                  discharging_efficiency: float,
-                 start_capacity_kwh: float = 0,
+                 start_capacity_kwh: Optional[float] = None,
                  start_is_charging: bool = True):
         """
 
@@ -25,7 +26,7 @@ class Battery:
         self.max_charge_rate_fraction = max_charge_rate_fraction
         self.max_discharge_rate_fraction = max_discharge_rate_fraction
         self.discharging_efficiency = discharging_efficiency
-        self.capacity_kwh = start_capacity_kwh
+        self.capacity_kwh = start_capacity_kwh if start_capacity_kwh is not None else max_capacity_kwh / 2
         self.is_charging = start_is_charging
         self.charge_limit_kwh = self.max_capacity_kwh * self.max_charge_rate_fraction
         self.discharge_limit_kwh = self.max_capacity_kwh * self.max_discharge_rate_fraction
