@@ -5,7 +5,7 @@ import pandas as pd
 
 from tradingplatformpoc.market.bid import Action, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.market.extra_cost import ExtraCost, ExtraCostType, get_extra_cost_type_for_bid_inaccuracy
-from tradingplatformpoc.market.trade import Market, Trade
+from tradingplatformpoc.market.trade import Trade
 from tradingplatformpoc.sql.trade.crud import heat_trades_from_db_for_periods
 from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES
 
