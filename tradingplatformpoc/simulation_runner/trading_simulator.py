@@ -74,7 +74,7 @@ class TradingSimulator:
     def initialize_data(self):
         self.config_data = self.config_data
 
-        self.local_market_enabled = self.config_data['General']['LocalMarketEnabled']
+        self.local_market_enabled = self.config_data['AreaInfo']['LocalMarketEnabled']
 
         self.heat_pricing: HeatingPrice = HeatingPrice(
             heating_wholesale_price_fraction=self.config_data['AreaInfo']['ExternalHeatingWholesalePriceFraction'],

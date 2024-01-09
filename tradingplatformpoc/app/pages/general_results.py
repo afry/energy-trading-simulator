@@ -55,7 +55,7 @@ if len(ids) > 0:
         st.caption("Click on a variable in legend to highlight it in the graph.")
         st.altair_chart(price_chart, use_container_width=True, theme=None)
 
-        if config['General']['LocalMarketEnabled']:
+        if config['AreaInfo']['LocalMarketEnabled']:
             with tab_price_table:
                 st.caption("Periods where local electricity price was "
                            "between external retail and wholesale price:")

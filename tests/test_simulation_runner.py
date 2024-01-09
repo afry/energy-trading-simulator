@@ -34,8 +34,7 @@ class Test(TestCase):
         """Test that an error is thrown if no GridAgents are initialized."""
         fake_config = {'Agents': [agent for agent in self.config['Agents'] if agent['Type'] != 'GridAgent'],
                        'AreaInfo': self.config['AreaInfo'],
-                       'MockDataConstants': self.config['MockDataConstants'],
-                       'General': self.config['General']}
+                       'MockDataConstants': self.config['MockDataConstants']}
         agent_specs = {agent['Name']: uuid_as_str_generator() for agent in fake_config['Agents'][:]
                        if agent['Type'] == 'BuildingAgent'}
         mock_data_columns = [[get_elec_cons_key(agent_id),

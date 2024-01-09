@@ -1,5 +1,5 @@
 # ---------------------------------------- Config screening -----------------------------------
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from tradingplatformpoc.config.access_config import read_agent_specs, read_param_specs
 from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES_STR
@@ -26,7 +26,7 @@ def config_data_json_screening(config_data: dict) -> Optional[str]:
 def config_data_keys_screening(config_data: dict) -> Optional[str]:
     """Check that config is structured as expected."""
     # Make sure no unrecognized keys are passed
-    unreq = [key for key in config_data.keys() if key not in ['Agents', 'AreaInfo', 'MockDataConstants', 'General']]
+    unreq = [key for key in config_data.keys() if key not in ['Agents', 'AreaInfo', 'MockDataConstants']]
     if len(unreq) > 0:
         return 'Unrecognized key/keys: [\'{}\'] in uploaded config.'.format(', '.join(unreq))
     
@@ -37,10 +37,6 @@ def config_data_keys_screening(config_data: dict) -> Optional[str]:
     if 'MockDataConstants' in config_data:
         if not isinstance(config_data['MockDataConstants'], dict):
             return '\'MockDataConstants\' should be provided as a dict.'
-        
-    if 'General' in config_data:
-        if not isinstance(config_data['General'], dict):
-            return '\'General\' should be provided as a dict.'
         
     # Make sure agents are provided as list
     if 'Agents' not in config_data:
@@ -58,10 +54,10 @@ def config_data_keys_screening(config_data: dict) -> Optional[str]:
 def config_data_param_screening(config_data: dict) -> Optional[str]:
     """Check that config json contains reasonable parameters."""
 
-    param_specs = read_param_specs(['AreaInfo', 'MockDataConstants', 'General'])
+    param_specs = read_param_specs(['AreaInfo', 'MockDataConstants'])
 
     # Check params for correct keys and values in ranges
-    for info_type in [c for c in ['AreaInfo', 'MockDataConstants', 'General'] if c in config_data]:
+    for info_type in [c for c in ['AreaInfo', 'MockDataConstants'] if c in config_data]:
         for key, val in config_data[info_type].items():
             if key in param_specs[info_type].keys():
 
@@ -169,12 +165,11 @@ def agent_diff(default: dict, new: dict) -> Tuple[List[str], List[str], Dict[str
     return agents_only_in_default, agents_only_in_new, param_diff
 
 
-def param_diff(default: Dict[str, Any], new: Dict[str, Any]) -> List[List[Tuple]]:
+def param_diff(default: dict, new: dict) -> Tuple[List[Tuple], List[Tuple]]:
     """Returns lists of parameter key, pairs that differ from the default."""
-    list_to_return: List[List[Tuple]] = []
-    for k in ['AreaInfo', 'MockDataConstants', 'General']:
-        list_to_return.append(list(set(default[k].items()) - set(new[k].items())))
-    return list_to_return
+    changed_area_info_params = list(set(default['AreaInfo'].items()) - set(new['AreaInfo'].items()))
+    changed_mock_data_params = list(set(default['MockDataConstants'].items()) - set(new['MockDataConstants'].items()))
+    return changed_area_info_params, changed_mock_data_params
 
 
 def display_diff_in_config(default: dict, new: dict) -> List[str]:
@@ -199,7 +194,7 @@ def display_diff_in_config(default: dict, new: dict) -> List[str]:
                                      + str(vals['new']) + ', ')
             str_to_disp.append(str_agent_change[:-2] + '*')
 
-    changes_to_area_info_params, changes_to_mock_data_params, changes_to_general_params = (
+    changes_to_area_info_params, changes_to_mock_data_params = (
         param_diff(default.copy(), new.copy()))
 
     if len(changes_to_area_info_params) > 0:
@@ -210,11 +205,6 @@ def display_diff_in_config(default: dict, new: dict) -> List[str]:
     if len(changes_to_mock_data_params) > 0:
         str_to_disp.append('**Changes to mock data parameters:**')
         for param in changes_to_mock_data_params:
-            str_to_disp.append(param[0] + ': ' + str(param[1]))
-
-    if len(changes_to_general_params) > 0:
-        str_to_disp.append('**Changes to general parameters:**')
-        for param in changes_to_general_params:
             str_to_disp.append(param[0] + ': ' + str(param[1]))
 
     return str_to_disp

@@ -10,7 +10,7 @@ from tradingplatformpoc.app import app_constants, footer
 from tradingplatformpoc.app.app_functions import cleanup_config_description, cleanup_config_name, \
     config_naming_is_valid, make_room_for_menu_in_sidebar, set_max_width, update_multiselect_style
 from tradingplatformpoc.app.app_inputs import add_battery_agent, add_building_agent, add_grocery_store_agent, \
-    add_params_to_form, add_pv_agent, add_radio_to_form, agent_inputs, duplicate_agent, remove_agent, \
+    add_params_to_form, add_pv_agent, agent_inputs, duplicate_agent, remove_agent, \
     remove_all_building_agents
 from tradingplatformpoc.config.access_config import fill_agents_with_defaults, fill_with_default_params, \
     read_param_specs
@@ -101,12 +101,6 @@ if comp_pveff is not None:
 # TODO: Same for Heatpump COP
 
 if option_chosen == options[0]:
-
-    general_form = st.form(key='GeneralForm')
-    add_radio_to_form(general_form, read_param_specs(['General']), 'General')
-    submit_general_form = general_form.form_submit_button("Save choice")
-    if submit_general_form:
-        submit_general_form = False
 
     with st.expander("General parameters"):
         st.markdown('Change parameter values by filling out the following forms. **Save** '

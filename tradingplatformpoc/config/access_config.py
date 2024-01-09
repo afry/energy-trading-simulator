@@ -1,7 +1,7 @@
 import json
 
 from tradingplatformpoc.constants import AGENT_SPECS_FILENAME, AREA_INFO_SPECS, \
-    DEFAULT_AGENTS_FILENAME, GENERAL_SPECS, MOCK_DATA_CONSTANTS_SPECS
+    DEFAULT_AGENTS_FILENAME, MOCK_DATA_CONSTANTS_SPECS
 
 
 def read_agent_specs():
@@ -21,8 +21,7 @@ def read_parameter_from_agent_defaults(agent_type: str, parameter_name: str):
 def read_param_specs(names):
     """Reads and returns specified params specification from file."""
     file_dict = {'AreaInfo': AREA_INFO_SPECS,
-                 'MockDataConstants': MOCK_DATA_CONSTANTS_SPECS,
-                 'General': GENERAL_SPECS}
+                 'MockDataConstants': MOCK_DATA_CONSTANTS_SPECS}
     param_specs = {}
     for name in names:
         with open(file_dict[name], "r") as jsonfile:
@@ -41,14 +40,14 @@ def read_config() -> dict:
     """Reads and returns default config from file."""
     with open(DEFAULT_AGENTS_FILENAME, "r") as jsonfile:
         config = json.load(jsonfile)
-        default_params = read_default_params(names=['AreaInfo', 'MockDataConstants', 'General'])
+        default_params = read_default_params(names=['AreaInfo', 'MockDataConstants'])
     return {'Agents': config, **default_params}
 
 
 def fill_with_default_params(new_config: dict) -> dict:
     """If not all parameters are specified in uploaded config, use default for the unspecified ones."""
-    param_specs = read_param_specs(['AreaInfo', 'MockDataConstants', 'General'])
-    for param_type in ['AreaInfo', 'MockDataConstants', 'General']:
+    param_specs = read_param_specs(['AreaInfo', 'MockDataConstants'])
+    for param_type in ['AreaInfo', 'MockDataConstants']:
         params_only_in_default = dict((k, v) for k, v in param_specs[param_type].items()
                                       if k not in set(new_config[param_type].keys()))
         for k, v in params_only_in_default.items():

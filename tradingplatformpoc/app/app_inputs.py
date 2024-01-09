@@ -134,20 +134,16 @@ def get_agent(all_agents: Iterable[IAgent], agent_chosen_guid: str) -> IAgent:
 
 
 def add_params_to_form(form, param_spec_dict: dict, info_type: str):
-    """Populate parameter forms."""
+    """Populate parameter forms. Will use radio buttons for booleans, number inputs for all others."""
     current_config = st.session_state.config_data
+    bool_options = [True, False]
     for key, val in param_spec_dict[info_type].items():
-        params = {k: v for k, v in val.items() if k not in ['display', 'default']}
-        st.session_state.config_data[info_type][key] = form.number_input(
-            val['display'], **params,
-            value=current_config[info_type][key])
-
-
-def add_radio_to_form(form, param_spec_dict: dict, info_type: str):
-    """Populate radio button forms."""
-    current_config = st.session_state.config_data
-    options = [True, False]
-    for key, val in param_spec_dict[info_type].items():
-        st.session_state.config_data[info_type][key] = form.radio(
-            label=val['display'], help=val['help'],
-            options=options, index=options.index(current_config[info_type][key]))
+        if isinstance(val['default'], bool):
+            st.session_state.config_data[info_type][key] = form.radio(
+                label=val['display'], help=val['help'],
+                options=bool_options, index=bool_options.index(current_config[info_type][key]))
+        else:
+            params = {k: v for k, v in val.items() if k not in ['display', 'default']}
+            st.session_state.config_data[info_type][key] = form.number_input(
+                val['display'], **params,
+                value=current_config[info_type][key])

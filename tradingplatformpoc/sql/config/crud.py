@@ -39,8 +39,7 @@ def create_config_if_not_in_db(config: dict, config_id: str, description: str,
                                                   description=description,
                                                   agents_spec=agent_name_and_ids,
                                                   area_info=config['AreaInfo'],
-                                                  mock_data_constants=config['MockDataConstants'],
-                                                  general=config['General']))
+                                                  mock_data_constants=config['MockDataConstants']))
         logger.info('Configuration with ID {} created!'.format(db_config_id))
         return {'created': True, 'id': db_config_id, 'message': 'Config created with ID {}'.format(db_config_id)}
     else:
@@ -66,14 +65,11 @@ def check_if_config_in_db(config: dict, agent_ids: List[str],
         configs_in_db = db.execute(select(Config)).all()
         for (config_in_db,) in configs_in_db:
             config_in_db_params = {'AreaInfo': config_in_db.area_info,
-                                   'MockDataConstants': config_in_db.mock_data_constants,
-                                   'General': config_in_db.general}
+                                   'MockDataConstants': config_in_db.mock_data_constants}
             new_params = {'AreaInfo': config['AreaInfo'],
-                          'MockDataConstants': config['MockDataConstants'],
-                          'General': config['General']}
-            # Note: If adding fields to compare, also modify param_diff function
-            changed_params = param_diff(config_in_db_params, new_params)
-            if sum([len(cp) for cp in changed_params]) == 0:
+                          'MockDataConstants': config['MockDataConstants']}
+            changed_area_info_params, changed_mock_data_params = param_diff(config_in_db_params, new_params)
+            if (len(changed_area_info_params) == 0) and (len(changed_mock_data_params) == 0):
                 # General parameters were all the same. Compare agents:
                 diff1 = Counter(config_in_db.agents_spec.values()) - Counter(agent_ids)
                 diff2 = Counter(agent_ids) - Counter(config_in_db.agents_spec.values())
@@ -94,8 +90,7 @@ def read_config(config_id: str,
             agents = [{'Name': [name for name, aid in config.agents_spec.items() if aid == agent.id][0],
                        'Type': agent.agent_type, **agent.agent_config} for (agent,) in res]
             return {'Agents': agents, 'AreaInfo': config.area_info,
-                    'MockDataConstants': config.mock_data_constants,
-                    'General': config.general}
+                    'MockDataConstants': config.mock_data_constants}
         else:
             logger.error('Configuration with ID {} not found.'.format(config_id))
             return None
