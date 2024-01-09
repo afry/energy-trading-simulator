@@ -65,12 +65,16 @@ def check_if_config_in_db(config: dict, agent_ids: List[str],
     with session_generator() as db:
         configs_in_db = db.execute(select(Config)).all()
         for (config_in_db,) in configs_in_db:
-            changed_area_info_params, changed_mock_data_params = \
-                param_diff({'AreaInfo': config_in_db.area_info,
-                            'MockDataConstants': config_in_db.mock_data_constants},
-                           {'AreaInfo': config['AreaInfo'],
-                            'MockDataConstants': config['MockDataConstants']})
-            if (len(changed_area_info_params) == 0) and (len(changed_mock_data_params) == 0):
+            config_in_db_params = {'AreaInfo': config_in_db.area_info,
+                                   'MockDataConstants': config_in_db.mock_data_constants,
+                                   'General': config_in_db.general}
+            new_params = {'AreaInfo': config['AreaInfo'],
+                          'MockDataConstants': config['MockDataConstants'],
+                          'General': config['General']}
+            # Note: If adding fields to compare, also modify param_diff function
+            changed_params = param_diff(config_in_db_params, new_params)
+            if sum([len(cp) for cp in changed_params]) == 0:
+                # General parameters were all the same. Compare agents:
                 diff1 = Counter(config_in_db.agents_spec.values()) - Counter(agent_ids)
                 diff2 = Counter(agent_ids) - Counter(config_in_db.agents_spec.values())
 

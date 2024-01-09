@@ -1,5 +1,5 @@
 # ---------------------------------------- Config screening -----------------------------------
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from tradingplatformpoc.config.access_config import read_agent_specs, read_param_specs
 from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES_STR
@@ -169,11 +169,12 @@ def agent_diff(default: dict, new: dict) -> Tuple[List[str], List[str], Dict[str
     return agents_only_in_default, agents_only_in_new, param_diff
 
 
-def param_diff(default: dict, new: dict) -> Tuple[List[Tuple], List[Tuple]]:
+def param_diff(default: Dict[str, Any], new: Dict[str, Any]) -> List[List[Tuple]]:
     """Returns lists of parameter key, pairs that differ from the default."""
-    changed_area_info_params = list(set(default['AreaInfo'].items()) - set(new['AreaInfo'].items()))
-    changed_mock_data_params = list(set(default['MockDataConstants'].items()) - set(new['MockDataConstants'].items()))
-    return changed_area_info_params, changed_mock_data_params
+    list_to_return: List[List[Tuple]] = []
+    for k in ['AreaInfo', 'MockDataConstants', 'General']:
+        list_to_return.append(list(set(default[k].items()) - set(new[k].items())))
+    return list_to_return
 
 
 def display_diff_in_config(default: dict, new: dict) -> List[str]:
@@ -198,7 +199,8 @@ def display_diff_in_config(default: dict, new: dict) -> List[str]:
                                      + str(vals['new']) + ', ')
             str_to_disp.append(str_agent_change[:-2] + '*')
 
-    changes_to_area_info_params, changes_to_mock_data_params = param_diff(default.copy(), new.copy())
+    changes_to_area_info_params, changes_to_mock_data_params, changes_to_general_params = (
+        param_diff(default.copy(), new.copy()))
 
     if len(changes_to_area_info_params) > 0:
         str_to_disp.append('**Changes to area info parameters:**')
@@ -208,6 +210,11 @@ def display_diff_in_config(default: dict, new: dict) -> List[str]:
     if len(changes_to_mock_data_params) > 0:
         str_to_disp.append('**Changes to mock data parameters:**')
         for param in changes_to_mock_data_params:
+            str_to_disp.append(param[0] + ': ' + str(param[1]))
+
+    if len(changes_to_general_params) > 0:
+        str_to_disp.append('**Changes to general parameters:**')
+        for param in changes_to_general_params:
             str_to_disp.append(param[0] + ': ' + str(param[1]))
 
     return str_to_disp
