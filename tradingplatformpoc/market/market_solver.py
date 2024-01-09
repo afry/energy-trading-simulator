@@ -54,6 +54,14 @@ def resolve_bids(period: datetime.datetime, bids: Iterable[NetBid]) -> \
     return clearing_prices_dict, bids_with_acceptance_status
 
 
+def without_local_market() -> Tuple[Dict[Resource, float], List[NetBidWithAcceptanceStatus]]:
+    """Mimics resolve_bids, to simplify the trading_simulator code"""
+    clearing_prices_dict: Dict[Resource, float] = {}
+    for resource in ALL_IMPLEMENTED_RESOURCES:
+        clearing_prices_dict[resource] = np.nan
+    return clearing_prices_dict, []
+
+
 def calculate_bids_with_acceptance_status(clearing_price: float, buy_bids: List[NetBid],
                                           sell_bids: List[NetBid], supply_for_price_point: float) -> \
         List[NetBidWithAcceptanceStatus]:

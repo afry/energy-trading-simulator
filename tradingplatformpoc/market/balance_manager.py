@@ -11,21 +11,22 @@ from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES
 
 
 def calculate_penalty_costs_for_period(bids_for_period: Collection[NetBidWithAcceptanceStatus],
-                                       trades_for_period: Collection[Trade],
-                                       period: datetime.datetime,
+                                       trades_for_period: Collection[Trade], period: datetime.datetime,
                                        clearing_prices: Dict[Resource, float],
-                                       external_wholesale_prices: Dict[Resource, float]) -> List[ExtraCost]:
+                                       external_wholesale_prices: Dict[Resource, float],
+                                       local_market_enabled: bool) -> List[ExtraCost]:
     extra_costs_for_period: List[ExtraCost] = []
-    for resource in ALL_IMPLEMENTED_RESOURCES:
-        bids_for_resource = [x for x in bids_for_period if x.resource == resource]
-        trades_for_resource = [x for x in trades_for_period if x.resource == resource]
-        for_resource = calculate_penalty_costs_for_period_and_resource(bids_for_resource, trades_for_resource,
-                                                                       clearing_prices[resource],
-                                                                       external_wholesale_prices[resource])
-        # Using period and resource, create ExtraCost entities
-        extra_cost_type = get_extra_cost_type_for_bid_inaccuracy(resource)
-        for (agent, cost) in for_resource.items():
-            extra_costs_for_period.append(ExtraCost(period, agent, extra_cost_type, cost))
+    if local_market_enabled:
+        for resource in ALL_IMPLEMENTED_RESOURCES:
+            bids_for_resource = [x for x in bids_for_period if x.resource == resource]
+            trades_for_resource = [x for x in trades_for_period if x.resource == resource]
+            for_resource = calculate_penalty_costs_for_period_and_resource(bids_for_resource, trades_for_resource,
+                                                                           clearing_prices[resource],
+                                                                           external_wholesale_prices[resource])
+            # Using period and resource, create ExtraCost entities
+            extra_cost_type = get_extra_cost_type_for_bid_inaccuracy(resource)
+            for (agent, cost) in for_resource.items():
+                extra_costs_for_period.append(ExtraCost(period, agent, extra_cost_type, cost))
 
     return extra_costs_for_period
 
@@ -45,9 +46,9 @@ def calculate_penalty_costs_for_period_and_resource(bids_for_resource: Collectio
     agent_ids = set([x.source for x in accepted_bids] + [x.source for x in trades_for_resource])
 
     external_bid = get_external_bid(bids_for_resource)
-    external_trade_on_local_market = get_external_trade_on_local_market(trades_for_resource)
+    external_trade = get_trade_by_external_grid(trades_for_resource)
     external_retail_price = external_bid.price  # Since GridAgent only places SELL-bid, this is accurate
-    extra_cost = calculate_total_extra_cost_for_period(external_trade_on_local_market,
+    extra_cost = calculate_total_extra_cost_for_period(external_trade,
                                                        clearing_price,
                                                        external_wholesale_price,
                                                        external_retail_price)
@@ -83,14 +84,14 @@ def calculate_costs_for_heating(trading_periods: Collection[datetime.datetime],
     return costs_by_period
 
 
-def get_external_trade_on_local_market(trades: Collection[Trade]) -> Union[Trade, None]:
-    external_trades_on_local_market = [x for x in trades if x.by_external and x.market == Market.LOCAL]
-    if len(external_trades_on_local_market) == 0:
+def get_trade_by_external_grid(trades: Collection[Trade]) -> Union[Trade, None]:
+    external_grid_operator_trades = [x for x in trades if x.by_external]
+    if len(external_grid_operator_trades) == 0:
         return None
-    elif len(external_trades_on_local_market) > 1:
+    elif len(external_grid_operator_trades) > 1:
         raise RuntimeError("Unexpected state: More than 1 external grid trade for a single trading period")
     else:
-        return external_trades_on_local_market[0]
+        return external_grid_operator_trades[0]
 
 
 def get_external_bid(bids: Collection[NetBidWithAcceptanceStatus]) -> NetBidWithAcceptanceStatus:
@@ -113,7 +114,9 @@ def calculate_total_extra_cost_for_period(external_trade: Union[Trade, None], cl
     external grid selling to the microgrid at a higher price than the local clearing price, or the external grid buying
     from the microgrid at a lower price than the local clearing price.
 
-    @param external_trade: An external trade, on the local market, for the period and resource in question. May be None.
+    @param external_trade: An external trade, i.e. the external grid operator either buying from, or selling to, the
+        local market, for the period and resource in question. Can be None, if the local market has neither a surplus
+        nor a deficit.
     @param clearing_price: The clearing price for the period and resource.
     @param external_wholesale_price: The external wholesale price for the period and resource.
     @param external_retail_price: The external retail price for the period and resource.
@@ -244,7 +247,7 @@ def correct_for_exact_heating_price(trading_periods: pd.DatetimeIndex,
                 heating_trades = []
             else:
                 heating_trades = heating_trades_for_month[period]
-            external_trade = get_external_trade_on_local_market(heating_trades)
+            external_trade = get_trade_by_external_grid(heating_trades)
             if external_trade is not None:
                 external_trade_quantity = external_trade.quantity_post_loss
                 if external_trade.action == Action.SELL:

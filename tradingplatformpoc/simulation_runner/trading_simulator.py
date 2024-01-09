@@ -201,21 +201,23 @@ class TradingSimulator:
                     info_string = "Simulations entering {:%B}".format(period)
                     logger.info(info_string)
 
-                # TODO: Skipp bidding if self.use_local_market and go straight to trades
-                # Get all bids
-                bids = [agent.make_bids(period, self.clearing_prices_historical) for agent in self.agents]
+                if self.local_market_enabled:
+                    # Get all bids
+                    bids = [agent.make_bids(period, self.clearing_prices_historical) for agent in self.agents]
 
-                # Flatten bids list
-                bids_flat: List[GrossBid] = flatten_collection(bids)
+                    # Flatten bids list
+                    bids_flat: List[GrossBid] = flatten_collection(bids)
 
-                # Add in tax and grid fee for SELL bids (for electricity, heating is not taxed)
-                net_bids = net_bids_from_gross_bids(bids_flat, self.electricity_pricing)
+                    # Add in tax and grid fee for SELL bids (for electricity, heating is not taxed)
+                    net_bids = net_bids_from_gross_bids(bids_flat, self.electricity_pricing)
 
-                # Resolve bids
-                clearing_prices, bids_with_acceptance_status = market_solver.resolve_bids(period, net_bids)
-                self.clearing_prices_historical[period] = clearing_prices
+                    # Resolve bids
+                    clearing_prices, bids_with_acceptance_status = market_solver.resolve_bids(period, net_bids)
+                    self.clearing_prices_historical[period] = clearing_prices
 
-                all_bids_list_batch.append(bids_with_acceptance_status)
+                    all_bids_list_batch.append(bids_with_acceptance_status)
+                else:
+                    clearing_prices, bids_with_acceptance_status = market_solver.without_local_market()
 
                 # Send clearing price back to agents, allow them to "make trades", i.e. decide if they want to buy/sell
                 # energy, from/to either the local market or directly from/to the external grid.
@@ -251,7 +253,8 @@ class TradingSimulator:
                                                                                  all_trades_for_period,
                                                                                  period,
                                                                                  clearing_prices,
-                                                                                 wholesale_prices)
+                                                                                 wholesale_prices,
+                                                                                 self.local_market_enabled)
 
                 electricity_price_list_batch.append({
                     'job_id': self.job_id, 'period': period, 'retail_price': retail_price_elec,
