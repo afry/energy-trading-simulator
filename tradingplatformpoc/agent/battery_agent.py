@@ -102,6 +102,7 @@ class BatteryAgent(IAgent):
             Tuple[List[Trade], Dict[TradeMetadataKey, Any]]:
         trades = []
         # FIXME: In this implementation, the battery never sells or buys directly from the external grid!
+        #  Should be fixed in battery logic overhaul.
         if local_market_enabled:
             if len(accepted_bids_for_agent) > 1:
                 # Only supporting one Resource, this would be unexpected
