@@ -194,8 +194,7 @@ def display_diff_in_config(default: dict, new: dict) -> List[str]:
                                      + str(vals['new']) + ', ')
             str_to_disp.append(str_agent_change[:-2] + '*')
 
-    changes_to_area_info_params, changes_to_mock_data_params = (
-        param_diff(default.copy(), new.copy()))
+    changes_to_area_info_params, changes_to_mock_data_params = param_diff(default.copy(), new.copy())
 
     if len(changes_to_area_info_params) > 0:
         str_to_disp.append('**Changes to area info parameters:**')
