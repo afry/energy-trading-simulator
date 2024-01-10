@@ -34,10 +34,9 @@ class BatteryAgent(IAgent):
     # there is even less than that available, will throw an error.
     need_at_least_n_hours: int
 
-    def __init__(self, electricity_pricing: ElectricityPrice,
-                 digital_twin: Battery, n_hours_to_look_back: int,
-                 buy_price_percentile: int, sell_price_percentile: int, guid="BatteryAgent"):
-        super().__init__(guid)
+    def __init__(self, local_market_enabled: bool, electricity_pricing: ElectricityPrice, digital_twin: Battery,
+                 n_hours_to_look_back: int, buy_price_percentile: int, sell_price_percentile: int, guid="BatteryAgent"):
+        super().__init__(guid, local_market_enabled)
         self.electricity_pricing = electricity_pricing
         self.digital_twin = digital_twin
         self.go_back_n_hours = n_hours_to_look_back
@@ -96,14 +95,13 @@ class BatteryAgent(IAgent):
     def get_actual_usage(self, period: datetime.datetime, resource: Resource) -> float:
         pass
 
-    def make_trades_given_clearing_price(self, local_market_enabled: bool, period: datetime.datetime,
-                                         clearing_prices: Dict[Resource, float],
+    def make_trades_given_clearing_price(self, period: datetime.datetime, clearing_prices: Dict[Resource, float],
                                          accepted_bids_for_agent: List[NetBidWithAcceptanceStatus]) -> \
             Tuple[List[Trade], Dict[TradeMetadataKey, Any]]:
         trades = []
         # FIXME: In this implementation, the battery never sells or buys directly from the external grid!
         #  Should be fixed in battery logic overhaul.
-        if local_market_enabled:
+        if self.local_market_enabled:
             if len(accepted_bids_for_agent) > 1:
                 # Only supporting one Resource, this would be unexpected
                 raise RuntimeError("More than 1 accepted bid in period {} for storage agent '{}'".

@@ -1,7 +1,7 @@
 import datetime
 from typing import Any, Dict, List, Tuple, Union
 
-from tradingplatformpoc.agent.iagent import IAgent, get_price_and_market_to_use_when_selling
+from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.market.bid import Action, GrossBid, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.market.trade import Trade, TradeMetadataKey
@@ -12,9 +12,9 @@ from tradingplatformpoc.trading_platform_utils import minus_n_hours
 class PVAgent(IAgent):
     electricity_pricing: ElectricityPrice
 
-    def __init__(self, electricity_pricing: ElectricityPrice,
+    def __init__(self, local_market_enabled: bool, electricity_pricing: ElectricityPrice,
                  digital_twin: StaticDigitalTwin, guid="PVAgent"):
-        super().__init__(guid)
+        super().__init__(guid, local_market_enabled)
         self.electricity_pricing = electricity_pricing
         self.digital_twin = digital_twin
 
@@ -45,16 +45,15 @@ class PVAgent(IAgent):
         # Negative means net producer
         return -self.digital_twin.get_production(period, Resource.ELECTRICITY)
 
-    def make_trades_given_clearing_price(self, local_market_enabled: bool, period: datetime.datetime,
-                                         clearing_prices: Dict[Resource, float],
+    def make_trades_given_clearing_price(self, period: datetime.datetime, clearing_prices: Dict[Resource, float],
                                          accepted_bids_for_agent: List[NetBidWithAcceptanceStatus]) -> \
             Tuple[List[Trade], Dict[TradeMetadataKey, Any]]:
         usage = self.get_actual_usage(period, Resource.ELECTRICITY)
         if usage < 0:
             wholesale_price = self.electricity_pricing.get_external_grid_buy_price(period)
             clearing_price = clearing_prices[Resource.ELECTRICITY]
-            price_to_use, market_to_use = get_price_and_market_to_use_when_selling(
-                clearing_price, wholesale_price, local_market_enabled)
+            price_to_use, market_to_use = self.get_price_and_market_to_use_when_selling(
+                clearing_price, wholesale_price)
             tax = self.electricity_pricing.get_tax(market_to_use)
             grid_fee = self.electricity_pricing.get_grid_fee(market_to_use)
             return [self.construct_elec_trade(period=period, action=Action.SELL, quantity=-usage,

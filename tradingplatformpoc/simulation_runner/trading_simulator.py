@@ -123,40 +123,41 @@ class TradingSimulator:
                                                           hot_water_usage=hot_tap_water_cons_series,
                                                           electricity_production=pv_prod_series)
 
-                agents.append(BuildingAgent(heat_pricing=self.heat_pricing,
-                                            electricity_pricing=self.electricity_pricing,
-                                            digital_twin=building_digital_twin,
-                                            guid=agent_name, nbr_heat_pumps=agent["NumberHeatPumps"],
-                                            coeff_of_perf=agent["COP"]))
+                agents.append(
+                    BuildingAgent(self.local_market_enabled, heat_pricing=self.heat_pricing,
+                                  electricity_pricing=self.electricity_pricing,
+                                  digital_twin=building_digital_twin, nbr_heat_pumps=agent["NumberHeatPumps"],
+                                  coeff_of_perf=agent["COP"], guid=agent_name))
 
             elif agent_type == "BatteryAgent":
                 storage_digital_twin = Battery(max_capacity_kwh=agent["Capacity"],
                                                max_charge_rate_fraction=agent["ChargeRate"],
                                                max_discharge_rate_fraction=agent["DischargeRate"],
                                                discharging_efficiency=agent["RoundTripEfficiency"])
-                agents.append(BatteryAgent(self.electricity_pricing, storage_digital_twin,
+                agents.append(BatteryAgent(self.local_market_enabled, self.electricity_pricing, storage_digital_twin,
                                            n_hours_to_look_back=agent["NHoursBack"],
                                            buy_price_percentile=agent["BuyPricePercentile"],
-                                           sell_price_percentile=agent["SellPricePercentile"],
-                                           guid=agent_name))
+                                           sell_price_percentile=agent["SellPricePercentile"], guid=agent_name))
             elif agent_type == "PVAgent":
                 pv_digital_twin = StaticDigitalTwin(electricity_production=pv_prod_series)
-                agents.append(PVAgent(self.electricity_pricing, pv_digital_twin, guid=agent_name))
+                agents.append(PVAgent(self.local_market_enabled, self.electricity_pricing, pv_digital_twin,
+                                      guid=agent_name))
             elif agent_type == "GroceryStoreAgent":
                 grocery_store_digital_twin = StaticDigitalTwin(electricity_usage=inputs_df['coop_electricity_consumed'],
                                                                space_heating_usage=inputs_df['coop_heating_consumed'],
                                                                # TODO: Grocery store tap water consumption
                                                                electricity_production=pv_prod_series)
-                agents.append(BuildingAgent(heat_pricing=self.heat_pricing,
-                                            electricity_pricing=self.electricity_pricing,
-                                            digital_twin=grocery_store_digital_twin,
-                                            guid=agent_name))
+                agents.append(
+                    BuildingAgent(self.local_market_enabled, heat_pricing=self.heat_pricing,
+                                  electricity_pricing=self.electricity_pricing,
+                                  digital_twin=grocery_store_digital_twin, guid=agent_name))
             elif agent_type == "GridAgent":
                 if Resource[agent["Resource"]] == Resource.ELECTRICITY:
-                    grid_agent = GridAgent(self.electricity_pricing, Resource[agent["Resource"]],
+                    grid_agent = GridAgent(self.local_market_enabled, self.electricity_pricing,
+                                           Resource[agent["Resource"]],
                                            max_transfer_per_hour=agent["TransferRate"], guid=agent_name)
                 elif Resource[agent["Resource"]] == Resource.HEATING:
-                    grid_agent = GridAgent(self.heat_pricing, Resource[agent["Resource"]],
+                    grid_agent = GridAgent(self.local_market_enabled, self.heat_pricing, Resource[agent["Resource"]],
                                            max_transfer_per_hour=agent["TransferRate"], guid=agent_name)
                 agents.append(grid_agent)
                 grid_agents.append(grid_agent)
@@ -229,8 +230,8 @@ class TradingSimulator:
                 for agent in self.agents:
                     accepted_bids_for_agent = [bid for bid in bids_with_acceptance_status
                                                if bid.source == agent.guid and bid.accepted_quantity > 0]
-                    trades, metadata = agent.make_trades_given_clearing_price(self.local_market_enabled, period,
-                                                                              clearing_prices, accepted_bids_for_agent)
+                    trades, metadata = agent.make_trades_given_clearing_price(period, clearing_prices,
+                                                                              accepted_bids_for_agent)
                     trades_excl_external.extend(trades)
                     go_through_trades_metadata(metadata, period, agent.guid, self.heat_pump_levels_dict,
                                                self.storage_levels_dict)
