@@ -16,7 +16,7 @@ from tradingplatformpoc.database import bulk_insert
 from tradingplatformpoc.digitaltwin.battery import Battery
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.generate_data.generate_mock_data import get_generated_mock_data
-from tradingplatformpoc.generate_data.mock_data_utils import get_elec_cons_key, \
+from tradingplatformpoc.generate_data.mock_data_utils import get_cooling_cons_key, get_elec_cons_key, \
     get_hot_tap_water_cons_key, get_space_heat_cons_key
 from tradingplatformpoc.market import balance_manager
 from tradingplatformpoc.market import market_solver
@@ -115,11 +115,13 @@ class TradingSimulator:
                 elec_cons_series = buildings_mock_data[get_elec_cons_key(agent_id)]
                 space_heat_cons_series = buildings_mock_data[get_space_heat_cons_key(agent_id)]
                 hot_tap_water_cons_series = buildings_mock_data[get_hot_tap_water_cons_key(agent_id)]
+                cool_cons_series = buildings_mock_data[get_cooling_cons_key(agent_id)]
 
                 building_digital_twin = StaticDigitalTwin(electricity_usage=elec_cons_series,
                                                           space_heating_usage=space_heat_cons_series,
                                                           hot_water_usage=hot_tap_water_cons_series,
-                                                          electricity_production=pv_prod_series)
+                                                          electricity_production=pv_prod_series,
+                                                          cooling_usage=cool_cons_series)
 
                 agents.append(BuildingAgent(heat_pricing=self.heat_pricing,
                                             electricity_pricing=self.electricity_pricing,
