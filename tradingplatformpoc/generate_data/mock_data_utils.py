@@ -30,6 +30,10 @@ def get_pv_prod_key(agent_id: str):
     return agent_id + '_pv_prod'
 
 
+def get_cooling_cons_key(agent_id: str):
+    return agent_id + '_cooling_cons'
+
+
 def join_list_of_polar_dfs(dfs: List[pl.DataFrame]) -> pl.DataFrame:
     if len(dfs) > 1:
         return functools.reduce(lambda left, right: left.join(right, on='datetime'), dfs)
