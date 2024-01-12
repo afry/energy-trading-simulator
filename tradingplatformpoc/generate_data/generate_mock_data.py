@@ -21,7 +21,7 @@ from tradingplatformpoc.generate_data.generation_functions.non_residential.commo
 from tradingplatformpoc.generate_data.generation_functions.non_residential.school import \
     get_school_heating_consumption_hourly_factor, simulate_school_area_heating
 from tradingplatformpoc.generate_data.generation_functions.residential.residential import \
-    constants, simulate_household_electricity_aggregated, simulate_residential_total_heating
+    constants, property_electricity, simulate_household_electricity_aggregated, simulate_residential_total_heating
 from tradingplatformpoc.generate_data.mock_data_utils import \
     calculate_seed_from_string, get_cooling_cons_key, get_elec_cons_key, get_hot_tap_water_cons_key, \
     get_space_heat_cons_key, join_list_of_polar_dfs
@@ -229,10 +229,12 @@ def simulate(mock_data_constants: Dict[str, Any], agent: dict, df_inputs: pl.Laz
     if fraction_residential > 0:
         residential_gross_floor_area = agent['GrossFloorArea'] * fraction_residential
 
-        electricity_consumption.append(
-            simulate_household_electricity_aggregated(
-                df_inputs, model, residential_gross_floor_area, seed_residential_electricity, n_rows,
-                mock_data_constants['ResidentialElecKwhPerYearM2Atemp']))
+        household_el = simulate_household_electricity_aggregated(df_inputs, model, residential_gross_floor_area,
+                                                                 seed_residential_electricity, n_rows,
+                                                                 mock_data_constants['HouseholdElecKwhPerYearM2Atemp'])
+        property_el = property_electricity(df_inputs, residential_gross_floor_area, n_rows,
+                                           mock_data_constants['ResidentialPropertyElecKwhPerYearM2Atemp'])
+        electricity_consumption.append(add_datetime_value_frames([household_el, property_el]))
 
         residential_space_heating_cons, residential_hot_tap_water_cons = simulate_residential_total_heating(
             mock_data_constants, df_inputs, n_rows, residential_gross_floor_area, seed_residential_heating)

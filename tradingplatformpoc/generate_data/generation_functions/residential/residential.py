@@ -136,3 +136,13 @@ def simulate_household_electricity_aggregated(df_inputs: pl.LazyFrame, model: Re
     simulated_values_for_this_area = scale_energy_consumption(unscaled_simulated_values_for_area.lazy(),
                                                               gross_floor_area_m2, kwh_per_year_m2_atemp, n_rows)
     return simulated_values_for_this_area
+
+
+def property_electricity(df_inputs: pl.LazyFrame, gross_floor_area_m2: float, n_rows: int,
+                         kwh_per_year_m2_atemp: float) -> pl.LazyFrame:
+    """
+    Property electricity is assumed to be constant here. See the XLSX file from BDAB, available at
+    https://doc.afdrift.se/x/cgLBAg
+    """
+    unscaled = constants(df_inputs, 1)
+    return scale_energy_consumption(unscaled, gross_floor_area_m2, kwh_per_year_m2_atemp, n_rows)
