@@ -1,4 +1,14 @@
 {
+    "LocalMarketEnabled": {
+        "display": "Local market for energy trades",
+        "default": true,
+        "help": "If a local market for trading of energy should be used in simulation."
+    },
+    "AllowDistrictHeating": {
+        "display": "Allow district heating",
+        "default": true,
+        "help": "If the possibility to buy district heating should be included in simulation."
+    },
     "DefaultPVEfficiency": {
         "display": "Default PV efficiency:",
         "min_value": 0.01,
@@ -41,14 +51,14 @@
         "display": "Electricity tax (internal):",
         "min_value": 0.0,
         "format": "%.3f",
-        "default": 0.392,
+        "default": 0.0,
         "help": "The electricity tax in SEK/kWh, paid on internal trades in the local market. Should be between 0 and the 'external'/'normal' tax"
     },
     "ElectricityGridFeeInternal": {
         "display": "Electricity grid fee (internal):",
         "min_value": 0.0,
         "format": "%.3f",
-        "default": 0.148,
+        "default": 0.0,
         "help": "The grid fee, in SEK/kWh, paid on internal trades in the local market. Should be between 0 and the 'external'/'normal' grid fee"
     },
     "ExternalHeatingWholesalePriceFraction": {

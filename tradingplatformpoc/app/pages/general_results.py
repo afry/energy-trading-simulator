@@ -26,9 +26,10 @@ ids = get_all_finished_job_config_id_pairs_in_db()
 if len(ids) > 0:
     chosen_config_id_to_view = st.selectbox('Choose a configuration to view results for', ids.keys())
     
+    config = read_config(chosen_config_id_to_view)
     chosen_id_to_view = {'config_id': chosen_config_id_to_view,
                          'job_id': ids[chosen_config_id_to_view]}
-    
+
     col_tax, col_fee = st.columns(2)
     with col_tax:
         st.metric(label="Total tax paid",
@@ -48,18 +49,17 @@ if len(ids) > 0:
 
         local_price_df = db_to_construct_local_prices_df(
             job_id=chosen_id_to_view['job_id'])
-        combined_price_df = construct_combined_price_df(
-            local_price_df, read_config(chosen_id_to_view['config_id']))
+        combined_price_df = construct_combined_price_df(local_price_df, config)
         if not combined_price_df.empty:
             price_chart = construct_price_chart(combined_price_df, Resource.ELECTRICITY,)
         st.caption("Click on a variable in legend to highlight it in the graph.")
         st.altair_chart(price_chart, use_container_width=True, theme=None)
-        
-        with tab_price_table:
-            st.caption("Periods where local electricity price was "
-                       "between external retail and wholesale price:")
-            st.dataframe(get_price_df_when_local_price_inbetween(combined_price_df,
-                                                                 Resource.ELECTRICITY))
+
+        if config['AreaInfo']['LocalMarketEnabled']:
+            with tab_price_table:
+                st.caption("Periods where local electricity price was "
+                           "between external retail and wholesale price:")
+                st.dataframe(get_price_df_when_local_price_inbetween(combined_price_df, Resource.ELECTRICITY))
     resources = [Resource.ELECTRICITY, Resource.HEATING]
     agg_tabs = st.tabs([resource.name.capitalize() for resource in resources])
     for resource, tab in zip(resources, agg_tabs):

@@ -16,9 +16,9 @@ class GridAgent(IAgent):
     max_transfer_per_hour: float
     pricing: Union[HeatingPrice, ElectricityPrice]
 
-    def __init__(self, pricing: Union[HeatingPrice, ElectricityPrice], resource: Resource,
+    def __init__(self, local_market_enabled: bool, pricing: Union[HeatingPrice, ElectricityPrice], resource: Resource,
                  max_transfer_per_hour=10000, guid="GridAgent"):
-        super().__init__(guid)
+        super().__init__(guid, local_market_enabled)
         self.resource = resource
         self.pricing = self._is_valid_pricing(pricing)
         self.max_transfer_per_hour = max_transfer_per_hour
@@ -58,7 +58,7 @@ class GridAgent(IAgent):
     def make_trades_given_clearing_price(self, period: datetime.datetime, clearing_prices: Dict[Resource, float],
                                          accepted_bids_for_agent: List[NetBidWithAcceptanceStatus]) -> \
             Tuple[List[Trade], Dict[TradeMetadataKey, Any]]:
-        # The external grid is used to make up for any differences on the local market. Therefore these will be
+        # The external grid is used to make up for any differences on the local market. Therefore, these will be
         # calculated at a later stage (in calculate_external_trades)
         return [], {}
 

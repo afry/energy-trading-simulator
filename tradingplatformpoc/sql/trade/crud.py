@@ -12,7 +12,7 @@ from sqlmodel import Session
 
 from tradingplatformpoc.connection import session_scope
 from tradingplatformpoc.market.bid import Action, Resource
-from tradingplatformpoc.market.trade import Trade
+from tradingplatformpoc.market.trade import Market, Trade
 from tradingplatformpoc.sql.trade.models import Trade as TableTrade
 
 
@@ -220,7 +220,7 @@ def get_total_grid_fee_paid_on_internal_trades(job_id: str, agent_guid: Optional
         query = db.query(
             func.sum(TableTrade.grid_fee_paid_for_quantity).label('sum_grid_fee_paid_for_quantities'),
         ).filter(TableTrade.action == Action.SELL, TableTrade.by_external.is_(False),
-                 TableTrade.job_id == job_id)
+                 TableTrade.market == Market.LOCAL, TableTrade.job_id == job_id)
         if agent_guid is not None:
             query = query.filter(TableTrade.source == agent_guid)
         res = query.first()

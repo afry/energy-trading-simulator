@@ -74,6 +74,8 @@ class TradingSimulator:
     def initialize_data(self):
         self.config_data = self.config_data
 
+        self.local_market_enabled = self.config_data['AreaInfo']['LocalMarketEnabled']
+
         self.heat_pricing: HeatingPrice = HeatingPrice(
             heating_wholesale_price_fraction=self.config_data['AreaInfo']['ExternalHeatingWholesalePriceFraction'],
             heat_transfer_loss=self.config_data['AreaInfo']["HeatTransferLoss"])
@@ -121,40 +123,41 @@ class TradingSimulator:
                                                           hot_water_usage=hot_tap_water_cons_series,
                                                           electricity_production=pv_prod_series)
 
-                agents.append(BuildingAgent(heat_pricing=self.heat_pricing,
-                                            electricity_pricing=self.electricity_pricing,
-                                            digital_twin=building_digital_twin,
-                                            guid=agent_name, nbr_heat_pumps=agent["NumberHeatPumps"],
-                                            coeff_of_perf=agent["COP"]))
+                agents.append(
+                    BuildingAgent(self.local_market_enabled, heat_pricing=self.heat_pricing,
+                                  electricity_pricing=self.electricity_pricing,
+                                  digital_twin=building_digital_twin, nbr_heat_pumps=agent["NumberHeatPumps"],
+                                  coeff_of_perf=agent["COP"], guid=agent_name))
 
             elif agent_type == "BatteryAgent":
                 storage_digital_twin = Battery(max_capacity_kwh=agent["Capacity"],
                                                max_charge_rate_fraction=agent["ChargeRate"],
                                                max_discharge_rate_fraction=agent["DischargeRate"],
                                                discharging_efficiency=agent["RoundTripEfficiency"])
-                agents.append(BatteryAgent(self.electricity_pricing, storage_digital_twin,
+                agents.append(BatteryAgent(self.local_market_enabled, self.electricity_pricing, storage_digital_twin,
                                            n_hours_to_look_back=agent["NHoursBack"],
                                            buy_price_percentile=agent["BuyPricePercentile"],
-                                           sell_price_percentile=agent["SellPricePercentile"],
-                                           guid=agent_name))
+                                           sell_price_percentile=agent["SellPricePercentile"], guid=agent_name))
             elif agent_type == "PVAgent":
                 pv_digital_twin = StaticDigitalTwin(electricity_production=pv_prod_series)
-                agents.append(PVAgent(self.electricity_pricing, pv_digital_twin, guid=agent_name))
+                agents.append(PVAgent(self.local_market_enabled, self.electricity_pricing, pv_digital_twin,
+                                      guid=agent_name))
             elif agent_type == "GroceryStoreAgent":
                 grocery_store_digital_twin = StaticDigitalTwin(electricity_usage=inputs_df['coop_electricity_consumed'],
                                                                space_heating_usage=inputs_df['coop_heating_consumed'],
                                                                # TODO: Grocery store tap water consumption
                                                                electricity_production=pv_prod_series)
-                agents.append(BuildingAgent(heat_pricing=self.heat_pricing,
-                                            electricity_pricing=self.electricity_pricing,
-                                            digital_twin=grocery_store_digital_twin,
-                                            guid=agent_name))
+                agents.append(
+                    BuildingAgent(self.local_market_enabled, heat_pricing=self.heat_pricing,
+                                  electricity_pricing=self.electricity_pricing,
+                                  digital_twin=grocery_store_digital_twin, guid=agent_name))
             elif agent_type == "GridAgent":
                 if Resource[agent["Resource"]] == Resource.ELECTRICITY:
-                    grid_agent = GridAgent(self.electricity_pricing, Resource[agent["Resource"]],
+                    grid_agent = GridAgent(self.local_market_enabled, self.electricity_pricing,
+                                           Resource[agent["Resource"]],
                                            max_transfer_per_hour=agent["TransferRate"], guid=agent_name)
                 elif Resource[agent["Resource"]] == Resource.HEATING:
-                    grid_agent = GridAgent(self.heat_pricing, Resource[agent["Resource"]],
+                    grid_agent = GridAgent(self.local_market_enabled, self.heat_pricing, Resource[agent["Resource"]],
                                            max_transfer_per_hour=agent["TransferRate"], guid=agent_name)
                 agents.append(grid_agent)
                 grid_agents.append(grid_agent)
@@ -199,20 +202,23 @@ class TradingSimulator:
                     info_string = "Simulations entering {:%B}".format(period)
                     logger.info(info_string)
 
-                # Get all bids
-                bids = [agent.make_bids(period, self.clearing_prices_historical) for agent in self.agents]
+                if self.local_market_enabled:
+                    # Get all bids
+                    bids = [agent.make_bids(period, self.clearing_prices_historical) for agent in self.agents]
 
-                # Flatten bids list
-                bids_flat: List[GrossBid] = flatten_collection(bids)
+                    # Flatten bids list
+                    bids_flat: List[GrossBid] = flatten_collection(bids)
 
-                # Add in tax and grid fee for SELL bids (for electricity, heating is not taxed)
-                net_bids = net_bids_from_gross_bids(bids_flat, self.electricity_pricing)
+                    # Add in tax and grid fee for SELL bids (for electricity, heating is not taxed)
+                    net_bids = net_bids_from_gross_bids(bids_flat, self.electricity_pricing)
 
-                # Resolve bids
-                clearing_prices, bids_with_acceptance_status = market_solver.resolve_bids(period, net_bids)
-                self.clearing_prices_historical[period] = clearing_prices
+                    # Resolve bids
+                    clearing_prices, bids_with_acceptance_status = market_solver.resolve_bids(period, net_bids)
+                    self.clearing_prices_historical[period] = clearing_prices
 
-                all_bids_list_batch.append(bids_with_acceptance_status)
+                    all_bids_list_batch.append(bids_with_acceptance_status)
+                else:
+                    clearing_prices, bids_with_acceptance_status = market_solver.without_local_market()
 
                 # Send clearing price back to agents, allow them to "make trades", i.e. decide if they want to buy/sell
                 # energy, from/to either the local market or directly from/to the external grid.
@@ -248,7 +254,8 @@ class TradingSimulator:
                                                                                  all_trades_for_period,
                                                                                  period,
                                                                                  clearing_prices,
-                                                                                 wholesale_prices)
+                                                                                 wholesale_prices,
+                                                                                 self.local_market_enabled)
 
                 electricity_price_list_batch.append({
                     'job_id': self.job_id, 'period': period, 'retail_price': retail_price_elec,

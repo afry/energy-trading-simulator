@@ -6,8 +6,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import numpy as np
 
 from tradingplatformpoc import trading_platform_utils
-from tradingplatformpoc.agent.iagent import IAgent, get_price_and_market_to_use_when_buying, \
-    get_price_and_market_to_use_when_selling
+from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.digitaltwin.heat_pump import HIGH_HEAT_FORWARD_TEMP, LOW_HEAT_FORWARD_TEMP, Workloads
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.market.bid import Action, GrossBid, NetBidWithAcceptanceStatus, Resource
@@ -29,10 +28,10 @@ class BuildingAgent(IAgent):
     workloads_low_heat: Workloads
     allow_sell_heat: bool
 
-    def __init__(self, heat_pricing: HeatingPrice, electricity_pricing: ElectricityPrice,
-                 digital_twin: StaticDigitalTwin, nbr_heat_pumps: int = 0,
-                 coeff_of_perf: Optional[float] = None, guid="BuildingAgent"):
-        super().__init__(guid)
+    def __init__(self, local_market_enabled: bool, heat_pricing: HeatingPrice, electricity_pricing: ElectricityPrice,
+                 digital_twin: StaticDigitalTwin, nbr_heat_pumps: int = 0, coeff_of_perf: Optional[float] = None,
+                 guid="BuildingAgent"):
+        super().__init__(guid, local_market_enabled)
         self.heat_pricing = heat_pricing
         self.electricity_pricing = electricity_pricing
         self.digital_twin = digital_twin
@@ -86,10 +85,12 @@ class BuildingAgent(IAgent):
         heat_net_consumption_pred = self.make_prognosis(period, Resource.HEATING)
         elec_clearing_price = clearing_prices[Resource.ELECTRICITY]
         heat_clearing_price = clearing_prices[Resource.HEATING]
+        elec_sell_price, elec_buy_price = self.calculate_electricity_prices(elec_clearing_price, period)
+        heat_sell_price, heat_buy_price = self.calculate_heating_prices(heat_clearing_price, period)
         # Re-calculate optimal workload, now that prices are known
         workload_to_use, elec_needed_for_1_heat_pump, heat_output_for_1_heat_pump = \
-            self.calculate_optimal_workload(elec_net_consumption_pred, heat_net_consumption_pred,
-                                            elec_clearing_price, heat_clearing_price)
+            self.calculate_optimal_workload(elec_net_consumption_pred, heat_net_consumption_pred, elec_sell_price,
+                                            elec_buy_price, heat_sell_price, heat_buy_price)
 
         # Now, the trading period "happens", some resources are consumed, some produced...
         elec_usage = self.get_actual_usage(period, Resource.ELECTRICITY)
@@ -99,27 +100,26 @@ class BuildingAgent(IAgent):
 
         if elec_net_consumption_incl_pump > 0:
             # Positive net consumption, so need to buy electricity
-            price_to_use, market_to_use = get_price_and_market_to_use_when_buying(elec_clearing_price,
-                                                                                  elec_retail_price)
+            price_to_use, market_to_use = self.get_price_and_market_to_use_when_buying(
+                elec_clearing_price, elec_retail_price)
             trades.append(self.construct_elec_trade(period=period, action=Action.BUY,
                                                     quantity=elec_net_consumption_incl_pump,
                                                     price=price_to_use, market=market_to_use))
         elif elec_net_consumption_incl_pump < 0:
             # Negative net consumption, meaning there is a surplus, which the agent will sell
-            price_to_use, market_to_use = get_price_and_market_to_use_when_selling(elec_clearing_price,
-                                                                                   elec_wholesale_price)
-            # NOTE: Here we assume that even if we sell electricity on the "external market", we still pay
-            # the internal electricity tax, and the internal grid fee
+            price_to_use, market_to_use = self.get_price_and_market_to_use_when_selling(
+                elec_clearing_price, elec_wholesale_price)
+            tax = self.electricity_pricing.get_tax(market_to_use)
+            grid_fee = self.electricity_pricing.get_grid_fee(market_to_use)
             trades.append(self.construct_elec_trade(period=period, action=Action.SELL,
                                                     quantity=-elec_net_consumption_incl_pump,
                                                     price=price_to_use, market=market_to_use,
-                                                    tax_paid=self.electricity_pricing.elec_tax_internal,
-                                                    grid_fee_paid=self.electricity_pricing
-                                                    .elec_grid_fee_internal))
+                                                    tax_paid=tax,
+                                                    grid_fee_paid=grid_fee))
         if heat_net_consumption_incl_pump > 0:
             # Positive net consumption, so need to buy heating
-            price_to_use, market_to_use = get_price_and_market_to_use_when_buying(heat_clearing_price,
-                                                                                  heat_retail_price)
+            price_to_use, market_to_use = self.get_price_and_market_to_use_when_buying(
+                heat_clearing_price, heat_retail_price)
             trades.append(self.construct_buy_heat_trade(period=period, quantity_needed=heat_net_consumption_incl_pump,
                                                         price=price_to_use, market=market_to_use,
                                                         heat_transfer_loss_per_side=self.heat_pricing
@@ -127,8 +127,8 @@ class BuildingAgent(IAgent):
         elif heat_net_consumption_incl_pump < 0:
             # Negative net consumption, meaning there is a surplus, which the agent will sell
             if self.allow_sell_heat:
-                price_to_use, market_to_use = get_price_and_market_to_use_when_selling(heat_clearing_price,
-                                                                                       heat_wholesale_price)
+                price_to_use, market_to_use = self.get_price_and_market_to_use_when_selling(
+                    heat_clearing_price, heat_wholesale_price)
                 trades.append(self.construct_sell_heat_trade(period=period, quantity=-heat_net_consumption_incl_pump,
                                                              price=price_to_use, market=market_to_use,
                                                              heat_transfer_loss_per_side=self.heat_pricing
@@ -154,9 +154,11 @@ class BuildingAgent(IAgent):
 
         heat_net_consumption = self.make_prognosis(period, Resource.HEATING)
         elec_net_consumption = self.make_prognosis(period, Resource.ELECTRICITY)  # Negative means net production
+        elec_sell_price, elec_buy_price = self.calculate_electricity_prices(pred_elec_price, period)
+        heat_sell_price, heat_buy_price = self.calculate_heating_prices(pred_heat_price, period)
         workload_to_use, elec_needed_for_1_heat_pump, heat_output_for_1_heat_pump = \
-            self.calculate_optimal_workload(elec_net_consumption, heat_net_consumption, pred_elec_price,
-                                            pred_heat_price)
+            self.calculate_optimal_workload(elec_net_consumption, heat_net_consumption, elec_sell_price,
+                                            elec_buy_price, heat_sell_price, heat_buy_price)
 
         # Now we have decided what workload to use. Next, construct bids
         bids = []
@@ -182,16 +184,14 @@ class BuildingAgent(IAgent):
         return bids
 
     def calculate_optimal_workload(self, elec_net_consumption: float, heat_net_consumption: float,
-                                   pred_elec_price: float, pred_heat_price: float) -> np.ndarray:
+                                   elec_sell_price: float, elec_buy_price: float, heat_sell_price: float,
+                                   heat_buy_price: float) -> np.ndarray:
         """
         Calculates the optimal workload to run the agent's heat pumps. "Optimal" is the workload which leads to the
         lowest cost - the cost stemming from the import of electricity and/or heating, minus any income from electricity
         sold.
         """
         # TODO: Probably also calculate whether to generate high- or low-tempered heat
-        # Gross price, since we are interested in calculating our potential profit
-        elec_sell_price = self.electricity_pricing.get_electricity_gross_internal_price(pred_elec_price)
-        heat_sell_price = pred_heat_price if self.allow_sell_heat else 0
 
         # Columns: Workload, electricity input, heating output
         elec = self.workloads_high_heat.get_electricity_in_for_workloads()
@@ -209,12 +209,34 @@ class BuildingAgent(IAgent):
 
         # Calculate expected cost
         incomes = elec_supply * elec_sell_price + heat_supply * heat_sell_price
-        expenditures = elec_demand * pred_elec_price + heat_demand * pred_heat_price
+        expenditures = elec_demand * elec_buy_price + heat_demand * heat_buy_price
         expected_cost = expenditures - incomes
 
         # Find workload for minimum expected cost
         index_of_min_cost = np.argmin(expected_cost)
         return self.workloads_high_heat.get_workloads_data_from_index(index_of_min_cost)
+
+    def calculate_electricity_prices(self, clearing_price: float, period: datetime.datetime) -> Tuple[float, float]:
+        if self.local_market_enabled:
+            # The seller pays taxes and grid fees (if they apply), so for the sell price, we need to deduct those from
+            # the clearing price (since we are interested in calculating our potential profit)
+            elec_sell_price = self.electricity_pricing.get_electricity_gross_internal_price(clearing_price)
+            elec_buy_price = clearing_price
+        else:
+            elec_sell_price = self.electricity_pricing.get_exact_wholesale_price(period)
+            elec_buy_price = self.electricity_pricing.get_exact_retail_price(period, True)
+        return elec_sell_price, elec_buy_price
+
+    def calculate_heating_prices(self, clearing_price: float, period: datetime.datetime) \
+            -> Tuple[float, float]:
+        if self.local_market_enabled:
+            # No taxes or grid fees for heating
+            heat_sell_price = clearing_price if self.allow_sell_heat else 0
+            heat_buy_price = clearing_price
+        else:
+            heat_sell_price = self.heat_pricing.get_estimated_wholesale_price(period) if self.allow_sell_heat else 0
+            heat_buy_price = self.heat_pricing.get_estimated_retail_price(period, True)
+        return heat_sell_price, heat_buy_price
 
 
 def supply(net_consumption_incl_pump: np.ndarray) -> np.ndarray:
