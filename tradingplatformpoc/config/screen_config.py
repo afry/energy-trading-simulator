@@ -69,6 +69,10 @@ def config_data_param_screening(config_data: dict) -> Optional[str]:
                     if val > param_specs[info_type][key]["max_value"]:
                         return "Specified {}: {} > {}.".format(key, val, param_specs[
                             info_type][key]["max_value"])
+                if "default" in param_specs[info_type][key].keys():
+                    param_type = type(param_specs[info_type][key]['default'])
+                    if not isinstance(val, param_type):
+                        return "Provided value for {} should be of type {}!".format(key, param_type)
             else:
                 return "Parameter {} is not a valid parameter.".format(key)
     return None

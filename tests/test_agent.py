@@ -54,10 +54,8 @@ electricity_pricing: ElectricityPrice = ElectricityPrice(
 
 
 class TestGridAgent(unittest.TestCase):
-    electricity_grid_agent = GridAgent(electricity_pricing, Resource.ELECTRICITY,
-                                       guid='ElectricityGridAgent')
-    heating_grid_agent = GridAgent(heat_pricing, Resource.HEATING,
-                                   guid='HeatingGridAgent')
+    electricity_grid_agent = GridAgent(True, electricity_pricing, Resource.ELECTRICITY, guid='ElectricityGridAgent')
+    heating_grid_agent = GridAgent(True, heat_pricing, Resource.HEATING, guid='HeatingGridAgent')
 
     def test_make_bids_electricity(self):
         """Test basic functionality of GridAgent's make_bids method, for the ELECTRICITY resource."""
@@ -209,7 +207,7 @@ class TestGridAgent(unittest.TestCase):
 class TestBatteryAgent(unittest.TestCase):
     twin = Battery(max_capacity_kwh=1000, max_charge_rate_fraction=0.1, max_discharge_rate_fraction=0.1,
                    discharging_efficiency=0.93)
-    battery_agent = BatteryAgent(electricity_pricing, twin, 168, 20, 80)
+    battery_agent = BatteryAgent(True, electricity_pricing, twin, 168, 20, 80)
 
     def test_make_bids(self):
         """Test basic functionality of BatteryAgent's make_bids method."""
@@ -227,7 +225,7 @@ class TestBatteryAgent(unittest.TestCase):
         non_empty_twin = Battery(max_capacity_kwh=1000, max_charge_rate_fraction=0.1,
                                  max_discharge_rate_fraction=0.1, discharging_efficiency=0.93,
                                  start_capacity_kwh=500)
-        ba = BatteryAgent(electricity_pricing, non_empty_twin, 168, 20, 80)
+        ba = BatteryAgent(True, electricity_pricing, non_empty_twin, 168, 20, 80)
         bids = ba.make_bids(SOME_DATETIME, {})
         self.assertEqual(2, len(bids))
 
@@ -236,7 +234,7 @@ class TestBatteryAgent(unittest.TestCase):
         full_twin = Battery(max_capacity_kwh=1000, max_charge_rate_fraction=0.1,
                             max_discharge_rate_fraction=0.1, discharging_efficiency=0.93,
                             start_capacity_kwh=1000)
-        ba = BatteryAgent(electricity_pricing, full_twin, 168, 20, 80)
+        ba = BatteryAgent(True, electricity_pricing, full_twin, 168, 20, 80)
         bids = ba.make_bids(SOME_DATETIME, {})
         self.assertEqual(1, len(bids))
         self.assertEqual(Action.SELL, bids[0].action)
@@ -291,18 +289,16 @@ class TestBuildingAgent(TestCase):
     heat_values = np.random.uniform(0, 100.0, len(DATETIME_ARRAY))
     building_digital_twin_cons = StaticDigitalTwin(electricity_usage=pd.Series(elec_values, index=DATETIME_ARRAY),
                                                    space_heating_usage=pd.Series(heat_values, index=DATETIME_ARRAY))
-    building_agent_cons = BuildingAgent(heat_pricing=heat_pricing,
-                                        electricity_pricing=electricity_pricing,
+    building_agent_cons = BuildingAgent(True, heat_pricing=heat_pricing, electricity_pricing=electricity_pricing,
                                         digital_twin=building_digital_twin_cons)
     building_digital_twin_prod = StaticDigitalTwin(electricity_usage=-pd.Series(elec_values, index=DATETIME_ARRAY),
                                                    space_heating_usage=-pd.Series(heat_values, index=DATETIME_ARRAY))
-    building_agent_prod = BuildingAgent(heat_pricing=heat_pricing, electricity_pricing=electricity_pricing,
+    building_agent_prod = BuildingAgent(True, heat_pricing=heat_pricing, electricity_pricing=electricity_pricing,
                                         digital_twin=building_digital_twin_prod)
     building_digital_twin_zeros = StaticDigitalTwin(electricity_usage=pd.Series(elec_values * 0, index=DATETIME_ARRAY),
                                                     space_heating_usage=pd.Series(heat_values * 0,
                                                                                   index=DATETIME_ARRAY))
-    building_agent_zeros = BuildingAgent(heat_pricing=heat_pricing,
-                                         electricity_pricing=electricity_pricing,
+    building_agent_zeros = BuildingAgent(True, heat_pricing=heat_pricing, electricity_pricing=electricity_pricing,
                                          digital_twin=building_digital_twin_zeros)
 
     def test_make_bids_consumer(self):
@@ -426,15 +422,14 @@ class TestBuildingAgentHeatPump(TestCase):
     building_digital_twin = StaticDigitalTwin(electricity_usage=pd.Series(elec_values, index=DATETIME_ARRAY),
                                               space_heating_usage=pd.Series(heat_values, index=DATETIME_ARRAY))
     # Create agent with 2 heat pumps, default COP
-    building_agent_2_pumps_default_cop = BuildingAgent(electricity_pricing=electricity_pricing,
-                                                       heat_pricing=heat_pricing,
-                                                       digital_twin=building_digital_twin,
-                                                       nbr_heat_pumps=2)
+    building_agent_2_pumps_default_cop = BuildingAgent(True, heat_pricing=heat_pricing,
+                                                       electricity_pricing=electricity_pricing,
+                                                       digital_twin=building_digital_twin, nbr_heat_pumps=2)
     # Create agent with 3 pumps, COP = 4.3
-    building_agent_3_pumps_custom_cop = BuildingAgent(electricity_pricing=electricity_pricing,
-                                                      heat_pricing=heat_pricing,
-                                                      digital_twin=building_digital_twin,
-                                                      nbr_heat_pumps=3, coeff_of_perf=4.3)
+    building_agent_3_pumps_custom_cop = BuildingAgent(True, heat_pricing=heat_pricing,
+                                                      electricity_pricing=electricity_pricing,
+                                                      digital_twin=building_digital_twin, nbr_heat_pumps=3,
+                                                      coeff_of_perf=4.3)
 
     def test_construct_workloads_df(self):
         """Test that when a BuildingAgent doesn't have any heat pumps, the workloads data frame is still created as
@@ -455,7 +450,7 @@ class TestBuildingAgentHeatPump(TestCase):
     def test_optimal_workload(self):
         """Test calculation of optimal workload"""
 
-        optimal_workload = self.building_agent_2_pumps_default_cop.calculate_optimal_workload(-10, 60, 2, 2.5)
+        optimal_workload = self.building_agent_2_pumps_default_cop.calculate_optimal_workload(-10, 60, 2, 2, 0, 2.5)
         self.assertEqual(6, optimal_workload[0])  # 10 if agent is allowed to sell heat
 
     def test_bid_with_heat_pump(self):
@@ -478,7 +473,7 @@ class TestBuildingAgentHeatPump(TestCase):
 class TestPVAgent(TestCase):
     pv_prod_series = calculate_solar_prod(irradiation_data, 24324.3, 0.165)
     pv_digital_twin = StaticDigitalTwin(electricity_production=pv_prod_series)
-    tornet_pv_agent = PVAgent(electricity_pricing, pv_digital_twin)
+    tornet_pv_agent = PVAgent(True, electricity_pricing, pv_digital_twin)
 
     def test_make_bids(self):
         """Test basic functionality of PVAgent's make_bids method."""
