@@ -138,13 +138,11 @@ def add_params_to_form(form, param_spec_dict: dict, info_type: str):
     current_config = st.session_state.config_data
     bool_options = [True, False]
     for key, val in param_spec_dict[info_type].items():
-        disabled = val['disabled'] if 'disabled' in val else False
+        params = {k: v for k, v in val.items() if k not in ['display', 'default']}
         if isinstance(val['default'], bool):
             st.session_state.config_data[info_type][key] = form.radio(
-                label=val['display'], help=val['help'], disabled=disabled,
-                options=bool_options, index=bool_options.index(current_config[info_type][key]))
+                label=val['display'], options=bool_options, index=bool_options.index(current_config[info_type][key]),
+                **params)
         else:
-            params = {k: v for k, v in val.items() if k not in ['display', 'default']}
             st.session_state.config_data[info_type][key] = form.number_input(
-                val['display'], **params,
-                value=current_config[info_type][key])
+                val['display'], value=current_config[info_type][key], **params)
