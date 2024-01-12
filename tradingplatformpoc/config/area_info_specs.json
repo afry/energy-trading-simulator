@@ -7,7 +7,8 @@
     "AllowDistrictHeating": {
         "display": "Allow district heating",
         "default": true,
-        "help": "If the possibility to buy district heating should be included in simulation."
+        "help": "If the possibility to buy district heating should be included in simulation.",
+        "disabled": true
     },
     "DefaultPVEfficiency": {
         "display": "Default PV efficiency:",
@@ -67,5 +68,11 @@
         "max_value": 1.0,
         "default": 0.5,
         "help": "The price at which the microgrid can export heat to the external grid, will be set to the import (retail) price, multiplied by this factor. Should be less than 1. In reality, the external grid may not want to buy any heat from the microgrid at all - this can be achieved by setting this number to 0."
+    },
+    "CO2PenalizationRate": {
+        "display": "CO2 penalization rate:",
+        "default": 0.0,
+        "help": "Not yet implemented!",
+        "disabled": true
     }
 }
