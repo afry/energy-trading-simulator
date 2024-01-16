@@ -20,10 +20,6 @@ ALTAIR_STROKE_DASH = [[2, 1], [8, 8], [0, 0], [2, 4], [1, 0], [1, 1], [4, 4], [8
 HEAT_PUMP_CHART_COLOR = 'gray'
 BATTERY_CHART_COLOR = 'gray'
 
-CO2_PEN_RATE_HELP_TEXT = "Not yet implemented!"
-RESOURCE_HELP_TEXT = "A string specifying which resource the agent handles. Allowed values: " + \
-                     str(trading_platform_utils.ALL_IMPLEMENTED_RESOURCES_STR)
-
 CURRENT_CONFIG_FILENAME = resource_filename("tradingplatformpoc.config", "current_config.json")
 LAST_SIMULATION_RESULTS = resource_filename("tradingplatformpoc.data", "last_simulation_results.pbz2")
 

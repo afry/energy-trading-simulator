@@ -113,8 +113,6 @@ if option_chosen == options[0]:
             # st.markdown("**General area parameters:**")  # ---------------
             area_form = st.form(key="AreaInfoForm")
             add_params_to_form(area_form, read_param_specs(['AreaInfo']), 'AreaInfo')
-            _dummy1 = area_form.number_input(
-                'CO2 penalization rate:', value=0.0, help=app_constants.CO2_PEN_RATE_HELP_TEXT, disabled=True)
             submit_area_form = area_form.form_submit_button("Save area info")
             if submit_area_form:
                 submit_area_form = False

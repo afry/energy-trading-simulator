@@ -24,7 +24,7 @@ def simulate_residential_total_heating(mock_data_constants: Dict[str, Any], df_i
     """
 
     if gross_floor_area_m2 == 0:
-        zeroes = df_inputs.select([pl.col('datetime'), pl.lit(0).alias('value')]).lazy()
+        zeroes = constants(df_inputs, 0)
         return zeroes, zeroes
 
     every_xth = np.arange(0, n_rows, EVERY_X_HOURS)
@@ -41,8 +41,8 @@ def simulate_residential_total_heating(mock_data_constants: Dict[str, Any], df_i
     nans, x = nan_helper(noise)
     noise[nans] = np.interp(x(nans), x(~nans), noise[~nans])
 
-    space_heating_unscaled = df_inputs.lazy().select([pl.col('datetime'), pl.col('rad_energy').alias('value') * noise])
-    hot_tap_water_unscaled = df_inputs.lazy().select([pl.col('datetime'), pl.col('hw_energy').alias('value') * noise])
+    space_heating_unscaled = df_inputs.select([pl.col('datetime'), pl.col('rad_energy').alias('value') * noise])
+    hot_tap_water_unscaled = df_inputs.select([pl.col('datetime'), pl.col('hw_energy').alias('value') * noise])
     # Could argue we should use different noise here ^, but there is some logic to these two varying together
 
     # Scale
@@ -53,6 +53,10 @@ def simulate_residential_total_heating(mock_data_constants: Dict[str, Any], df_i
     hot_tap_water_scaled = scale_energy_consumption(hot_tap_water_unscaled, gross_floor_area_m2,
                                                     hot_tap_water_per_year_per_m2, n_rows)
     return space_heating_scaled, hot_tap_water_scaled
+
+
+def constants(df_inputs: pl.LazyFrame, val: float) -> pl.LazyFrame:
+    return df_inputs.select([pl.col('datetime'), pl.lit(val).alias('value')])
 
 
 def calculate_adjustment_for_energy_prev(model: RegressionResultsWrapper, energy_prev: float) -> float:
@@ -132,3 +136,13 @@ def simulate_household_electricity_aggregated(df_inputs: pl.LazyFrame, model: Re
     simulated_values_for_this_area = scale_energy_consumption(unscaled_simulated_values_for_area.lazy(),
                                                               gross_floor_area_m2, kwh_per_year_m2_atemp, n_rows)
     return simulated_values_for_this_area
+
+
+def property_electricity(df_inputs: pl.LazyFrame, gross_floor_area_m2: float, n_rows: int,
+                         kwh_per_year_m2_atemp: float) -> pl.LazyFrame:
+    """
+    Property electricity is assumed to be constant here. See the XLSX file from BDAB, available at
+    https://doc.afdrift.se/x/cgLBAg
+    """
+    unscaled = constants(df_inputs, 1)
+    return scale_energy_consumption(unscaled, gross_floor_area_m2, kwh_per_year_m2_atemp, n_rows)

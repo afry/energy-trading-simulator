@@ -30,6 +30,10 @@ def get_pv_prod_key(agent_id: str):
     return agent_id + '_pv_prod'
 
 
+def get_cooling_cons_key(agent_id: str):
+    return agent_id + '_cooling_cons'
+
+
 def join_list_of_polar_dfs(dfs: List[pl.DataFrame]) -> pl.DataFrame:
     if len(dfs) > 1:
         return functools.reduce(lambda left, right: left.join(right, on='datetime'), dfs)
@@ -72,7 +76,8 @@ def all_parameters_match(agent_dict: Dict[str, Any], other_agent_dict: Dict[str,
         fraction_residential = 1 - get_if_exists_else(agent_dict, 'FractionCommercial', 0) - \
             get_if_exists_else(agent_dict, 'FractionSchool', 0)
         if fraction_residential > 0 and not all_fields_match(mock_data_constants, other_mock_data_constants,
-                                                             ['ResidentialElecKwhPerYearM2Atemp',
+                                                             ['HouseholdElecKwhPerYearM2Atemp',
+                                                              'ResidentialPropertyElecKwhPerYearM2Atemp',
                                                               'ResidentialSpaceHeatKwhPerYearM2',
                                                               'ResidentialHotTapWaterKwhPerYearM2',
                                                               'ResidentialHeatingRelativeErrorStdDev']):

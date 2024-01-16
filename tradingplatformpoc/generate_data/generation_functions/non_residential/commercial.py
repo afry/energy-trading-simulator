@@ -68,3 +68,34 @@ def simulate_commercial_area_total_heating(mock_data_constants: Dict[str, Any], 
                                            hot_tap_water_relative_error_std_dev,
                                            n_rows)
     return space_heating, hot_tap_water
+
+
+def simulate_commercial_area_cooling(commercial_gross_floor_area: float, input_df: pl.LazyFrame) -> pl.LazyFrame:
+    return input_df.select(
+        [pl.col('datetime'),
+         pl.col('datetime').
+            apply(lambda x: get_cooling_consumption_kwh(x.month, commercial_gross_floor_area)).
+            alias('value')
+         ]
+    )
+
+
+def get_cooling_consumption_kwh(month: int, m2: float) -> float:
+    return get_cooling_consumption_wh_per_m2(month) * m2 / 1000
+
+
+def get_cooling_consumption_wh_per_m2(month: int) -> float:
+    """Returns the cooling need, per hour, in Wh/m2. Values from BDAB. See https://doc.afdrift.se/x/cgLBAg"""
+    if month == 4:
+        return 0.14
+    elif month == 5:
+        return 2.2
+    elif month == 6:
+        return 7.16
+    elif month == 7:
+        return 18.42
+    elif month == 8:
+        return 16.47
+    elif month == 9:
+        return 1.59
+    return 0
