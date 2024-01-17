@@ -1,6 +1,7 @@
 import datetime
 import logging
 import math
+import platform
 import threading
 from typing import Any, Dict, List, Tuple
 
@@ -27,6 +28,8 @@ from tradingplatformpoc.market.bid import GrossBid, Resource
 from tradingplatformpoc.market.trade import TradeMetadataKey
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
+from tradingplatformpoc.settings import settings
+from tradingplatformpoc.simulation_runner import optimization_problem
 from tradingplatformpoc.simulation_runner.simulation_utils import get_external_heating_prices, \
     get_quantity_heating_sold_by_external_grid, go_through_trades_metadata, \
     net_bids_from_gross_bids
@@ -54,11 +57,17 @@ logger = logging.getLogger(__name__)
 
 class TradingSimulator:
     def __init__(self, job_id: str):
+        if platform.system() == 'Linux':
+            self.solver = pyo.SolverFactory('glpk')
+        else:
+            self.solver = pyo.SolverFactory('glpk', executable=settings.GLPK_PATH)
+        # To verify that the solver works: REMOVE ME WHEN WE START USING THE SOLVER FOR REAL
+        optimization_problem.mock_opt_problem(self.solver)
+
         self.job_id = job_id
         self.config_id = get_config_id_for_job_id(self.job_id)
         self.config_data: Dict[str, Any] = read_config(self.config_id)
         self.agent_specs = get_all_agents_in_config(self.config_id)
-        self.opt = pyo.SolverFactory('glpk')
 
     def __call__(self):
         if (self.job_id is not None) and (self.config_data is not None):

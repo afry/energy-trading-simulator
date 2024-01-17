@@ -1,7 +1,5 @@
 from pkg_resources import resource_filename
 
-from tradingplatformpoc import trading_platform_utils
-
 WHOLESALE_PRICE_STR = 'Wholesale price'
 RETAIL_PRICE_STR = 'Retail price'
 LOCAL_PRICE_STR = 'Local price'
