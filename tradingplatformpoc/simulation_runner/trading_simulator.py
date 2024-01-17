@@ -6,6 +6,8 @@ from typing import Any, Dict, List, Tuple
 
 import pandas as pd
 
+import pyomo.environ as pyo
+
 from tradingplatformpoc.agent.battery_agent import BatteryAgent
 from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.grid_agent import GridAgent
@@ -56,6 +58,7 @@ class TradingSimulator:
         self.config_id = get_config_id_for_job_id(self.job_id)
         self.config_data: Dict[str, Any] = read_config(self.config_id)
         self.agent_specs = get_all_agents_in_config(self.config_id)
+        self.opt = pyo.SolverFactory('glpk')
 
     def __call__(self):
         if (self.job_id is not None) and (self.config_data is not None):
