@@ -35,8 +35,6 @@ from tradingplatformpoc.trading_platform_utils import get_if_exists_else
 
 DATA_PATH = 'tradingplatformpoc.data'
 
-MOCK_DATAS_PICKLE = resource_filename(DATA_PATH, 'mock_datas.pickle')
-
 # Will use these to set random seed.
 RESIDENTIAL_HEATING_SEED_SUFFIX = "RH"
 COMMERCIAL_ELECTRICITY_SEED_SUFFIX = "CE"
@@ -52,9 +50,8 @@ This script generates the following, for BuildingAgents:
 *Commercial hot water consumption data
 *Residential space heating consumption data
 *Commercial space heating consumption data
-It stores such data in the MOCK_DATAS_PICKLE file, as a dictionary, where the set of BuildingAgents used to generate the
-data is the key, and a pl.DataFrame of generated data is the value. This way, simulation_runner can get the correct mock
-data set for the given config.
+*Commercial cooling consumption data
+It stores such data in the mock_data table in the database.
 For some more information: https://doc.afdrift.se/display/RPJ/Household+electricity+mock-up
 """
 
