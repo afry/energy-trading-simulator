@@ -5,8 +5,6 @@ import numpy as np
 
 import pandas as pd
 
-from pkg_resources import resource_filename
-
 from tradingplatformpoc.config.access_config import read_config
 from tradingplatformpoc.data.preprocessing import read_and_process_input_data
 from tradingplatformpoc.generate_data.mock_data_utils import get_elec_cons_key, \
@@ -24,7 +22,6 @@ from tradingplatformpoc.trading_platform_utils import hourly_datetime_array_betw
 class Test(TestCase):
 
     fake_job_id = "111111111111"
-    mock_datas_file_path = resource_filename("tradingplatformpoc.data", "mock_datas.pickle")
     config = read_config()
     heat_pricing: HeatingPrice = HeatingPrice(
         heating_wholesale_price_fraction=config['AreaInfo']['ExternalHeatingWholesalePriceFraction'],

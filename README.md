@@ -54,22 +54,14 @@ To access the server:
 
 NOTE: Do not use admin user with python.
 
-## Model file for mock data generation
-Note that in order to generate mock data, one needs to have a .pickle-file located in
-data/models/household_electricity_model.pickle
-which contains a model used for predicting household electricity usage for a given hour. This file is too big to be
-included in git, so ask someone else who has worked on the project to send it to you.
-
-For more info on this model, see https://doc.afdrift.se/display/RPJ/Household+electricity+mock-up.
-
 ## Generate mock data
 * Verify that you have a json config file under the data folder specifying the area to be simulated.
 * Run the mock data generation script:
 
         python tradingplatformpoc/generate_data/generate_mock_data.py
 
-The resulting data is stored in a pickle file. To verify its contents, save an extract in a .csv file using the 
-[extraction script](scripts/extract_df_from_mock_datas_pickle_file.py).
+The resulting data is stored in the database.
+
 ## Run POC (non-GUI)
 
 ### As script from terminal
@@ -107,9 +99,9 @@ platform-poc repository; build a docker image based on the Dockerfile
 where the -t flag allows you to specify an image name (imagename). Once built, instantiate (and run) a docker container 
 based on the created image
 
-        docker run -p 8880:8501 imagename:latest
+        docker run -p 8880:80 imagename:latest
 
-Here, 8880:8501 maps the local port 8880 to the container's port 8501. Therefore, one can navigate to localhost:8880 in
+Here, 8880:80 maps the local port 8880 to the container's port 80. Therefore, one can navigate to localhost:8880 in
 one's browser, and this should display the Streamlit GUI.
 
 Once the container has run, the logger information relating to the job can be accessed at a later time by identifying 

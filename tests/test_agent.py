@@ -206,7 +206,7 @@ class TestGridAgent(unittest.TestCase):
 
 class TestBatteryAgent(unittest.TestCase):
     twin = Battery(max_capacity_kwh=1000, max_charge_rate_fraction=0.1, max_discharge_rate_fraction=0.1,
-                   discharging_efficiency=0.93)
+                   discharging_efficiency=0.93, start_capacity_kwh=0)
     battery_agent = BatteryAgent(True, electricity_pricing, twin, 168, 20, 80)
 
     def test_make_bids(self):
