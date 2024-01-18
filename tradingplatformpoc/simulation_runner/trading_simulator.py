@@ -6,7 +6,6 @@ from typing import Any, Dict, List, Tuple
 
 import pandas as pd
 
-from tradingplatformpoc.agent.battery_agent import BatteryAgent
 from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
@@ -125,21 +124,17 @@ class TradingSimulator:
                                                           electricity_production=pv_prod_series,
                                                           cooling_usage=cool_cons_series)
 
+                storage_digital_twin = Battery(max_capacity_kwh=agent["BatteryCapacity"],
+                                               max_charge_rate_fraction=agent["BatteryChargeRate"],
+                                               max_discharge_rate_fraction=agent["BatteryDischargeRate"],
+                                               discharging_efficiency=agent["BatteryEfficiency"])
+
                 agents.append(
                     BuildingAgent(self.local_market_enabled, heat_pricing=self.heat_pricing,
                                   electricity_pricing=self.electricity_pricing,
                                   digital_twin=building_digital_twin, nbr_heat_pumps=agent["NumberHeatPumps"],
-                                  coeff_of_perf=agent["COP"], guid=agent_name))
+                                  coeff_of_perf=agent["COP"], battery=storage_digital_twin, guid=agent_name))
 
-            elif agent_type == "BatteryAgent":
-                storage_digital_twin = Battery(max_capacity_kwh=agent["Capacity"],
-                                               max_charge_rate_fraction=agent["ChargeRate"],
-                                               max_discharge_rate_fraction=agent["DischargeRate"],
-                                               discharging_efficiency=agent["RoundTripEfficiency"])
-                agents.append(BatteryAgent(self.local_market_enabled, self.electricity_pricing, storage_digital_twin,
-                                           n_hours_to_look_back=agent["NHoursBack"],
-                                           buy_price_percentile=agent["BuyPricePercentile"],
-                                           sell_price_percentile=agent["SellPricePercentile"], guid=agent_name))
             elif agent_type == "PVAgent":
                 pv_digital_twin = StaticDigitalTwin(electricity_production=pv_prod_series)
                 agents.append(PVAgent(self.local_market_enabled, self.electricity_pricing, pv_digital_twin,
@@ -151,8 +146,8 @@ class TradingSimulator:
                                                                electricity_production=pv_prod_series)
                 agents.append(
                     BuildingAgent(self.local_market_enabled, heat_pricing=self.heat_pricing,
-                                  electricity_pricing=self.electricity_pricing,
-                                  digital_twin=grocery_store_digital_twin, guid=agent_name))
+                                  electricity_pricing=self.electricity_pricing, digital_twin=grocery_store_digital_twin,
+                                  guid=agent_name))
             elif agent_type == "GridAgent":
                 if Resource[agent["Resource"]] == Resource.ELECTRICITY:
                     grid_agent = GridAgent(self.local_market_enabled, self.electricity_pricing,
@@ -179,7 +174,7 @@ class TradingSimulator:
 
         number_of_trading_periods = len(self.trading_periods)
         batch_size = math.ceil(number_of_trading_periods / number_of_batches)
-        
+
         # Loop over batches
         for batch_number in range(number_of_batches):
             current_thread = threading.current_thread()
@@ -305,5 +300,5 @@ class TradingSimulator:
         logger.info('Saving extra costs to db...')
         extra_cost_dict = extra_costs_to_db_dict(heat_cost_discrepancy_corrections, self.job_id)
         bulk_insert(TableExtraCost, extra_cost_dict)
-        
+
         logger.info('Simulation finished!')

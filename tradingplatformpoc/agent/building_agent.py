@@ -7,6 +7,7 @@ import numpy as np
 
 from tradingplatformpoc import trading_platform_utils
 from tradingplatformpoc.agent.iagent import IAgent
+from tradingplatformpoc.digitaltwin.battery import Battery
 from tradingplatformpoc.digitaltwin.heat_pump import HIGH_HEAT_FORWARD_TEMP, LOW_HEAT_FORWARD_TEMP, Workloads
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.market.bid import Action, GrossBid, NetBidWithAcceptanceStatus, Resource
@@ -26,11 +27,12 @@ class BuildingAgent(IAgent):
     n_heat_pumps: int
     workloads_high_heat: Workloads
     workloads_low_heat: Workloads
+    battery: Battery
     allow_sell_heat: bool
 
     def __init__(self, local_market_enabled: bool, heat_pricing: HeatingPrice, electricity_pricing: ElectricityPrice,
                  digital_twin: StaticDigitalTwin, nbr_heat_pumps: int = 0, coeff_of_perf: Optional[float] = None,
-                 guid="BuildingAgent"):
+                 battery: Optional[Battery] = None, guid="BuildingAgent"):
         super().__init__(guid, local_market_enabled)
         self.heat_pricing = heat_pricing
         self.electricity_pricing = electricity_pricing
@@ -39,6 +41,7 @@ class BuildingAgent(IAgent):
         self.workloads_high_heat = Workloads(coeff_of_perf, nbr_heat_pumps, HIGH_HEAT_FORWARD_TEMP)
         self.workloads_low_heat = Workloads(coeff_of_perf, nbr_heat_pumps, LOW_HEAT_FORWARD_TEMP)
         self.allow_sell_heat = False
+        self.battery = Battery(0, 0, 0, 0) if battery is None else battery
 
     def make_bids(self, period: datetime.datetime, clearing_prices_historical: Union[Dict[datetime.datetime, Dict[
             Resource, float]], None] = None) -> List[GrossBid]:
