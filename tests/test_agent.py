@@ -93,7 +93,7 @@ class TestGridAgent(unittest.TestCase):
 
     def test_calculate_trades_1_heating(self):
         """Ensure that the "pre-loss-quantity" of BUY-trades equal the "post-loss-quantity" of SELL trades."""
-        retail_price = 1.3225484261501212
+        retail_price = 1.2622074253430187
         clearing_prices = {Resource.ELECTRICITY: np.nan, Resource.HEATING: retail_price}
         trades_excl_external = [
             Trade(SOME_DATETIME, Action.BUY, Resource.HEATING, 100, retail_price, "BuildingAgent", False, Market.LOCAL,

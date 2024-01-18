@@ -12,6 +12,22 @@ from tradingplatformpoc.price.iprice import IPrice
 logger = logging.getLogger(__name__)
 
 
+def probability_day_is_peak_day(period: datetime.datetime) -> float:
+    """
+    What is the likelihood that a given day, is the 'peak day' of the month? Without knowing past or future
+    consumption levels, or looking at outdoor temperature or anything like that, this is the best we can do:
+    Each day of the month has the same probability as all the others.
+    """
+    days_in_month = monthrange(period.year, period.month)[1]
+    return 1 / days_in_month
+
+
+def handle_no_consumption_when_calculating_heating_price(period):
+    logger.warning("Tried to calculate exact external heating price, in SEK/kWh, for {:%B %Y}, but had no "
+                   "consumption for this month, so returned np.nan.".format(period))
+    return np.nan
+
+
 class HeatingPrice(IPrice):
     """
     Class for calculating exact and estimated price of heating.
@@ -22,19 +38,19 @@ class HeatingPrice(IPrice):
     heating_wholesale_price_fraction: float
     heat_transfer_loss_per_side: float
 
-    EFFECT_PRICE: int = 74
-    GRID_FEE_MARGINAL_SUB_50: int = 1113
-    GRID_FEE_FIXED_SUB_50: int = 1150
-    GRID_FEE_MARGINAL_50_100: int = 1075
-    GRID_FEE_FIXED_50_100: int = 3063
-    GRID_FEE_MARGINAL_100_200: int = 1025
-    GRID_FEE_FIXED_100_200: int = 8163
-    GRID_FEE_MARGINAL_200_400: int = 975
-    GRID_FEE_FIXED_200_400: int = 18375
-    GRID_FEE_FIXED_400_PLUS: int = 33750
-    GRID_FEE_MARGINAL_400_PLUS: int = 938
-    MARGINAL_PRICE_WINTER: float = 0.55
-    MARGINAL_PRICE_SUMMER: float = 0.33
+    EFFECT_PRICE: int = 68
+    GRID_FEE_MARGINAL_SUB_50: int = 1116
+    GRID_FEE_FIXED_SUB_50: int = 1152
+    GRID_FEE_MARGINAL_50_100: int = 1068
+    GRID_FEE_FIXED_50_100: int = 3060
+    GRID_FEE_MARGINAL_100_200: int = 1020
+    GRID_FEE_FIXED_100_200: int = 8148
+    GRID_FEE_MARGINAL_200_400: int = 972
+    GRID_FEE_FIXED_200_400: int = 18348
+    GRID_FEE_MARGINAL_400_PLUS: int = 936
+    GRID_FEE_FIXED_400_PLUS: int = 33696
+    MARGINAL_PRICE_WINTER: float = 0.5
+    MARGINAL_PRICE_SUMMER: float = 0.3
 
     def __init__(self, heating_wholesale_price_fraction: float, heat_transfer_loss: float):
         super().__init__(Resource.HEATING)
@@ -43,15 +59,6 @@ class HeatingPrice(IPrice):
         # Square root since it is added both to the BUY and the SELL side
         self.heat_transfer_loss_per_side = 1 - np.sqrt(1 - heat_transfer_loss)
 
-    def probability_day_is_peak_day(self, period: datetime.datetime) -> float:
-        """
-        What is the likelihood that a given day, is the 'peak day' of the month? Without knowing past or future
-        consumption levels, or looking at outdoor temperature or anything like that, this is the best we can do:
-        Each day of the month has the same probability as all the others.
-        """
-        days_in_month = monthrange(period.year, period.month)[1]
-        return 1 / days_in_month
-
     def expected_effect_fee(self, period: datetime.datetime) -> float:
         """
         Every consumed kWh during the peak day, increases the effect fee by EFFECT_PRICE / 24,
@@ -59,7 +66,7 @@ class HeatingPrice(IPrice):
         E[fee]  = P(day is peak day) * EFFECT_PRICE/24 + P(day is not peak day) * 0
                 = P(day is peak day) * EFFECT_PRICE/24
         """
-        p = self.probability_day_is_peak_day(period)
+        p = probability_day_is_peak_day(period)
         return (self.EFFECT_PRICE / 24) * p
     
     def marginal_grid_fee_assuming_top_bracket(self, year: int) -> float:
@@ -177,7 +184,7 @@ class HeatingPrice(IPrice):
         # District heating is not taxed
         consumption_this_month_kwh = self.calculate_consumption_this_month(period.year, period.month)
         if consumption_this_month_kwh == 0:
-            return self.handle_no_consumption_when_calculating_heating_price(period)
+            return handle_no_consumption_when_calculating_heating_price(period)
         jan_feb_avg_consumption_kw = self.calculate_jan_feb_avg_heating_sold(period)
         prev_month_peak_day_avg_consumption_kw = self.calculate_peak_day_avg_cons_kw(
             period.year, period.month)
@@ -191,7 +198,7 @@ class HeatingPrice(IPrice):
 
         consumption_this_month_kwh = self.calculate_consumption_this_month(period.year, period.month)
         if consumption_this_month_kwh == 0:
-            return self.handle_no_consumption_when_calculating_heating_price(period)
+            return handle_no_consumption_when_calculating_heating_price(period)
         jan_feb_avg_consumption_kw = self.calculate_jan_feb_avg_heating_sold(period)
         prev_month_peak_day_avg_consumption_kw = self.calculate_peak_day_avg_cons_kw(
             period.year, period.month)
@@ -235,8 +242,3 @@ class HeatingPrice(IPrice):
             logger.warning("No data to base grid fee on, will 'cheat' and use future data")
             subset = (self.all_external_heating_sells.index.month <= 2)
         return self.all_external_heating_sells[subset].mean()
-
-    def handle_no_consumption_when_calculating_heating_price(self, period):
-        logger.warning("Tried to calculate exact external heating price, in SEK/kWh, for {:%B %Y}, but had no "
-                       "consumption for this month, so returned np.nan.".format(period))
-        return np.nan
