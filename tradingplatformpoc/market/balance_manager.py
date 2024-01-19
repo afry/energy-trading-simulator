@@ -5,7 +5,7 @@ import pandas as pd
 
 from tradingplatformpoc.market.bid import Action, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.market.extra_cost import ExtraCost, ExtraCostType, get_extra_cost_type_for_bid_inaccuracy
-from tradingplatformpoc.market.trade import Trade
+from tradingplatformpoc.market.trade import Market, Trade
 from tradingplatformpoc.sql.trade.crud import heat_trades_from_db_for_periods
 from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES
 
@@ -46,7 +46,7 @@ def calculate_penalty_costs_for_period_and_resource(bids_for_resource: Collectio
     agent_ids = set([x.source for x in accepted_bids] + [x.source for x in trades_for_resource])
 
     external_bid = get_external_bid(bids_for_resource)
-    external_trade = get_trade_by_external_grid(trades_for_resource)
+    external_trade = get_external_trade_on_local_market(trades_for_resource)
     external_retail_price = external_bid.price  # Since GridAgent only places SELL-bid, this is accurate
     extra_cost = calculate_total_extra_cost_for_period(external_trade,
                                                        clearing_price,
@@ -84,14 +84,14 @@ def calculate_costs_for_heating(trading_periods: Collection[datetime.datetime],
     return costs_by_period
 
 
-def get_trade_by_external_grid(trades: Collection[Trade]) -> Union[Trade, None]:
-    external_grid_operator_trades = [x for x in trades if x.by_external]
-    if len(external_grid_operator_trades) == 0:
+def get_external_trade_on_local_market(trades: Collection[Trade]) -> Union[Trade, None]:
+    external_trades_on_local_market = [x for x in trades if x.by_external and x.market == Market.LOCAL]
+    if len(external_trades_on_local_market) == 0:
         return None
-    elif len(external_grid_operator_trades) > 1:
+    elif len(external_trades_on_local_market) > 1:
         raise RuntimeError("Unexpected state: More than 1 external grid trade for a single trading period")
     else:
-        return external_grid_operator_trades[0]
+        return external_trades_on_local_market[0]
 
 
 def get_external_bid(bids: Collection[NetBidWithAcceptanceStatus]) -> NetBidWithAcceptanceStatus:
@@ -247,7 +247,7 @@ def correct_for_exact_heating_price(trading_periods: pd.DatetimeIndex,
                 heating_trades = []
             else:
                 heating_trades = heating_trades_for_month[period]
-            external_trade = get_trade_by_external_grid(heating_trades)
+            external_trade = get_external_trade_on_local_market(heating_trades)
             if external_trade is not None:
                 external_trade_quantity = external_trade.quantity_post_loss
                 if external_trade.action == Action.SELL:
