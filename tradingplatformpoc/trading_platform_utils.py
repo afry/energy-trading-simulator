@@ -10,7 +10,7 @@ from tradingplatformpoc.market.bid import Resource
 
 ALL_IMPLEMENTED_RESOURCES = [Resource.ELECTRICITY, Resource.HEATING]
 ALL_IMPLEMENTED_RESOURCES_STR = [res.name for res in ALL_IMPLEMENTED_RESOURCES]
-ALL_AGENT_TYPES = ["BuildingAgent", "PVAgent", "BatteryAgent", "GridAgent", "GroceryStoreAgent"]
+ALL_AGENT_TYPES = ["BuildingAgent", "PVAgent", "GridAgent", "GroceryStoreAgent"]
 
 logger = logging.getLogger(__name__)
 

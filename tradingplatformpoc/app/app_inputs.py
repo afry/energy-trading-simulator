@@ -59,13 +59,6 @@ def add_building_agent():
     })
 
 
-def add_battery_agent():
-    add_agent({
-        "Type": "BatteryAgent",
-        **read_agent_defaults("BatteryAgent", read_agent_specs())
-    })
-
-
 def add_pv_agent():
     add_agent({
         "Type": "PVAgent",

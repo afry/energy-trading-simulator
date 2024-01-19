@@ -51,7 +51,7 @@ if len(ids) >= 2:
         with first_col:
             agent_1_specs = get_all_agents_in_config(comparison_ids[0]['config_id'])
             agent_1_names = [name for name, id in agent_1_specs.items()
-                             if get_agent_type(id) in ["BuildingAgent", "BatteryAgent"]]
+                             if get_agent_type(id) == "BuildingAgent"]
             chosen_agent_name_to_view_1 = st.selectbox('Select an agent from the first configuration',
                                                        agent_1_names)
             agent_1_type = get_agent_type(agent_1_specs.get(chosen_agent_name_to_view_1))
@@ -77,14 +77,14 @@ if len(ids) >= 2:
                                "it in the graph.")
                     st.altair_chart(heat_pump_comparison_chart, use_container_width=True, theme=None)
 
-                if agent_1_type == "BatteryAgent":
-                    # make a battery storage level comparison graph
-                    battery_comparison_chart = construct_level_comparison_chart(
-                        comparison_ids, [chosen_agent_name_to_view_1, chosen_agent_name_to_view_2],
-                        TradeMetadataKey.STORAGE_LEVEL, "Capacity [kWh]", "Charging level comparison")
-                    st.caption("Click on a variable in the legend to highlight "
-                               "it in the graph.")
-                    st.altair_chart(battery_comparison_chart, use_container_width=True, theme=None)
+                    # TODO: When we've fixed saving storage level for building agent
+                    # # make a battery storage level comparison graph
+                    # battery_comparison_chart = construct_level_comparison_chart(
+                    #     comparison_ids, [chosen_agent_name_to_view_1, chosen_agent_name_to_view_2],
+                    #     TradeMetadataKey.STORAGE_LEVEL, "Capacity [kWh]", "Charging level comparison")
+                    # st.caption("Click on a variable in the legend to highlight "
+                    #            "it in the graph.")
+                    # st.altair_chart(battery_comparison_chart, use_container_width=True, theme=None)
 
 else:
     st.markdown('Too few scenarios to compare, set up a configuration in '

@@ -8,14 +8,12 @@ import pandas as pd
 
 from tests import utility_test_objects
 
-from tradingplatformpoc.agent.battery_agent import BatteryAgent
 from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.pv_agent import PVAgent
-from tradingplatformpoc.digitaltwin.battery import Battery
 from tradingplatformpoc.digitaltwin.heat_pump import Workloads
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
-from tradingplatformpoc.market.bid import Action, NetBidWithAcceptanceStatus, Resource
+from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.market.trade import Market, Trade
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
@@ -202,85 +200,6 @@ class TestGridAgent(unittest.TestCase):
         ]
         with self.assertRaises(RuntimeError):
             self.electricity_grid_agent.calculate_external_trades(trades_excl_external, clearing_prices)
-
-
-class TestBatteryAgent(unittest.TestCase):
-    twin = Battery(max_capacity_kwh=1000, max_charge_rate_fraction=0.1, max_discharge_rate_fraction=0.1,
-                   discharging_efficiency=0.93, start_capacity_kwh=0)
-    battery_agent = BatteryAgent(True, electricity_pricing, twin, 168, 20, 80)
-
-    def test_make_bids(self):
-        """Test basic functionality of BatteryAgent's make_bids method."""
-        bids = self.battery_agent.make_bids(SOME_DATETIME, {})
-        self.assertEqual(1, len(bids))  # Digital twin has capacity = 0, so should only make a BUY bid
-        self.assertEqual(Resource.ELECTRICITY, bids[0].resource)
-        self.assertEqual(Action.BUY, bids[0].action)
-        self.assertTrue(bids[0].quantity > 0)
-        self.assertTrue(bids[0].quantity <= 1000)
-        self.assertTrue(bids[0].price > 0)
-
-    def test_make_bids_when_nonempty(self):
-        """Test that BatteryAgent make_bids method returns 2 bids, when the digital twin's capacity is neither full nor
-        empty."""
-        non_empty_twin = Battery(max_capacity_kwh=1000, max_charge_rate_fraction=0.1,
-                                 max_discharge_rate_fraction=0.1, discharging_efficiency=0.93,
-                                 start_capacity_kwh=500)
-        ba = BatteryAgent(True, electricity_pricing, non_empty_twin, 168, 20, 80)
-        bids = ba.make_bids(SOME_DATETIME, {})
-        self.assertEqual(2, len(bids))
-
-    def test_make_bids_when_full(self):
-        """Test that BatteryAgent make_bids method only returns 1 bid, when the digital twin's capacity is full."""
-        full_twin = Battery(max_capacity_kwh=1000, max_charge_rate_fraction=0.1,
-                            max_discharge_rate_fraction=0.1, discharging_efficiency=0.93,
-                            start_capacity_kwh=1000)
-        ba = BatteryAgent(True, electricity_pricing, full_twin, 168, 20, 80)
-        bids = ba.make_bids(SOME_DATETIME, {})
-        self.assertEqual(1, len(bids))
-        self.assertEqual(Action.SELL, bids[0].action)
-
-    def test_make_bids_without_historical_prices(self):
-        """Test that a warning is logged when calling BatteryAgent's make_bids with None clearing_prices_dict"""
-        with self.assertLogs() as captured:
-            self.battery_agent.make_bids(SOME_DATETIME, None)
-        self.assertTrue(len(captured.records) > 0)
-        log_levels_captured = [rec.levelname for rec in captured.records]
-        self.assertTrue('WARNING' in log_levels_captured)
-
-    def test_make_bids_without_historical_prices_or_nordpool_prices(self):
-        """Test that an error is raised when calling BatteryAgent's make_bids for a time period when there is no price
-        data available whatsoever, local nor Nordpool"""
-        with self.assertRaises(RuntimeError):
-            self.battery_agent.make_bids(datetime(1990, 1, 1, tzinfo=timezone.utc), {})
-
-    def test_make_bids_without_historical_prices_and_only_1_day_of_nordpool_prices(self):
-        """Test that an error is raised when calling BatteryAgent's make_bids for a time period when there is only
-        one day's worth of entries of Nordpool data available."""
-        early_datetime = electricity_pricing.get_external_price_data_datetimes()[24]
-        with self.assertRaises(RuntimeError):
-            self.battery_agent.make_bids(early_datetime, {})
-
-    def test_make_bids_without_historical_prices_and_only_5_days_of_nordpool_prices(self):
-        """Test that an INFO is logged when calling BatteryAgent's make_bids for a time period when there are only
-        five days worth of entries of Nordpool data available."""
-        quite_early_datetime = electricity_pricing.get_external_price_data_datetimes()[120]
-        with self.assertLogs() as captured:
-            self.battery_agent.make_bids(quite_early_datetime, {})
-        self.assertTrue(len(captured.records) > 0)
-        log_levels_captured = [rec.levelname for rec in captured.records]
-        self.assertTrue('INFO' in log_levels_captured)
-
-    def test_make_trade_with_2_accepted_bids(self):
-        """Test that an error is raised when trying to calculate what trade to make, with more than 1 accepted bid."""
-        accepted_bids_for_agent = [
-            NetBidWithAcceptanceStatus(SOME_DATETIME, Action.BUY, Resource.ELECTRICITY, 100, 1, 'BatteryAgent', False,
-                                       True),
-            NetBidWithAcceptanceStatus(SOME_DATETIME, Action.SELL, Resource.ELECTRICITY, 100, 1, 'BatteryAgent', False,
-                                       True)
-        ]
-        clearing_prices = {Resource.ELECTRICITY: 1.0, Resource.HEATING: np.nan}
-        with self.assertRaises(RuntimeError):
-            self.battery_agent.make_trades_given_clearing_price(SOME_DATETIME, clearing_prices, accepted_bids_for_agent)
 
 
 class TestBuildingAgent(TestCase):

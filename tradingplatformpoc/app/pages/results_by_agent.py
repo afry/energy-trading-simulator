@@ -4,11 +4,9 @@ import streamlit as st
 
 from tradingplatformpoc.app import footer
 from tradingplatformpoc.app.app_charts import construct_building_with_heat_pump_chart, \
-    construct_static_digital_twin_chart, construct_storage_level_chart, \
-    construct_traded_amount_by_agent_chart
+    construct_static_digital_twin_chart, construct_traded_amount_by_agent_chart
 from tradingplatformpoc.app.app_data_display import \
-    get_savings_vs_only_external_buy, get_total_profit_net, \
-    reconstruct_building_digital_twin, reconstruct_pv_digital_twin
+    get_savings_vs_only_external_buy, reconstruct_building_digital_twin, reconstruct_pv_digital_twin
 from tradingplatformpoc.app.app_functions import download_df_as_csv_button, make_room_for_menu_in_sidebar
 from tradingplatformpoc.market.trade import TradeMetadataKey
 from tradingplatformpoc.sql.agent.crud import get_agent_config, get_agent_type
@@ -17,8 +15,7 @@ from tradingplatformpoc.sql.config.crud import get_all_agents_in_config, get_all
     get_mock_data_constants
 from tradingplatformpoc.sql.extra_cost.crud import db_to_viewable_extra_costs_df_by_agent
 from tradingplatformpoc.sql.level.crud import db_to_viewable_level_df_by_agent
-from tradingplatformpoc.sql.trade.crud import db_to_viewable_trade_df_by_agent, \
-    get_total_grid_fee_paid_on_internal_trades, get_total_tax_paid
+from tradingplatformpoc.sql.trade.crud import db_to_viewable_trade_df_by_agent
 
 TABLE_HEIGHT: int = 300
 
@@ -73,15 +70,16 @@ if len(ids) > 0:
             st.dataframe(extra_costs_df.replace(float('inf'), 'inf'), height=TABLE_HEIGHT)
             download_df_as_csv_button(extra_costs_df, "extra_costs_for_agent_" + agent_chosen_guid,
                                       include_index=True)
-            
-    if agent_type == 'BatteryAgent':
-        storage_levels_df = db_to_viewable_level_df_by_agent(job_id=chosen_id_to_view['job_id'],
-                                                             agent_guid=agent_chosen_guid,
-                                                             level_type=TradeMetadataKey.STORAGE_LEVEL.name)
-        if not storage_levels_df.empty:
-            with st.expander('Charging level over time for ' + agent_chosen_guid + ':'):
-                storage_chart = construct_storage_level_chart(storage_levels_df)
-                st.altair_chart(storage_chart, use_container_width=True, theme=None)
+
+    # TODO: uncomment when we've fixed saving storage level for building agents
+    # if agent_type == 'BuildingAgent':
+    #     storage_levels_df = db_to_viewable_level_df_by_agent(job_id=chosen_id_to_view['job_id'],
+    #                                                          agent_guid=agent_chosen_guid,
+    #                                                          level_type=TradeMetadataKey.STORAGE_LEVEL.name)
+    #     if not storage_levels_df.empty:
+    #         with st.expander('Charging level over time for ' + agent_chosen_guid + ':'):
+    #             storage_chart = construct_storage_level_chart(storage_levels_df)
+    #             st.altair_chart(storage_chart, use_container_width=True, theme=None)
     
     # Exclude GridAgent
     if agent_type != 'GridAgent':
@@ -108,25 +106,6 @@ if len(ids) > 0:
             help=r"Agent {} was penalized with a total of {:,.2f} SEK due to inaccurate projections. This brought "
                  r"total savings after penalties to {:,.2f} SEK.".format(agent_chosen_guid, extra_costs_for_bad_bids,
                                                                          total_saved - extra_costs_for_bad_bids))
-        if agent_type == 'BatteryAgent':
-            battery_agent_total_net_profit = get_total_profit_net(
-                job_id=chosen_id_to_view['job_id'],
-                agent_guid=agent_chosen_guid)
-            st.metric(
-                label="Net profit.",
-                value="{:,.2f} SEK".format(battery_agent_total_net_profit),
-                help=r"What the {} sold minus what it bought.".format(agent_chosen_guid))
-            battery_agent_tax_paid = get_total_tax_paid(
-                job_id=chosen_id_to_view['job_id'],
-                agent_guid=agent_chosen_guid)
-            battery_agent_grid_fee_paid = get_total_grid_fee_paid_on_internal_trades(
-                job_id=chosen_id_to_view['job_id'],
-                agent_guid=agent_chosen_guid)
-            st.metric(
-                label="Gross profit.",
-                value="{:,.2f} SEK".format(
-                    battery_agent_total_net_profit + battery_agent_tax_paid + battery_agent_grid_fee_paid),
-                help=r"Net profit plus what the {} paid for tax and grid fees.".format(agent_chosen_guid))
 
     if agent_type in ["BuildingAgent", 'PVAgent']:
         # Any building agent with a StaticDigitalTwin
