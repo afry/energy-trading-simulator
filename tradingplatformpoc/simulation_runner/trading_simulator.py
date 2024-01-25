@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Tuple
 
 import pandas as pd
 
-from tradingplatformpoc.agent.building_agent import BuildingAgent
+from tradingplatformpoc.agent.block_agent import BlockAgent
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.app.app_threading import StoppableThread
@@ -100,29 +100,29 @@ class TradingSimulator:
         # Read input data (irradiation and grocery store consumption) from database
         inputs_df = read_inputs_df_for_agent_creation()
         # Get mock data
-        buildings_mock_data: pd.DataFrame = get_generated_mock_data(self.config_id)
+        blocks_mock_data: pd.DataFrame = get_generated_mock_data(self.config_id)
         area_info = self.config_data['AreaInfo']
 
         for agent in self.config_data["Agents"]:
             agent_type = agent["Type"]
             agent_name = agent['Name']
 
-            if agent_type in ["BuildingAgent", "GroceryStoreAgent"]:
+            if agent_type in ["BlockAgent", "GroceryStoreAgent"]:
                 pv_prod_series = calculate_solar_prod(inputs_df['irradiation'],
                                                       agent['PVArea'],
                                                       agent['PVEfficiency'])
-            if agent_type == "BuildingAgent":
+            if agent_type == "BlockAgent":
                 agent_id = self.agent_specs[agent['Name']]
-                elec_cons_series = buildings_mock_data.get(get_elec_cons_key(agent_id))
-                space_heat_cons_series = buildings_mock_data.get(get_space_heat_cons_key(agent_id))
-                hot_tap_water_cons_series = buildings_mock_data.get(get_hot_tap_water_cons_key(agent_id))
-                cool_cons_series = buildings_mock_data.get(get_cooling_cons_key(agent_id))
+                elec_cons_series = blocks_mock_data.get(get_elec_cons_key(agent_id))
+                space_heat_cons_series = blocks_mock_data.get(get_space_heat_cons_key(agent_id))
+                hot_tap_water_cons_series = blocks_mock_data.get(get_hot_tap_water_cons_key(agent_id))
+                cool_cons_series = blocks_mock_data.get(get_cooling_cons_key(agent_id))
 
-                building_digital_twin = StaticDigitalTwin(electricity_usage=elec_cons_series,
-                                                          space_heating_usage=space_heat_cons_series,
-                                                          hot_water_usage=hot_tap_water_cons_series,
-                                                          electricity_production=pv_prod_series,
-                                                          cooling_usage=cool_cons_series)
+                block_digital_twin = StaticDigitalTwin(electricity_usage=elec_cons_series,
+                                                       space_heating_usage=space_heat_cons_series,
+                                                       hot_water_usage=hot_tap_water_cons_series,
+                                                       electricity_production=pv_prod_series,
+                                                       cooling_usage=cool_cons_series)
 
                 storage_digital_twin = Battery(max_capacity_kwh=agent["BatteryCapacity"],
                                                max_charge_rate_fraction=area_info["BatteryChargeRate"],
@@ -130,10 +130,10 @@ class TradingSimulator:
                                                discharging_efficiency=area_info["BatteryEfficiency"])
 
                 agents.append(
-                    BuildingAgent(self.local_market_enabled, heat_pricing=self.heat_pricing,
-                                  electricity_pricing=self.electricity_pricing,
-                                  digital_twin=building_digital_twin, nbr_heat_pumps=agent["NumberHeatPumps"],
-                                  coeff_of_perf=agent["COP"], battery=storage_digital_twin, guid=agent_name))
+                    BlockAgent(self.local_market_enabled, heat_pricing=self.heat_pricing,
+                               electricity_pricing=self.electricity_pricing,
+                               digital_twin=block_digital_twin, nbr_heat_pumps=agent["NumberHeatPumps"],
+                               coeff_of_perf=agent["COP"], battery=storage_digital_twin, guid=agent_name))
 
             elif agent_type == "GroceryStoreAgent":
                 grocery_store_digital_twin = StaticDigitalTwin(electricity_usage=inputs_df['coop_electricity_consumed'],
@@ -141,9 +141,9 @@ class TradingSimulator:
                                                                # TODO: Grocery store tap water consumption
                                                                electricity_production=pv_prod_series)
                 agents.append(
-                    BuildingAgent(self.local_market_enabled, heat_pricing=self.heat_pricing,
-                                  electricity_pricing=self.electricity_pricing, digital_twin=grocery_store_digital_twin,
-                                  guid=agent_name))
+                    BlockAgent(self.local_market_enabled, heat_pricing=self.heat_pricing,
+                               electricity_pricing=self.electricity_pricing, digital_twin=grocery_store_digital_twin,
+                               guid=agent_name))
             elif agent_type == "GridAgent":
                 if Resource[agent["Resource"]] == Resource.ELECTRICITY:
                     grid_agent = GridAgent(self.local_market_enabled, self.electricity_pricing,

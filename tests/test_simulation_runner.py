@@ -33,7 +33,7 @@ class Test(TestCase):
                        'AreaInfo': self.config['AreaInfo'],
                        'MockDataConstants': self.config['MockDataConstants']}
         agent_specs = {agent['Name']: uuid_as_str_generator() for agent in fake_config['Agents'][:]
-                       if agent['Type'] == 'BuildingAgent'}
+                       if agent['Type'] == 'BlockAgent'}
         mock_data_columns = [[get_elec_cons_key(agent_id),
                               get_space_heat_cons_key(agent_id),
                               get_hot_tap_water_cons_key(agent_id)] for agent_id in agent_specs.values()]

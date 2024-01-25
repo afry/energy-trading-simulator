@@ -25,7 +25,7 @@ from tradingplatformpoc.generate_data.generation_functions.residential.residenti
 from tradingplatformpoc.generate_data.mock_data_utils import \
     calculate_seed_from_string, get_cooling_cons_key, get_elec_cons_key, get_hot_tap_water_cons_key, \
     get_space_heat_cons_key, join_list_of_polar_dfs
-from tradingplatformpoc.sql.agent.crud import get_building_agent_dicts_from_id_list
+from tradingplatformpoc.sql.agent.crud import get_block_agent_dicts_from_id_list
 from tradingplatformpoc.sql.config.crud import get_all_agents_in_config, get_mock_data_constants
 from tradingplatformpoc.sql.input_data.crud import read_inputs_df_for_mock_data_generation
 from tradingplatformpoc.sql.mock_data.crud import db_to_mock_data_df, get_mock_data_agent_pairs_in_db, \
@@ -43,7 +43,7 @@ SCHOOL_HEATING_SEED_SUFFIX = "SH"
 SCHOOL_ELECTRICITY_SEED_SUFFIX = "SE"
 
 """
-This script generates the following, for BuildingAgents:
+This script generates the following, for BlockAgents:
 *Household electricity consumption data
 *Commercial electricity consumption data
 *Residential hot water consumption data
@@ -62,7 +62,7 @@ def get_generated_mock_data(config_id: str) -> pd.DataFrame:
     """
     Fetch mock data if it exists, else generate it.
     @param config_id: Config id in db
-    @return: A pd.DataFrame containing mock data for building agents
+    @return: A pd.DataFrame containing mock data for block agents
     """
     logger.info("Running mock data generation.")
     data_set = run(config_id)
@@ -74,7 +74,7 @@ def run(config_id: str) -> Union[pl.DataFrame, pl.LazyFrame]:
     """
     Fetch mock data if it exists, else generate it.
     @param config_id: Config id in db
-    @return: A pl.DataFrame or pl.LazyFrame containing mock data for building agents
+    @return: A pl.DataFrame or pl.LazyFrame containing mock data for block agents
     """
     agent_specs = get_all_agents_in_config(config_id)
     mock_data_constants = get_mock_data_constants(config_id)
@@ -82,16 +82,16 @@ def run(config_id: str) -> Union[pl.DataFrame, pl.LazyFrame]:
     mock_data_agent_ids_dict = get_mock_data_agent_pairs_in_db(agent_ids_in_config, mock_data_constants)
     agent_ids_without_mock_data = [agent_id for agent_id in agent_ids_in_config
                                    if agent_id not in mock_data_agent_ids_dict.values()]
-    building_agents_to_simulate_for = get_building_agent_dicts_from_id_list(agent_ids_without_mock_data)
+    block_agents_to_simulate_for = get_block_agent_dicts_from_id_list(agent_ids_without_mock_data)
     existing_mock_data_ids = mock_data_agent_ids_dict.keys()
     
-    if (len(existing_mock_data_ids) == 0) and (len(building_agents_to_simulate_for) == 0):
+    if (len(existing_mock_data_ids) == 0) and (len(block_agents_to_simulate_for) == 0):
         logger.info('No mock data needed.')
         return pl.DataFrame(columns=['datetime'])
 
-    if len(building_agents_to_simulate_for) > 0:
-        # Simulate mock data for building agents
-        dfs_new = simulate_for_agents(building_agents_to_simulate_for, mock_data_constants)
+    if len(block_agents_to_simulate_for) > 0:
+        # Simulate mock data for block agents
+        dfs_new = simulate_for_agents(block_agents_to_simulate_for, mock_data_constants)
 
         # Insert simulated mock data into database
         mock_data_dicts = [mock_data_df_to_db_dict(key, mock_data_constants, value) for key, value in dfs_new.items()]
@@ -150,9 +150,9 @@ def simulate_for_agents(agent_dicts: List[Dict[str, Any]], mock_data_constants: 
     for agent_dict in agent_dicts:
 
         logger.info('Generating new data for ' + agent_dict[key])
-        output_per_building = simulate(mock_data_constants, agent_dict, lazy_inputs,
-                                       n_rows, model, output_per_actor.clone(), key)
-        dfs_new[agent_dict[key]] = output_per_building
+        output_per_block = simulate(mock_data_constants, agent_dict, lazy_inputs,
+                                    n_rows, model, output_per_actor.clone(), key)
+        dfs_new[agent_dict[key]] = output_per_block
     
     return dfs_new
 

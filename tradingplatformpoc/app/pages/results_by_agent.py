@@ -3,10 +3,10 @@ from st_pages import add_indentation, show_pages_from_config
 import streamlit as st
 
 from tradingplatformpoc.app import footer
-from tradingplatformpoc.app.app_charts import construct_building_with_heat_pump_chart, \
+from tradingplatformpoc.app.app_charts import construct_agent_with_heat_pump_chart, \
     construct_traded_amount_by_agent_chart
 from tradingplatformpoc.app.app_data_display import \
-    get_savings_vs_only_external_buy, reconstruct_building_digital_twin
+    get_savings_vs_only_external_buy, reconstruct_static_digital_twin
 from tradingplatformpoc.app.app_functions import download_df_as_csv_button, make_room_for_menu_in_sidebar
 from tradingplatformpoc.market.trade import TradeMetadataKey
 from tradingplatformpoc.sql.agent.crud import get_agent_config, get_agent_type
@@ -71,8 +71,8 @@ if len(ids) > 0:
             download_df_as_csv_button(extra_costs_df, "extra_costs_for_agent_" + agent_chosen_guid,
                                       include_index=True)
 
-    # TODO: uncomment when we've fixed saving storage level for building agents
-    # if agent_type == 'BuildingAgent':
+    # TODO: uncomment when we've fixed saving storage level for block agents
+    # if agent_type == 'BlockAgent':
     #     storage_levels_df = db_to_viewable_level_df_by_agent(job_id=chosen_id_to_view['job_id'],
     #                                                          agent_guid=agent_chosen_guid,
     #                                                          level_type=TradeMetadataKey.STORAGE_LEVEL.name)
@@ -107,23 +107,22 @@ if len(ids) > 0:
                  r"total savings after penalties to {:,.2f} SEK.".format(agent_chosen_guid, extra_costs_for_bad_bids,
                                                                          total_saved - extra_costs_for_bad_bids))
 
-    if agent_type == "BuildingAgent":
-        # Any building agent with a StaticDigitalTwin
+    if agent_type == "BlockAgent":
         with st.expander('Energy production/consumption'):
             agent_config = get_agent_config(agent_specs[agent_chosen_guid])
             st.caption("Click on a variable to highlight it.")
-            if agent_type == 'BuildingAgent':
+            if agent_type == 'BlockAgent':
                 heat_pump_levels_df = db_to_viewable_level_df_by_agent(
                     job_id=chosen_id_to_view['job_id'],
                     agent_guid=agent_chosen_guid,
                     level_type=TradeMetadataKey.HEAT_PUMP_WORKLOAD.name)
                 mock_data_constants = get_mock_data_constants(chosen_id_to_view['config_id'])
-                building_digital_twin = reconstruct_building_digital_twin(
+                block_digital_twin = reconstruct_static_digital_twin(
                     agent_specs[agent_chosen_guid], mock_data_constants,
                     agent_config['PVArea'], agent_config['PVEfficiency'])
-                static_digital_twin_chart = construct_building_with_heat_pump_chart(
-                    agent_chosen_guid, building_digital_twin, heat_pump_levels_df)
-                st.caption("Heat consumption here refers to the building agent's heat demand, and does not consider "
+                static_digital_twin_chart = construct_agent_with_heat_pump_chart(
+                    agent_chosen_guid, block_digital_twin, heat_pump_levels_df)
+                st.caption("Heat consumption here refers to the block agent's heat demand, and does not consider "
                            "the source of the heat. To investigate the effects of running heat pumps, this graph "
                            "should be studied together with the graph displaying resources bought and sold further "
                            "up the page under the *Trades*-expander.")

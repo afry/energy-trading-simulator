@@ -19,7 +19,7 @@ from tradingplatformpoc.simulation_runner.simulation_utils import get_local_pric
 logger = logging.getLogger(__name__)
 
 
-class BuildingAgent(IAgent):
+class BlockAgent(IAgent):
 
     heat_pricing: HeatingPrice
     electricity_pricing: ElectricityPrice
@@ -32,7 +32,7 @@ class BuildingAgent(IAgent):
 
     def __init__(self, local_market_enabled: bool, heat_pricing: HeatingPrice, electricity_pricing: ElectricityPrice,
                  digital_twin: StaticDigitalTwin, nbr_heat_pumps: int = 0, coeff_of_perf: Optional[float] = None,
-                 battery: Optional[Battery] = None, guid="BuildingAgent"):
+                 battery: Optional[Battery] = None, guid="BlockAgent"):
         super().__init__(guid, local_market_enabled)
         self.heat_pricing = heat_pricing
         self.electricity_pricing = electricity_pricing
@@ -45,7 +45,7 @@ class BuildingAgent(IAgent):
 
     def make_bids(self, period: datetime.datetime, clearing_prices_historical: Union[Dict[datetime.datetime, Dict[
             Resource, float]], None] = None) -> List[GrossBid]:
-        # The building should make a bid for purchasing energy, or selling if it has a surplus
+        # The agent should make a bid for purchasing energy, or selling if it has a surplus
         prev_period = trading_platform_utils.minus_n_hours(period, 1)
         prev_prices = get_local_price_if_exists_else_external_estimate(
             prev_period, clearing_prices_historical, [self.electricity_pricing, self.heat_pricing])
@@ -53,7 +53,7 @@ class BuildingAgent(IAgent):
                                              prev_prices[Resource.HEATING])
 
     def make_prognosis(self, period: datetime.datetime, resource: Resource) -> float:
-        # The building should make a prognosis for how much energy will be required
+        # The agent should make a prognosis for how much energy will be required
         prev_trading_period = trading_platform_utils.minus_n_hours(period, 1)
         try:
             electricity_demand_prev = self.digital_twin.get_consumption(prev_trading_period, resource)

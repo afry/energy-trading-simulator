@@ -90,7 +90,7 @@ def config_data_agent_screening(config_data: dict) -> Optional[str]:
 
     # Make sure no agents are passed with unknown type
     for agent in config_data['Agents']:
-        if agent['Type'] not in ['BuildingAgent', 'GridAgent', 'GroceryStoreAgent']:
+        if agent['Type'] not in ['BlockAgent', 'GridAgent', 'GroceryStoreAgent']:
             return 'Agent {} provided with unrecognized \'Type\' {}.'.format(agent['Name'], agent['Type'])
         
         # Check if resource is valid
@@ -113,7 +113,7 @@ def config_data_agent_screening(config_data: dict) -> Optional[str]:
     # Needs at least one other agent
     if len([agent for agent in config_data['Agents'] if agent['Type'] != 'GridAgent']) == 0:
         return 'No non-GridAgents provided, needs at least one other agent!'
-    # TODO: Should we allow for having no BuildingAgents?
+    # TODO: Should we allow for having no BlockAgents?
     
     # Check agents for correct keys and values in ranges
     agent_specs = read_agent_specs()

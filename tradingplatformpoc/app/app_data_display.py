@@ -44,16 +44,16 @@ def get_price_df_when_local_price_inbetween(prices_df: pd.DataFrame, resource: R
     return elec_prices.loc[local_price_between_external]
 
 
-def reconstruct_building_digital_twin(agent_id: str, mock_data_constants: Dict[str, Any],
-                                      pv_area: float, pv_efficiency: float) -> StaticDigitalTwin:
+def reconstruct_static_digital_twin(agent_id: str, mock_data_constants: Dict[str, Any],
+                                    pv_area: float, pv_efficiency: float) -> StaticDigitalTwin:
     mock_data_id = list(get_mock_data_agent_pairs_in_db([agent_id], mock_data_constants).keys())[0]
-    buildings_mock_data = db_to_mock_data_df(mock_data_id).to_pandas().set_index('datetime')
+    block_mock_data = db_to_mock_data_df(mock_data_id).to_pandas().set_index('datetime')
 
     inputs_df = read_inputs_df_for_agent_creation()
     pv_prod_series = calculate_solar_prod(inputs_df['irradiation'], pv_area, pv_efficiency)
-    elec_cons_series = buildings_mock_data[get_elec_cons_key(agent_id)]
-    space_heat_cons_series = buildings_mock_data[get_space_heat_cons_key(agent_id)]
-    hot_tap_water_cons_series = buildings_mock_data[get_hot_tap_water_cons_key(agent_id)]
+    elec_cons_series = block_mock_data[get_elec_cons_key(agent_id)]
+    space_heat_cons_series = block_mock_data[get_space_heat_cons_key(agent_id)]
+    hot_tap_water_cons_series = block_mock_data[get_hot_tap_water_cons_key(agent_id)]
 
     return StaticDigitalTwin(electricity_usage=elec_cons_series,
                              space_heating_usage=space_heat_cons_series,
@@ -185,11 +185,11 @@ def aggregated_local_production_df(job_id: str, config_id: str) -> pd.DataFrame:
     usage_heating_lst = []
     for agent_id in agent_specs.values():
         agent_type = get_agent_type(agent_id)
-        if agent_type == "BuildingAgent":
+        if agent_type == "BlockAgent":
             agent_config = get_agent_config(agent_id)
-            if agent_type == 'BuildingAgent':
+            if agent_type == 'BlockAgent':
                 mock_data_constants = get_mock_data_constants(config_id)
-                digital_twin = reconstruct_building_digital_twin(
+                digital_twin = reconstruct_static_digital_twin(
                     agent_id, mock_data_constants, agent_config['PVArea'], agent_config['PVEfficiency'])
                 # TODO: Replace with low-temp and high-temp heat separated
                 if digital_twin.total_heating_usage is not None:
