@@ -102,6 +102,7 @@ class TradingSimulator:
         inputs_df = read_inputs_df_for_agent_creation()
         # Get mock data
         buildings_mock_data: pd.DataFrame = get_generated_mock_data(self.config_id)
+        area_info = self.config_data['AreaInfo']
 
         for agent in self.config_data["Agents"]:
             agent_type = agent["Type"]
@@ -125,9 +126,9 @@ class TradingSimulator:
                                                           cooling_usage=cool_cons_series)
 
                 storage_digital_twin = Battery(max_capacity_kwh=agent["BatteryCapacity"],
-                                               max_charge_rate_fraction=agent["BatteryChargeRate"],
-                                               max_discharge_rate_fraction=agent["BatteryDischargeRate"],
-                                               discharging_efficiency=agent["BatteryEfficiency"])
+                                               max_charge_rate_fraction=area_info["BatteryChargeRate"],
+                                               max_discharge_rate_fraction=area_info["BatteryDischargeRate"],
+                                               discharging_efficiency=area_info["BatteryEfficiency"])
 
                 agents.append(
                     BuildingAgent(self.local_market_enabled, heat_pricing=self.heat_pricing,

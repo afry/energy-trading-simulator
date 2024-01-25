@@ -68,30 +68,6 @@
             "default_value": 0,
             "help": "A number specifying the storage capacity, in kWh",
             "type": "float"
-        },
-        "BatteryChargeRate": {
-            "display": "Charge rate",
-            "min_value": 0.01,
-            "max_value": 10.0,
-            "default_value": 0.4,
-            "help": "A number specifying how much of the maximum capacity can be charged in an hour. This value being equal to 1 would mean that the storage entity can go from completely empty, to completely full, in one hour. Must be a positive number",
-            "type": "float"
-        },
-        "BatteryDischargeRate": {
-            "display": "Discharge rate",
-            "min_value": 0.01,
-            "max_value": 10.0,
-            "default_value": 0.4,
-            "help": "A number specifying how much of the maximum capacity can be discharged in an hour. This value being equal to 1 would mean that the storage entity can go from completely full, to completely empty, in one hour. Must be a positive number.",
-            "type": "float"
-        },
-        "BatteryEfficiency": {
-            "display": "Round-trip efficiency",
-            "min_value": 0.01,
-            "max_value": 1.0,
-            "default_value": 0.93,
-            "help": "A number specifying the round-trip efficiency. This value being equal to 1 would mean that there are no losses for the storage entity; if one charges it with X kWh, one can later discharge exactly the same amount. Must be a positive number, no larger than 1",
-            "type": "float"
         }
     },
     "GridAgent": {
