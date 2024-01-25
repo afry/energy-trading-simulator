@@ -240,10 +240,16 @@
 		"BatteryCapacity": 100
 	},
 	{
-		"Type": "PVAgent",
-		"Name": "PVAgent1",
+		"Type": "BuildingAgent",
+		"Name": "PVParkAgent",
+		"GrossFloorArea": 0.0,
 		"PVArea": 24324.3,
-		"PVEfficiency": 0.165
+		"PVEfficiency": 0.165,
+		"FractionCommercial": 0.0,
+		"FractionSchool": 0.0,
+		"NumberHeatPumps": 0,
+		"COP": 4.6,
+		"BatteryCapacity": 0.0
 	},
 	{
 		"Type": "GroceryStoreAgent",

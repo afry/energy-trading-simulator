@@ -59,13 +59,6 @@ def add_building_agent():
     })
 
 
-def add_pv_agent():
-    add_agent({
-        "Type": "PVAgent",
-        **read_agent_defaults("PVAgent", read_agent_specs())
-    })
-
-
 def add_grocery_store_agent():
     add_agent({
         "Type": "GroceryStoreAgent",

@@ -90,7 +90,7 @@ def config_data_agent_screening(config_data: dict) -> Optional[str]:
 
     # Make sure no agents are passed with unknown type
     for agent in config_data['Agents']:
-        if agent['Type'] not in ['BuildingAgent', 'PVAgent', 'GridAgent', 'GroceryStoreAgent']:
+        if agent['Type'] not in ['BuildingAgent', 'GridAgent', 'GroceryStoreAgent']:
             return 'Agent {} provided with unrecognized \'Type\' {}.'.format(agent['Name'], agent['Type'])
         
         # Check if resource is valid

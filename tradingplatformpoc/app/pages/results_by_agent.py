@@ -4,9 +4,9 @@ import streamlit as st
 
 from tradingplatformpoc.app import footer
 from tradingplatformpoc.app.app_charts import construct_building_with_heat_pump_chart, \
-    construct_static_digital_twin_chart, construct_traded_amount_by_agent_chart
+    construct_traded_amount_by_agent_chart
 from tradingplatformpoc.app.app_data_display import \
-    get_savings_vs_only_external_buy, reconstruct_building_digital_twin, reconstruct_pv_digital_twin
+    get_savings_vs_only_external_buy, reconstruct_building_digital_twin
 from tradingplatformpoc.app.app_functions import download_df_as_csv_button, make_room_for_menu_in_sidebar
 from tradingplatformpoc.market.trade import TradeMetadataKey
 from tradingplatformpoc.sql.agent.crud import get_agent_config, get_agent_type
@@ -107,7 +107,7 @@ if len(ids) > 0:
                  r"total savings after penalties to {:,.2f} SEK.".format(agent_chosen_guid, extra_costs_for_bad_bids,
                                                                          total_saved - extra_costs_for_bad_bids))
 
-    if agent_type in ["BuildingAgent", 'PVAgent']:
+    if agent_type == "BuildingAgent":
         # Any building agent with a StaticDigitalTwin
         with st.expander('Energy production/consumption'):
             agent_config = get_agent_config(agent_specs[agent_chosen_guid])
@@ -127,9 +127,6 @@ if len(ids) > 0:
                            "the source of the heat. To investigate the effects of running heat pumps, this graph "
                            "should be studied together with the graph displaying resources bought and sold further "
                            "up the page under the *Trades*-expander.")
-            elif agent_type == 'PVAgent':
-                pv_digital_twin = reconstruct_pv_digital_twin(agent_config['PVArea'], agent_config['PVEfficiency'])
-                static_digital_twin_chart = construct_static_digital_twin_chart(pv_digital_twin, agent_chosen_guid)
 
             st.altair_chart(static_digital_twin_chart, use_container_width=True, theme=None)
 

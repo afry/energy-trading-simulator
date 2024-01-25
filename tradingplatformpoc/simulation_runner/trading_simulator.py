@@ -9,7 +9,6 @@ import pandas as pd
 from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
-from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app.app_threading import StoppableThread
 from tradingplatformpoc.database import bulk_insert
 from tradingplatformpoc.digitaltwin.battery import Battery
@@ -108,7 +107,7 @@ class TradingSimulator:
             agent_type = agent["Type"]
             agent_name = agent['Name']
 
-            if agent_type in ["BuildingAgent", "PVAgent", "GroceryStoreAgent"]:
+            if agent_type in ["BuildingAgent", "GroceryStoreAgent"]:
                 pv_prod_series = calculate_solar_prod(inputs_df['irradiation'],
                                                       agent['PVArea'],
                                                       agent['PVEfficiency'])
@@ -136,10 +135,6 @@ class TradingSimulator:
                                   digital_twin=building_digital_twin, nbr_heat_pumps=agent["NumberHeatPumps"],
                                   coeff_of_perf=agent["COP"], battery=storage_digital_twin, guid=agent_name))
 
-            elif agent_type == "PVAgent":
-                pv_digital_twin = StaticDigitalTwin(electricity_production=pv_prod_series)
-                agents.append(PVAgent(self.local_market_enabled, self.electricity_pricing, pv_digital_twin,
-                                      guid=agent_name))
             elif agent_type == "GroceryStoreAgent":
                 grocery_store_digital_twin = StaticDigitalTwin(electricity_usage=inputs_df['coop_electricity_consumed'],
                                                                space_heating_usage=inputs_df['coop_heating_consumed'],

@@ -10,14 +10,13 @@ from tests import utility_test_objects
 
 from tradingplatformpoc.agent.building_agent import BuildingAgent
 from tradingplatformpoc.agent.grid_agent import GridAgent
-from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.digitaltwin.heat_pump import Workloads
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.market.trade import Market, Trade
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
-from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, hourly_datetime_array_between
+from tradingplatformpoc.trading_platform_utils import hourly_datetime_array_between
 
 SOME_DATETIME = datetime(2019, 2, 1, 1, tzinfo=timezone.utc)
 
@@ -114,7 +113,7 @@ class TestGridAgent(unittest.TestCase):
         trades_excl_external = [
             Trade(SOME_DATETIME, Action.BUY, Resource.ELECTRICITY, 100, retail_price, "BuildingAgent", False,
                   Market.LOCAL),
-            Trade(SOME_DATETIME, Action.SELL, Resource.ELECTRICITY, 100, retail_price, "PVAgent", False,
+            Trade(SOME_DATETIME, Action.SELL, Resource.ELECTRICITY, 100, retail_price, "PVParkAgent", False,
                   Market.LOCAL)
         ]
         external_trades = self.electricity_grid_agent.calculate_external_trades(trades_excl_external, clearing_prices)
@@ -387,17 +386,3 @@ class TestBuildingAgentHeatPump(TestCase):
         self.assertEqual(2, len(trades))
         heat_trade = [x for x in trades if x.resource == Resource.HEATING]
         self.assertEqual(1, len(heat_trade))
-
-
-class TestPVAgent(TestCase):
-    pv_prod_series = calculate_solar_prod(irradiation_data, 24324.3, 0.165)
-    pv_digital_twin = StaticDigitalTwin(electricity_production=pv_prod_series)
-    tornet_pv_agent = PVAgent(True, electricity_pricing, pv_digital_twin)
-
-    def test_make_bids(self):
-        """Test basic functionality of PVAgent's make_bids method."""
-        bids = self.tornet_pv_agent.make_bids(datetime(2019, 7, 7, 11, 0, 0, tzinfo=timezone.utc))
-        self.assertEqual(Resource.ELECTRICITY, bids[0].resource)
-        self.assertEqual(Action.SELL, bids[0].action)
-        self.assertAlmostEqual(325.1019614111333, bids[0].quantity)
-        self.assertAlmostEqual(2.8295860496253016, bids[0].price)

@@ -61,12 +61,6 @@ def reconstruct_building_digital_twin(agent_id: str, mock_data_constants: Dict[s
                              electricity_production=pv_prod_series)
 
 
-def reconstruct_pv_digital_twin(pv_area: float, pv_efficiency: float) -> StaticDigitalTwin:
-    inputs_df = read_inputs_df_for_agent_creation()
-    pv_prod_series = calculate_solar_prod(inputs_df['irradiation'], pv_area, pv_efficiency)
-    return StaticDigitalTwin(electricity_production=pv_prod_series)
-
-
 # maybe we should move this to simulation_runner/trading_simulator
 def construct_combined_price_df(local_price_df: pd.DataFrame, config_data: dict) -> pd.DataFrame:
 
@@ -191,7 +185,7 @@ def aggregated_local_production_df(job_id: str, config_id: str) -> pd.DataFrame:
     usage_heating_lst = []
     for agent_id in agent_specs.values():
         agent_type = get_agent_type(agent_id)
-        if agent_type in ["BuildingAgent", "PVAgent"]:
+        if agent_type == "BuildingAgent":
             agent_config = get_agent_config(agent_id)
             if agent_type == 'BuildingAgent':
                 mock_data_constants = get_mock_data_constants(config_id)
@@ -200,8 +194,6 @@ def aggregated_local_production_df(job_id: str, config_id: str) -> pd.DataFrame:
                 # TODO: Replace with low-temp and high-temp heat separated
                 if digital_twin.total_heating_usage is not None:
                     usage_heating_lst.append(sum(digital_twin.total_heating_usage.dropna()))  # Issue with NaNs
-            elif agent_type == 'PVAgent':
-                digital_twin = reconstruct_pv_digital_twin(agent_config['PVArea'], agent_config['PVEfficiency'])
             production_electricity_lst.append(sum(digital_twin.electricity_production))
     
     production_electricity = sum(production_electricity_lst)

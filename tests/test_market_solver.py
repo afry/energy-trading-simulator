@@ -161,7 +161,7 @@ class TestMarketSolver(TestCase):
         bids = [GrossBid(SOME_DATETIME, Action.BUY, Resource.ELECTRICITY, 192.76354849517332, math.inf, 'BuildingAgent',
                          False),
                 GrossBid(SOME_DATETIME, Action.SELL, Resource.ELECTRICITY, 100, 0.46069, 'AgentWithBattery', False),
-                GrossBid(SOME_DATETIME, Action.SELL, Resource.ELECTRICITY, 275.3113968, 0.46069, 'PVAgent', False),
+                GrossBid(SOME_DATETIME, Action.SELL, Resource.ELECTRICITY, 275.3113968, 0.46069, 'PVParkAgent', False),
                 GrossBid(SOME_DATETIME, Action.BUY, Resource.ELECTRICITY, 100.8875027389364, math.inf,
                          'GroceryStoreAgent', False),
                 GrossBid(SOME_DATETIME, Action.SELL, Resource.ELECTRICITY, 10000, 0.89069, 'ElectricityGridAgent',
