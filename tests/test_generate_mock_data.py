@@ -83,7 +83,7 @@ class Test(TestCase):
     def test_all_parameters_match_true(self):
         """When agents do not contain any commercial buildings, it shouldn't matter that commercial mock data generation
         constants are different."""
-        agent_1 = {'Name': 'ResidentialBuildingAgentB1', 'FractionCommercial': 0.0}
+        agent_1 = {'Name': 'ResidentialBlockAgentB1', 'FractionCommercial': 0.0}
         agent_2 = agent_1.copy()
         mock_data_constants_1 = {'CommercialElecKwhPerYearM2': 50}
         mock_data_constants_2 = {'CommercialElecKwhPerYearM2': 60}
@@ -92,7 +92,7 @@ class Test(TestCase):
     def test_all_parameters_match_false(self):
         """When agents do contain commercial buildings, it should matter that commercial mock data generation
         constants are different."""
-        agent_1 = {'Name': 'ResidentialBuildingAgentB1', 'FractionCommercial': 0.1}
+        agent_1 = {'Name': 'ResidentialBlockAgentB1', 'FractionCommercial': 0.1}
         agent_2 = agent_1.copy()
         mock_data_constants_1 = {'CommercialElecKwhPerYearM2': 50}
         mock_data_constants_2 = {'CommercialElecKwhPerYearM2': 60}

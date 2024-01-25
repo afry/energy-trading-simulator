@@ -8,13 +8,13 @@ with open(IN_PICKLE, 'rb') as f:
 
 new_data_sets = {}
 
-for frozen_set_of_residential_building_agents, mock_data_frame in all_data_sets.items():
-    if len(frozen_set_of_residential_building_agents) > 10:
+for frozen_set_of_residential_block_agents, mock_data_frame in all_data_sets.items():
+    if len(frozen_set_of_residential_block_agents) > 10:
         # Only keep big ones
         new_set_of_agents = set()
-        for residential_building_agent_as_frozen_set in frozen_set_of_residential_building_agents:
+        for residential_block_agent_as_frozen_set in frozen_set_of_residential_block_agents:
             new_agent_dict = {}
-            for item in residential_building_agent_as_frozen_set:
+            for item in residential_block_agent_as_frozen_set:
                 if item[0] in ['Type', 'Name']:
                     new_agent_dict[item[0]] = 'Residential' + item[1]
                 else:

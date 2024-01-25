@@ -50,7 +50,7 @@ def check_if_agent_in_db(agent_type: str, agent_config: Dict[str, Any],
         return None
 
 
-def get_building_agent_dicts_from_id_list(
+def get_block_agent_dicts_from_id_list(
         agent_ids: List[str],
         session_generator: Callable[[], _GeneratorContextManager[Session]]
         = session_scope):
@@ -59,7 +59,7 @@ def get_building_agent_dicts_from_id_list(
     """
     with session_generator() as db:
         res = db.query(Agent).filter(Agent.id.in_(agent_ids),
-                                     Agent.agent_type == 'BuildingAgent').all()
+                                     Agent.agent_type == 'BlockAgent').all()
         return [{'db_id': agent.id, 'Type': agent.agent_type, **agent.agent_config}
                 for agent in res]
     

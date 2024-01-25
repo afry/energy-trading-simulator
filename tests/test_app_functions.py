@@ -33,7 +33,16 @@ class TestAppFunctions(TestCase):
                         "Resource": "ELECTRICITY", "TransferRate": 5.0}
         mock_grid_he = {"Type": "GridAgent", "Name": "HeatingGridAgent",
                         "Resource": "HEATING", "TransferRate": 5.0}
-        mock_pv = {"Type": "PVAgent", "Name": "PVAgent1", "PVArea": 20.0, "PVEfficiency": 0.165}
+        mock_pv = {"Type": "BlockAgent",
+                   "Name": "PVParkAgent",
+                   "GrossFloorArea": 0.0,
+                   "FractionCommercial": 0.0,
+                   "FractionSchool": 0.0,
+                   "NumberHeatPumps": 0,
+                   "COP": 4.6,
+                   "BatteryCapacity": 0.0,
+                   "PVArea": 20.0,
+                   "PVEfficiency": 0.165}
 
         self.assertIsNone(config_data_agent_screening({'Agents': [mock_grid_el, mock_grid_he, mock_pv]}))
 

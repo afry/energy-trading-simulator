@@ -10,15 +10,6 @@
         "help": "If the possibility to buy district heating should be included in simulation.",
         "disabled": true
     },
-    "DefaultPVEfficiency": {
-        "display": "Default PV efficiency:",
-        "min_value": 0.01,
-        "max_value": 0.99,
-        "format": "%.3f",
-        "default": 0.165,
-        "step": 0.005,
-        "help": "A number specifying the efficiency of solar panels in the microgrid. Can be overridden by individual agents. Number must be between 0 and 1, and is typically in the 0.15-0.25 range"
-    },
     "HeatTransferLoss": {
         "display": "Heat transfer loss:",
         "min_value": 0.0,
@@ -68,6 +59,37 @@
         "max_value": 1.0,
         "default": 0.5,
         "help": "The price at which the microgrid can export heat to the external grid, will be set to the import (retail) price, multiplied by this factor. Should be less than 1. In reality, the external grid may not want to buy any heat from the microgrid at all - this can be achieved by setting this number to 0."
+    },
+    "BatteryChargeRate": {
+        "display": "Battery charge rate",
+        "min_value": 0.01,
+        "max_value": 10.0,
+        "default": 0.4,
+        "help": "A number specifying how much of the maximum capacity of a battery that can be charged in an hour. This value being equal to 1 would mean that the storage entity can go from completely empty, to completely full, in one hour. Must be a positive number"
+    },
+    "BatteryDischargeRate": {
+        "display": "Battery discharge rate",
+        "min_value": 0.01,
+        "max_value": 10.0,
+        "default": 0.4,
+        "help": "A number specifying how much of the maximum capacity of a battery that can be discharged in an hour. This value being equal to 1 would mean that the storage entity can go from completely full, to completely empty, in one hour. Must be a positive number."
+    },
+    "BatteryEfficiency": {
+        "display": "Round-trip efficiency",
+        "min_value": 0.01,
+        "max_value": 1.0,
+        "default": 0.93,
+        "help": "A number specifying the round-trip efficiency of batteries used by agents. This value being equal to 1 would mean that there are no losses for the storage entity; if one charges it with X kWh, one can later discharge exactly the same amount. Must be a positive number, no larger than 1"
+    },
+    "DefaultPVEfficiency": {
+        "display": "Default PV efficiency:",
+        "min_value": 0.01,
+        "max_value": 0.99,
+        "format": "%.3f",
+        "default": 0.165,
+        "step": 0.005,
+        "help": "A number specifying the efficiency of solar panels in the microgrid. Can be overridden by individual agents. Number must be between 0 and 1, and is typically in the 0.15-0.25 range",
+        "disabled": true
     },
     "CO2PenalizationRate": {
         "display": "CO2 penalization rate:",
