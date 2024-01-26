@@ -20,8 +20,8 @@ if __name__ == '__main__':
     should_include_commercial = areas['Name'].str[:2] == 'BC'
     # The area should include commercial elements
     areas['FractionCommercial'] = should_include_commercial * DEFAULT_SHARE_COMMERCIAL_IN_BC_AREAS
-    areas['Type'] = 'ResidentialBuildingAgent'
-    areas['Name'] = 'ResidentialBuildingAgent' + areas['Name']
+    areas['Type'] = 'ResidentialBlockAgent'
+    areas['Name'] = 'ResidentialBlockAgent' + areas['Name']
     areas['PVArea'] = areas['BYA'] * PERCENT_OF_BYA_TO_COVER_WITH_PV_PANELS
     areas = areas[['Type', 'Name', 'GrossFloorArea', 'PVArea', 'FractionCommercial']]
     print(areas.to_json(orient='records'))

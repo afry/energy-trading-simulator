@@ -158,10 +158,10 @@ class TestMarketSolver(TestCase):
 
     def test_resolve_bids_with_local_surplus(self):
         """Test that the clearing price is calculated correctly when there is a local surplus."""
-        bids = [GrossBid(SOME_DATETIME, Action.BUY, Resource.ELECTRICITY, 192.76354849517332, math.inf, 'BuildingAgent',
+        bids = [GrossBid(SOME_DATETIME, Action.BUY, Resource.ELECTRICITY, 192.76354849517332, math.inf, 'BlockAgent',
                          False),
-                GrossBid(SOME_DATETIME, Action.SELL, Resource.ELECTRICITY, 100, 0.46069, 'BatteryAgent', False),
-                GrossBid(SOME_DATETIME, Action.SELL, Resource.ELECTRICITY, 275.3113968, 0.46069, 'PVAgent', False),
+                GrossBid(SOME_DATETIME, Action.SELL, Resource.ELECTRICITY, 100, 0.46069, 'AgentWithBattery', False),
+                GrossBid(SOME_DATETIME, Action.SELL, Resource.ELECTRICITY, 275.3113968, 0.46069, 'PVParkAgent', False),
                 GrossBid(SOME_DATETIME, Action.BUY, Resource.ELECTRICITY, 100.8875027389364, math.inf,
                          'GroceryStoreAgent', False),
                 GrossBid(SOME_DATETIME, Action.SELL, Resource.ELECTRICITY, 10000, 0.89069, 'ElectricityGridAgent',
@@ -183,7 +183,7 @@ class TestMarketSolver(TestCase):
         """Test that if for a resource, there are only sell bids and no buy bids, the clearing price is nan. Also, it
         shouldn't break anything for other resources."""
         external_gross_price = 0.8
-        bids = [GrossBid(SOME_DATETIME, Action.BUY, Resource.ELECTRICITY, 200, math.inf, 'BuildingAgent', False),
+        bids = [GrossBid(SOME_DATETIME, Action.BUY, Resource.ELECTRICITY, 200, math.inf, 'BlockAgent', False),
                 GrossBid(SOME_DATETIME, Action.SELL, Resource.ELECTRICITY, 10000, external_gross_price,
                          'ElectricityGridAgent', True),
                 GrossBid(SOME_DATETIME, Action.SELL, Resource.HEATING, 10000, 2.0, 'HeatingGridAgent', True)]
@@ -205,10 +205,10 @@ class TestMarketSolver(TestCase):
     def test_resolve_bids_with_two_resources(self):
         """Test that clearing prices are calculated correctly for two resources."""
         external_gross_price = 0.8
-        bids = [GrossBid(SOME_DATETIME, Action.BUY, Resource.ELECTRICITY, 200, math.inf, 'BuildingAgent', False),
+        bids = [GrossBid(SOME_DATETIME, Action.BUY, Resource.ELECTRICITY, 200, math.inf, 'BlockAgent', False),
                 GrossBid(SOME_DATETIME, Action.SELL, Resource.ELECTRICITY, 10000, external_gross_price,
                          'ElectricityGridAgent', True),
-                GrossBid(SOME_DATETIME, Action.BUY, Resource.HEATING, 400, math.inf, 'BuildingAgent', False),
+                GrossBid(SOME_DATETIME, Action.BUY, Resource.HEATING, 400, math.inf, 'BlockAgent', False),
                 GrossBid(SOME_DATETIME, Action.SELL, Resource.HEATING, 10000, 2.0, 'HeatingGridAgent', True)]
         net_bids = net_bids_from_gross_bids(bids, pricing[Resource.ELECTRICITY])
         clearing_prices, bids_with_acceptance_status = resolve_bids(SOME_DATETIME, net_bids)

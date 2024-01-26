@@ -9,11 +9,9 @@ import pandas as pd
 
 import pyomo.environ as pyo
 
-from tradingplatformpoc.agent.battery_agent import BatteryAgent
-from tradingplatformpoc.agent.building_agent import BuildingAgent
+from tradingplatformpoc.agent.block_agent import BlockAgent
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
-from tradingplatformpoc.agent.pv_agent import PVAgent
 from tradingplatformpoc.app.app_threading import StoppableThread
 from tradingplatformpoc.database import bulk_insert
 from tradingplatformpoc.digitaltwin.battery import Battery
@@ -114,57 +112,50 @@ class TradingSimulator:
         # Read input data (irradiation and grocery store consumption) from database
         inputs_df = read_inputs_df_for_agent_creation()
         # Get mock data
-        buildings_mock_data: pd.DataFrame = get_generated_mock_data(self.config_id)
+        blocks_mock_data: pd.DataFrame = get_generated_mock_data(self.config_id)
+        area_info = self.config_data['AreaInfo']
 
         for agent in self.config_data["Agents"]:
             agent_type = agent["Type"]
             agent_name = agent['Name']
 
-            if agent_type in ["BuildingAgent", "PVAgent", "GroceryStoreAgent"]:
+            if agent_type in ["BlockAgent", "GroceryStoreAgent"]:
                 pv_prod_series = calculate_solar_prod(inputs_df['irradiation'],
                                                       agent['PVArea'],
                                                       agent['PVEfficiency'])
-            if agent_type == "BuildingAgent":
+            if agent_type == "BlockAgent":
                 agent_id = self.agent_specs[agent['Name']]
-                elec_cons_series = buildings_mock_data.get(get_elec_cons_key(agent_id))
-                space_heat_cons_series = buildings_mock_data.get(get_space_heat_cons_key(agent_id))
-                hot_tap_water_cons_series = buildings_mock_data.get(get_hot_tap_water_cons_key(agent_id))
-                cool_cons_series = buildings_mock_data.get(get_cooling_cons_key(agent_id))
+                elec_cons_series = blocks_mock_data.get(get_elec_cons_key(agent_id))
+                space_heat_cons_series = blocks_mock_data.get(get_space_heat_cons_key(agent_id))
+                hot_tap_water_cons_series = blocks_mock_data.get(get_hot_tap_water_cons_key(agent_id))
+                cool_cons_series = blocks_mock_data.get(get_cooling_cons_key(agent_id))
 
-                building_digital_twin = StaticDigitalTwin(electricity_usage=elec_cons_series,
-                                                          space_heating_usage=space_heat_cons_series,
-                                                          hot_water_usage=hot_tap_water_cons_series,
-                                                          electricity_production=pv_prod_series,
-                                                          cooling_usage=cool_cons_series)
+                block_digital_twin = StaticDigitalTwin(electricity_usage=elec_cons_series,
+                                                       space_heating_usage=space_heat_cons_series,
+                                                       hot_water_usage=hot_tap_water_cons_series,
+                                                       electricity_production=pv_prod_series,
+                                                       cooling_usage=cool_cons_series)
+
+                storage_digital_twin = Battery(max_capacity_kwh=agent["BatteryCapacity"],
+                                               max_charge_rate_fraction=area_info["BatteryChargeRate"],
+                                               max_discharge_rate_fraction=area_info["BatteryDischargeRate"],
+                                               discharging_efficiency=area_info["BatteryEfficiency"])
 
                 agents.append(
-                    BuildingAgent(self.local_market_enabled, heat_pricing=self.heat_pricing,
-                                  electricity_pricing=self.electricity_pricing,
-                                  digital_twin=building_digital_twin, nbr_heat_pumps=agent["NumberHeatPumps"],
-                                  coeff_of_perf=agent["COP"], guid=agent_name))
+                    BlockAgent(self.local_market_enabled, heat_pricing=self.heat_pricing,
+                               electricity_pricing=self.electricity_pricing,
+                               digital_twin=block_digital_twin, nbr_heat_pumps=agent["NumberHeatPumps"],
+                               coeff_of_perf=agent["COP"], battery=storage_digital_twin, guid=agent_name))
 
-            elif agent_type == "BatteryAgent":
-                storage_digital_twin = Battery(max_capacity_kwh=agent["Capacity"],
-                                               max_charge_rate_fraction=agent["ChargeRate"],
-                                               max_discharge_rate_fraction=agent["DischargeRate"],
-                                               discharging_efficiency=agent["RoundTripEfficiency"])
-                agents.append(BatteryAgent(self.local_market_enabled, self.electricity_pricing, storage_digital_twin,
-                                           n_hours_to_look_back=agent["NHoursBack"],
-                                           buy_price_percentile=agent["BuyPricePercentile"],
-                                           sell_price_percentile=agent["SellPricePercentile"], guid=agent_name))
-            elif agent_type == "PVAgent":
-                pv_digital_twin = StaticDigitalTwin(electricity_production=pv_prod_series)
-                agents.append(PVAgent(self.local_market_enabled, self.electricity_pricing, pv_digital_twin,
-                                      guid=agent_name))
             elif agent_type == "GroceryStoreAgent":
                 grocery_store_digital_twin = StaticDigitalTwin(electricity_usage=inputs_df['coop_electricity_consumed'],
                                                                space_heating_usage=inputs_df['coop_heating_consumed'],
                                                                # TODO: Grocery store tap water consumption
                                                                electricity_production=pv_prod_series)
                 agents.append(
-                    BuildingAgent(self.local_market_enabled, heat_pricing=self.heat_pricing,
-                                  electricity_pricing=self.electricity_pricing,
-                                  digital_twin=grocery_store_digital_twin, guid=agent_name))
+                    BlockAgent(self.local_market_enabled, heat_pricing=self.heat_pricing,
+                               electricity_pricing=self.electricity_pricing, digital_twin=grocery_store_digital_twin,
+                               guid=agent_name))
             elif agent_type == "GridAgent":
                 if Resource[agent["Resource"]] == Resource.ELECTRICITY:
                     grid_agent = GridAgent(self.local_market_enabled, self.electricity_pricing,
@@ -191,7 +182,7 @@ class TradingSimulator:
 
         number_of_trading_periods = len(self.trading_periods)
         batch_size = math.ceil(number_of_trading_periods / number_of_batches)
-        
+
         # Loop over batches
         for batch_number in range(number_of_batches):
             current_thread = threading.current_thread()
@@ -317,5 +308,5 @@ class TradingSimulator:
         logger.info('Saving extra costs to db...')
         extra_cost_dict = extra_costs_to_db_dict(heat_cost_discrepancy_corrections, self.job_id)
         bulk_insert(TableExtraCost, extra_cost_dict)
-        
+
         logger.info('Simulation finished!')

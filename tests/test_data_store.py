@@ -129,5 +129,5 @@ class TestDataStore(TestCase):
         ds.add_external_heating_sell(datetime(2019, 3, 2, 1, tzinfo=timezone.utc), 50)
         ds.add_external_heating_sell(datetime(2019, 3, 2, 2, tzinfo=timezone.utc), 50)
         ds.add_external_heating_sell(datetime(2019, 3, 2, 3, tzinfo=timezone.utc), 50)
-        self.assertAlmostEqual(26.546859852476288,
+        self.assertAlmostEqual(26.230860554970143,
                                ds.get_exact_retail_price(datetime(2019, 3, 2, 3), include_tax=True))

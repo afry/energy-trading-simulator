@@ -143,9 +143,8 @@ def construct_price_chart(prices_df: pd.DataFrame, resource: Resource) -> alt.Ch
     return altair_line_chart(data_to_use, domain, range_color, range_dash, "Price [SEK]", "Price over Time")
 
 
-def construct_building_with_heat_pump_chart(agent_chosen_guid: str, digital_twin: StaticDigitalTwin,
-                                            heat_pump_df: pd.DataFrame) -> \
-        alt.Chart:
+def construct_agent_with_heat_pump_chart(agent_chosen_guid: str, digital_twin: StaticDigitalTwin,
+                                         heat_pump_df: pd.DataFrame) -> alt.Chart:
     """
     Constructs a multi-line chart with energy production/consumption levels, with any heat pump workload data in the
     background. If there is no heat_pump_data, will just return construct_static_digital_twin_chart(digital_twin).

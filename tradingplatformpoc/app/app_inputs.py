@@ -33,9 +33,9 @@ def duplicate_agent(some_agent: Dict[str, Any]):
     st.session_state.config_data['Agents'].append(new_agent)
 
 
-def remove_all_building_agents():
+def remove_all_block_agents():
     st.session_state.config_data['Agents'] = [agent for agent in st.session_state.config_data['Agents']
-                                              if agent['Type'] != 'BuildingAgent']
+                                              if agent['Type'] != 'BlockAgent']
 
 
 def add_agent(new_agent: Dict[str, Any]):
@@ -52,24 +52,10 @@ def add_agent(new_agent: Dict[str, Any]):
     agent_inputs(new_agent, new=True)
 
 
-def add_building_agent():
+def add_block_agent():
     add_agent({
-        "Type": "BuildingAgent",
-        **read_agent_defaults("BuildingAgent", read_agent_specs())
-    })
-
-
-def add_battery_agent():
-    add_agent({
-        "Type": "BatteryAgent",
-        **read_agent_defaults("BatteryAgent", read_agent_specs())
-    })
-
-
-def add_pv_agent():
-    add_agent({
-        "Type": "PVAgent",
-        **read_agent_defaults("PVAgent", read_agent_specs())
+        "Type": "BlockAgent",
+        **read_agent_defaults("BlockAgent", read_agent_specs())
     })
 
 
