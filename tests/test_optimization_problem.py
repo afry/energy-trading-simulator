@@ -5,7 +5,7 @@ from unittest import TestCase
 import pyomo.environ as pyo
 
 from tradingplatformpoc.settings import settings
-from tradingplatformpoc.simulation_runner.optimization_problem import get_transfers, mock_opt_problem
+from tradingplatformpoc.simulation_runner.optimization_problem import get_power_transfers, mock_opt_problem
 
 
 class Test(TestCase):
@@ -17,5 +17,5 @@ class Test(TestCase):
 
     def test_mock_opt_problem(self):
         mod, res = mock_opt_problem(self.solver)
-        transfers = get_transfers(mod, datetime.datetime(2024, 2, 1))
+        transfers = get_power_transfers(mod, datetime.datetime(2024, 2, 1))
         print(len(transfers))

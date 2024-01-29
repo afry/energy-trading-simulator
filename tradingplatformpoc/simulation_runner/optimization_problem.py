@@ -81,14 +81,23 @@ def mock_opt_problem(solver) -> Tuple[pyo.ConcreteModel, SolverResults]:
     return model, results
 
 
-def get_transfers(optimized_model: pyo.ConcreteModel, start_datetime: datetime.datetime) -> List[Trade]:
+def get_power_transfers(optimized_model: pyo.ConcreteModel, start_datetime: datetime.datetime) -> List[Trade]:
+    return get_transfers(optimized_model, start_datetime,
+                         sold_to_external_name='Psell_market', bought_from_external_name='Pbuy_market',
+                         sold_internal_name='Psell_grid', bought_internal_name='Pbuy_grid')
+
+
+def get_transfers(optimized_model: pyo.ConcreteModel, start_datetime: datetime.datetime,
+                  sold_to_external_name: str, bought_from_external_name: str,
+                  sold_internal_name: str, bought_internal_name: str) -> List[Trade]:
     """
     We probably want methods like this, to translate the optimized pyo.ConcreteModel to our domain.
     """
     transfers = []
     for hour in optimized_model.time:
         # Pbuy_market is how much the LEC bought from the external grid operator
-        external_quantity = pyo.value(optimized_model.Psell_market[hour] - optimized_model.Pbuy_market[hour])
+        external_quantity = pyo.value(getattr(optimized_model, sold_to_external_name)[hour]
+                                      - getattr(optimized_model, bought_from_external_name)[hour])
         transfers.append(Trade(period=start_datetime + datetime.timedelta(hours=hour),
                                action=Action.BUY if external_quantity > 0 else Action.SELL,
                                resource=Resource.ELECTRICITY,
@@ -98,8 +107,8 @@ def get_transfers(optimized_model: pyo.ConcreteModel, start_datetime: datetime.d
                                by_external=False,
                                market=Market.LOCAL))
         for i_agent in optimized_model.agent:
-            quantity = pyo.value(optimized_model.Pbuy_grid[i_agent, hour]
-                                 - optimized_model.Psell_grid[i_agent, hour])
+            quantity = pyo.value(getattr(optimized_model, bought_internal_name)[i_agent, hour]
+                                 - getattr(optimized_model, sold_internal_name)[i_agent, hour])
             transfers.append(Trade(period=start_datetime + datetime.timedelta(hours=hour),
                                    action=Action.BUY if quantity > 0 else Action.SELL,
                                    resource=Resource.ELECTRICITY,
