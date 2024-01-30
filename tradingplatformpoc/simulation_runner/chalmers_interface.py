@@ -40,8 +40,14 @@ def build_inputs(agents: List[IAgent], area_info: Dict[str, Any], start_datetime
     # area_info['BatteryChargeRate']
     # area_info['BatteryDischargeRate']
     # area_info['BatteryEfficiency']
+    # area_info['PVEfficiency']
+    # area_info['COP']
 
     # WIP: Add more stuff here
+
+    # Question-marks:
+    # heatpump_max_power, heatpump_max_heat - how to translate our stuff? Change our inputs?
+    # energy_shallow_cap, energy_deep_cap - capacity of thermal energy storage [kWh] - specify? calculate from sqm?
 
 
 def build_supply_and_demand_dfs(block_agents: List[BlockAgent], start_datetime: datetime.datetime,
