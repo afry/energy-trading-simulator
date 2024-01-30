@@ -4,11 +4,9 @@
 		"Name": "ResidentialBlockAgentBC1",
 		"GrossFloorArea": 11305.3333333333,
 		"PVArea": 1748.6666666667,
-		"PVEfficiency": 0.165,
 		"FractionCommercial": 0.2,
 		"FractionSchool": 0.0,
 		"NumberHeatPumps": 3,
-		"COP": 4.6,
 		"BatteryCapacity": 100
 	},
 	{
@@ -16,11 +14,9 @@
 		"Name": "ResidentialBlockAgentB2",
 		"GrossFloorArea": 7801.375,
 		"PVArea": 1206.6875,
-		"PVEfficiency": 0.165,
 		"FractionCommercial": 0.0,
 		"FractionSchool": 0.0,
 		"NumberHeatPumps": 3,
-		"COP": 4.6,
 		"BatteryCapacity": 100
 	},
 	{
@@ -28,11 +24,9 @@
 		"Name": "ResidentialBlockAgentB3",
 		"GrossFloorArea": 9000.25,
 		"PVArea": 1392.125,
-		"PVEfficiency": 0.165,
 		"FractionCommercial": 0.0,
 		"FractionSchool": 0.0,
 		"NumberHeatPumps": 3,
-		"COP": 4.6,
 		"BatteryCapacity": 100
 	},
 	{
@@ -40,11 +34,9 @@
 		"Name": "ResidentialBlockAgentB4",
 		"GrossFloorArea": 6938.4166666667,
 		"PVArea": 1073.2083333333,
-		"PVEfficiency": 0.165,
 		"FractionCommercial": 0.0,
 		"FractionSchool": 0.0,
 		"NumberHeatPumps": 3,
-		"COP": 4.6,
 		"BatteryCapacity": 100
 	},
 	{
@@ -52,11 +44,9 @@
 		"Name": "ResidentialBlockAgentB5",
 		"GrossFloorArea": 8322.625,
 		"PVArea": 1287.3125,
-		"PVEfficiency": 0.165,
 		"FractionCommercial": 0.0,
 		"FractionSchool": 0.0,
 		"NumberHeatPumps": 3,
-		"COP": 4.6,
 		"BatteryCapacity": 100
 	},
 	{
@@ -64,11 +54,9 @@
 		"Name": "ResidentialBlockAgentBC6",
 		"GrossFloorArea": 7430.7083333333,
 		"PVArea": 1149.3541666667,
-		"PVEfficiency": 0.165,
 		"FractionCommercial": 0.2,
 		"FractionSchool": 0.0,
 		"NumberHeatPumps": 3,
-		"COP": 4.6,
 		"BatteryCapacity": 100
 	},
 	{
@@ -76,11 +64,9 @@
 		"Name": "ResidentialBlockAgentBC7",
 		"GrossFloorArea": 7789.7916666667,
 		"PVArea": 1204.8958333333,
-		"PVEfficiency": 0.165,
 		"FractionCommercial": 0.2,
 		"FractionSchool": 0.0,
 		"NumberHeatPumps": 3,
-		"COP": 4.6,
 		"BatteryCapacity": 100
 	},
 	{
@@ -88,11 +74,9 @@
 		"Name": "ResidentialBlockAgentB8",
 		"GrossFloorArea": 12753.25,
 		"PVArea": 1972.625,
-		"PVEfficiency": 0.165,
 		"FractionCommercial": 0.0,
 		"FractionSchool": 0.0,
 		"NumberHeatPumps": 3,
-		"COP": 4.6,
 		"BatteryCapacity": 100
 	},
 	{
@@ -100,11 +84,9 @@
 		"Name": "ResidentialBlockAgentB9",
 		"GrossFloorArea": 8328.4166666667,
 		"PVArea": 1288.2083333333,
-		"PVEfficiency": 0.165,
 		"FractionCommercial": 0.0,
 		"FractionSchool": 0.0,
 		"NumberHeatPumps": 3,
-		"COP": 4.6,
 		"BatteryCapacity": 100
 	},
 	{
@@ -112,11 +94,9 @@
 		"Name": "ResidentialBlockAgentB10",
 		"GrossFloorArea": 7459.6666666667,
 		"PVArea": 1153.8333333333,
-		"PVEfficiency": 0.165,
 		"FractionCommercial": 0.0,
 		"FractionSchool": 0.0,
 		"NumberHeatPumps": 3,
-		"COP": 4.6,
 		"BatteryCapacity": 100
 	},
 	{
@@ -124,11 +104,9 @@
 		"Name": "ResidentialBlockAgentB11",
 		"GrossFloorArea": 4830.25,
 		"PVArea": 747.125,
-		"PVEfficiency": 0.165,
 		"FractionCommercial": 0.0,
 		"FractionSchool": 0.0,
 		"NumberHeatPumps": 3,
-		"COP": 4.6,
 		"BatteryCapacity": 100
 	},
 	{
@@ -136,11 +114,9 @@
 		"Name": "ResidentialBlockAgentBC12",
 		"GrossFloorArea": 9591.0,
 		"PVArea": 1483.5,
-		"PVEfficiency": 0.165,
 		"FractionCommercial": 0.2,
 		"FractionSchool": 0.0,
 		"NumberHeatPumps": 3,
-		"COP": 4.6,
 		"BatteryCapacity": 100
 	},
 	{
@@ -148,11 +124,9 @@
 		"Name": "ResidentialBlockAgentB13",
 		"GrossFloorArea": 8340.0,
 		"PVArea": 1290.0,
-		"PVEfficiency": 0.165,
 		"FractionCommercial": 0.0,
 		"FractionSchool": 0.0,
 		"NumberHeatPumps": 3,
-		"COP": 4.6,
 		"BatteryCapacity": 100
 	},
 	{
@@ -160,11 +134,9 @@
 		"Name": "ResidentialBlockAgentB14",
 		"GrossFloorArea": 5820.625,
 		"PVArea": 900.3125,
-		"PVEfficiency": 0.165,
 		"FractionCommercial": 0.0,
 		"FractionSchool": 0.0,
 		"NumberHeatPumps": 3,
-		"COP": 4.6,
 		"BatteryCapacity": 100
 	},
 	{
@@ -172,11 +144,9 @@
 		"Name": "ResidentialBlockAgentB15",
 		"GrossFloorArea": 4604.375,
 		"PVArea": 712.1875,
-		"PVEfficiency": 0.165,
 		"FractionCommercial": 0.0,
 		"FractionSchool": 0.0,
 		"NumberHeatPumps": 3,
-		"COP": 4.6,
 		"BatteryCapacity": 100
 	},
 	{
@@ -184,11 +154,9 @@
 		"Name": "ResidentialBlockAgentB16",
 		"GrossFloorArea": 3874.625,
 		"PVArea": 599.3125,
-		"PVEfficiency": 0.165,
 		"FractionCommercial": 0.0,
 		"FractionSchool": 0.0,
 		"NumberHeatPumps": 3,
-		"COP": 4.6,
 		"BatteryCapacity": 100
 	},
 	{
@@ -196,11 +164,9 @@
 		"Name": "ResidentialBlockAgentBC17",
 		"GrossFloorArea": 5635.2916666667,
 		"PVArea": 871.6458333333,
-		"PVEfficiency": 0.165,
 		"FractionCommercial": 0.2,
 		"FractionSchool": 0.0,
 		"NumberHeatPumps": 3,
-		"COP": 4.6,
 		"BatteryCapacity": 100
 	},
 	{
@@ -208,11 +174,9 @@
 		"Name": "ResidentialBlockAgentB18",
 		"GrossFloorArea": 12011.9166666667,
 		"PVArea": 1857.9583333333,
-		"PVEfficiency": 0.165,
 		"FractionCommercial": 0.0,
 		"FractionSchool": 0.0,
 		"NumberHeatPumps": 3,
-		"COP": 4.6,
 		"BatteryCapacity": 100
 	},
 	{
@@ -220,11 +184,9 @@
 		"Name": "ResidentialBlockAgentB19",
 		"GrossFloorArea": 8728.0416666667,
 		"PVArea": 1350.0208333333,
-		"PVEfficiency": 0.165,
 		"FractionCommercial": 0.0,
 		"FractionSchool": 0.0,
 		"NumberHeatPumps": 3,
-		"COP": 4.6,
 		"BatteryCapacity": 100
 	},
 	{
@@ -232,11 +194,9 @@
 		"Name": "ResidentialBlockAgentB20",
 		"GrossFloorArea": 7314.875,
 		"PVArea": 1131.4375,
-		"PVEfficiency": 0.165,
 		"FractionCommercial": 0.0,
 		"FractionSchool": 0.0,
 		"NumberHeatPumps": 3,
-		"COP": 4.6,
 		"BatteryCapacity": 100
 	},
 	{
@@ -244,11 +204,9 @@
 		"Name": "PVParkAgent",
 		"GrossFloorArea": 0.0,
 		"PVArea": 24324.3,
-		"PVEfficiency": 0.165,
 		"FractionCommercial": 0.0,
 		"FractionSchool": 0.0,
 		"NumberHeatPumps": 0,
-		"COP": 4.6,
 		"BatteryCapacity": 0.0
 	},
 	{
@@ -262,11 +220,9 @@
 		"Name": "SchoolBlockAgent",
 		"GrossFloorArea": 5000,
 		"PVArea": 0,
-		"PVEfficiency": 0.165,
 		"FractionCommercial": 0.0,
 		"FractionSchool": 1.0,
 		"NumberHeatPumps": 1,
-		"COP": 4.6,
 		"BatteryCapacity": 0
 	},
 	{

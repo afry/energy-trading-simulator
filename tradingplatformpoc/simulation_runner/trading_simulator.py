@@ -120,16 +120,15 @@ class TradingSimulator:
             agent_type = agent["Type"]
             agent_name = agent['Name']
 
-            if agent_type in ["BlockAgent", "GroceryStoreAgent"]:
-                pv_prod_series = calculate_solar_prod(inputs_df['irradiation'],
-                                                      agent['PVArea'],
-                                                      agent['PVEfficiency'])
             if agent_type == "BlockAgent":
                 agent_id = self.agent_specs[agent['Name']]
                 elec_cons_series = blocks_mock_data.get(get_elec_cons_key(agent_id))
                 space_heat_cons_series = blocks_mock_data.get(get_space_heat_cons_key(agent_id))
                 hot_tap_water_cons_series = blocks_mock_data.get(get_hot_tap_water_cons_key(agent_id))
                 cool_cons_series = blocks_mock_data.get(get_cooling_cons_key(agent_id))
+                pv_prod_series = calculate_solar_prod(inputs_df['irradiation'],
+                                                      agent['PVArea'],
+                                                      area_info['PVEfficiency'])
 
                 block_digital_twin = StaticDigitalTwin(electricity_usage=elec_cons_series,
                                                        space_heating_usage=space_heat_cons_series,
@@ -146,9 +145,12 @@ class TradingSimulator:
                     BlockAgent(self.local_market_enabled, heat_pricing=self.heat_pricing,
                                electricity_pricing=self.electricity_pricing,
                                digital_twin=block_digital_twin, nbr_heat_pumps=agent["NumberHeatPumps"],
-                               coeff_of_perf=agent["COP"], battery=storage_digital_twin, guid=agent_name))
+                               coeff_of_perf=area_info["COP"], battery=storage_digital_twin, guid=agent_name))
 
             elif agent_type == "GroceryStoreAgent":
+                pv_prod_series = calculate_solar_prod(inputs_df['irradiation'],
+                                                      agent['PVArea'],
+                                                      agent['PVEfficiency'])
                 grocery_store_digital_twin = StaticDigitalTwin(electricity_usage=inputs_df['coop_electricity_consumed'],
                                                                space_heating_usage=inputs_df['coop_heating_consumed'],
                                                                # TODO: Grocery store tap water consumption
