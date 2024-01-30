@@ -5,8 +5,9 @@ from unittest import TestCase
 import pyomo.environ as pyo
 
 from tradingplatformpoc.settings import settings
-from tradingplatformpoc.simulation_runner.optimization_problem import add_value_per_agent_to_dict, \
-    get_power_transfers, mock_opt_problem
+from tradingplatformpoc.simulation_runner.chalmers_interface import add_value_per_agent_to_dict, \
+    get_power_transfers
+from tradingplatformpoc.simulation_runner.optimization_problem import mock_opt_problem
 
 
 class Test(TestCase):
