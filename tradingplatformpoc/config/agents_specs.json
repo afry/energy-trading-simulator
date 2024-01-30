@@ -34,16 +34,6 @@
             "default_value": 0.0,
             "type": "float"
         },
-        "PVEfficiency": {
-            "display": "PV efficiency",
-            "min_value": 0.01,
-            "max_value": 0.99,
-            "step": 0.005,
-            "format": "%.3f",
-            "default_value": 0.165,
-            "help": "A number from 0 to 1, specifying the efficiency of solar panels that the agent may have at its disposal. If missing, will default to the default PV efficiency specified in 'AreaInfo'",
-            "type": "float"
-        },
         "NumberHeatPumps": {
             "display": "Heat pumps",
             "min_value": 0,
@@ -51,15 +41,6 @@
             "help": "Heat pumps allow the building agent to convert electricity into heating. Currently, all heat pumps are medium sized 'Thermia Mega 2020' pumps, with a maximum effect of 44 kW",
             "default_value": 0,
             "type": "int"
-        },
-        "COP": {
-            "display": "COP",
-            "min_value": 2.0,
-            "step": 0.1,
-            "help": "With this parameter, one can modify the relative Coefficient of Performance of the agent's heat pumps. The default is 4.6, which is the tabulated value for a medium sized 'Thermia Mega 2020' running on 3600 RPM, with a forward temperature of 35 degrees and a brine fluid temperature of 0 degrees Celsius",
-            "default_value": 4.6,
-            "type": "float",
-            "disabled_cond": {"NumberHeatPumps": 0}
         },
         "BatteryCapacity": {
             "display": "Capacity",
@@ -77,27 +58,6 @@
             "step": 10.0,
             "default_value": 10000,
             "help": "A number specifying (in kWh) the maximum amount of energy the agent can transfer into, or out from, the microgrid in an hour",
-            "type": "float"
-        }
-    },
-    "PVAgent": {
-        "PVArea": {
-            "display": "PV area (sqm)",
-            "min_value": 0.0,
-            "step": 10.0,
-            "format": "%.1f",
-            "help": "Specified in square meters, indicating the total areal of solar panels that this agent has at its disposal",
-            "default_value": 0.0,
-            "type": "float"
-        },
-        "PVEfficiency": {
-            "display": "PV efficiency",
-            "min_value": 0.01,
-            "max_value": 0.99,
-            "step": 0.005,
-            "format": "%.3f",
-            "default_value": 0.165,
-            "help": "A number from 0 to 1, specifying the efficiency of solar panels that the agent may have at its disposal. If missing, will default to the default PV efficiency specified in 'AreaInfo'",
             "type": "float"
         }
     },
