@@ -22,10 +22,10 @@ class TestAppFunctions(TestCase):
     def test_config_data_param_screening(self):
         """Test of parameter check."""
         self.assertIsNotNone(config_data_param_screening({'AreaInfo': {'ThisIsNotAValidParam': 1.0}}))
-        # DefaultPVEfficiency, min value: 0.01, max value: 0.99
-        self.assertIsNotNone(config_data_param_screening({'AreaInfo': {'DefaultPVEfficiency': -0.1}}))
-        self.assertIsNotNone(config_data_param_screening({'AreaInfo': {'DefaultPVEfficiency': 2.0}}))
-        self.assertIsNone(config_data_param_screening({'AreaInfo': {'DefaultPVEfficiency': 0.165}}))
+        # PVEfficiency, min value: 0.01, max value: 0.99
+        self.assertIsNotNone(config_data_param_screening({'AreaInfo': {'PVEfficiency': -0.1}}))
+        self.assertIsNotNone(config_data_param_screening({'AreaInfo': {'PVEfficiency': 2.0}}))
+        self.assertIsNone(config_data_param_screening({'AreaInfo': {'PVEfficiency': 0.165}}))
 
     def test_config_data_agent_screening(self):
         """Test of agent input check."""
@@ -39,10 +39,8 @@ class TestAppFunctions(TestCase):
                    "FractionCommercial": 0.0,
                    "FractionSchool": 0.0,
                    "NumberHeatPumps": 0,
-                   "COP": 4.6,
                    "BatteryCapacity": 0.0,
-                   "PVArea": 20.0,
-                   "PVEfficiency": 0.165}
+                   "PVArea": 20.0}
 
         self.assertIsNone(config_data_agent_screening({'Agents': [mock_grid_el, mock_grid_he, mock_pv]}))
 
@@ -69,7 +67,7 @@ class TestAppFunctions(TestCase):
                                                                  mock_grid_he,
                                                                  mock_pv]}))
         
-        # To many GridAgents
+        # Too many GridAgents
         self.assertEqual('Too many GridAgents provided, should be one for each resource!',
                          config_data_agent_screening({'Agents': [{"Type": "GridAgent",
                                                                   "Name": "ElectricityGridAgent",

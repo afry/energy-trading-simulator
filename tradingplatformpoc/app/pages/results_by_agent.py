@@ -12,7 +12,7 @@ from tradingplatformpoc.market.trade import TradeMetadataKey
 from tradingplatformpoc.sql.agent.crud import get_agent_config, get_agent_type
 from tradingplatformpoc.sql.bid.crud import db_to_viewable_bid_df_for_agent
 from tradingplatformpoc.sql.config.crud import get_all_agents_in_config, get_all_finished_job_config_id_pairs_in_db, \
-    get_mock_data_constants
+    read_config
 from tradingplatformpoc.sql.extra_cost.crud import db_to_viewable_extra_costs_df_by_agent
 from tradingplatformpoc.sql.level.crud import db_to_viewable_level_df_by_agent
 from tradingplatformpoc.sql.trade.crud import db_to_viewable_trade_df_by_agent
@@ -28,7 +28,6 @@ if len(ids) > 0:
     chosen_config_id_to_view = st.selectbox('Choose a configuration to view results for', ids.keys())
     chosen_id_to_view = {'config_id': chosen_config_id_to_view,
                          'job_id': ids[chosen_config_id_to_view]}
-    
     agent_specs = get_all_agents_in_config(chosen_id_to_view['config_id'])
     agent_names = [name for name in agent_specs.keys()]
     agent_chosen_guid = st.sidebar.selectbox('Choose agent:', agent_names)
@@ -116,10 +115,10 @@ if len(ids) > 0:
                     job_id=chosen_id_to_view['job_id'],
                     agent_guid=agent_chosen_guid,
                     level_type=TradeMetadataKey.HEAT_PUMP_WORKLOAD.name)
-                mock_data_constants = get_mock_data_constants(chosen_id_to_view['config_id'])
+                config = read_config(chosen_id_to_view['config_id'])
                 block_digital_twin = reconstruct_static_digital_twin(
-                    agent_specs[agent_chosen_guid], mock_data_constants,
-                    agent_config['PVArea'], agent_config['PVEfficiency'])
+                    agent_specs[agent_chosen_guid], config['MockDataConstants'],
+                    agent_config['PVArea'], config['AreaInfo']['PVEfficiency'])
                 static_digital_twin_chart = construct_agent_with_heat_pump_chart(
                     agent_chosen_guid, block_digital_twin, heat_pump_levels_df)
                 st.caption("Heat consumption here refers to the block agent's heat demand, and does not consider "

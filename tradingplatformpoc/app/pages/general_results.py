@@ -27,20 +27,18 @@ if len(ids) > 0:
     chosen_config_id_to_view = st.selectbox('Choose a configuration to view results for', ids.keys())
     
     config = read_config(chosen_config_id_to_view)
-    chosen_id_to_view = {'config_id': chosen_config_id_to_view,
-                         'job_id': ids[chosen_config_id_to_view]}
 
     col_tax, col_fee = st.columns(2)
     with col_tax:
         st.metric(label="Total tax paid",
                   value="{:,.2f} SEK".format(get_total_tax_paid(
-                        job_id=chosen_id_to_view['job_id'])),
+                        job_id=ids[chosen_config_id_to_view])),
                   help="Tax paid includes taxes that the ElectricityGridAgent has paid"
                   " on sales to the microgrid")
     with col_fee:
         st.metric(label="Total grid fees paid on internal trades",
                   value="{:,.2f} SEK".format(get_total_grid_fee_paid_on_internal_trades(
-                        job_id=chosen_id_to_view['job_id'])))
+                        job_id=ids[chosen_config_id_to_view])))
 
     tab_price_graph, tab_price_table = st.tabs(['Graph', 'Table'])
     with tab_price_graph:
@@ -48,7 +46,7 @@ if len(ids) > 0:
         st.spinner("Constructing price graph")
 
         local_price_df = db_to_construct_local_prices_df(
-            job_id=chosen_id_to_view['job_id'])
+            job_id=ids[chosen_config_id_to_view])
         combined_price_df = construct_combined_price_df(local_price_df, config)
         if not combined_price_df.empty:
             price_chart = construct_price_chart(combined_price_df, Resource.ELECTRICITY,)
@@ -72,7 +70,7 @@ if len(ids) > 0:
                                                value=('Jan', 'Mar'))
 
                 time_period_elec_bought = aggregated_net_elec_import_results_df_split_on_period(
-                    chosen_id_to_view['job_id'], time_period)
+                    ids[chosen_config_id_to_view], time_period)
                 st.caption("Hold *Shift* and click on multiple days in the legend to highlight them in the graph.")
                 st.altair_chart(construct_avg_day_elec_chart(time_period_elec_bought, time_period),
                                 use_container_width=True, theme=None)
@@ -80,9 +78,9 @@ if len(ids) > 0:
                            for running heat pumps. The error bars are the standard deviation of the electricity used.")
                 st.divider()
                 
-            agg_buy_trades = db_to_aggregated_trade_df(chosen_id_to_view['job_id'],
+            agg_buy_trades = db_to_aggregated_trade_df(ids[chosen_config_id_to_view],
                                                        resource, Action.BUY)
-            agg_sell_trades = db_to_aggregated_trade_df(chosen_id_to_view['job_id'],
+            agg_sell_trades = db_to_aggregated_trade_df(ids[chosen_config_id_to_view],
                                                         resource, Action.SELL)
             
             agg_trades = agg_buy_trades.merge(agg_sell_trades, on='Agent', how='outer').transpose()
@@ -94,9 +92,9 @@ if len(ids) > 0:
 
     with st.expander('Total imported and exported electricity and heating:'):
         imp_exp_period_dict = aggregated_import_and_export_results_df_split_on_period(
-            chosen_id_to_view['job_id'])
+            ids[chosen_config_id_to_view])
         imp_exp_temp_dict = aggregated_import_and_export_results_df_split_on_temperature(
-            chosen_id_to_view['job_id'])
+            ids[chosen_config_id_to_view])
         st.caption("Split on period of year:")
         col1, col2 = st.columns(2)
         col1.header('Imported')
@@ -111,8 +109,7 @@ if len(ids) > 0:
     t_start = time.time()
 
     with st.expander('Total of locally produced heating and electricity:'):
-        loc_prod = aggregated_local_production_df(chosen_id_to_view['job_id'],
-                                                  chosen_id_to_view['config_id'])
+        loc_prod = aggregated_local_production_df(ids[chosen_config_id_to_view], chosen_config_id_to_view, config)
         st.dataframe(loc_prod)
         st.caption("Total amount of heating produced by local heat pumps "
                    + "and total amount of locally produced electricity.")

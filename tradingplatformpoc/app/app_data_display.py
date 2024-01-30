@@ -17,7 +17,7 @@ from tradingplatformpoc.generate_data.mock_data_utils import get_elec_cons_key, 
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.sql.agent.crud import get_agent_config, get_agent_type
-from tradingplatformpoc.sql.config.crud import get_all_agents_in_config, get_mock_data_constants
+from tradingplatformpoc.sql.config.crud import get_all_agents_in_config
 from tradingplatformpoc.sql.electricity_price.crud import db_to_electricity_price_dict
 from tradingplatformpoc.sql.extra_cost.crud import db_to_aggregated_extra_costs_by_agent
 from tradingplatformpoc.sql.heating_price.crud import db_to_heating_price_dict
@@ -174,7 +174,7 @@ def aggregated_import_and_export_results_df_split_on_temperature(job_id: str) ->
     return aggregated_import_and_export_results_df_split_on_mask(job_id, periods, ['Above'])
 
 
-def aggregated_local_production_df(job_id: str, config_id: str) -> pd.DataFrame:
+def aggregated_local_production_df(job_id: str, config_id: str, config: Dict[str, Any]) -> pd.DataFrame:
     """
     Computing total amount of locally produced resources.
     """
@@ -187,13 +187,11 @@ def aggregated_local_production_df(job_id: str, config_id: str) -> pd.DataFrame:
         agent_type = get_agent_type(agent_id)
         if agent_type == "BlockAgent":
             agent_config = get_agent_config(agent_id)
-            if agent_type == 'BlockAgent':
-                mock_data_constants = get_mock_data_constants(config_id)
-                digital_twin = reconstruct_static_digital_twin(
-                    agent_id, mock_data_constants, agent_config['PVArea'], agent_config['PVEfficiency'])
-                # TODO: Replace with low-temp and high-temp heat separated
-                if digital_twin.total_heating_usage is not None:
-                    usage_heating_lst.append(sum(digital_twin.total_heating_usage.dropna()))  # Issue with NaNs
+            digital_twin = reconstruct_static_digital_twin(
+                agent_id, config['MockDataConstants'], agent_config['PVArea'], config['AreaInfo']['PVEfficiency'])
+            # TODO: Replace with low-temp and high-temp heat separated
+            if digital_twin.total_heating_usage is not None:
+                usage_heating_lst.append(sum(digital_twin.total_heating_usage.dropna()))  # Issue with NaNs
             production_electricity_lst.append(sum(digital_twin.electricity_production))
     
     production_electricity = sum(production_electricity_lst)
