@@ -48,11 +48,11 @@ class GridAgent(IAgent):
     def construct_gross_bid(self, period, action, resource, quantity, price) -> GrossBid:
         return GrossBid(period, action, resource, quantity, price, self.guid, True)
 
-    def make_prognosis(self, period: datetime.datetime, resource: Resource) -> float:
+    def make_prognosis_for_resource(self, period: datetime.datetime, resource: Resource) -> float:
         # FUTURE: Make prognoses of the price, instead of using actual? Although we are already using the day-ahead?
         pass
 
-    def get_actual_usage(self, period: datetime.datetime, resource: Resource) -> float:
+    def get_actual_usage_for_resource(self, period: datetime.datetime, resource: Resource) -> float:
         pass
 
     def make_trades_given_clearing_price(self, period: datetime.datetime, clearing_prices: Dict[Resource, float],

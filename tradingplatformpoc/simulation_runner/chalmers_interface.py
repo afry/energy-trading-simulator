@@ -1,16 +1,106 @@
 import datetime
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
 
+import pandas as pd
+
 import pyomo.environ as pyo
 
+from tradingplatformpoc.agent.block_agent import BlockAgent
+from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.market.trade import Market, Trade
 from tradingplatformpoc.trading_platform_utils import add_to_nested_dict
 
 logger = logging.getLogger(__name__)
+
+
+"""
+Here we keep methods that do either
+ 1. Construct inputs to Chalmers' solve_model function, from agent data
+ 2. Translate the optimized pyo.ConcreteModel back to our domain (Trades, metadata etc)
+"""
+
+
+def build_inputs(agents: List[IAgent], area_info: Dict[str, Any], start_datetime: datetime.datetime,
+                 trading_horizon: int):
+    block_agents = [agent for agent in agents if isinstance(agent, BlockAgent)]
+    block_agent_guids = [agent.guid for agent in block_agents]
+    # The order specified in block_agents will be used throughout
+
+    elec_demand_df, elec_supply_df, high_heat_demand_df, high_heat_supply_df, \
+        low_heat_demand_df, low_heat_supply_df, cooling_demand_df, cooling_supply_df = \
+        build_supply_and_demand_dfs(block_agents, start_datetime, trading_horizon)
+
+    battery_capacities = [agent.battery.capacity_kwh for agent in block_agents]
+
+    # The following will be extracted from area_info:
+    # area_info['BatteryChargeRate']
+    # area_info['BatteryDischargeRate']
+    # area_info['BatteryEfficiency']
+
+    # WIP: Add more stuff here
+
+
+def build_supply_and_demand_dfs(block_agents: List[BlockAgent], start_datetime: datetime.datetime,
+                                trading_horizon: int) -> \
+        Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame,
+              pd.DataFrame]:
+    elec_demand = []
+    elec_supply = []
+    high_heat_demand = []
+    high_heat_supply = []
+    low_heat_demand = []
+    low_heat_supply = []
+    cooling_demand = []
+    cooling_supply = []
+    for agent in block_agents:
+        agent_elec_demand = []
+        agent_elec_supply = []
+        agent_high_heat_demand = []
+        agent_high_heat_supply = []
+        agent_low_heat_demand = []
+        agent_low_heat_supply = []
+        agent_cooling_demand = []
+        agent_cooling_supply = []
+        for hour in range(trading_horizon):
+            usage_per_resource = agent.get_actual_usage(start_datetime + datetime.timedelta(hours=hour))
+            add_usage_to_demand_list(agent_elec_demand, usage_per_resource[Resource.ELECTRICITY])
+            add_usage_to_supply_list(agent_elec_supply, usage_per_resource[Resource.ELECTRICITY])
+            add_usage_to_demand_list(agent_high_heat_demand, usage_per_resource[Resource.HIGH_TEMP_HEAT])
+            add_usage_to_supply_list(agent_high_heat_supply, usage_per_resource[Resource.HIGH_TEMP_HEAT])
+            add_usage_to_demand_list(agent_low_heat_demand, usage_per_resource[Resource.LOW_TEMP_HEAT])
+            add_usage_to_supply_list(agent_low_heat_supply, usage_per_resource[Resource.LOW_TEMP_HEAT])
+            add_usage_to_demand_list(agent_cooling_demand, usage_per_resource[Resource.COOLING])
+            add_usage_to_supply_list(agent_cooling_supply, usage_per_resource[Resource.COOLING])
+        elec_demand.append(agent_elec_demand)
+        elec_supply.append(agent_elec_supply)
+        high_heat_demand.append(agent_high_heat_demand)
+        high_heat_supply.append(agent_high_heat_supply)
+        low_heat_demand.append(agent_low_heat_demand)
+        low_heat_supply.append(agent_low_heat_supply)
+        cooling_demand.append(agent_cooling_demand)
+        cooling_supply.append(agent_cooling_supply)
+    elec_demand_df = pd.DataFrame(elec_demand)
+    elec_supply_df = pd.DataFrame(elec_supply)
+    high_heat_demand_df = pd.DataFrame(high_heat_demand)
+    high_heat_supply_df = pd.DataFrame(high_heat_supply)
+    low_heat_demand_df = pd.DataFrame(low_heat_demand)
+    low_heat_supply_df = pd.DataFrame(low_heat_supply)
+    cooling_demand_df = pd.DataFrame(cooling_demand)
+    cooling_supply_df = pd.DataFrame(cooling_supply)
+    return (elec_demand_df, elec_supply_df, high_heat_demand_df, high_heat_supply_df,
+            low_heat_demand_df, low_heat_supply_df, cooling_demand_df, cooling_supply_df)
+
+
+def add_usage_to_demand_list(agent_list: List[float], usage_of_resource: float):
+    agent_list.append(usage_of_resource if usage_of_resource > 0 else 0)
+
+
+def add_usage_to_supply_list(agent_list: List[float], usage_of_resource: float):
+    agent_list.append(-usage_of_resource if usage_of_resource < 0 else 0)
 
 
 def get_power_transfers(optimized_model: pyo.ConcreteModel, start_datetime: datetime.datetime) -> List[Trade]:
@@ -23,9 +113,6 @@ def get_power_transfers(optimized_model: pyo.ConcreteModel, start_datetime: date
 def get_transfers(optimized_model: pyo.ConcreteModel, start_datetime: datetime.datetime,
                   sold_to_external_name: str, bought_from_external_name: str,
                   sold_internal_name: str, bought_internal_name: str) -> List[Trade]:
-    """
-    We probably want methods like this, to translate the optimized pyo.ConcreteModel to our domain.
-    """
     transfers = []
     for hour in optimized_model.time:
         # TODO: grid_agent_guid

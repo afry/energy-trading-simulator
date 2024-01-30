@@ -52,7 +52,7 @@ class BlockAgent(IAgent):
         return self.make_bids_with_heat_pump(period, prev_prices[Resource.ELECTRICITY],
                                              prev_prices[Resource.HEATING])
 
-    def make_prognosis(self, period: datetime.datetime, resource: Resource) -> float:
+    def make_prognosis_for_resource(self, period: datetime.datetime, resource: Resource) -> float:
         # The agent should make a prognosis for how much energy will be required
         prev_trading_period = trading_platform_utils.minus_n_hours(period, 1)
         try:
@@ -64,7 +64,7 @@ class BlockAgent(IAgent):
             electricity_prod_prev = self.digital_twin.get_production(period, resource)
         return electricity_demand_prev - electricity_prod_prev
 
-    def get_actual_usage(self, period: datetime.datetime, resource: Resource) -> float:
+    def get_actual_usage_for_resource(self, period: datetime.datetime, resource: Resource) -> float:
         actual_consumption = self.digital_twin.get_consumption(period, resource)
         actual_production = self.digital_twin.get_production(period, resource)
         return actual_consumption - actual_production
@@ -84,8 +84,8 @@ class BlockAgent(IAgent):
 
         # TODO: Get demand of low- and high-heat, figure out what can be bought on the local market, and what we'll have
         #  to generate ourselves
-        elec_net_consumption_pred = self.make_prognosis(period, Resource.ELECTRICITY)
-        heat_net_consumption_pred = self.make_prognosis(period, Resource.HEATING)
+        elec_net_consumption_pred = self.make_prognosis_for_resource(period, Resource.ELECTRICITY)
+        heat_net_consumption_pred = self.make_prognosis_for_resource(period, Resource.HEATING)
         elec_clearing_price = clearing_prices[Resource.ELECTRICITY]
         heat_clearing_price = clearing_prices[Resource.HEATING]
         elec_sell_price, elec_buy_price = self.calculate_electricity_prices(elec_clearing_price, period)
@@ -96,8 +96,8 @@ class BlockAgent(IAgent):
                                             elec_buy_price, heat_sell_price, heat_buy_price)
 
         # Now, the trading period "happens", some resources are consumed, some produced...
-        elec_usage = self.get_actual_usage(period, Resource.ELECTRICITY)
-        heat_usage = self.get_actual_usage(period, Resource.HEATING)
+        elec_usage = self.get_actual_usage_for_resource(period, Resource.ELECTRICITY)
+        heat_usage = self.get_actual_usage_for_resource(period, Resource.HEATING)
         elec_net_consumption_incl_pump = elec_usage + elec_needed_for_1_heat_pump * self.n_heat_pumps
         heat_net_consumption_incl_pump = heat_usage - heat_output_for_1_heat_pump * self.n_heat_pumps
 
@@ -155,8 +155,8 @@ class BlockAgent(IAgent):
         # TODO: Get demand of low- and high-heat, figure out what can be bought on the local market, and what we'll have
         #  to generate ourselves
 
-        heat_net_consumption = self.make_prognosis(period, Resource.HEATING)
-        elec_net_consumption = self.make_prognosis(period, Resource.ELECTRICITY)  # Negative means net production
+        heat_net_consumption = self.make_prognosis_for_resource(period, Resource.HEATING)
+        elec_net_consumption = self.make_prognosis_for_resource(period, Resource.ELECTRICITY)  # Negative means net production
         elec_sell_price, elec_buy_price = self.calculate_electricity_prices(pred_elec_price, period)
         heat_sell_price, heat_buy_price = self.calculate_heating_prices(pred_heat_price, period)
         workload_to_use, elec_needed_for_1_heat_pump, heat_output_for_1_heat_pump = \

@@ -7,6 +7,7 @@ import numpy as np
 
 from ..market.bid import Action, GrossBid, NetBidWithAcceptanceStatus, Resource
 from ..market.trade import Market, Trade, TradeMetadataKey
+from ..trading_platform_utils import ALL_IMPLEMENTED_RESOURCES
 
 
 class IAgent(ABC):
@@ -26,15 +27,22 @@ class IAgent(ABC):
         pass
 
     @abstractmethod
-    def make_prognosis(self, period: datetime.datetime, resource: Resource) -> float:
+    def make_prognosis_for_resource(self, period: datetime.datetime, resource: Resource) -> float:
         # Make resource prognosis for the trading horizon, and the specified resource
         pass
 
+    def make_prognosis(self, period: datetime.datetime) -> Dict[Resource, float]:
+        return {res: self.make_prognosis_for_resource(period, res) for res in Resource}
+
     @abstractmethod
-    def get_actual_usage(self, period: datetime.datetime, resource: Resource) -> float:
+    def get_actual_usage_for_resource(self, period: datetime.datetime, resource: Resource) -> float:
         # Return actual usage/supply for the trading horizon, and the specified resource
         # If negative, it means the agent was a net-producer for the trading period
         pass
+
+    def get_actual_usage(self, period: datetime.datetime) -> Dict[Resource, float]:
+        # If negative, it means the agent was a net-producer for the trading period
+        return {res: self.get_actual_usage_for_resource(period, res) for res in Resource}
 
     @abstractmethod
     def make_trades_given_clearing_price(self, period: datetime.datetime, clearing_prices: Dict[Resource, float],

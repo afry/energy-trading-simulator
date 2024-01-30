@@ -28,6 +28,7 @@ from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
 from tradingplatformpoc.settings import settings
 from tradingplatformpoc.simulation_runner import optimization_problem
+from tradingplatformpoc.simulation_runner.chalmers_interface import build_inputs
 from tradingplatformpoc.simulation_runner.simulation_utils import get_external_heating_prices, \
     get_quantity_heating_sold_by_external_grid, go_through_trades_metadata, \
     net_bids_from_gross_bids
@@ -206,6 +207,9 @@ class TradingSimulator:
                 if period.day == period.hour == 1:
                     info_string = "Simulations entering {:%B}".format(period)
                     logger.info(info_string)
+
+                # TODO: remove
+                build_inputs(self.agents, self.config_data['AreaInfo'], period, 24)
 
                 if self.local_market_enabled:
                     # Get all bids

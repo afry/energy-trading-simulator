@@ -236,29 +236,29 @@ class TestBlockAgent(TestCase):
 
     def test_make_prognosis(self):
         """Test basic functionality of BlockAgent's make_prognosis method."""
-        prognosis_consumer = self.block_agent_cons.make_prognosis(SOME_DATETIME, Resource.ELECTRICITY)
+        prognosis_consumer = self.block_agent_cons.make_prognosis_for_resource(SOME_DATETIME, Resource.ELECTRICITY)
         self.assertFalse(np.isnan(prognosis_consumer))
         self.assertTrue(prognosis_consumer > 0)
-        prognosis_producer = self.block_agent_prod.make_prognosis(SOME_DATETIME, Resource.ELECTRICITY)
+        prognosis_producer = self.block_agent_prod.make_prognosis_for_resource(SOME_DATETIME, Resource.ELECTRICITY)
         self.assertFalse(np.isnan(prognosis_producer))
         self.assertTrue(prognosis_producer < 0)
 
     def test_make_prognosis_for_first_data_point(self):
         """BlockAgent's make_prognosis method currently just looks up the previous actual value, so here we test
         what happens when we try to make a prognosis for the first value."""
-        prognosis_consumer = self.block_agent_cons.make_prognosis(DATETIME_ARRAY[0], Resource.ELECTRICITY)
+        prognosis_consumer = self.block_agent_cons.make_prognosis_for_resource(DATETIME_ARRAY[0], Resource.ELECTRICITY)
         self.assertFalse(np.isnan(prognosis_consumer))
         self.assertTrue(prognosis_consumer > 0)
-        prognosis_producer = self.block_agent_prod.make_prognosis(DATETIME_ARRAY[0], Resource.ELECTRICITY)
+        prognosis_producer = self.block_agent_prod.make_prognosis_for_resource(DATETIME_ARRAY[0], Resource.ELECTRICITY)
         self.assertFalse(np.isnan(prognosis_producer))
         self.assertTrue(prognosis_producer < 0)
 
     def test_get_actual_usage(self):
         """Test basic functionality of BlockAgent's get_actual_usage method."""
-        usage_consumer = self.block_agent_cons.get_actual_usage(SOME_DATETIME, Resource.ELECTRICITY)
+        usage_consumer = self.block_agent_cons.get_actual_usage_for_resource(SOME_DATETIME, Resource.ELECTRICITY)
         self.assertFalse(np.isnan(usage_consumer))
         self.assertTrue(usage_consumer > 0)
-        usage_producer = self.block_agent_prod.get_actual_usage(SOME_DATETIME, Resource.ELECTRICITY)
+        usage_producer = self.block_agent_prod.get_actual_usage_for_resource(SOME_DATETIME, Resource.ELECTRICITY)
         self.assertFalse(np.isnan(usage_producer))
         self.assertTrue(usage_producer < 0)
 
