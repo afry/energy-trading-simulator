@@ -34,20 +34,28 @@
             "default_value": 0.0,
             "type": "float"
         },
-        "NumberHeatPumps": {
-            "display": "Heat pumps",
-            "min_value": 0,
-            "step": 1,
-            "help": "Heat pumps allow the building agent to convert electricity into heating. Currently, all heat pumps are medium sized 'Thermia Mega 2020' pumps, with a maximum effect of 44 kW",
-            "default_value": 0,
-            "type": "int"
-        },
-        "BatteryCapacity": {
-            "display": "Capacity",
+        "HeatPumpMaxInput": {
+            "display": "Heat pump max input power (kW)",
             "min_value": 0.0,
             "step": 1.0,
-            "default_value": 0,
-            "help": "A number specifying the storage capacity, in kWh",
+            "help": "Heat pumps allow the block agent to convert electricity into heating. This number indicates the maximum total power input, summed over all heat pumps at the agent's disposal",
+            "default_value": 0.0,
+            "type": "float"
+        },
+        "HeatPumpMaxOutput": {
+            "display": "Heat pump max output power (kW)",
+            "min_value": 0.0,
+            "step": 1.0,
+            "help": "Heat pumps allow the block agent to convert electricity into heating. This number indicates the maximum total power output, summed over all heat pumps at the agent's disposal",
+            "default_value": 0.0,
+            "type": "float"
+        },
+        "BatteryCapacity": {
+            "display": "Battery capacity (kWh)",
+            "min_value": 0.0,
+            "step": 1.0,
+            "default_value": 0.0,
+            "help": "A number specifying the battery storage capacity, in kWh",
             "type": "float"
         }
     },

@@ -341,17 +341,21 @@ class TestBlockAgentHeatPump(TestCase):
     # Create agent with 2 heat pumps, default COP
     block_agent_2_pumps_default_cop = BlockAgent(True, heat_pricing=heat_pricing,
                                                  electricity_pricing=electricity_pricing,
-                                                 digital_twin=block_digital_twin, nbr_heat_pumps=2)
+                                                 digital_twin=block_digital_twin,
+                                                 heat_pump_max_input=30,
+                                                 heat_pump_max_output=100)
     # Create agent with 3 pumps, COP = 4.3
     block_agent_3_pumps_custom_cop = BlockAgent(True, heat_pricing=heat_pricing,
                                                 electricity_pricing=electricity_pricing,
-                                                digital_twin=block_digital_twin, nbr_heat_pumps=3,
+                                                digital_twin=block_digital_twin,
+                                                heat_pump_max_input=45,
+                                                heat_pump_max_output=145,
                                                 coeff_of_perf=4.3)
 
     def test_construct_workloads_df(self):
         """Test that when a BlockAgent doesn't have any heat pumps, the workloads data frame is still created as
         expected, with just one row, corresponding to not running any heat pump."""
-        with_0_pumps = Workloads(None, 0, 55)
+        with_0_pumps = Workloads(None, False, 55)
         self.assertEqual(1, with_0_pumps.get_lookup_table().shape[0])
         self.assertEqual(0, with_0_pumps.get_lookup_table()[0, 0])
 

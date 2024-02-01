@@ -14,8 +14,14 @@ HEAT_RPM_COEF = 0.007857
 HEAT_FORWARD_TEMP_TIMES_RPM_COEF = -0.000017
 HEAT_BRINE_TEMP_TIMES_RPM_COEF = 0.000188
 
+# The COP is specified in technical description of "Thermia Mega" heat pump
+# https://doc.afdrift.se/display/RPJ/Predicted+COP
+# https://tcmadmin.thermia.se/docroot/dokumentbank/BWME01TD0207_X023162sv.pdf
+# Max in- and outputs are calculated, based on the above document, in "simple_heat_pump_model.ipynb" in data-exploration
+DEFAULT_COP = 4.6
+MAX_INPUT = 14.9462  # kW
+MAX_OUTPUT = 48.58  # kW
 
-DEFAULT_COP = 4.6  # Specified in technical description of "Thermia Mega" heat pump
 DEFAULT_BRINE_TEMP = 3.8  # See https://doc.afdrift.se/display/RPJ/Brine+temperature+model for details
 HIGH_HEAT_FORWARD_TEMP = 65
 LOW_HEAT_FORWARD_TEMP = 40
@@ -179,11 +185,11 @@ def calculate_for_all_workloads(forward_temp_c: float, brine_temp_c: float = DEF
 class Workloads:
     workloads_data: np.ndarray
 
-    def __init__(self, coeff_of_perf: Optional[float], nbr_heat_pumps: int, forward_temp_c: float):
-        self.workloads_data = self.construct_workloads_data(coeff_of_perf, nbr_heat_pumps, forward_temp_c)
+    def __init__(self, coeff_of_perf: Optional[float], any_heat_pumps: bool, forward_temp_c: float):
+        self.workloads_data = self.construct_workloads_data(coeff_of_perf, any_heat_pumps, forward_temp_c)
 
     @staticmethod
-    def construct_workloads_data(coeff_of_perf: Optional[float], n_heat_pumps: int, forward_temp_c: float) -> \
+    def construct_workloads_data(coeff_of_perf: Optional[float], any_heat_pumps: bool, forward_temp_c: float) -> \
             np.ndarray:
         """
         Will construct a pd.DataFrame with three columns: workload, input (electricity), and output (heating).
@@ -191,7 +197,7 @@ class Workloads:
         to not running a heat pump at all.
         """
         # Could move this to heat_pump?
-        if n_heat_pumps == 0:
+        if not any_heat_pumps:
             return np.zeros([1, 3])
         if coeff_of_perf is None:
             return calculate_for_all_workloads(forward_temp_c=forward_temp_c)
