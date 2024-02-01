@@ -102,14 +102,16 @@
         "min_value": 0,
         "step": 10,
         "help": "The maximum amount of electricity an agent can buy/sell from/to the local energy community, in a single trading period (i.e. an hour). For the external transfer capacity, see the external grid agent",
-        "default": 500
+        "default": 500,
+        "disabled": true
     },
     "InterAgentHeatTransferCapacity": {
         "display": "Maximum heating transfer capacity in microgrid [kW]",
         "min_value": 0,
         "step": 10,
         "help": "The maximum amount of heat an agent can buy/sell from/to the local energy community, in a single trading period (i.e. an hour). For the external transfer capacity, see the external grid agent",
-        "default": 500
+        "default": 500,
+        "disabled": true
     },
     "CO2PenalizationRate": {
         "display": "CO2 penalization rate:",
