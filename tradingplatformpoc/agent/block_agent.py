@@ -8,7 +8,8 @@ import numpy as np
 from tradingplatformpoc import trading_platform_utils
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.digitaltwin.battery import Battery
-from tradingplatformpoc.digitaltwin.heat_pump import HIGH_HEAT_FORWARD_TEMP, LOW_HEAT_FORWARD_TEMP, Workloads
+from tradingplatformpoc.digitaltwin.heat_pump import HIGH_HEAT_FORWARD_TEMP, LOW_HEAT_FORWARD_TEMP, MAX_INPUT, \
+    MAX_OUTPUT, Workloads
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.market.bid import Action, GrossBid, NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.market.trade import Trade, TradeMetadataKey
@@ -24,24 +25,33 @@ class BlockAgent(IAgent):
     heat_pricing: HeatingPrice
     electricity_pricing: ElectricityPrice
     digital_twin: StaticDigitalTwin
-    n_heat_pumps: int
     workloads_high_heat: Workloads
     workloads_low_heat: Workloads
     battery: Battery
     allow_sell_heat: bool
+    heat_pump_max_input: float
+    heat_pump_max_output: float
+    # Our heat pump implementation is built on "Thermia Mega" heat pumps - we translate the "max power" and "max heat"
+    # into an estimated number of those.
+    n_heat_pumps: float
 
     def __init__(self, local_market_enabled: bool, heat_pricing: HeatingPrice, electricity_pricing: ElectricityPrice,
-                 digital_twin: StaticDigitalTwin, nbr_heat_pumps: int = 0, coeff_of_perf: Optional[float] = None,
-                 battery: Optional[Battery] = None, guid="BlockAgent"):
+                 digital_twin: StaticDigitalTwin, heat_pump_max_input: float = 0, heat_pump_max_output: float = 0,
+                 coeff_of_perf: Optional[float] = None, battery: Optional[Battery] = None, guid="BlockAgent"):
         super().__init__(guid, local_market_enabled)
         self.heat_pricing = heat_pricing
         self.electricity_pricing = electricity_pricing
         self.digital_twin = digital_twin
-        self.n_heat_pumps = nbr_heat_pumps
-        self.workloads_high_heat = Workloads(coeff_of_perf, nbr_heat_pumps, HIGH_HEAT_FORWARD_TEMP)
-        self.workloads_low_heat = Workloads(coeff_of_perf, nbr_heat_pumps, LOW_HEAT_FORWARD_TEMP)
+        self.heat_pump_max_input = heat_pump_max_input
+        self.heat_pump_max_output = heat_pump_max_output
         self.allow_sell_heat = False
         self.battery = Battery(0, 0, 0, 0) if battery is None else battery
+        # Calculate an implied number of Thermia Mega Normal size heat pumps, taking both input and output power into
+        # account
+        self.n_heat_pumps = ((heat_pump_max_input / MAX_INPUT) + (heat_pump_max_output / MAX_OUTPUT)) / 2
+        any_heat_pumps = (heat_pump_max_input > 0) and (heat_pump_max_output > 0)
+        self.workloads_high_heat = Workloads(coeff_of_perf, any_heat_pumps, HIGH_HEAT_FORWARD_TEMP)
+        self.workloads_low_heat = Workloads(coeff_of_perf, any_heat_pumps, LOW_HEAT_FORWARD_TEMP)
 
     def make_bids(self, period: datetime.datetime, clearing_prices_historical: Union[Dict[datetime.datetime, Dict[
             Resource, float]], None] = None) -> List[GrossBid]:

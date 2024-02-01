@@ -97,6 +97,22 @@
         "help": "The relative Coefficient of Performance of heat pumps for BlockAgents in the microgrid. The default is 4.6, which is the tabulated value for a medium sized 'Thermia Mega 2020' running on 3600 RPM, with a forward temperature of 35 degrees and a brine fluid temperature of 0 degrees Celsius",
         "default": 4.6
     },
+    "InterAgentElectricityTransferCapacity": {
+        "display": "Maximum electricity transfer capacity in microgrid [kW]",
+        "min_value": 0,
+        "step": 10,
+        "help": "The maximum amount of electricity an agent can buy/sell from/to the local energy community, in a single trading period (i.e. an hour). For the external transfer capacity, see the external grid agent",
+        "default": 500,
+        "disabled": true
+    },
+    "InterAgentHeatTransferCapacity": {
+        "display": "Maximum heating transfer capacity in microgrid [kW]",
+        "min_value": 0,
+        "step": 10,
+        "help": "The maximum amount of heat an agent can buy/sell from/to the local energy community, in a single trading period (i.e. an hour). For the external transfer capacity, see the external grid agent",
+        "default": 500,
+        "disabled": true
+    },
     "CO2PenalizationRate": {
         "display": "CO2 penalization rate:",
         "default": 0.0,

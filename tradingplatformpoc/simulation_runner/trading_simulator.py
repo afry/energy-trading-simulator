@@ -143,8 +143,9 @@ class TradingSimulator:
 
                 agents.append(
                     BlockAgent(self.local_market_enabled, heat_pricing=self.heat_pricing,
-                               electricity_pricing=self.electricity_pricing,
-                               digital_twin=block_digital_twin, nbr_heat_pumps=agent["NumberHeatPumps"],
+                               electricity_pricing=self.electricity_pricing, digital_twin=block_digital_twin,
+                               heat_pump_max_input=agent["HeatPumpMaxInput"],
+                               heat_pump_max_output=agent["HeatPumpMaxOutput"],
                                coeff_of_perf=area_info["COP"], battery=storage_digital_twin, guid=agent_name))
 
             elif agent_type == "GroceryStoreAgent":
