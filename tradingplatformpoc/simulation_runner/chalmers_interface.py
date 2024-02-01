@@ -35,6 +35,8 @@ def build_inputs(agents: List[IAgent], area_info: Dict[str, Any], start_datetime
         build_supply_and_demand_dfs(block_agents, start_datetime, trading_horizon)
 
     battery_capacities = [agent.battery.capacity_kwh for agent in block_agents]
+    heatpump_max_power = [agent.heat_pump_max_input for agent in block_agents]
+    heatpump_max_heat = [agent.heat_pump_max_output for agent in block_agents]
 
     # The following will be extracted from area_info:
     # area_info['BatteryChargeRate']
