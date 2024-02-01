@@ -38,7 +38,8 @@ class TestAppFunctions(TestCase):
                    "GrossFloorArea": 0.0,
                    "FractionCommercial": 0.0,
                    "FractionSchool": 0.0,
-                   "NumberHeatPumps": 0,
+                   "HeatPumpMaxInput": 0.0,
+                   "HeatPumpMaxOutput": 0.0,
                    "BatteryCapacity": 0.0,
                    "PVArea": 20.0}
 

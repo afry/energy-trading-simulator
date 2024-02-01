@@ -70,7 +70,7 @@ def get_mock_data_agent_pairs_in_db(agent_ids: List[str], mock_data_constants: D
 
 def get_mock_data_ids_for_agent(agent_id: str,
                                 session_generator: Callable[[], _GeneratorContextManager[Session]]
-                                = session_scope) -> Dict[str, str]:
+                                = session_scope) -> List[str]:
 
     with session_generator() as db:
         res = db.query(MockData.id).filter(MockData.agent_id == agent_id).all()
