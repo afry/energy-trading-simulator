@@ -29,6 +29,8 @@ class BlockAgent(IAgent):
     workloads_low_heat: Workloads
     battery: Battery
     allow_sell_heat: bool
+    heat_pump_max_input: float
+    heat_pump_max_output: float
     # Our heat pump implementation is built on "Thermia Mega" heat pumps - we translate the "max power" and "max heat"
     # into an estimated number of those.
     n_heat_pumps: float
@@ -40,6 +42,8 @@ class BlockAgent(IAgent):
         self.heat_pricing = heat_pricing
         self.electricity_pricing = electricity_pricing
         self.digital_twin = digital_twin
+        self.heat_pump_max_input = heat_pump_max_input
+        self.heat_pump_max_output = heat_pump_max_output
         self.allow_sell_heat = False
         self.battery = Battery(0, 0, 0, 0) if battery is None else battery
         # Calculate an implied number of Thermia Mega Normal size heat pumps, taking both input and output power into
