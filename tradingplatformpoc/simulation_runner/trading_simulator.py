@@ -57,8 +57,10 @@ logger = logging.getLogger(__name__)
 class TradingSimulator:
     def __init__(self, job_id: str):
         if platform.system() == 'Linux':
+            logger.info('Linux system')
             self.solver = pyo.SolverFactory('glpk')
         else:
+            logger.info('Not a linux system, using GLPK_PATH')
             self.solver = pyo.SolverFactory('glpk', executable=settings.GLPK_PATH)
         # To verify that the solver works: REMOVE ME WHEN WE START USING THE SOLVER FOR REAL
         optimization_problem.mock_opt_problem(self.solver)

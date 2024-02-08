@@ -1,4 +1,5 @@
 import datetime
+import logging
 import platform
 from unittest import TestCase
 
@@ -10,11 +11,16 @@ from tradingplatformpoc.simulation_runner.chalmers_interface import add_value_pe
 from tradingplatformpoc.simulation_runner.optimization_problem import mock_opt_problem
 
 
+logger = logging.getLogger(__name__)
+
+
 class Test(TestCase):
 
     if platform.system() == 'Linux':
+        logger.info('Linux system')
         solver = pyo.SolverFactory('glpk')
     else:
+        logger.info('Not a linux system, using GLPK_PATH')
         solver = pyo.SolverFactory('glpk', executable=settings.GLPK_PATH)
 
     def test_get_power_transfers(self):
