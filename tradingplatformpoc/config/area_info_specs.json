@@ -10,6 +10,14 @@
         "help": "If the possibility to buy district heating should be included in simulation.",
         "disabled": true
     },
+    "TradingHorizon": {
+        "display": "Trading horizon [hours]",
+        "min_value": 1,
+        "max_value": 48,
+        "default": 24,
+        "help": "How many trading periods (hours) in advance each energy trading process is performed over.",
+        "disabled": true
+    },
     "HeatTransferLoss": {
         "display": "Heat transfer loss:",
         "min_value": 0.0,
@@ -80,6 +88,14 @@
         "max_value": 1.0,
         "default": 0.93,
         "help": "A number specifying the round-trip efficiency of batteries used by agents. This value being equal to 1 would mean that there are no losses for the storage entity; if one charges it with X kWh, one can later discharge exactly the same amount. Must be a positive number, no larger than 1"
+    },
+    "BatteryEndChargeLevel": {
+        "display": "Battery charge level at the end of the trading horizon",
+        "min_value": 0.0,
+        "max_value": 1.0,
+        "default": 0.1,
+        "help": "A number specifying the charge level for batteries at the end of each trading horizon. If this is 0, all batteries will be completely discharged at the end of each trading horizon. If it is 1, they will be fully charged. If running a 24 hour trading horizon, starting at midnight, one probably wants to keep this low, since electricity is often cheap 00:00-05:00 or so.",
+        "disabled": true
     },
     "PVEfficiency": {
         "display": "Default PV efficiency:",
