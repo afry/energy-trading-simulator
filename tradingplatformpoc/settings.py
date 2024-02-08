@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     DB_DATABASE: str = check_envvar_is_not_none(os.getenv('PG_DATABASE'))
     DB_DATABASE_TEST: Optional[str] = os.getenv('PG_DATABASE_TEST')
     # Path to glpk executable. Probably ends with \w64\glpsol
-    GLPK_PATH: Optional[str] = check_envvar_is_not_none(os.getenv('GLPK_PATH'))
+    GLPK_PATH: Optional[str] = os.getenv('GLPK_PATH')
 
 
 settings = Settings()
