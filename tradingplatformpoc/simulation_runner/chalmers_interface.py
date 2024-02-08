@@ -27,16 +27,16 @@ Here we keep methods that do either
 def build_inputs(agents: List[IAgent], area_info: Dict[str, Any], start_datetime: datetime.datetime,
                  trading_horizon: int):
     block_agents = [agent for agent in agents if isinstance(agent, BlockAgent)]
-    block_agent_guids = [agent.guid for agent in block_agents]
+    # block_agent_guids = [agent.guid for agent in block_agents]
     # The order specified in block_agents will be used throughout
 
     elec_demand_df, elec_supply_df, high_heat_demand_df, high_heat_supply_df, \
         low_heat_demand_df, low_heat_supply_df, cooling_demand_df, cooling_supply_df = \
         build_supply_and_demand_dfs(block_agents, start_datetime, trading_horizon)
 
-    battery_capacities = [agent.battery.capacity_kwh for agent in block_agents]
-    heatpump_max_power = [agent.heat_pump_max_input for agent in block_agents]
-    heatpump_max_heat = [agent.heat_pump_max_output for agent in block_agents]
+    # battery_capacities = [agent.battery.capacity_kwh for agent in block_agents]
+    # heatpump_max_power = [agent.heat_pump_max_input for agent in block_agents]
+    # heatpump_max_heat = [agent.heat_pump_max_output for agent in block_agents]
 
     # The following will be extracted from area_info:
     # area_info['BatteryChargeRate']
@@ -65,14 +65,14 @@ def build_supply_and_demand_dfs(block_agents: List[BlockAgent], start_datetime: 
     cooling_demand = []
     cooling_supply = []
     for agent in block_agents:
-        agent_elec_demand = []
-        agent_elec_supply = []
-        agent_high_heat_demand = []
-        agent_high_heat_supply = []
-        agent_low_heat_demand = []
-        agent_low_heat_supply = []
-        agent_cooling_demand = []
-        agent_cooling_supply = []
+        agent_elec_demand: List[float] = []
+        agent_elec_supply: List[float] = []
+        agent_high_heat_demand: List[float] = []
+        agent_high_heat_supply: List[float] = []
+        agent_low_heat_demand: List[float] = []
+        agent_low_heat_supply: List[float] = []
+        agent_cooling_demand: List[float] = []
+        agent_cooling_supply: List[float] = []
         for hour in range(trading_horizon):
             usage_per_resource = agent.get_actual_usage(start_datetime + datetime.timedelta(hours=hour))
             add_usage_to_demand_list(agent_elec_demand, usage_per_resource[Resource.ELECTRICITY])

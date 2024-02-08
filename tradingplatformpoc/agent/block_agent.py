@@ -166,7 +166,9 @@ class BlockAgent(IAgent):
         #  to generate ourselves
 
         heat_net_consumption = self.make_prognosis_for_resource(period, Resource.HEATING)
-        elec_net_consumption = self.make_prognosis_for_resource(period, Resource.ELECTRICITY)  # Negative means net production
+        elec_net_consumption = self.make_prognosis_for_resource(period, Resource.ELECTRICITY)
+        # Negative consumption means net production
+
         elec_sell_price, elec_buy_price = self.calculate_electricity_prices(pred_elec_price, period)
         heat_sell_price, heat_buy_price = self.calculate_heating_prices(pred_heat_price, period)
         workload_to_use, elec_needed_for_1_heat_pump, heat_output_for_1_heat_pump = \

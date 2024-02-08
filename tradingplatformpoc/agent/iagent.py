@@ -7,7 +7,6 @@ import numpy as np
 
 from ..market.bid import Action, GrossBid, NetBidWithAcceptanceStatus, Resource
 from ..market.trade import Market, Trade, TradeMetadataKey
-from ..trading_platform_utils import ALL_IMPLEMENTED_RESOURCES
 
 
 class IAgent(ABC):
