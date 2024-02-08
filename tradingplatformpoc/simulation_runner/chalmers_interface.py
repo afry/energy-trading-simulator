@@ -39,9 +39,11 @@ def build_inputs(agents: List[IAgent], area_info: Dict[str, Any], start_datetime
     # heatpump_max_heat = [agent.heat_pump_max_output for agent in block_agents]
 
     # The following will be extracted from area_info:
+    # area_info['TradingHorizon']
     # area_info['BatteryChargeRate']
     # area_info['BatteryDischargeRate']
     # area_info['BatteryEfficiency']
+    # area_info['BatteryEndChargeLevel']
     # area_info['PVEfficiency']
     # area_info['COP']
 
