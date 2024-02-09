@@ -133,7 +133,7 @@ class TradingSimulator:
                                electricity_pricing=self.electricity_pricing, digital_twin=block_digital_twin,
                                heat_pump_max_input=agent["HeatPumpMaxInput"],
                                heat_pump_max_output=agent["HeatPumpMaxOutput"],
-                               coeff_of_perf=area_info["COP"], battery=storage_digital_twin, guid=agent_name))
+                               coeff_of_perf=area_info["COPHeatPumps"], battery=storage_digital_twin, guid=agent_name))
 
             elif agent_type == "GroceryStoreAgent":
                 pv_prod_series = calculate_solar_prod(inputs_df['irradiation'],

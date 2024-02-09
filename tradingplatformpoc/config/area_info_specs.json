@@ -106,12 +106,20 @@
         "step": 0.005,
         "help": "A number specifying the efficiency of solar panels in the microgrid. Number must be between 0 and 1, and is typically in the 0.15-0.25 range"
     },
-    "COP": {
-        "display": "COP",
+    "COPHeatPumps": {
+        "display": "Heat pump COP",
         "min_value": 2.0,
         "step": 0.1,
         "help": "The relative Coefficient of Performance of heat pumps for BlockAgents in the microgrid. The default is 4.6, which is the tabulated value for a medium sized 'Thermia Mega 2020' running on 3600 RPM, with a forward temperature of 35 degrees and a brine fluid temperature of 0 degrees Celsius",
         "default": 4.6
+    },
+    "COPCompChiller": {
+        "display": "Compressor chiller COP",
+        "min_value": 1.0,
+        "step": 0.1,
+        "help": "The relative Coefficient of Performance of any compressor chillers in the microgrid.",
+        "default": 4.0,
+        "disabled": true
     },
     "InterAgentElectricityTransferCapacity": {
         "display": "Maximum electricity transfer capacity in microgrid [kW]",
