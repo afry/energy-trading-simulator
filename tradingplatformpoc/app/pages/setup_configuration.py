@@ -13,8 +13,7 @@ from tradingplatformpoc.app.app_inputs import add_block_agent, add_grocery_store
     add_params_to_form, agent_inputs, duplicate_agent, remove_agent, remove_all_block_agents
 from tradingplatformpoc.config.access_config import fill_agents_with_defaults, fill_with_default_params, \
     read_param_specs
-from tradingplatformpoc.config.screen_config import compare_pv_efficiency, config_data_json_screening, \
-    display_diff_in_config
+from tradingplatformpoc.config.screen_config import config_data_json_screening, display_diff_in_config
 from tradingplatformpoc.sql.config.crud import create_config_if_not_in_db, delete_config_if_no_jobs_exist, \
     get_all_config_ids_in_db, get_all_configs_in_db_df, read_description, update_description
 from tradingplatformpoc.sql.config.crud import read_config
@@ -92,12 +91,6 @@ st.markdown("**Create new configuration**")
 config_container = st.container()
 
 st.markdown('#')
-
-comp_pveff = compare_pv_efficiency(st.session_state.config_data)
-if comp_pveff is not None:
-    st.info(comp_pveff)
-# TODO: Button for setting all PVEfficiency params to same value
-# TODO: Same for Heatpump COP
 
 if option_chosen == options[0]:
     with st.expander("General parameters"):
