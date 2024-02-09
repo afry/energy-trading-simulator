@@ -8,7 +8,7 @@ import pandas as pd
 
 import pyomo.environ as pyo
 
-from tradingplatformpoc.agent.block_agent import BlockAgent
+from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.market.trade import Market, Trade
@@ -24,19 +24,22 @@ Here we keep methods that do either
 """
 
 
-def build_inputs(agents: List[IAgent], area_info: Dict[str, Any], start_datetime: datetime.datetime,
+def build_inputs(agents: List[IAgent],
+                 grid_agents: Dict[Resource, GridAgent],
+                 area_info: Dict[str, Any],
+                 start_datetime: datetime.datetime,
                  trading_horizon: int):
-    block_agents = [agent for agent in agents if isinstance(agent, BlockAgent)]
-    # block_agent_guids = [agent.guid for agent in block_agents]
-    # The order specified in block_agents will be used throughout
+    agents = [agent for agent in agents if not isinstance(agent, GridAgent)]  # Filter out grid agents
+    # agent_guids = [agent.guid for agent in agents]
+    # The order specified in "agents" will be used throughout
 
     elec_demand_df, elec_supply_df, high_heat_demand_df, high_heat_supply_df, \
         low_heat_demand_df, low_heat_supply_df, cooling_demand_df, cooling_supply_df = \
-        build_supply_and_demand_dfs(block_agents, start_datetime, trading_horizon)
+        build_supply_and_demand_dfs(agents, start_datetime, trading_horizon)
 
-    # battery_capacities = [agent.battery.capacity_kwh for agent in block_agents]
-    # heatpump_max_power = [agent.heat_pump_max_input for agent in block_agents]
-    # heatpump_max_heat = [agent.heat_pump_max_output for agent in block_agents]
+    # battery_capacities = [agent.battery.capacity_kwh for agent in agents]
+    # heatpump_max_power = [agent.heat_pump_max_input for agent in agents]
+    # heatpump_max_heat = [agent.heat_pump_max_output for agent in agents]
 
     # The following will be extracted from area_info:
     # area_info['TradingHorizon']
@@ -45,7 +48,8 @@ def build_inputs(agents: List[IAgent], area_info: Dict[str, Any], start_datetime
     # area_info['BatteryEfficiency']
     # area_info['BatteryEndChargeLevel']
     # area_info['PVEfficiency']
-    # area_info['COP']
+    # area_info['COPHeatPumps']
+    # area_info['COPCompChiller']
 
     # WIP: Add more stuff here
 
@@ -53,8 +57,7 @@ def build_inputs(agents: List[IAgent], area_info: Dict[str, Any], start_datetime
     # energy_shallow_cap, energy_deep_cap - capacity of thermal energy storage [kWh] - specify? calculate from sqm?
 
 
-def build_supply_and_demand_dfs(block_agents: List[BlockAgent], start_datetime: datetime.datetime,
-                                trading_horizon: int) -> \
+def build_supply_and_demand_dfs(agents: List[IAgent], start_datetime: datetime.datetime, trading_horizon: int) -> \
         Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame,
               pd.DataFrame]:
     elec_demand = []
@@ -65,7 +68,7 @@ def build_supply_and_demand_dfs(block_agents: List[BlockAgent], start_datetime: 
     low_heat_supply = []
     cooling_demand = []
     cooling_supply = []
-    for agent in block_agents:
+    for agent in agents:
         agent_elec_demand: List[float] = []
         agent_elec_supply: List[float] = []
         agent_high_heat_demand: List[float] = []
@@ -112,35 +115,37 @@ def add_usage_to_supply_list(agent_list: List[float], usage_of_resource: float):
     agent_list.append(-usage_of_resource if usage_of_resource < 0 else 0)
 
 
-def get_power_transfers(optimized_model: pyo.ConcreteModel, start_datetime: datetime.datetime) -> List[Trade]:
+def get_power_transfers(optimized_model: pyo.ConcreteModel, start_datetime: datetime.datetime, grid_agent_guid: str,
+                        agent_guids: List[str]) -> List[Trade]:
     # For example: Pbuy_market is how much the LEC bought from the external grid operator
     return get_transfers(optimized_model, start_datetime,
                          sold_to_external_name='Psell_market', bought_from_external_name='Pbuy_market',
-                         sold_internal_name='Psell_grid', bought_internal_name='Pbuy_grid')
+                         sold_internal_name='Psell_grid', bought_internal_name='Pbuy_grid',
+                         resource=Resource.ELECTRICITY, grid_agent_guid=grid_agent_guid, agent_guids=agent_guids)
 
 
 def get_transfers(optimized_model: pyo.ConcreteModel, start_datetime: datetime.datetime,
                   sold_to_external_name: str, bought_from_external_name: str,
-                  sold_internal_name: str, bought_internal_name: str) -> List[Trade]:
+                  sold_internal_name: str, bought_internal_name: str, resource: Resource, grid_agent_guid: str,
+                  agent_guids: List[str]) -> List[Trade]:
     transfers = []
     for hour in optimized_model.time:
-        # TODO: grid_agent_guid
         trade = construct_external_trade(bought_from_external_name, hour, optimized_model, sold_to_external_name,
-                                         start_datetime, 'ExternalGridAgent', Resource.ELECTRICITY)
+                                         start_datetime, grid_agent_guid, resource)
         transfers.append(trade)
         for i_agent in optimized_model.agent:
             t = construct_agent_trade(bought_internal_name, sold_internal_name, hour, i_agent, optimized_model,
-                                      start_datetime, Resource.ELECTRICITY)
+                                      start_datetime, resource, agent_guids)
             transfers.append(t)
     return transfers
 
 
 def construct_agent_trade(bought_internal_name: str, sold_internal_name: str, hour: int, i_agent: int,
-                          optimized_model: pyo.ConcreteModel, start_datetime: datetime.datetime, resource: Resource) \
-        -> Trade:
+                          optimized_model: pyo.ConcreteModel, start_datetime: datetime.datetime, resource: Resource,
+                          agent_guids: List[str]) -> Trade:
     quantity = pyo.value(getattr(optimized_model, bought_internal_name)[i_agent, hour]
                          - getattr(optimized_model, sold_internal_name)[i_agent, hour])
-    agent_name = agent_guid_from_index(optimized_model, i_agent)
+    agent_name = agent_guids[i_agent]
     return Trade(period=start_datetime + datetime.timedelta(hours=hour),
                  action=Action.BUY if quantity > 0 else Action.SELL, resource=resource,
                  quantity=abs(quantity), price=np.nan, source=agent_name, by_external=False, market=Market.LOCAL)
@@ -157,16 +162,9 @@ def construct_external_trade(bought_from_external_name: str, hour: int, optimize
                  market=Market.LOCAL)
 
 
-def agent_guid_from_index(optimized_model: pyo.ConcreteModel, i_agent: int) -> str:
-    # TODO: Translate index to agent GUID in some way.
-    #  Perhaps use names from the input data frames on the model object, or pass it separately, into an intermediate
-    #  method, which lives between trading_simulator and the Chalmers code, and then use here
-    return str(i_agent)
-
-
 def add_value_per_agent_to_dict(optimized_model: pyo.ConcreteModel, start_datetime: datetime.datetime,
                                 dict_to_add_to: Dict[str, Dict[datetime.datetime, Any]],
-                                variable_name: str):
+                                variable_name: str, agent_guids: List[str]):
     """
     Example variable names: Hhp for heat pump production, SOCBES for state of charge of battery storage
     """
@@ -174,4 +172,4 @@ def add_value_per_agent_to_dict(optimized_model: pyo.ConcreteModel, start_dateti
         for i_agent in optimized_model.agent:
             quantity = pyo.value(getattr(optimized_model, variable_name)[i_agent, hour])
             period = start_datetime + datetime.timedelta(hours=hour)
-            add_to_nested_dict(dict_to_add_to, agent_guid_from_index(optimized_model, i_agent), period, quantity)
+            add_to_nested_dict(dict_to_add_to, agent_guids[i_agent], period, quantity)

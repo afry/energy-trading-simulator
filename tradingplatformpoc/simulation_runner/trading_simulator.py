@@ -106,11 +106,11 @@ class TradingSimulator:
         self.storage_levels_dict: Dict[str, Dict[datetime.datetime, float]] = {}
         self.heat_pump_levels_dict: Dict[str, Dict[datetime.datetime, float]] = {}
 
-    def initialize_agents(self) -> Tuple[List[IAgent], List[GridAgent]]:
+    def initialize_agents(self) -> Tuple[List[IAgent], Dict[Resource, GridAgent]]:
         # Register all agents
         # Keep a list of all agents to iterate over later
         agents: List[IAgent] = []
-        grid_agents: List[GridAgent] = []
+        grid_agents: Dict[Resource, GridAgent] = {}
 
         # Read input data (irradiation and grocery store consumption) from database
         inputs_df = read_inputs_df_for_agent_creation()
@@ -171,7 +171,7 @@ class TradingSimulator:
                     grid_agent = GridAgent(self.local_market_enabled, self.heat_pricing, Resource[agent["Resource"]],
                                            max_transfer_per_hour=agent["TransferRate"], guid=agent_name)
                 agents.append(grid_agent)
-                grid_agents.append(grid_agent)
+                grid_agents[Resource[agent["Resource"]]] = grid_agent
 
         # Verify that we have a Grid Agent
         if not any(isinstance(agent, GridAgent) for agent in agents):
@@ -214,7 +214,7 @@ class TradingSimulator:
                     logger.info(info_string)
 
                 # TODO: remove
-                build_inputs(self.agents, self.config_data['AreaInfo'], period, 24)
+                build_inputs(self.agents, self.grid_agents, self.config_data['AreaInfo'], period, 24)
 
                 if self.local_market_enabled:
                     # Get all bids
@@ -253,7 +253,7 @@ class TradingSimulator:
                 trades_excl_external = [i for i in trades_excl_external if i]  # filter out None
                 external_trades = flatten_collection([ga.calculate_external_trades(trades_excl_external,
                                                                                    clearing_prices)
-                                                      for ga in self.grid_agents])
+                                                      for ga in self.grid_agents.values()])
                 all_trades_for_period = trades_excl_external + external_trades
                 all_trades_list_batch.append(all_trades_for_period)
 
