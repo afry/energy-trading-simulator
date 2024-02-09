@@ -208,13 +208,3 @@ def display_diff_in_config(default: dict, new: dict) -> List[str]:
 
     return str_to_disp
 # --------------------------------------- End diff display ------------------------------------
-
-
-def compare_pv_efficiency(config: dict) -> Optional[str]:
-    """If the PVEfficiency of agents differs from default, return message."""
-    agents_w_pv_eff = [agent for agent in config['Agents'] if 'PVEfficiency' in agent.keys()]
-    agents_w_other_pv_eff = [agent['Name'] for agent in agents_w_pv_eff if
-                             agent['PVEfficiency'] != config['AreaInfo']['PVEfficiency']]
-    if len(agents_w_other_pv_eff) > 0:
-        return "PV efficiency differs from default for {}".format(', '.join(agents_w_other_pv_eff))
-    return None
