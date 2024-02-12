@@ -101,6 +101,7 @@ class TradingSimulator:
             nordpool_data=electricity_price_df_from_db())
 
         self.trading_periods = get_periods_from_db().sort_values()
+        self.trading_horizon = self.config_data['AreaInfo']['TradingHorizon']
 
         self.clearing_prices_historical: Dict[datetime.datetime, Dict[Resource, float]] = {}
         self.storage_levels_dict: Dict[str, Dict[datetime.datetime, float]] = {}
@@ -189,6 +190,10 @@ class TradingSimulator:
         number_of_trading_periods = len(self.trading_periods)
         batch_size = math.ceil(number_of_trading_periods / number_of_batches)
 
+        number_of_trading_horizons = int(len(self.trading_periods) // self.trading_horizon)
+        logger.info('Will run {} trading horizons'.format(number_of_trading_horizons))
+        new_batch_size = math.ceil(number_of_trading_horizons / number_of_batches)
+
         # Loop over batches
         for batch_number in range(number_of_batches):
             current_thread = threading.current_thread()
@@ -202,19 +207,31 @@ class TradingSimulator:
             trading_periods_in_this_batch = self.trading_periods[
                 batch_number * batch_size:min((batch_number + 1) * batch_size, number_of_trading_periods)]
 
+            # Horizons in batch
+            trading_horizon_start_points = self.trading_periods[::self.trading_horizon]
+            thsps_in_this_batch = trading_horizon_start_points[
+                batch_number * new_batch_size:min((batch_number + 1) * new_batch_size, number_of_trading_horizons)]
+
             all_bids_list_batch: List[TableBid] = []
             all_trades_list_batch: List[TableTrade] = []
             all_extra_costs_batch: List[TableExtraCost] = []
             electricity_price_list_batch: List[TableElectricityPrice] = []
 
-            # Loop over periods i batch
+            # ------- NEW --------
+            logger.info('Starting new bit')
+            for horizon_start in thsps_in_this_batch:
+                if horizon_start.day == horizon_start.hour == 1:
+                    info_string = "Simulations entering {:%B}".format(horizon_start)
+                    logger.info(info_string)
+                build_inputs(self.agents, self.grid_agents, self.config_data['AreaInfo'], horizon_start,
+                             self.trading_horizon)
+            logger.info('End new bit')
+
+            # ------- OLD --------
             for period in trading_periods_in_this_batch:
                 if period.day == period.hour == 1:
                     info_string = "Simulations entering {:%B}".format(period)
                     logger.info(info_string)
-
-                # TODO: remove
-                build_inputs(self.agents, self.grid_agents, self.config_data['AreaInfo'], period, 24)
 
                 if self.local_market_enabled:
                     # Get all bids
