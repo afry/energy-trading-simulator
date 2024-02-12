@@ -1,6 +1,6 @@
 import logging
 from contextlib import _GeneratorContextManager
-from typing import Callable
+from typing import Callable, List
 
 from sqlalchemy_batch_inserts import enable_batch_inserting
 
@@ -25,7 +25,7 @@ def drop_db_and_tables():
     logger.info('Dropping db and tables')
 
 
-def bulk_insert(table_type, dicts: list,
+def bulk_insert(table_type, dicts: List[dict],
                 session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope):
     with session_generator() as db:
         enable_batch_inserting(db)

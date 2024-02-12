@@ -115,8 +115,8 @@ class TestDataStore(TestCase):
             heat_transfer_loss=area_info["HeatTransferLoss"])
         ds.add_external_heating_sell(FEB_1_1_AM, 50)
         ds.add_external_heating_sell(datetime(2019, 3, 1, 1, tzinfo=timezone.utc), 100)
-        self.assertAlmostEqual(50, ds.calculate_consumption_this_month(2019, 2))
-        self.assertAlmostEqual(0, ds.calculate_consumption_this_month(2019, 4))
+        self.assertAlmostEqual(50.0, ds.calculate_consumption_this_month(2019, 2))
+        self.assertAlmostEqual(0.0, ds.calculate_consumption_this_month(2019, 4))
 
     def test_get_exact_retail_price_heating(self):
         """Test basic functionality of get_exact_retail_price for HEATING"""
