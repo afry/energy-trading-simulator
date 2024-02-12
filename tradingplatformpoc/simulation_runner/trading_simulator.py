@@ -37,7 +37,7 @@ from tradingplatformpoc.sql.extra_cost.crud import extra_costs_to_db_dict
 from tradingplatformpoc.sql.extra_cost.models import ExtraCost as TableExtraCost
 from tradingplatformpoc.sql.heating_price.models import HeatingPrice as TableHeatingPrice
 from tradingplatformpoc.sql.input_data.crud import get_periods_from_db, read_inputs_df_for_agent_creation
-from tradingplatformpoc.sql.input_electricity_price.crud import electricity_price_df_from_db
+from tradingplatformpoc.sql.input_electricity_price.crud import electricity_price_series_from_db
 from tradingplatformpoc.sql.job.crud import delete_job, get_config_id_for_job_id, \
     update_job_with_time
 from tradingplatformpoc.sql.level.crud import levels_to_db_dict
@@ -84,7 +84,7 @@ class TradingSimulator:
             elec_grid_fee=self.config_data['AreaInfo']["ElectricityGridFee"],
             elec_tax_internal=self.config_data['AreaInfo']["ElectricityTaxInternal"],
             elec_grid_fee_internal=self.config_data['AreaInfo']["ElectricityGridFeeInternal"],
-            nordpool_data=electricity_price_df_from_db())
+            nordpool_data=electricity_price_series_from_db())
 
         self.trading_periods = get_periods_from_db().sort_values()
 

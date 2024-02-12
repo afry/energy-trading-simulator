@@ -27,7 +27,7 @@ class Test(TestCase):
         dhp = HeatingPrice(0, 0)
         dhp.add_external_heating_sell(datetime.datetime(2019, 2, 1, 1, tzinfo=pytz.utc), 50)
         dhp.add_external_heating_sell(datetime.datetime(2019, 3, 1, 1, tzinfo=pytz.utc), 100)
-        self.assertAlmostEqual(50, dhp.calculate_jan_feb_avg_heating_sold(
+        self.assertAlmostEqual(50.0, dhp.calculate_jan_feb_avg_heating_sold(
             datetime.datetime(2019, 3, 1, 1, tzinfo=pytz.utc)))
 
     def test_calculate_jan_feb_avg_heating_sold_when_no_data(self):
@@ -37,7 +37,7 @@ class Test(TestCase):
         dhp.add_external_heating_sell(datetime.datetime(2019, 2, 1, 1, tzinfo=pytz.utc), 50)
         dhp.add_external_heating_sell(datetime.datetime(2019, 3, 1, 1, tzinfo=pytz.utc), 100)
         with self.assertLogs() as captured:
-            self.assertAlmostEqual(50, dhp.calculate_jan_feb_avg_heating_sold(
+            self.assertAlmostEqual(50.0, dhp.calculate_jan_feb_avg_heating_sold(
                 datetime.datetime(2019, 2, 1, 1, tzinfo=pytz.utc)))
         self.assertEqual(len(captured.records), 1)
         self.assertEqual(captured.records[0].levelname, 'WARNING')
@@ -50,7 +50,7 @@ class Test(TestCase):
         dhp.add_external_heating_sell(datetime.datetime(2019, 3, 2, 1, tzinfo=pytz.utc), 50)
         dhp.add_external_heating_sell(datetime.datetime(2019, 3, 2, 2, tzinfo=pytz.utc), 50)
         dhp.add_external_heating_sell(datetime.datetime(2019, 3, 2, 3, tzinfo=pytz.utc), 50)
-        self.assertAlmostEqual(10, dhp.calculate_peak_day_avg_cons_kw(
+        self.assertAlmostEqual(10.0, dhp.calculate_peak_day_avg_cons_kw(
             2019, 3))
 
     def test_get_base_marginal_price(self):
@@ -61,7 +61,7 @@ class Test(TestCase):
         self.assertAlmostEqual(571.758904109589, self.dhp.get_grid_fee_for_month(5, 2019, 10))
 
     def test_exact_effect_fee(self):
-        self.assertAlmostEqual(170, self.dhp.exact_effect_fee(2.5))
+        self.assertAlmostEqual(170.0, self.dhp.exact_effect_fee(2.5))
 
     def test_exact_district_heating_price_for_month(self):
         self.assertAlmostEqual(776.758904109589, self.dhp.exact_district_heating_price_for_month(

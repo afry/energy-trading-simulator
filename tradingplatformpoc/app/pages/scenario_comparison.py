@@ -50,15 +50,15 @@ if len(ids) >= 2:
         first_col, second_col = st.columns(2)
         with first_col:
             agent_1_specs = get_all_agents_in_config(comparison_ids[0]['config_id'])
-            agent_1_names = [name for name, id in agent_1_specs.items()
-                             if get_agent_type(id) == "BlockAgent"]
+            agent_1_names = [name for name, uid in agent_1_specs.items()
+                             if get_agent_type(uid) == "BlockAgent"]
             chosen_agent_name_to_view_1 = st.selectbox('Select an agent from the first configuration',
                                                        agent_1_names)
             agent_1_type = get_agent_type(agent_1_specs.get(chosen_agent_name_to_view_1))
         with second_col:
             agent_2_specs = get_all_agents_in_config(comparison_ids[1]['config_id'])
-            agent_2_names = [name for name, id in agent_2_specs.items()
-                             if get_agent_type(id) == agent_1_type]
+            agent_2_names = [name for name, uid in agent_2_specs.items()
+                             if get_agent_type(uid) == agent_1_type]
             chosen_agent_name_to_view_2 = st.selectbox('Select an agent from the second configuration',
                                                        agent_2_names)
 

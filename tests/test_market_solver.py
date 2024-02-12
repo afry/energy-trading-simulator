@@ -1,6 +1,5 @@
 import math
 from datetime import datetime, timezone
-from typing import Dict
 from unittest import TestCase
 
 import numpy as np
@@ -13,8 +12,6 @@ from tradingplatformpoc.data.preprocessing import clean, read_nordpool_data
 from tradingplatformpoc.market.bid import Action, GrossBid, Resource
 from tradingplatformpoc.market.market_solver import no_bids_accepted, resolve_bids
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
-from tradingplatformpoc.price.heating_price import HeatingPrice
-from tradingplatformpoc.price.iprice import IPrice
 from tradingplatformpoc.simulation_runner.simulation_utils import net_bids_from_gross_bids
 from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES, hourly_datetime_array_between
 
@@ -28,20 +25,15 @@ ONES_SERIES = pd.Series(np.ones(shape=len(DATETIME_ARRAY)), index=DATETIME_ARRAY
 external_price_data = read_nordpool_data()
 external_price_data = clean(external_price_data).reset_index()
 external_price_data = external_price_data.rename(
-    columns={'datetime': 'period', 'dayahead_se3_el_price': 'electricity_price'})
+    columns={'datetime': 'period', 'dayahead_se3_el_price': 'electricity_price'}).squeeze()
 area_info = utility_test_objects.AREA_INFO
-pricing: Dict[Resource, IPrice] = {
-    Resource.HEATING: HeatingPrice(
-        heating_wholesale_price_fraction=area_info['ExternalHeatingWholesalePriceFraction'],
-        heat_transfer_loss=area_info["HeatTransferLoss"]),
-    Resource.ELECTRICITY: ElectricityPrice(
-        elec_wholesale_offset=area_info['ExternalElectricityWholesalePriceOffset'],
-        elec_tax=area_info["ElectricityTax"],
-        elec_grid_fee=area_info["ElectricityGridFee"],
-        elec_tax_internal=area_info["ElectricityTaxInternal"],
-        elec_grid_fee_internal=area_info["ElectricityGridFeeInternal"],
-        nordpool_data=external_price_data)
-}
+
+elec_price = ElectricityPrice(elec_wholesale_offset=area_info['ExternalElectricityWholesalePriceOffset'],
+                              elec_tax=area_info["ElectricityTax"],
+                              elec_grid_fee=area_info["ElectricityGridFee"],
+                              elec_tax_internal=area_info["ElectricityTaxInternal"],
+                              elec_grid_fee_internal=area_info["ElectricityGridFeeInternal"],
+                              nordpool_data=external_price_data)
 
 
 class TestMarketSolver(TestCase):
@@ -50,7 +42,7 @@ class TestMarketSolver(TestCase):
         """Test the clearing price calculation in a very simple example with one seller and one buyer."""
         bids = [GrossBid(SOME_DATETIME, Action.SELL, Resource.ELECTRICITY, 100, 1, "Seller1", False),
                 GrossBid(SOME_DATETIME, Action.BUY, Resource.ELECTRICITY, 100, 1.5, "Buyer1", False)]
-        net_bids = net_bids_from_gross_bids(bids, pricing[Resource.ELECTRICITY])
+        net_bids = net_bids_from_gross_bids(bids, elec_price)
         # Someone willing to sell 100 kWh at 1 SEK/kWh,
         # someone willing to buy 100 kWh at 1.5 SEK/kWh.
         # Clearing price should be 1 SEK/kWh
@@ -65,7 +57,7 @@ class TestMarketSolver(TestCase):
         """Test the clearing price calculation when there are no accepted bids."""
         bids = [GrossBid(SOME_DATETIME, Action.SELL, Resource.ELECTRICITY, 100, 1, "Seller1", False),
                 GrossBid(SOME_DATETIME, Action.BUY, Resource.ELECTRICITY, 100, 0.5, "Buyer1", False)]
-        net_bids = net_bids_from_gross_bids(bids, pricing[Resource.ELECTRICITY])
+        net_bids = net_bids_from_gross_bids(bids, elec_price)
         # Someone willing to sell 100 kWh at 1 SEK/kWh,
         # someone willing to buy 100 kWh at 0.5 SEK/kWh.
         # Clearing price should be 1 SEK/kWh
@@ -83,7 +75,7 @@ class TestMarketSolver(TestCase):
                 GrossBid(SOME_DATETIME, Action.SELL, Resource.ELECTRICITY, 100, 1.5, "Seller2", False),
                 GrossBid(SOME_DATETIME, Action.SELL, Resource.ELECTRICITY, 10000, external_gross_price, "Grid", True),
                 GrossBid(SOME_DATETIME, Action.BUY, Resource.ELECTRICITY, 300, math.inf, "Buyer1", False)]
-        net_bids = net_bids_from_gross_bids(bids, pricing[Resource.ELECTRICITY])
+        net_bids = net_bids_from_gross_bids(bids, elec_price)
         # Someone willing to sell 100 kWh at 0 SEK/kWh,
         # someone willing to sell 100 kWh at 1.5 SEK/kWh,
         # someone willing to sell 10000 kWh at 10 SEK/kWh,
@@ -91,7 +83,7 @@ class TestMarketSolver(TestCase):
         # Clearing price should be 10 SEK/kWh
         clearing_prices, bids_with_acceptance_status = resolve_bids(SOME_DATETIME, net_bids)
         self.assertEqual(len(ALL_IMPLEMENTED_RESOURCES), len(clearing_prices))
-        self.assertEqual(pricing[Resource.ELECTRICITY].get_electricity_net_external_price(external_gross_price),
+        self.assertEqual(elec_price.get_electricity_net_external_price(external_gross_price),
                          clearing_prices[Resource.ELECTRICITY])
         for bid in bids_with_acceptance_status:
             self.assertTrue(bid.accepted_quantity > 0)
@@ -103,7 +95,7 @@ class TestMarketSolver(TestCase):
                 GrossBid(SOME_DATETIME, Action.SELL, Resource.ELECTRICITY, 100, 0.75, "Seller1", False),
                 GrossBid(SOME_DATETIME, Action.SELL, Resource.ELECTRICITY, 100, 1, "Seller2", False),
                 GrossBid(SOME_DATETIME, Action.BUY, Resource.ELECTRICITY, 200, math.inf, "Buyer1", False)]
-        net_bids = net_bids_from_gross_bids(bids, pricing[Resource.ELECTRICITY])
+        net_bids = net_bids_from_gross_bids(bids, elec_price)
         # Top bid being typical for external grid
         # Someone willing to sell 100 kWh at 0.75 SEK/kWh,
         # someone willing to sell 100 kWh at 1 SEK/kWh,
@@ -126,7 +118,7 @@ class TestMarketSolver(TestCase):
         """
         bids = [GrossBid(SOME_DATETIME, Action.SELL, Resource.ELECTRICITY, 100, 0.75, "Seller1", False),
                 GrossBid(SOME_DATETIME, Action.BUY, Resource.ELECTRICITY, 200, math.inf, "Buyer1", False)]
-        net_bids = net_bids_from_gross_bids(bids, pricing[Resource.ELECTRICITY])
+        net_bids = net_bids_from_gross_bids(bids, elec_price)
         clearing_prices, bids_with_acceptance_status = resolve_bids(SOME_DATETIME, net_bids)
         self.assertEqual(len(ALL_IMPLEMENTED_RESOURCES), len(clearing_prices))
         self.assertTrue(np.isnan(clearing_prices[Resource.ELECTRICITY]))
@@ -138,7 +130,7 @@ class TestMarketSolver(TestCase):
         bids = [GrossBid(SOME_DATETIME, Action.SELL, Resource.ELECTRICITY, 100, 1, "Seller1", False),
                 GrossBid(SOME_DATETIME, Action.SELL, Resource.ELECTRICITY, 100, 1.25, "Seller2", False),
                 GrossBid(SOME_DATETIME, Action.BUY, Resource.ELECTRICITY, 200, 1.5, "Buyer1", False)]
-        net_bids = net_bids_from_gross_bids(bids, pricing[Resource.ELECTRICITY])
+        net_bids = net_bids_from_gross_bids(bids, elec_price)
         # Someone willing to sell 100 kWh at 1 SEK/kWh,
         # someone willing to buy 100 kWh at 1.25 SEK/kWh,
         # someone willing to buy 200 kWh at 1.5 SEK/kWh.
@@ -166,7 +158,7 @@ class TestMarketSolver(TestCase):
                          'GroceryStoreAgent', False),
                 GrossBid(SOME_DATETIME, Action.SELL, Resource.ELECTRICITY, 10000, 0.89069, 'ElectricityGridAgent',
                          True)]
-        net_bids = net_bids_from_gross_bids(bids, pricing[Resource.ELECTRICITY])
+        net_bids = net_bids_from_gross_bids(bids, elec_price)
         # Local surplus
         # Clearing price should be 0.46069 SEK/kWh
         clearing_prices, bids_with_acceptance_status = resolve_bids(SOME_DATETIME, net_bids)
@@ -187,12 +179,12 @@ class TestMarketSolver(TestCase):
                 GrossBid(SOME_DATETIME, Action.SELL, Resource.ELECTRICITY, 10000, external_gross_price,
                          'ElectricityGridAgent', True),
                 GrossBid(SOME_DATETIME, Action.SELL, Resource.HEATING, 10000, 2.0, 'HeatingGridAgent', True)]
-        net_bids = net_bids_from_gross_bids(bids, pricing[Resource.ELECTRICITY])
+        net_bids = net_bids_from_gross_bids(bids, elec_price)
         # Local surplus
         # Clearing price for electricity should be 0.8 SEK/kWh, for heating np.nan
         clearing_prices, bids_with_acceptance_status = resolve_bids(SOME_DATETIME, net_bids)
         self.assertEqual(len(ALL_IMPLEMENTED_RESOURCES), len(clearing_prices))
-        self.assertEqual(pricing[Resource.ELECTRICITY].get_electricity_net_external_price(external_gross_price),
+        self.assertEqual(elec_price.get_electricity_net_external_price(external_gross_price),
                          clearing_prices[Resource.ELECTRICITY])
         self.assertTrue(np.isnan(clearing_prices[Resource.HEATING]))
         for bid in bids_with_acceptance_status:
@@ -210,10 +202,10 @@ class TestMarketSolver(TestCase):
                          'ElectricityGridAgent', True),
                 GrossBid(SOME_DATETIME, Action.BUY, Resource.HEATING, 400, math.inf, 'BlockAgent', False),
                 GrossBid(SOME_DATETIME, Action.SELL, Resource.HEATING, 10000, 2.0, 'HeatingGridAgent', True)]
-        net_bids = net_bids_from_gross_bids(bids, pricing[Resource.ELECTRICITY])
+        net_bids = net_bids_from_gross_bids(bids, elec_price)
         clearing_prices, bids_with_acceptance_status = resolve_bids(SOME_DATETIME, net_bids)
         self.assertEqual(len(ALL_IMPLEMENTED_RESOURCES), len(clearing_prices))
-        self.assertEqual(pricing[Resource.ELECTRICITY].get_electricity_net_external_price(external_gross_price),
+        self.assertEqual(elec_price.get_electricity_net_external_price(external_gross_price),
                          clearing_prices[Resource.ELECTRICITY])
         self.assertEqual(2, clearing_prices[Resource.HEATING])
         for bid in bids_with_acceptance_status:
@@ -232,7 +224,7 @@ class TestMarketSolver(TestCase):
         bids = [GrossBid(SOME_DATETIME, Action.SELL, Resource.ELECTRICITY, 100, retail_price, "Grid", True),
                 GrossBid(SOME_DATETIME, Action.BUY, Resource.ELECTRICITY, 4, math.inf, "Buyer", False),
                 GrossBid(SOME_DATETIME, Action.SELL, Resource.ELECTRICITY, 5, wholesale_price, "Seller", False)]
-        net_bids = net_bids_from_gross_bids(bids, pricing[Resource.ELECTRICITY])
+        net_bids = net_bids_from_gross_bids(bids, elec_price)
         # Clearing price should be wholesale_price, since local supply > local demand
         clearing_prices, bids_with_acceptance_status = resolve_bids(SOME_DATETIME, net_bids)
         self.assertAlmostEqual(wholesale_price, clearing_prices[Resource.ELECTRICITY])
@@ -245,7 +237,7 @@ class TestMarketSolver(TestCase):
                 GrossBid(SOME_DATETIME, Action.SELL, Resource.ELECTRICITY, 5, wholesale_price, "Seller", False),
                 GrossBid(SOME_DATETIME, Action.BUY, Resource.ELECTRICITY, 2, storage_buy_price, "Storage", False),
                 GrossBid(SOME_DATETIME, Action.SELL, Resource.ELECTRICITY, 2, storage_sell_price, "Storage", False)]
-        net_bids = net_bids_from_gross_bids(bids, pricing[Resource.ELECTRICITY])
+        net_bids = net_bids_from_gross_bids(bids, elec_price)
         # The storage agent wanting to buy at 0.8 should be ignored, since we have a lower price which satisfies all
         # demand which has asking price = Inf
         clearing_prices, bids_with_acceptance_status = resolve_bids(SOME_DATETIME, net_bids)
@@ -265,7 +257,7 @@ class TestMarketSolver(TestCase):
                 GrossBid(SOME_DATETIME, Action.SELL, Resource.ELECTRICITY, 5, wholesale_price, "Seller", False),
                 GrossBid(SOME_DATETIME, Action.BUY, Resource.ELECTRICITY, 2, storage_buy_price, "Storage", False),
                 GrossBid(SOME_DATETIME, Action.SELL, Resource.ELECTRICITY, 2, storage_sell_price, "Storage", False)]
-        net_bids = net_bids_from_gross_bids(bids, pricing[Resource.ELECTRICITY])
+        net_bids = net_bids_from_gross_bids(bids, elec_price)
         # The storage agent wanting to buy at 0.8 should be ignored, since we have a lower price which satisfies all
         # demand which has asking price = Inf
         clearing_prices, bids_with_acceptance_status = resolve_bids(SOME_DATETIME, net_bids)
@@ -283,10 +275,10 @@ class TestMarketSolver(TestCase):
                 GrossBid(SOME_DATETIME, Action.SELL, Resource.ELECTRICITY, 200, local_sell_price, "Seller2", False),
                 GrossBid(SOME_DATETIME, Action.SELL, Resource.ELECTRICITY, 10000, 10, "Grid", True),
                 GrossBid(SOME_DATETIME, Action.BUY, Resource.ELECTRICITY, 300, math.inf, "Buyer1", False)]
-        net_bids = net_bids_from_gross_bids(bids, pricing[Resource.ELECTRICITY])
+        net_bids = net_bids_from_gross_bids(bids, elec_price)
 
         clearing_prices, bids_with_acceptance_status = resolve_bids(SOME_DATETIME, net_bids)
-        local_sell_price_plus_tax_and_fee = pricing[Resource.ELECTRICITY].get_electricity_net_internal_price(
+        local_sell_price_plus_tax_and_fee = elec_price.get_electricity_net_internal_price(
             local_sell_price)
         self.assertAlmostEqual(local_sell_price_plus_tax_and_fee, clearing_prices[Resource.ELECTRICITY])
         accepted_sell_quantity = sum([bid.accepted_quantity for bid in bids_with_acceptance_status
@@ -298,4 +290,4 @@ class TestMarketSolver(TestCase):
         # Seller1 and Seller2 should both be partially accepted
         for bid_with_acceptance_status in bids_with_acceptance_status:
             if bid_with_acceptance_status.source in ["Seller1", "Seller2"]:
-                self.assertAlmostEqual(150, bid_with_acceptance_status.accepted_quantity)
+                self.assertAlmostEqual(150.0, bid_with_acceptance_status.accepted_quantity)

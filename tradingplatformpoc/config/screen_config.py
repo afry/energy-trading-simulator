@@ -153,16 +153,16 @@ def agent_diff(default: dict, new: dict) -> Tuple[List[str], List[str], Dict[str
     agents_only_in_default = [x for x in agents_in_default if x not in set(agents_same)]
     agents_only_in_new = [x for x in agents_in_new if x not in set(agents_same)]
 
-    param_diff = {}
+    param_diff_dict = {}
     for agent_name in agents_same:
         agent_default = [agent for agent in default['Agents'] if agent['Name'] == agent_name][0]
         agent_new = [agent for agent in new['Agents'] if agent['Name'] == agent_name][0]
         diff = set(agent_default.items()) - set(agent_new.items())
         if len(diff) > 0:
-            param_diff[agent_name] = dict((key, {'default': agent_default[key],
-                                                 'new': agent_new[key]}) for key in dict(diff).keys())
+            param_diff_dict[agent_name] = dict((key, {'default': agent_default[key],
+                                                      'new': agent_new[key]}) for key in dict(diff).keys())
 
-    return agents_only_in_default, agents_only_in_new, param_diff
+    return agents_only_in_default, agents_only_in_new, param_diff_dict
 
 
 def param_diff(default: dict, new: dict) -> Tuple[List[Tuple], List[Tuple]]:

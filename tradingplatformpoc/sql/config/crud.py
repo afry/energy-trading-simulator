@@ -33,7 +33,7 @@ def create_config_if_not_in_db(config: dict, config_id: str, description: str,
     agent_name_and_ids = {agent['Name']: create_agent_if_not_in_db(agent) for agent in config['Agents'][:]}
 
     # Check if matching config exists already
-    config_exists_id = check_if_config_in_db(config=config, agent_ids=agent_name_and_ids.values())
+    config_exists_id = check_if_config_in_db(config=config, agent_ids=list(agent_name_and_ids.values()))
     if config_exists_id is None:
         db_config_id = create_config(ConfigCreate(id=config_id,
                                                   description=description,

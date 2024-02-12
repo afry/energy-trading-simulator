@@ -246,7 +246,7 @@ def get_total_import_export(job_id: str, resource: Resource, action: Action,
 
 def get_import_export_df(job_ids: List[str],
                          session_generator: Callable[[], _GeneratorContextManager[Session]]
-                         = session_scope) -> float:
+                         = session_scope) -> pd.DataFrame:
     with session_generator() as db:
         res = db.query(
             TableTrade.job_id.label('job_id'),

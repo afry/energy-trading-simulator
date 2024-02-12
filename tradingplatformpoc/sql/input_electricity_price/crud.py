@@ -43,8 +43,8 @@ def insert_input_electricity_price_to_db_if_empty(session_generator: Callable[[]
             logger.info('Input data table already populated.')
 
 
-def electricity_price_df_from_db(session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope
-                                 ) -> pd.Series:
+def electricity_price_series_from_db(session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope
+                                     ) -> pd.Series:
     with session_generator() as db:
         res = db.query(InputElectricityPrice).all()
         if res is not None:
