@@ -18,7 +18,7 @@ from tradingplatformpoc.sql.trade.models import Trade as TableTrade
 
 def heat_trades_from_db_for_periods(trading_periods, job_id: str,
                                     session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope)\
-        -> Dict[datetime.datetime, Dict]:
+        -> Dict[datetime.datetime, List]:
     with session_generator() as db:
         trades_for_month = db.execute(select(TableTrade.period.label('period'),
                                              TableTrade.action.label('action').label('action'),
@@ -91,21 +91,20 @@ def db_to_trade_df(job_id: str,
                                            } for (trade, ) in trades])
 
 
-def trades_to_db_dict(bids_list: List[Trade], job_id: str) -> List[Dict[str, Any]]:
-    dict = [{'job_id': job_id,
-             'period': x.period,
-             'source': x.source,
-             'by_external': x.by_external,
-             'action': x.action,
-             'resource': x.resource,
-             'quantity_pre_loss': x.quantity_pre_loss,
-             'quantity_post_loss': x.quantity_post_loss,
-             'price': x.price,
-             'market': x.market,
-             'tax_paid': x.tax_paid,
-             'grid_fee_paid': x.grid_fee_paid}
-            for some_collection in bids_list for x in some_collection]
-    return dict
+def trades_to_db_dict(lists_of_trade_lists: List[List[Trade]], job_id: str) -> List[Dict[str, Any]]:
+    return [{'job_id': job_id,
+             'period': trade.period,
+             'source': trade.source,
+             'by_external': trade.by_external,
+             'action': trade.action,
+             'resource': trade.resource,
+             'quantity_pre_loss': trade.quantity_pre_loss,
+             'quantity_post_loss': trade.quantity_post_loss,
+             'price': trade.price,
+             'market': trade.market,
+             'tax_paid': trade.tax_paid,
+             'grid_fee_paid': trade.grid_fee_paid}
+            for list_of_trades in lists_of_trade_lists for trade in list_of_trades]
 
 
 def db_to_aggregated_trade_df(job_id: str, resource: Resource, action: Action,

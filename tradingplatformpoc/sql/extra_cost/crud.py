@@ -12,15 +12,13 @@ from tradingplatformpoc.market.extra_cost import ExtraCost, ExtraCostType
 from tradingplatformpoc.sql.extra_cost.models import ExtraCost as TableExtraCost
 
 
-def extra_costs_to_db_dict(all_extra_costs_list: List[ExtraCost],
-                           job_id: str) -> List[Dict[str, Any]]:
-    dict = [{'job_id': job_id,
+def extra_costs_to_db_dict(all_extra_costs_list: List[ExtraCost], job_id: str) -> List[Dict[str, Any]]:
+    return [{'job_id': job_id,
              'period': x.period,
              'agent': x.agent,
              'cost_type': x.cost_type.name,
              'cost': x.cost}
             for x in all_extra_costs_list]
-    return dict
 
 
 def db_to_extra_cost_df(job_id: str,

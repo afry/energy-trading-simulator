@@ -19,8 +19,9 @@ from tradingplatformpoc.generate_data.mock_data_utils import get_cooling_cons_ke
 from tradingplatformpoc.market import balance_manager
 from tradingplatformpoc.market import market_solver
 from tradingplatformpoc.market.balance_manager import correct_for_exact_heating_price
-from tradingplatformpoc.market.bid import GrossBid, Resource
-from tradingplatformpoc.market.trade import TradeMetadataKey
+from tradingplatformpoc.market.bid import GrossBid, NetBidWithAcceptanceStatus, Resource
+from tradingplatformpoc.market.extra_cost import ExtraCost
+from tradingplatformpoc.market.trade import Trade, TradeMetadataKey
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
 from tradingplatformpoc.simulation_runner.simulation_utils import get_external_heating_prices, \
@@ -187,10 +188,10 @@ class TradingSimulator:
             trading_periods_in_this_batch = self.trading_periods[
                 batch_number * batch_size:min((batch_number + 1) * batch_size, number_of_trading_periods)]
 
-            all_bids_list_batch: List[TableBid] = []
-            all_trades_list_batch: List[TableTrade] = []
-            all_extra_costs_batch: List[TableExtraCost] = []
-            electricity_price_list_batch: List[TableElectricityPrice] = []
+            all_bids_list_batch: List[List[NetBidWithAcceptanceStatus]] = []
+            all_trades_list_batch: List[List[Trade]] = []
+            all_extra_costs_batch: List[ExtraCost] = []
+            electricity_price_list_batch: List[dict] = []
 
             # Loop over periods i batch
             for period in trading_periods_in_this_batch:
