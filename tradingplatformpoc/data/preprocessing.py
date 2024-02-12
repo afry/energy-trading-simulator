@@ -70,9 +70,10 @@ def read_energy_data(data_path: str = "tradingplatformpoc.data",
     energy_data['coop_electricity_consumed'] = energy_data['coop_electricity_consumed_cooling_kwh'] \
         + energy_data['coop_electricity_consumed_other_kwh']
     # Indications are Coop has no excess heat so setting to 0
-    energy_data['coop_high_heat_consumed'] = np.maximum(energy_data['coop_hw_consumed_kwh'], 0)
-    energy_data['coop_low_heat_consumed'] = np.maximum(energy_data['coop_net_space_heat_consumed'], 0)
-    return energy_data[['coop_electricity_consumed', 'coop_high_heat_consumed', 'coop_low_heat_consumed']].reset_index()
+    energy_data['coop_hot_tap_water_consumed'] = np.maximum(energy_data['coop_hw_consumed_kwh'], 0)
+    energy_data['coop_space_heating_consumed'] = np.maximum(energy_data['coop_net_space_heat_consumed'], 0)
+    return (energy_data[['coop_electricity_consumed', 'coop_hot_tap_water_consumed', 'coop_space_heating_consumed']].
+            reset_index())
 
 
 def read_temperature_data(data_path: str = "tradingplatformpoc.data",

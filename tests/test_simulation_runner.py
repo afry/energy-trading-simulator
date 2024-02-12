@@ -38,8 +38,8 @@ class Test(TestCase):
                               get_space_heat_cons_key(agent_id),
                               get_hot_tap_water_cons_key(agent_id)] for agent_id in agent_specs.values()]
         input_data = read_and_process_input_data()[[
-            'datetime', 'irradiation', 'coop_electricity_consumed', 'coop_high_heat_consumed',
-            'coop_low_heat_consumed']].rename(columns={'datetime': 'period'})
+            'datetime', 'irradiation', 'coop_electricity_consumed', 'coop_hot_tap_water_consumed',
+            'coop_space_heating_consumed']].rename(columns={'datetime': 'period'})
 
         with (mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.get_config_id_for_job_id',
                          return_value='fake_config_id'),
