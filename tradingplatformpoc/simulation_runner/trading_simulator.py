@@ -157,8 +157,9 @@ class TradingSimulator:
                                                       agent['PVArea'],
                                                       agent['PVEfficiency'])
                 grocery_store_digital_twin = StaticDigitalTwin(electricity_usage=inputs_df['coop_electricity_consumed'],
-                                                               space_heating_usage=inputs_df['coop_heating_consumed'],
-                                                               # TODO: Grocery store tap water consumption
+                                                               space_heating_usage=inputs_df[
+                                                                   'coop_space_heating_consumed'],
+                                                               hot_water_usage=inputs_df['coop_hot_tap_water_consumed'],
                                                                electricity_production=pv_prod_series)
                 agents.append(
                     BlockAgent(self.local_market_enabled, heat_pricing=self.heat_pricing,

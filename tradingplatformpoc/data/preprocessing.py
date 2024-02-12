@@ -63,14 +63,17 @@ def read_nordpool_data(data_path: str = "tradingplatformpoc.data",
 
 def read_energy_data(data_path: str = "tradingplatformpoc.data",
                      energy_data_file: str = "full_mock_energy_data.csv") -> pd.DataFrame:
+    # "full_mock_energy_data.csv" is generated in data-exploration, compare_coop_and_tornet.ipynb
     energy_data_csv_path = resource_filename(data_path, energy_data_file)
     energy_data = pd.read_csv(energy_data_csv_path, index_col=0)
     energy_data.index = pd.to_datetime(energy_data.index, utc=True)
     energy_data['coop_electricity_consumed'] = energy_data['coop_electricity_consumed_cooling_kwh'] \
         + energy_data['coop_electricity_consumed_other_kwh']
-    # Indications are Coop has no excess heat so setting to 0
-    energy_data['coop_heating_consumed'] = np.maximum(energy_data['coop_net_heat_consumed'], 0)
-    return energy_data[['coop_electricity_consumed', 'coop_heating_consumed']].reset_index()
+    energy_data['coop_hot_tap_water_consumed'] = energy_data['coop_hw_consumed_kwh']
+    # Indications are Coop has no excess heat, so we stop this from ever being negative:
+    energy_data['coop_space_heating_consumed'] = np.maximum(energy_data['coop_net_space_heat_consumed'], 0)
+    return (energy_data[['coop_electricity_consumed', 'coop_hot_tap_water_consumed', 'coop_space_heating_consumed']].
+            reset_index())
 
 
 def read_temperature_data(data_path: str = "tradingplatformpoc.data",
