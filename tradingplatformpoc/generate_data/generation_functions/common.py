@@ -7,7 +7,7 @@ import polars as pl
 
 def scale_energy_consumption(unscaled_simulated_values_kwh: pl.LazyFrame, m2: float,
                              kwh_per_year_per_m2: float, n_rows: int) -> pl.LazyFrame:
-    if n_rows > 8760:
+    if n_rows >= 8760:
         # unscaled_simulated_values may contain more than 1 year, so to scale, compare the sum of the first 8766 hours
         # i.e. 365.25 days, with the wanted yearly sum.
         wanted_yearly_sum = m2 * kwh_per_year_per_m2

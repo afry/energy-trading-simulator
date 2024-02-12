@@ -71,13 +71,15 @@ def read_inputs_df_for_agent_creation(
         res = db.execute(select(InputData.period.label('period'),
                                 InputData.irradiation.label('irradiation'),
                                 InputData.coop_electricity_consumed.label('coop_electricity_consumed'),
-                                InputData.coop_heating_consumed.label('coop_heating_consumed'))).all()
+                                InputData.coop_high_heat_consumed.label('coop_high_heat_consumed'),
+                                InputData.coop_low_heat_consumed.label('coop_low_heat_consumed'))).all()
         if res is not None:
             return pd.DataFrame.from_records([{
                 'period': x.period,
                 'irradiation': x.irradiation,
                 'coop_electricity_consumed': x.coop_electricity_consumed,
-                'coop_heating_consumed': x.coop_heating_consumed}
+                'coop_high_heat_consumed': x.coop_high_heat_consumed,
+                'coop_low_heat_consumed': x.coop_low_heat_consumed}
                 for x in res]).set_index('period')
         else:
             raise Exception('Could not fetch input data from database.')

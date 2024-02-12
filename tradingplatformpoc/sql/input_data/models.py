@@ -42,9 +42,15 @@ class InputData(SQLModel, table=True):
         title='Coop electricity consumed (cooling and other), in kWh.',
         nullable=False
     )
-    coop_heating_consumed: float = Field(
+    coop_high_heat_consumed: float = Field(
         primary_key=False,
         default=None,
-        title='Coop heating consumed (net), in kWh.',
+        title='Coop hot tap water consumed, in kWh.',
+        nullable=False
+    )
+    coop_low_heat_consumed: float = Field(
+        primary_key=False,
+        default=None,
+        title='Coop space heating consumed (net), in kWh.',
         nullable=False
     )
