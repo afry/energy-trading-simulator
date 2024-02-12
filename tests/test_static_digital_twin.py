@@ -20,7 +20,7 @@ class TestStaticDigitalTwin(TestCase):
                                            space_heating_usage=ones_series * 250)
 
     def test_get_electricity_consumed(self):
-        self.assertAlmostEqual(150, self.block_digital_twin.get_consumption(FEB_1ST_1AM, Resource.ELECTRICITY))
+        self.assertAlmostEqual(150.0, self.block_digital_twin.get_consumption(FEB_1ST_1AM, Resource.ELECTRICITY))
 
     def test_not_specified_series(self):
-        self.assertAlmostEqual(0, self.block_digital_twin.get_production(FEB_1ST_1AM, Resource.ELECTRICITY))
+        self.assertAlmostEqual(0.0, self.block_digital_twin.get_production(FEB_1ST_1AM, Resource.ELECTRICITY))

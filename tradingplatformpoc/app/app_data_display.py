@@ -23,7 +23,7 @@ from tradingplatformpoc.sql.extra_cost.crud import db_to_aggregated_extra_costs_
 from tradingplatformpoc.sql.heating_price.crud import db_to_heating_price_dict
 from tradingplatformpoc.sql.input_data.crud import get_periods_from_db, read_input_column_df_from_db, \
     read_inputs_df_for_agent_creation
-from tradingplatformpoc.sql.input_electricity_price.crud import electricity_price_df_from_db
+from tradingplatformpoc.sql.input_electricity_price.crud import electricity_price_series_from_db
 from tradingplatformpoc.sql.mock_data.crud import db_to_mock_data_df, get_mock_data_agent_pairs_in_db
 from tradingplatformpoc.sql.trade.crud import db_to_trades_by_agent_and_resource_action, \
     elec_trades_by_external_for_periods_to_df, get_total_import_export, get_total_traded_for_agent
@@ -71,7 +71,7 @@ def construct_combined_price_df(local_price_df: pd.DataFrame, config_data: dict)
         elec_grid_fee=config_data['AreaInfo']["ElectricityGridFee"],
         elec_tax_internal=config_data['AreaInfo']["ElectricityTaxInternal"],
         elec_grid_fee_internal=config_data['AreaInfo']["ElectricityGridFeeInternal"],
-        nordpool_data=electricity_price_df_from_db())
+        nordpool_data=electricity_price_series_from_db())
 
     nordpool_data = elec_pricing.nordpool_data
     nordpool_data.name = 'value'

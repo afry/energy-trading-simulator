@@ -22,8 +22,9 @@ from tradingplatformpoc.generate_data.mock_data_utils import get_cooling_cons_ke
 from tradingplatformpoc.market import balance_manager
 from tradingplatformpoc.market import market_solver
 from tradingplatformpoc.market.balance_manager import correct_for_exact_heating_price
-from tradingplatformpoc.market.bid import GrossBid, Resource
-from tradingplatformpoc.market.trade import TradeMetadataKey
+from tradingplatformpoc.market.bid import GrossBid, NetBidWithAcceptanceStatus, Resource
+from tradingplatformpoc.market.extra_cost import ExtraCost
+from tradingplatformpoc.market.trade import Trade, TradeMetadataKey
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
 from tradingplatformpoc.settings import settings
@@ -42,7 +43,7 @@ from tradingplatformpoc.sql.extra_cost.crud import extra_costs_to_db_dict
 from tradingplatformpoc.sql.extra_cost.models import ExtraCost as TableExtraCost
 from tradingplatformpoc.sql.heating_price.models import HeatingPrice as TableHeatingPrice
 from tradingplatformpoc.sql.input_data.crud import get_periods_from_db, read_inputs_df_for_agent_creation
-from tradingplatformpoc.sql.input_electricity_price.crud import electricity_price_df_from_db
+from tradingplatformpoc.sql.input_electricity_price.crud import electricity_price_series_from_db
 from tradingplatformpoc.sql.job.crud import delete_job, get_config_id_for_job_id, \
     update_job_with_time
 from tradingplatformpoc.sql.level.crud import levels_to_db_dict
@@ -98,7 +99,7 @@ class TradingSimulator:
             elec_grid_fee=self.config_data['AreaInfo']["ElectricityGridFee"],
             elec_tax_internal=self.config_data['AreaInfo']["ElectricityTaxInternal"],
             elec_grid_fee_internal=self.config_data['AreaInfo']["ElectricityGridFeeInternal"],
-            nordpool_data=electricity_price_df_from_db())
+            nordpool_data=electricity_price_series_from_db())
 
         self.trading_periods = get_periods_from_db().sort_values()
         self.trading_horizon = self.config_data['AreaInfo']['TradingHorizon']
@@ -211,11 +212,10 @@ class TradingSimulator:
             trading_horizon_start_points = self.trading_periods[::self.trading_horizon]
             thsps_in_this_batch = trading_horizon_start_points[
                 batch_number * new_batch_size:min((batch_number + 1) * new_batch_size, number_of_trading_horizons)]
-
-            all_bids_list_batch: List[TableBid] = []
-            all_trades_list_batch: List[TableTrade] = []
-            all_extra_costs_batch: List[TableExtraCost] = []
-            electricity_price_list_batch: List[TableElectricityPrice] = []
+            all_bids_list_batch: List[List[NetBidWithAcceptanceStatus]] = []
+            all_trades_list_batch: List[List[Trade]] = []
+            all_extra_costs_batch: List[ExtraCost] = []
+            electricity_price_list_batch: List[dict] = []
 
             # ------- NEW --------
             logger.info('Starting new bit')

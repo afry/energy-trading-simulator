@@ -12,19 +12,17 @@ from tradingplatformpoc.market.bid import NetBidWithAcceptanceStatus
 from tradingplatformpoc.sql.bid.models import Bid as TableBid
 
 
-def bids_to_db_dict(trades_list: List[NetBidWithAcceptanceStatus],
-                    job_id: str) -> List[Dict[str, Any]]:
-    dict = [{'job_id': job_id,
-             'period': x.period,
-             'source': x.source,
-             'by_external': x.by_external,
-             'action': x.action,
-             'resource': x.resource,
-             'quantity': x.quantity,
-             'price': x.price,
-             'accepted_quantity': x.accepted_quantity}
-            for some_collection in trades_list for x in some_collection]
-    return dict
+def bids_to_db_dict(list_of_bid_lists: List[List[NetBidWithAcceptanceStatus]], job_id: str) -> List[Dict[str, Any]]:
+    return [{'job_id': job_id,
+             'period': bid.period,
+             'source': bid.source,
+             'by_external': bid.by_external,
+             'action': bid.action,
+             'resource': bid.resource,
+             'quantity': bid.quantity,
+             'price': bid.price,
+             'accepted_quantity': bid.accepted_quantity}
+            for bid_list in list_of_bid_lists for bid in bid_list]
 
 
 def db_to_bid_df(job_id: str,
