@@ -1,4 +1,5 @@
 import logging
+import platform
 from datetime import datetime, timedelta
 from typing import Any, Collection, Dict, List
 
@@ -6,7 +7,11 @@ import numpy as np
 
 import pandas as pd
 
+import pyomo.environ as pyo
+from pyomo.opt import OptSolver
+
 from tradingplatformpoc.market.bid import Resource
+from tradingplatformpoc.settings import settings
 
 ALL_IMPLEMENTED_RESOURCES = [Resource.ELECTRICITY, Resource.HEATING]
 ALL_IMPLEMENTED_RESOURCES_STR = [res.name for res in ALL_IMPLEMENTED_RESOURCES]
@@ -92,3 +97,12 @@ def add_to_nested_dict(nested_dict: dict, key1, key2, value):
         nested_dict[key1][key2] = value
     else:
         nested_dict[key1] = {key2: value}
+
+
+def get_glpk_solver() -> OptSolver:
+    if platform.system() == 'Linux':
+        logger.info('Linux system')
+        return pyo.SolverFactory('glpk')
+    else:
+        logger.info('Not a linux system, using GLPK_PATH')
+        return pyo.SolverFactory('glpk', executable=settings.GLPK_PATH)

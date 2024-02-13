@@ -1,28 +1,18 @@
 import datetime
 import logging
-import platform
 from unittest import TestCase
 
-import pyomo.environ as pyo
-
-from tradingplatformpoc.settings import settings
 from tradingplatformpoc.simulation_runner.chalmers_interface import add_value_per_agent_to_dict, \
     get_power_transfers
 from tradingplatformpoc.simulation_runner.optimization_problem import mock_opt_problem
-
+from tradingplatformpoc.trading_platform_utils import get_glpk_solver
 
 logger = logging.getLogger(__name__)
 
 
 class Test(TestCase):
 
-    if platform.system() == 'Linux':
-        logger.info('Linux system')
-        solver = pyo.SolverFactory('glpk')
-    else:
-        logger.info('Not a linux system, using GLPK_PATH')
-        solver = pyo.SolverFactory('glpk', executable=settings.GLPK_PATH)
-
+    solver = get_glpk_solver()
     mod, res = mock_opt_problem(solver)
     agent_guids = ['agent1', 'agent2', 'agent3', 'agent4']
 

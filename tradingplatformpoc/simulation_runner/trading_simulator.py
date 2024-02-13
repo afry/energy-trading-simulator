@@ -1,13 +1,10 @@
 import datetime
 import logging
 import math
-import platform
 import threading
 from typing import Any, Dict, List, Tuple
 
 import pandas as pd
-
-import pyomo.environ as pyo
 
 from tradingplatformpoc.agent.block_agent import BlockAgent
 from tradingplatformpoc.agent.grid_agent import GridAgent
@@ -27,9 +24,8 @@ from tradingplatformpoc.market.extra_cost import ExtraCost
 from tradingplatformpoc.market.trade import Trade, TradeMetadataKey
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
-from tradingplatformpoc.settings import settings
 from tradingplatformpoc.simulation_runner import optimization_problem
-from tradingplatformpoc.simulation_runner.chalmers_interface import build_inputs
+from tradingplatformpoc.simulation_runner.chalmers_interface import optimize
 from tradingplatformpoc.simulation_runner.simulation_utils import get_external_heating_prices, \
     get_quantity_heating_sold_by_external_grid, go_through_trades_metadata, \
     net_bids_from_gross_bids
@@ -50,21 +46,16 @@ from tradingplatformpoc.sql.level.crud import levels_to_db_dict
 from tradingplatformpoc.sql.level.models import Level as TableLevel
 from tradingplatformpoc.sql.trade.crud import trades_to_db_dict
 from tradingplatformpoc.sql.trade.models import Trade as TableTrade
-from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, flatten_collection
+from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, flatten_collection, get_glpk_solver
 
 logger = logging.getLogger(__name__)
 
 
 class TradingSimulator:
     def __init__(self, job_id: str):
-        if platform.system() == 'Linux':
-            logger.info('Linux system')
-            self.solver = pyo.SolverFactory('glpk')
-        else:
-            logger.info('Not a linux system, using GLPK_PATH')
-            self.solver = pyo.SolverFactory('glpk', executable=settings.GLPK_PATH)
+        self.solver = get_glpk_solver()
         # To verify that the solver works: REMOVE ME WHEN WE START USING THE SOLVER FOR REAL
-        optimization_problem.mock_opt_problem(self.solver)
+        optimization_problem.mock_opt_problem(self.solver, verbose=True)
 
         self.job_id = job_id
         self.config_id = get_config_id_for_job_id(self.job_id)
@@ -224,8 +215,8 @@ class TradingSimulator:
                 if horizon_start.day == horizon_start.hour == 1:
                     info_string = "Simulations entering {:%B}".format(horizon_start)
                     logger.info(info_string)
-                build_inputs(self.agents, self.grid_agents, self.config_data['AreaInfo'], horizon_start,
-                             self.trading_horizon)
+                optimize(self.solver, self.agents, self.grid_agents, self.config_data['AreaInfo'], horizon_start,
+                         self.trading_horizon)
             logger.info('End new bit')
 
             # ------- OLD --------

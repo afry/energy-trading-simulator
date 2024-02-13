@@ -11,14 +11,14 @@ from pyomo.opt import SolverResults, TerminationCondition
 logger = logging.getLogger(__name__)
 
 
-def mock_opt_problem(solver) -> Tuple[pyo.ConcreteModel, SolverResults]:
-    # TODO: DELETE THIS FILE (but keep methods below?) when we start using the optimization solution for real
+def mock_opt_problem(solver, verbose: bool = False) -> Tuple[pyo.ConcreteModel, SolverResults]:
+    # TODO: DELETE THIS FILE when we start using the optimization solution for real
 
     # Create a concrete optimization model
     model = pyo.ConcreteModel()
 
     # Sets
-    hours_to_run = 6
+    hours_to_run = 3
     n_agents = 4
     model.time = pyo.Set(initialize=range(hours_to_run))  # index of time intervals
     model.agent = pyo.Set(initialize=range(n_agents))  # index of agents
@@ -70,10 +70,11 @@ def mock_opt_problem(solver) -> Tuple[pyo.ConcreteModel, SolverResults]:
 
     # Check solver status
     if results.solver.termination_condition == TerminationCondition.optimal:
-        logger.info('The solver works.')
-        # Access the optimal solution
-        logger.info(f'Optimal Pbuy_market: {[i for i in model.Pbuy_market]}')
-        logger.info(f'Optimal Psell_market: {[i for i in model.Psell_market]}')
+        if verbose:
+            logger.info('The solver works.')
+            # Access the optimal solution
+            logger.info(f'Optimal Pbuy_market: {[i for i in model.Pbuy_market]}')
+            logger.info(f'Optimal Psell_market: {[i for i in model.Psell_market]}')
     else:
         logger.error('The solver did not find an optimal solution. Solver status: '
                      + str(results.solver.termination_condition))
