@@ -87,7 +87,7 @@ def cleanup_config_name(name: str) -> str:
 
 
 def config_naming_is_valid(name: str) -> bool:
-    return name.replace(' ', '').isalpha() and (len(name.replace(' ', '')) > 0)
+    return name.replace(' ', '').isalnum() and (len(name.replace(' ', '')) > 0)
 
 
 def run_simulation(job_id: str):
