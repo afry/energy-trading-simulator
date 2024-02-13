@@ -1,5 +1,6 @@
 from unittest import TestCase
 
+from tradingplatformpoc.app.app_functions import config_naming_is_valid, has_control_characters
 from tradingplatformpoc.config.screen_config import config_data_agent_screening, config_data_keys_screening, \
     config_data_param_screening
 
@@ -135,4 +136,13 @@ class TestAppFunctions(TestCase):
         mock_grid_he['TransferRate'] = -0.1
         self.assertEqual("Specified TransferRate: -0.1 < 0.0.",
                          config_data_agent_screening({'Agents': [mock_grid_he, mock_grid_el, mock_pv]}))
-        
+
+    def test_config_naming_is_valid(self):
+        """Test that we allow/disallow config names appropriately"""
+        self.assertTrue(config_naming_is_valid('2 block agents'))
+        self.assertFalse(config_naming_is_valid(' '))
+        self.assertFalse(config_naming_is_valid('abc\x0123'))
+
+    def test_has_control_characters(self):
+        self.assertTrue(has_control_characters('abc\x0123'))
+        self.assertFalse(has_control_characters('Just a normal string'))
