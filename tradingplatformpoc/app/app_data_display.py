@@ -260,7 +260,8 @@ def get_savings_vs_only_external_buy(job_id: str, agent_guid: str) -> Tuple[floa
         + get_savings_vs_only_external_sell_heat(job_id, agent_guid) \
         + get_savings_vs_only_external_sell_elec(job_id, agent_guid) \
         - extra_costs_for_heat_cost_discr
-
+    # TODO: This is bugged somehow.
+    #  Test running simulations with only 1 grocery store agent, then total_saved should be 0, but isn't
     return total_saved, extra_costs_for_bad_bids
 
 
