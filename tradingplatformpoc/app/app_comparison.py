@@ -72,15 +72,20 @@ class AggregatedTrades:
     def __init__(self, external_trades_df: pd.DataFrame, value_column_name: str = 'quantity_post_loss'):
         """
         Expected columns in external_trades_df:
-        ['period', 'action', value_column_name]
+        ['period', 'action', 'price', value_column_name]
         """
         # Sold by the external = bought by the LEC
-        external_trades_df['net'] = external_trades_df.apply(lambda x: x[value_column_name]
-                                                             if x.action == Action.SELL else -x[value_column_name],
-                                                             axis=1)
-        self.sum = external_trades_df['net'].sum()
-        self.monthly_sums = external_trades_df['net'].groupby(external_trades_df['period'].dt.month).sum()
-        self.monthly_maxes = external_trades_df['net'].groupby(external_trades_df['period'].dt.month).max()
+        # So a positive "net" means the LEC imported
+        external_trades_df['net_imported'] = external_trades_df.apply(lambda x: x[value_column_name]
+                                                                      if x.action == Action.SELL
+                                                                      else -x[value_column_name],
+                                                                      axis=1)
+        self.sum_net_import = external_trades_df['net_imported'].sum()
+        self.monthly_sum_net_import = external_trades_df['net_imported']. \
+            groupby(external_trades_df['period'].dt.month).sum()
+        self.monthly_max_net_import = external_trades_df['net_imported']. \
+            groupby(external_trades_df['period'].dt.month).max()
+        self.sum_lec_expenditure = (external_trades_df['net_imported'] * external_trades_df['price']).sum()
 
 
 class AggregatedTradesPerJobAndResource:
@@ -124,7 +129,7 @@ def import_export_calculations(ids: ComparisonIds) -> Tuple[alt.Chart, Aggregate
     for resource in [Resource.HEATING, Resource.ELECTRICITY]:
         for job_id in pd.unique(df.job_id):
             both_actions = df[(df.resource == resource) & (df.job_id == job_id)][[
-                'period', 'action', 'quantity_post_loss']]
+                'period', 'action', 'price', 'quantity_post_loss']]
 
             aggregations.put(job_id, resource, AggregatedTrades(both_actions))
 
@@ -155,19 +160,25 @@ def import_export_calculations(ids: ComparisonIds) -> Tuple[alt.Chart, Aggregate
 def show_key_figures(ids: ComparisonIds, aggregations: AggregatedTradesPerJobAndResource):
     c1, c2 = st.columns(2)
     with c1:
-        job_1_elec = aggregations.get(ids.id_pairs[0].job_id, Resource.ELECTRICITY)
-        job_1_heat = aggregations.get(ids.id_pairs[0].job_id, Resource.HEATING)
+        job_1_id = ids.id_pairs[0].job_id
+        job_1_elec = aggregations.get(job_1_id, Resource.ELECTRICITY)
+        job_1_heat = aggregations.get(job_1_id, Resource.HEATING)
         st.metric(label="Net import of electricity:",
-                  value="{:,.2f} MWh".format(job_1_elec.sum / 1000))
+                  value="{:,.2f} MWh".format(job_1_elec.sum_net_import / 1000))
         st.metric(label="Net import of heating:",
-                  value="{:,.2f} MWh".format(job_1_heat.sum / 1000))
+                  value="{:,.2f} MWh".format(job_1_heat.sum_net_import / 1000))
+        st.metric(label="Total energy expenditure:",
+                  value="{:,.2f} SEK".format(job_1_elec.sum_lec_expenditure + job_1_heat.sum_lec_expenditure))
     with c2:
-        job_2_elec = aggregations.get(ids.id_pairs[1].job_id, Resource.ELECTRICITY)
-        job_2_heat = aggregations.get(ids.id_pairs[1].job_id, Resource.HEATING)
+        job_2_id = ids.id_pairs[1].job_id
+        job_2_elec = aggregations.get(job_2_id, Resource.ELECTRICITY)
+        job_2_heat = aggregations.get(job_2_id, Resource.HEATING)
         st.metric(label="Net import of electricity:",
-                  value="{:,.2f} MWh".format(job_2_elec.sum / 1000))
+                  value="{:,.2f} MWh".format(job_2_elec.sum_net_import / 1000))
         st.metric(label="Net import of heating:",
-                  value="{:,.2f} MWh".format(job_2_heat.sum / 1000))
+                  value="{:,.2f} MWh".format(job_2_heat.sum_net_import / 1000))
+        st.metric(label="Total energy expenditure:",
+                  value="{:,.2f} SEK".format(job_2_elec.sum_lec_expenditure + job_2_heat.sum_lec_expenditure))
 
 
 def construct_level_comparison_chart(ids: ComparisonIds, agent_names: List[str],

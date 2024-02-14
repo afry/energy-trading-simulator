@@ -251,8 +251,9 @@ def get_external_trades_df(job_ids: List[str],
         res = db.query(
             TableTrade.job_id.label('job_id'),
             TableTrade.period.label('period'),
-            TableTrade.resource.label('resource'),
             TableTrade.action.label('action'),
+            TableTrade.resource.label('resource'),
+            TableTrade.price.label('price'),
             TableTrade.quantity_post_loss.label('quantity_post_loss'),
         ).filter(TableTrade.job_id.in_(job_ids),
                  TableTrade.by_external).all()
@@ -261,7 +262,8 @@ def get_external_trades_df(job_ids: List[str],
                                                'period': elem.period,
                                                'action': elem.action,
                                                'resource': elem.resource,
+                                               'price': elem.price,
                                                'quantity_post_loss': elem.quantity_post_loss}
                                               for elem in res])
         else:
-            return pd.DataFrame(columns=['job_id', 'period', 'action', 'resource', 'quantity_post_loss'])
+            return pd.DataFrame(columns=['job_id', 'period', 'action', 'resource', 'price', 'quantity_post_loss'])
