@@ -13,6 +13,11 @@ from tradingplatformpoc.sql.level.crud import db_to_viewable_level_df_by_agent
 from tradingplatformpoc.sql.trade.crud import get_import_export_df
 
 
+"""
+This file holds functions used in scenario_comparison.py
+"""
+
+
 def construct_comparison_price_chart(ids: List[Dict[str, str]]) -> alt.Chart:
     local_price_dfs = []
     for comp_id in ids:
@@ -94,7 +99,7 @@ def construct_level_comparison_chart(ids: List[Dict[str, str]], agent_names: Lis
             level_type=level_type.name)
             .assign(variable=agent_var + ' - ' + comp_id['config_id']))
 
-        combined_level_df = pd.concat(level_dfs, axis=0, join="outer").reset_index()
+    combined_level_df = pd.concat(level_dfs, axis=0, join="outer").reset_index()
 
     combined_level_df = combined_level_df.rename(columns={'level': 'value'})
     domain = list(pd.unique(combined_level_df['variable']))
