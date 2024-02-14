@@ -109,7 +109,7 @@ def get_all_config_ids_in_db_without_jobs(session_generator: Callable[[], _Gener
     with session_generator() as db:
         res = db.query(Config.id).filter(~exists().where(Job.config_id == Config.id))
         return [config_id for (config_id,) in res]
-    
+
 
 def get_all_finished_job_config_id_pairs_in_db(session_generator: Callable[[], _GeneratorContextManager[Session]]
                                                = session_scope) -> Dict[str, str]:
@@ -155,6 +155,7 @@ def check_if_id_in_db(config_id: str,
 def get_all_agents_in_config(config_id: str,
                              session_generator: Callable[[], _GeneratorContextManager[Session]]
                              = session_scope) -> Dict[str, str]:
+    """Returns agents names and ids."""
     with session_generator() as db:
         res = db.execute(select(Config.agents_spec).where(Config.id == config_id)).first()
         if res is None:
