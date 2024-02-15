@@ -5,16 +5,14 @@ import streamlit as st
 from tradingplatformpoc.app import footer
 from tradingplatformpoc.app.app_charts import construct_agent_with_heat_pump_chart, \
     construct_traded_amount_by_agent_chart
-from tradingplatformpoc.app.app_data_display import \
+from tradingplatformpoc.app.app_data_display import build_heat_pump_levels_df, \
     get_savings_vs_only_external_buy, reconstruct_static_digital_twin
 from tradingplatformpoc.app.app_functions import download_df_as_csv_button, make_room_for_menu_in_sidebar
-from tradingplatformpoc.market.trade import TradeMetadataKey
 from tradingplatformpoc.sql.agent.crud import get_agent_config, get_agent_type
 from tradingplatformpoc.sql.bid.crud import db_to_viewable_bid_df_for_agent
 from tradingplatformpoc.sql.config.crud import get_all_agents_in_config, get_all_finished_job_config_id_pairs_in_db, \
     read_config
 from tradingplatformpoc.sql.extra_cost.crud import db_to_viewable_extra_costs_df_by_agent
-from tradingplatformpoc.sql.level.crud import db_to_viewable_level_df_by_agent
 from tradingplatformpoc.sql.trade.crud import db_to_viewable_trade_df_by_agent
 
 TABLE_HEIGHT: int = 300
@@ -111,10 +109,8 @@ if len(ids) > 0:
             agent_config = get_agent_config(agent_specs[agent_chosen_guid])
             st.caption("Click on a variable to highlight it.")
             if agent_type == 'BlockAgent':
-                heat_pump_levels_df = db_to_viewable_level_df_by_agent(
-                    job_id=chosen_id_to_view['job_id'],
-                    agent_guid=agent_chosen_guid,
-                    level_type=TradeMetadataKey.HEAT_PUMP_WORKLOAD.name)
+                heat_pump_levels_df = build_heat_pump_levels_df(agent_chosen_guid, chosen_id_to_view['job_id'],
+                                                                agent_config)
                 config = read_config(chosen_id_to_view['config_id'])
                 block_digital_twin = reconstruct_static_digital_twin(
                     agent_specs[agent_chosen_guid], config['MockDataConstants'],
