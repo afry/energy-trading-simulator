@@ -36,8 +36,8 @@ def is_major_holiday_sweden(timestamp: pd.Timestamp) -> bool:
     month_of_year = swedish_time.month
     day_of_month = swedish_time.day
     # Major holidays will naturally have a big impact on household electricity usage patterns, with people not working
-    # etc. Included here are: Christmas eve, Christmas day, Boxing day, New years day, epiphany, 1 may, national day.
-    # Some moveable ones not included (Easter etc)
+    # etc. Included here are: Christmas Eve, Christmas day, Boxing day, New years day, epiphany, 1 may, national day.
+    # Some movable ones not included (Easter etc.)
     return ((month_of_year == 12) & (day_of_month == 24)) | \
            ((month_of_year == 12) & (day_of_month == 25)) | \
            ((month_of_year == 12) & (day_of_month == 26)) | \
@@ -53,7 +53,7 @@ def is_day_before_major_holiday_sweden(timestamp: pd.Timestamp) -> bool:
     day_of_month = swedish_time.day
     # Major holidays will naturally have a big impact on household electricity usage patterns, with people not working
     # etc. Included here are:
-    # Day before christmas eve, New years eve, day before epiphany, Valborg, day before national day.
+    # Day before Christmas Eve, New years eve, day before epiphany, Valborg, day before national day.
     return ((month_of_year == 12) & (day_of_month == 23)) | \
            ((month_of_year == 12) & (day_of_month == 31)) | \
            ((month_of_year == 1) & (day_of_month == 5)) | \
@@ -79,3 +79,7 @@ def extract_datetime_features_from_inputs_df(df_inputs: pd.DataFrame) -> pl.Data
     df_inputs['pre_major_holiday'] = df_inputs['datetime'].apply(lambda dt: is_day_before_major_holiday_sweden(dt))
 
     return pl.from_pandas(df_inputs)
+
+
+def constants(df_inputs: pl.LazyFrame, val: float) -> pl.LazyFrame:
+    return df_inputs.select([pl.col('datetime'), pl.lit(val).alias('value')])

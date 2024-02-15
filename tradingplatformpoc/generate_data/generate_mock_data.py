@@ -12,7 +12,7 @@ from statsmodels.regression.linear_model import RegressionResultsWrapper
 
 from tradingplatformpoc.compress import bz2_decompress_pickle
 from tradingplatformpoc.database import bulk_insert
-from tradingplatformpoc.generate_data.generation_functions.common import add_datetime_value_frames, \
+from tradingplatformpoc.generate_data.generation_functions.common import add_datetime_value_frames, constants, \
     extract_datetime_features_from_inputs_df
 from tradingplatformpoc.generate_data.generation_functions.non_residential.commercial import \
     get_commercial_electricity_consumption_hourly_factor, simulate_commercial_area_cooling, \
@@ -20,8 +20,9 @@ from tradingplatformpoc.generate_data.generation_functions.non_residential.comme
 from tradingplatformpoc.generate_data.generation_functions.non_residential.common import simulate_area_electricity
 from tradingplatformpoc.generate_data.generation_functions.non_residential.school import \
     get_school_heating_consumption_hourly_factor, simulate_school_area_heating
-from tradingplatformpoc.generate_data.generation_functions.residential.residential import \
-    constants, property_electricity, simulate_household_electricity_aggregated, simulate_residential_total_heating
+from tradingplatformpoc.generate_data.generation_functions.residential.electricity import \
+    property_electricity, simulate_household_electricity_aggregated
+from tradingplatformpoc.generate_data.generation_functions.residential.heating import simulate_residential_total_heating
 from tradingplatformpoc.generate_data.mock_data_utils import \
     calculate_seed_from_string, get_cooling_cons_key, get_elec_cons_key, get_hot_tap_water_cons_key, \
     get_space_heat_cons_key, join_list_of_polar_dfs
