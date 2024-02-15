@@ -17,7 +17,8 @@ from tradingplatformpoc.generate_data.generation_functions.common import is_day_
 from tradingplatformpoc.generate_data.generation_functions.non_residential.common import simulate_space_heating
 from tradingplatformpoc.generate_data.generation_functions.non_residential.school import \
     get_school_heating_consumption_hourly_factor
-from tradingplatformpoc.generate_data.generation_functions.residential.residential import simulate_series
+from tradingplatformpoc.generate_data.generation_functions.residential.electricity import \
+    simulate_series_with_log_energy_model
 from tradingplatformpoc.generate_data.mock_data_utils import all_parameters_match
 from tradingplatformpoc.trading_platform_utils import hourly_datetime_array_between
 
@@ -75,7 +76,8 @@ class Test(TestCase):
         input_df['pre_major_holiday'] = input_df['datetime'].apply(lambda dt: is_day_before_major_holiday_sweden(dt)).\
             astype(bool)
 
-        unscaled_simulated_values_for_area = simulate_series(pl.from_pandas(input_df), random_seed, model)
+        unscaled_simulated_values_for_area = simulate_series_with_log_energy_model(pl.from_pandas(input_df),
+                                                                                   random_seed, model)
         values_pd = unscaled_simulated_values_for_area.to_pandas().value
         self.assertAlmostEqual(358.64245460289527, values_pd[:8766].sum())
         self.assertAlmostEqual(0.286418874824197, values_pd[0])
