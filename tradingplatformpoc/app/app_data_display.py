@@ -12,8 +12,8 @@ import streamlit as st
 
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
-from tradingplatformpoc.generate_data.mock_data_utils import get_elec_cons_key, get_hot_tap_water_cons_key, \
-    get_space_heat_cons_key
+from tradingplatformpoc.generate_data.mock_data_utils import get_cooling_cons_key, get_elec_cons_key, \
+    get_hot_tap_water_cons_key, get_space_heat_cons_key
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.sql.agent.crud import get_agent_config, get_agent_type
@@ -54,11 +54,13 @@ def reconstruct_static_digital_twin(agent_id: str, mock_data_constants: Dict[str
     elec_cons_series = block_mock_data[get_elec_cons_key(agent_id)]
     space_heat_cons_series = block_mock_data[get_space_heat_cons_key(agent_id)]
     hot_tap_water_cons_series = block_mock_data[get_hot_tap_water_cons_key(agent_id)]
+    cooling_cons_series = block_mock_data[get_cooling_cons_key(agent_id)]
 
     return StaticDigitalTwin(electricity_usage=elec_cons_series,
                              space_heating_usage=space_heat_cons_series,
                              hot_water_usage=hot_tap_water_cons_series,
-                             electricity_production=pv_prod_series)
+                             electricity_production=pv_prod_series,
+                             cooling_usage=cooling_cons_series)
 
 
 # maybe we should move this to simulation_runner/trading_simulator

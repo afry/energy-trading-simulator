@@ -83,6 +83,20 @@ def construct_static_digital_twin_chart(digital_twin: StaticDigitalTwin, agent_c
         if (df.value != 0).any():
             domain.append(app_constants.HEAT_CONS)
             range_color.append(app_constants.ALTAIR_BASE_COLORS[3])
+    if digital_twin.cooling_production is not None:
+        df = pd.concat((df, pd.DataFrame({'period': digital_twin.cooling_production.index,
+                                          'value': digital_twin.cooling_production.values,
+                                          'variable': app_constants.COOL_PROD})))
+        if (df.value != 0).any():
+            domain.append(app_constants.COOL_PROD)
+            range_color.append(app_constants.ALTAIR_BASE_COLORS[4])
+    if digital_twin.cooling_usage is not None:
+        df = pd.concat((df, pd.DataFrame({'period': digital_twin.cooling_usage.index,
+                                          'value': digital_twin.cooling_usage.values,
+                                          'variable': app_constants.COOL_CONS})))
+        if (df.value != 0).any():
+            domain.append(app_constants.COOL_CONS)
+            range_color.append(app_constants.ALTAIR_BASE_COLORS[5])
     if should_add_hp_to_legend:
         domain.append('Heat pump workload')
         range_color.append(app_constants.HEAT_PUMP_CHART_COLOR)
