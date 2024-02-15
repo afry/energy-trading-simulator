@@ -1,23 +1,50 @@
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import altair as alt
 
 import pandas as pd
 
+import streamlit as st
+
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.app.app_charts import altair_area_chart, altair_line_chart
+from tradingplatformpoc.app.app_functions import IdPair
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.market.trade import TradeMetadataKey
 from tradingplatformpoc.sql.clearing_price.crud import db_to_construct_local_prices_df
 from tradingplatformpoc.sql.level.crud import db_to_viewable_level_df_by_agent
-from tradingplatformpoc.sql.trade.crud import get_import_export_df
+from tradingplatformpoc.sql.trade.crud import get_external_trades_df
 
 
-def construct_comparison_price_chart(ids: List[Dict[str, str]]) -> alt.Chart:
+"""
+This file holds functions used in scenario_comparison.py
+"""
+
+
+class ComparisonIds:
+    id_pairs: List[IdPair]
+
+    def __init__(self, job_id_per_config_id: Dict[str, str], chosen_config_ids: List[str]):
+        self.id_pairs = [IdPair(cid, job_id_per_config_id[cid]) for cid in chosen_config_ids]
+
+    def get_config_ids(self):
+        return [elem.config_id for elem in self.id_pairs]
+
+    def get_job_ids(self):
+        return [elem.job_id for elem in self.id_pairs]
+
+    def get_job_id(self, config_id: str):
+        return [elem.job_id for elem in self.id_pairs if elem.config_id == config_id][0]
+
+    def get_config_id(self, job_id: str):
+        return [elem.config_id for elem in self.id_pairs if elem.job_id == job_id][0]
+
+
+def construct_comparison_price_chart(ids: ComparisonIds) -> alt.Chart:
     local_price_dfs = []
-    for comp_id in ids:
-        local_price_df = db_to_construct_local_prices_df(comp_id["job_id"])
-        local_price_df['variable'] = app_constants.LOCAL_PRICE_STR + ' - ' + comp_id["config_id"]
+    for comp_id in ids.id_pairs:
+        local_price_df = db_to_construct_local_prices_df(comp_id.job_id)
+        local_price_df['variable'] = app_constants.LOCAL_PRICE_STR + ' - ' + comp_id.config_id
         local_price_dfs.append(local_price_df)
     
     combined_price_df = pd.concat(local_price_dfs)
@@ -32,10 +59,44 @@ def construct_comparison_price_chart(ids: List[Dict[str, str]]) -> alt.Chart:
                              "Price [SEK]", "Price over Time")
 
 
-def import_export_altair_period_chart(ids: List[Dict[str, str]]) -> alt.Chart:
+class AggregatedTrades:
+
+    def __init__(self, external_trades_df: pd.DataFrame, value_column_name: str = 'quantity_post_loss'):
+        """
+        Expected columns in external_trades_df:
+        ['period', 'action', 'price', value_column_name]
+        """
+        # Sold by the external = bought by the LEC
+        # So a positive "net" means the LEC imported
+        external_trades_df['net_imported'] = external_trades_df.apply(lambda x: x[value_column_name]
+                                                                      if x.action == Action.SELL
+                                                                      else -x[value_column_name],
+                                                                      axis=1)
+        self.sum_net_import = external_trades_df['net_imported'].sum()
+        self.monthly_sum_net_import = external_trades_df['net_imported']. \
+            groupby(external_trades_df['period'].dt.month).sum()
+        self.monthly_max_net_import = external_trades_df['net_imported']. \
+            groupby(external_trades_df['period'].dt.month).max()
+        self.sum_lec_expenditure = (external_trades_df['net_imported'] * external_trades_df['price']).sum()
+
+
+class AggregatedTradesPerJobAndResource:
+    base_dict: Dict[Tuple[str, Resource], AggregatedTrades]
+
+    def __init__(self):
+        self.base_dict = {}
+
+    def put(self, job_id: str, resource: Resource, aggregated_trades: AggregatedTrades):
+        self.base_dict[(job_id, resource)] = aggregated_trades
+
+    def get(self, job_id: str, resource: Resource) -> AggregatedTrades:
+        return self.base_dict[(job_id, resource)]
+
+
+def import_export_calculations(ids: ComparisonIds) -> Tuple[alt.Chart, AggregatedTradesPerJobAndResource]:
 
     # Get data from database
-    df = get_import_export_df([elem["job_id"] for elem in ids])
+    df = get_external_trades_df(ids.get_job_ids())
 
     # What's sold by the external grid agents is imported by the local grid and vice versa
     var_names = {
@@ -48,17 +109,24 @@ def import_export_altair_period_chart(ids: List[Dict[str, str]]) -> alt.Chart:
     colors[::2] = app_constants.ALTAIR_BASE_COLORS[:4]
     colors[1::2] = app_constants.ALTAIR_DARK_COLORS[:4]
 
+    # In this variable, we'll store some aggregations, which we'll return along with the chart
+    aggregations = AggregatedTradesPerJobAndResource()
+
     # Process data to be of a form that fits the altair chart
     domain: List[str] = []
     range_color: List[str] = []
     range_dash: List[List[int]] = []
     j = 0
     new_df = pd.DataFrame()
-    for action in [Action.BUY, Action.SELL]:
-        for resource in [Resource.HEATING, Resource.ELECTRICITY]:
-            for job_id in pd.unique(df.job_id):
-                subset = df[(df.action == action) & (df.resource == resource) & (df.job_id == job_id)][
-                    ['period', 'quantity_post_loss']]
+    for resource in [Resource.HEATING, Resource.ELECTRICITY]:
+        for job_id in pd.unique(df.job_id):
+            both_actions = df[(df.resource == resource) & (df.job_id == job_id)][[
+                'period', 'action', 'price', 'quantity_post_loss']]
+
+            aggregations.put(job_id, resource, AggregatedTrades(both_actions))
+
+            for action in [Action.BUY, Action.SELL]:
+                subset = both_actions[(both_actions.action == action)][['period', 'quantity_post_loss']]
                 
                 if not subset.empty:
                     subset = subset.set_index('period')
@@ -66,8 +134,7 @@ def import_export_altair_period_chart(ids: List[Dict[str, str]]) -> alt.Chart:
                                                    freq="1h", tz='utc')
                     subset = subset.reindex(datetime_range).fillna(0)
                     subset = subset.reset_index().rename(columns={'index': 'period'})
-                    variable = var_names[(action, resource)] + ' - ' + \
-                        [elem['config_id'] for elem in ids if elem["job_id"] == job_id][0]
+                    variable = var_names[(action, resource)] + ' - ' + ids.get_config_id(job_id)
                     subset['variable'] = variable
                     subset = subset.rename(columns={'quantity_post_loss': 'value'})
 
@@ -77,24 +144,49 @@ def import_export_altair_period_chart(ids: List[Dict[str, str]]) -> alt.Chart:
 
                     new_df = pd.concat((new_df, subset))
                 j = j + 1
-    return altair_line_chart(new_df, domain, range_color, range_dash, "Energy [kWh]",
-                             'Import and export of resources through trades with grid agents')
+    chart = altair_line_chart(new_df, domain, range_color, range_dash, "Energy [kWh]",
+                              'Import and export of resources through trades with grid agents')
+    return chart, aggregations
 
 
-def construct_level_comparison_chart(ids: List[Dict[str, str]], agent_names: List[str],
+def show_key_figures(ids: ComparisonIds, aggregations: AggregatedTradesPerJobAndResource):
+    c1, c2 = st.columns(2)
+    with c1:
+        job_1_id = ids.id_pairs[0].job_id
+        job_1_elec = aggregations.get(job_1_id, Resource.ELECTRICITY)
+        job_1_heat = aggregations.get(job_1_id, Resource.HEATING)
+        st.metric(label="Net import of electricity:",
+                  value="{:,.2f} MWh".format(job_1_elec.sum_net_import / 1000))
+        st.metric(label="Net import of heating:",
+                  value="{:,.2f} MWh".format(job_1_heat.sum_net_import / 1000))
+        st.metric(label="Total energy expenditure:",
+                  value="{:,.2f} SEK".format(job_1_elec.sum_lec_expenditure + job_1_heat.sum_lec_expenditure))
+    with c2:
+        job_2_id = ids.id_pairs[1].job_id
+        job_2_elec = aggregations.get(job_2_id, Resource.ELECTRICITY)
+        job_2_heat = aggregations.get(job_2_id, Resource.HEATING)
+        st.metric(label="Net import of electricity:",
+                  value="{:,.2f} MWh".format(job_2_elec.sum_net_import / 1000))
+        st.metric(label="Net import of heating:",
+                  value="{:,.2f} MWh".format(job_2_heat.sum_net_import / 1000))
+        st.metric(label="Total energy expenditure:",
+                  value="{:,.2f} SEK".format(job_2_elec.sum_lec_expenditure + job_2_heat.sum_lec_expenditure))
+
+
+def construct_level_comparison_chart(ids: ComparisonIds, agent_names: List[str],
                                      level_type: TradeMetadataKey, var_title_str: str, title_str: str,
                                      num_letters: int = 7) -> alt.Chart:
     level_dfs = []
-    for comp_id, agent_name in zip(ids, agent_names):
+    for comp_id, agent_name in zip(ids.id_pairs, agent_names):
         agent_var = agent_name[:num_letters] + '...' + agent_name[-num_letters:] \
             if (len(agent_name) > 2 * num_letters) else agent_name
         level_dfs.append(db_to_viewable_level_df_by_agent(
-            job_id=comp_id['job_id'],
+            job_id=comp_id.job_id,
             agent_guid=agent_name,
             level_type=level_type.name)
-            .assign(variable=agent_var + ' - ' + comp_id['config_id']))
+            .assign(variable=agent_var + ' - ' + comp_id.config_id))
 
-        combined_level_df = pd.concat(level_dfs, axis=0, join="outer").reset_index()
+    combined_level_df = pd.concat(level_dfs, axis=0, join="outer").reset_index()
 
     combined_level_df = combined_level_df.rename(columns={'level': 'value'})
     domain = list(pd.unique(combined_level_df['variable']))

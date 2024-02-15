@@ -1,5 +1,5 @@
-
 import logging
+import string
 
 import pandas as pd
 
@@ -12,6 +12,15 @@ from tradingplatformpoc.sql.job.crud import get_all_queued_jobs
 
 
 logger = logging.getLogger(__name__)
+
+
+class IdPair:
+    config_id: str
+    job_id: str
+
+    def __init__(self, config_id: str, job_id: str):
+        self.config_id = config_id
+        self.job_id = job_id
 
 
 def set_max_width(width: str):
@@ -68,26 +77,33 @@ def color_in(val):
         color = '#f01d5c'
     return 'color: %s' % color
 
-    
-def cleanup_config_description(description: str) -> str:
-    """
-    Checks that the description of the config is valid.
-    """
-    description = description.lower().strip().capitalize()
-    if not description[-1] == ".":
-        description = description + "."
-    return description
-
 
 def cleanup_config_name(name: str) -> str:
     """
-    Checks that the name of the config is valid.
+    All lower case, replacing blanks with underlines
     """
     return name.lower().strip().replace(' ', '_')
 
 
+def has_control_characters(input_string: str) -> bool:
+    """
+    Check if the given input string contains control characters.
+
+    Control characters are non-printable ASCII characters, such as tabs, newlines,
+    and other special characters. The function determines if there are any
+    characters in the input string that are not part of the printable ASCII characters
+    defined by the `string.printable` constant.
+    """
+    control_characters = set(input_string) - set(string.printable)
+    return bool(control_characters)
+
+
 def config_naming_is_valid(name: str) -> bool:
-    return name.replace(' ', '').isalpha() and (len(name.replace(' ', '')) > 0)
+    """
+    Checks that the name of the config is valid - that is, it is not all blanks, and it doesn't contain any control
+    characters.
+    """
+    return (not has_control_characters(name)) and (len(name.replace(' ', '')) > 0)
 
 
 def run_simulation(job_id: str):

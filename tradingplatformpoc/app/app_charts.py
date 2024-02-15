@@ -52,42 +52,38 @@ def construct_static_digital_twin_chart(digital_twin: StaticDigitalTwin, agent_c
     df = pd.DataFrame()
     # Defining colors manually, so that for example heat consumption has the same color for every agent, even if for
     # example electricity production doesn't exist for one of them.
-    domain = []
-    range_color = []
-    if digital_twin.electricity_production is not None:
-        df = pd.concat((df, pd.DataFrame({'period': digital_twin.electricity_production.index,
-                                          'value': digital_twin.electricity_production.values,
-                                          'variable': app_constants.ELEC_PROD})))
-        if (df.value != 0).any():
-            domain.append(app_constants.ELEC_PROD)
-            range_color.append(app_constants.ALTAIR_BASE_COLORS[0])
-    if digital_twin.electricity_usage is not None:
-        df = pd.concat((df, pd.DataFrame({'period': digital_twin.electricity_usage.index,
-                                          'value': digital_twin.electricity_usage.values,
-                                          'variable': app_constants.ELEC_CONS})))
-        if (df.value != 0).any():
-            domain.append(app_constants.ELEC_CONS)
-            range_color.append(app_constants.ALTAIR_BASE_COLORS[1])
+    domain: List[str] = []
+    range_color: List[str] = []
+    df = add_to_df_and_lists(df, digital_twin.electricity_production, domain, range_color,
+                             app_constants.ELEC_PROD, app_constants.ALTAIR_BASE_COLORS[0])
+    df = add_to_df_and_lists(df, digital_twin.electricity_usage, domain, range_color,
+                             app_constants.ELEC_CONS, app_constants.ALTAIR_BASE_COLORS[1])
+    df = add_to_df_and_lists(df, digital_twin.total_heating_production, domain, range_color,
+                             app_constants.HEAT_PROD, app_constants.ALTAIR_BASE_COLORS[2])
     # TODO: Replace with low-temp and high-temp heat separated
-    if digital_twin.total_heating_production is not None:
-        df = pd.concat((df, pd.DataFrame({'period': digital_twin.total_heating_production.index,
-                                          'value': digital_twin.total_heating_production.values,
-                                          'variable': app_constants.HEAT_PROD})))
-        if (df.value != 0).any():
-            domain.append(app_constants.HEAT_PROD)
-            range_color.append(app_constants.ALTAIR_BASE_COLORS[2])
-    if digital_twin.total_heating_usage is not None:
-        df = pd.concat((df, pd.DataFrame({'period': digital_twin.total_heating_usage.index,
-                                          'value': digital_twin.total_heating_usage.values,
-                                          'variable': app_constants.HEAT_CONS})))
-        if (df.value != 0).any():
-            domain.append(app_constants.HEAT_CONS)
-            range_color.append(app_constants.ALTAIR_BASE_COLORS[3])
+    df = add_to_df_and_lists(df, digital_twin.total_heating_usage, domain, range_color,
+                             app_constants.HEAT_CONS, app_constants.ALTAIR_BASE_COLORS[3])
+    df = add_to_df_and_lists(df, digital_twin.cooling_usage, domain, range_color,
+                             app_constants.COOL_CONS, app_constants.ALTAIR_BASE_COLORS[4])
+    df = add_to_df_and_lists(df, digital_twin.cooling_production, domain, range_color,
+                             app_constants.COOL_PROD, app_constants.ALTAIR_BASE_COLORS[5])
     if should_add_hp_to_legend:
         domain.append('Heat pump workload')
         range_color.append(app_constants.HEAT_PUMP_CHART_COLOR)
     return altair_line_chart(df, domain, range_color, [], "Energy [kWh]",
                              "Energy production/consumption for " + agent_chosen_guid)
+
+
+def add_to_df_and_lists(df: pd.DataFrame, series: pd.Series, domain: List[str], range_color: List[str], var_name: str,
+                        color: str):
+    if series is not None:
+        df = pd.concat((df, pd.DataFrame({'period': series.index,
+                                          'value': series.values,
+                                          'variable': var_name})))
+        if (df.value != 0).any():
+            domain.append(var_name)
+            range_color.append(color)
+    return df
 
 
 def construct_traded_amount_by_agent_chart(agent_chosen_guid: str,

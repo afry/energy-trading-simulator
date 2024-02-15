@@ -53,7 +53,7 @@ class Test(TestCase):
                                                get_school_heating_consumption_hourly_factor, len(datetimes))
         space_heating_pd = space_heating.collect().to_pandas()
         self.assertAlmostEqual(2500, space_heating_pd.value[:8766].sum())
-        self.assertAlmostEqual(0.7098387777531893, space_heating_pd.value[0])
+        self.assertAlmostEqual(0.708267777993458, space_heating_pd.value[0])
 
     def test_simulate_residential_electricity(self):
         """

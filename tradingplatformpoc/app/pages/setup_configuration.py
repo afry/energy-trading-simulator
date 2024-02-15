@@ -7,8 +7,8 @@ from st_pages import add_indentation, show_pages_from_config
 import streamlit as st
 
 from tradingplatformpoc.app import app_constants, footer
-from tradingplatformpoc.app.app_functions import cleanup_config_description, cleanup_config_name, \
-    config_naming_is_valid, make_room_for_menu_in_sidebar, set_max_width, update_multiselect_style
+from tradingplatformpoc.app.app_functions import cleanup_config_name, config_naming_is_valid, \
+    make_room_for_menu_in_sidebar, set_max_width, update_multiselect_style
 from tradingplatformpoc.app.app_inputs import add_block_agent, add_grocery_store_agent, \
     add_params_to_form, agent_inputs, duplicate_agent, remove_agent, remove_all_block_agents
 from tradingplatformpoc.config.access_config import fill_agents_with_defaults, fill_with_default_params, \
@@ -236,7 +236,6 @@ if config_submit:
         st.error("Provide a valid description!")
     else:
         config_name = cleanup_config_name(config_name)
-        description = cleanup_config_description(description)
         config_created = create_config_if_not_in_db(st.session_state.config_data, config_name, description)
         if config_created['created']:
             st.success(config_created['message'])
@@ -273,7 +272,7 @@ with st.expander('Edit descriptions'):
             for i, row in edited_df.iterrows():
                 if row['Description'] != all_configs_df.loc[i, 'Description']:
                     if config_naming_is_valid(row['Description']):
-                        update_description(i, cleanup_config_description(row['Description']))
+                        update_description(i, row['Description'])
                     else:
                         st.error("Provide a valid description!")
 
