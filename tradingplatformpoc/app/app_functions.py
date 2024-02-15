@@ -14,6 +14,15 @@ from tradingplatformpoc.sql.job.crud import get_all_queued_jobs
 logger = logging.getLogger(__name__)
 
 
+class IdPair:
+    config_id: str
+    job_id: str
+
+    def __init__(self, config_id: str, job_id: str):
+        self.config_id = config_id
+        self.job_id = job_id
+
+
 def set_max_width(width: str):
     """
     Sets the max width of the page. The input can be specified either in pixels (i.e. "500px") or as a percentage (i.e.

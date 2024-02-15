@@ -8,6 +8,7 @@ import streamlit as st
 
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.app.app_charts import altair_area_chart, altair_line_chart
+from tradingplatformpoc.app.app_functions import IdPair
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.market.trade import TradeMetadataKey
 from tradingplatformpoc.sql.clearing_price.crud import db_to_construct_local_prices_df
@@ -18,15 +19,6 @@ from tradingplatformpoc.sql.trade.crud import get_external_trades_df
 """
 This file holds functions used in scenario_comparison.py
 """
-
-
-class IdPair:
-    config_id: str
-    job_id: str
-
-    def __init__(self, config_id: str, job_id: str):
-        self.config_id = config_id
-        self.job_id = job_id
 
 
 class ComparisonIds:

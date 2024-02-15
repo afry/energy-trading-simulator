@@ -12,9 +12,10 @@ import streamlit as st
 
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
-from tradingplatformpoc.generate_data.mock_data_utils import get_elec_cons_key, get_hot_tap_water_cons_key, \
-    get_space_heat_cons_key
+from tradingplatformpoc.generate_data.mock_data_utils import get_cooling_cons_key, get_elec_cons_key, \
+    get_hot_tap_water_cons_key, get_space_heat_cons_key
 from tradingplatformpoc.market.bid import Action, Resource
+from tradingplatformpoc.market.trade import TradeMetadataKey
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.sql.agent.crud import get_agent_config, get_agent_type
 from tradingplatformpoc.sql.config.crud import get_all_agents_in_config
@@ -24,6 +25,7 @@ from tradingplatformpoc.sql.heating_price.crud import db_to_heating_price_dict
 from tradingplatformpoc.sql.input_data.crud import get_periods_from_db, read_input_column_df_from_db, \
     read_inputs_df_for_agent_creation
 from tradingplatformpoc.sql.input_electricity_price.crud import electricity_price_series_from_db
+from tradingplatformpoc.sql.level.crud import db_to_viewable_level_df_by_agent
 from tradingplatformpoc.sql.mock_data.crud import db_to_mock_data_df, get_mock_data_agent_pairs_in_db
 from tradingplatformpoc.sql.trade.crud import db_to_trades_by_agent_and_resource_action, \
     elec_trades_by_external_for_periods_to_df, get_total_import_export, get_total_traded_for_agent
@@ -54,11 +56,13 @@ def reconstruct_static_digital_twin(agent_id: str, mock_data_constants: Dict[str
     elec_cons_series = block_mock_data[get_elec_cons_key(agent_id)]
     space_heat_cons_series = block_mock_data[get_space_heat_cons_key(agent_id)]
     hot_tap_water_cons_series = block_mock_data[get_hot_tap_water_cons_key(agent_id)]
+    cooling_cons_series = block_mock_data[get_cooling_cons_key(agent_id)]
 
     return StaticDigitalTwin(electricity_usage=elec_cons_series,
                              space_heating_usage=space_heat_cons_series,
                              hot_water_usage=hot_tap_water_cons_series,
-                             electricity_production=pv_prod_series)
+                             electricity_production=pv_prod_series,
+                             cooling_usage=cooling_cons_series)
 
 
 # maybe we should move this to simulation_runner/trading_simulator
@@ -268,3 +272,13 @@ def get_savings_vs_only_external_buy(job_id: str, agent_guid: str) -> Tuple[floa
 def get_total_profit_net(job_id: str, agent_guid: str) -> float:
     return get_total_traded_for_agent(job_id, agent_guid, Action.SELL) \
         - get_total_traded_for_agent(job_id, agent_guid, Action.BUY)
+
+
+def build_heat_pump_levels_df(job_id: str, agent_chosen_guid: str, agent_config: dict) -> pd.DataFrame:
+    if agent_config['HeatPumpMaxOutput'] > 0:
+        return db_to_viewable_level_df_by_agent(
+            job_id=job_id,
+            agent_guid=agent_chosen_guid,
+            level_type=TradeMetadataKey.HEAT_PUMP_WORKLOAD.name)
+    else:
+        return pd.DataFrame()
