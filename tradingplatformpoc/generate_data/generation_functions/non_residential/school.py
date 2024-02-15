@@ -24,7 +24,7 @@ CHRISTMAS_END = CHRISTMAS_START + 14
 SPRING_START = datetime.datetime(JUST_SOME_NONE_LEAP_YEAR, 2, 1).timetuple().tm_yday
 SPRING_END = SPRING_START + 7
 # Easter 07/04 - 14/04
-# Easter moves yearly, but the since we are only interested in capturing the feature
+# Easter moves yearly, but since we are only interested in capturing the feature
 # of a week off school sometime in mid-spring, we simply chose an average date (April 7th)
 EASTER_START = datetime.datetime(JUST_SOME_NONE_LEAP_YEAR, 4, 7).timetuple().tm_yday
 EASTER_END = EASTER_START + 7
