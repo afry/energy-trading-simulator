@@ -77,10 +77,18 @@ if len(ids) > 0:
                 
             agg_buy_trades = db_to_aggregated_trade_df(job_id, resource, Action.BUY)
             agg_sell_trades = db_to_aggregated_trade_df(job_id, resource, Action.SELL)
-            
-            agg_trades = agg_buy_trades.merge(agg_sell_trades, on='Agent', how='outer').transpose()
-            agg_trades = agg_trades.style.set_properties(**{'width': '400px'})
-            st.dataframe(agg_trades)
+
+            if agg_buy_trades is not None and agg_sell_trades is not None:
+                agg_trades = agg_buy_trades.merge(agg_sell_trades, on='Agent', how='outer')
+            elif agg_buy_trades is not None:
+                agg_trades = agg_buy_trades
+            elif agg_sell_trades is not None:
+                agg_trades = agg_sell_trades
+            else:
+                agg_trades = None
+            if agg_trades is not None:
+                agg_trades = agg_trades.transpose().style.set_properties(**{'width': '400px'})
+                st.dataframe(agg_trades)
 
             st.caption("The quantities used for calculations are before losses for purchases but"
                        " after losses for sales.")

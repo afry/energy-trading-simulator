@@ -35,7 +35,7 @@ def heat_trades_from_db_for_periods(trading_periods, job_id: str,
 
         return dict((period, list(vals)) for period, vals in
                     itertools.groupby(trades_for_month, operator.itemgetter(0)))
-    
+
 
 def elec_trades_by_external_for_periods_to_df(job_id: str, trading_periods,
                                               session_generator: Callable[[], _GeneratorContextManager[Session]]
@@ -109,7 +109,7 @@ def trades_to_db_dict(lists_of_trade_lists: List[List[Trade]], job_id: str) -> L
 
 def db_to_aggregated_trade_df(job_id: str, resource: Resource, action: Action,
                               session_generator: Callable[[], _GeneratorContextManager[Session]]
-                              = session_scope):
+                              = session_scope) -> Optional[pd.DataFrame]:
     """Fetches aggregated trades data from database for specified agent (source), resource and action."""
     with session_generator() as db:
         if action == Action.BUY:
@@ -128,12 +128,13 @@ def db_to_aggregated_trade_df(job_id: str, resource: Resource, action: Action,
                  TableTrade.action == action,
                  TableTrade.resource == resource)\
          .group_by(TableTrade.source, TableTrade.resource).all()
-
+        if len(res) == 0:
+            return None
         df = pd.DataFrame(res).set_index('Agent')
         df['Average ' + action.name.lower() + ' price [SEK/kWh]'] = \
             df['Total amount ' + label + ' for [SEK]'] / df['Total quantity ' + label + ' [kWh]']
         return df
-    
+
 
 def get_total_traded_for_agent(job_id: str, agent_guid: str, action: Action,
                                session_generator: Callable[[], _GeneratorContextManager[Session]]
@@ -170,7 +171,7 @@ def db_to_trades_by_agent_and_resource_action(job_id: str, agent_guid: str, reso
             TableTrade.source == agent_guid,
             TableTrade.action == action,
             TableTrade.resource == resource).all()
-    
+
 
 def db_to_viewable_trade_df_by_agent(job_id: str, agent_guid: str,
                                      session_generator: Callable[[], _GeneratorContextManager[Session]]
