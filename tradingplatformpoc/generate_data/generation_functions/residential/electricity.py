@@ -6,8 +6,6 @@ from statsmodels.regression.linear_model import RegressionResultsWrapper
 
 from tradingplatformpoc.generate_data.generation_functions.common import constants, scale_energy_consumption
 
-EVERY_X_HOURS = 3  # Random noise will be piecewise linear, with knots every X hours
-
 
 def calculate_adjustment_for_energy_prev(model: RegressionResultsWrapper, energy_prev: float) -> float:
     """
@@ -33,11 +31,11 @@ def simulate_series_with_log_energy_model(input_df: pl.DataFrame, rand_seed: int
         -> pl.DataFrame:
     """
     Runs simulations using "model" and "input_df", with "rand_seed" as the random seed (can be specified, so that the
-    experiment becomes reproducible, and also when simulating several different apartments/houses, the simulations don't
+    experiment becomes reproducible, and also when simulating several different areas, the simulations don't
     end up identical).
     The fact that autoregressive parts are included in the model, makes it more difficult to predict with, we can't just
     use the predict-method. As explained in https://doc.afdrift.se/display/RPJ/Household+electricity+mock-up,
-    we use the predict-method first and then add on autoregressive terms afterwards. The autoregressive parts are
+    we use the predict-method first and then add on autoregressive terms afterward. The autoregressive parts are
     calculated in calculate_adjustment_for_energy_prev(...).
     :param input_df: pl.DataFrame
     :param rand_seed: int
@@ -80,7 +78,7 @@ def simulate_household_electricity_aggregated(df_inputs: pl.LazyFrame, model: Re
     Returns a pl.DataFrame with the datetimes and the data.
     """
     if gross_floor_area_m2 == 0:
-        return df_inputs.select([pl.col('datetime'), pl.lit(0).alias('value')])
+        return constants(df_inputs, 0)
 
     unscaled_simulated_values_for_area = simulate_series_with_log_energy_model(df_inputs.collect(), start_seed, model)
     # Scale

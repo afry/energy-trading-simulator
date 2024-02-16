@@ -5,8 +5,9 @@ import numpy as np
 import polars as pl
 
 from tradingplatformpoc.generate_data.generation_functions.common import constants, scale_energy_consumption
-from tradingplatformpoc.generate_data.generation_functions.residential.electricity import EVERY_X_HOURS
 from tradingplatformpoc.trading_platform_utils import nan_helper
+
+EVERY_X_HOURS = 3  # Random noise will be piecewise linear, with knots every X hours
 
 
 def simulate_residential_total_heating(mock_data_constants: Dict[str, Any], df_inputs: pl.LazyFrame, n_rows: int,

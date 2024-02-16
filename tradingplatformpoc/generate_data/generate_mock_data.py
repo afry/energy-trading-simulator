@@ -47,10 +47,13 @@ SCHOOL_ELECTRICITY_SEED_SUFFIX = "SE"
 This script generates the following, for BlockAgents:
 *Household electricity consumption data
 *Commercial electricity consumption data
+*School electricity consumption data
 *Residential hot water consumption data
 *Commercial hot water consumption data
+*School hot water consumption data
 *Residential space heating consumption data
 *Commercial space heating consumption data
+*School space heating consumption data
 *Commercial cooling consumption data
 It stores such data in the mock_data table in the database.
 For some more information: https://doc.afdrift.se/display/RPJ/Household+electricity+mock-up
