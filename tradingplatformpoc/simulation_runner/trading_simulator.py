@@ -9,7 +9,6 @@ import pandas as pd
 from tradingplatformpoc.agent.block_agent import BlockAgent
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
-from tradingplatformpoc.simulation_runner.results_calculator import AggregatedTrades
 from tradingplatformpoc.app.app_threading import StoppableThread
 from tradingplatformpoc.database import bulk_insert
 from tradingplatformpoc.digitaltwin.battery import Battery
@@ -25,6 +24,7 @@ from tradingplatformpoc.market.extra_cost import ExtraCost
 from tradingplatformpoc.market.trade import Trade, TradeMetadataKey
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
+from tradingplatformpoc.simulation_runner.results_calculator import calculate_results_and_save
 from tradingplatformpoc.simulation_runner.simulation_utils import get_external_heating_prices, \
     get_quantity_heating_sold_by_external_grid, go_through_trades_metadata, \
     net_bids_from_gross_bids
@@ -43,10 +43,7 @@ from tradingplatformpoc.sql.job.crud import delete_job, get_config_id_for_job_id
     update_job_with_time
 from tradingplatformpoc.sql.level.crud import levels_to_db_dict
 from tradingplatformpoc.sql.level.models import Level as TableLevel
-from tradingplatformpoc.sql.results.crud import save_results
-from tradingplatformpoc.sql.results.models import ResultsKey, PreCalculatedResults
-from tradingplatformpoc.sql.trade.crud import trades_to_db_dict, get_total_tax_paid, \
-    get_total_grid_fee_paid_on_internal_trades, get_external_trades_df
+from tradingplatformpoc.sql.trade.crud import trades_to_db_dict
 from tradingplatformpoc.sql.trade.models import Trade as TableTrade
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, flatten_collection
 
@@ -286,18 +283,7 @@ class TradingSimulator:
         bulk_insert(TableLevel, heat_pump_level_dicts)
         bulk_insert(TableLevel, storage_level_dicts)
 
-        result_dict = {ResultsKey.TAX_PAID: get_total_tax_paid(job_id=self.job_id),
-                       ResultsKey.GRID_FEES_PAID: get_total_grid_fee_paid_on_internal_trades(job_id=self.job_id)}
-        df = get_external_trades_df([self.job_id])
-        both_actions = df[(df.resource == Resource.ELECTRICITY) & (df.job_id == self.job_id)][[
-            'period', 'action', 'price', 'quantity_post_loss']]
-        aggregated_trades = AggregatedTrades(both_actions)
-        result_dict[ResultsKey.SUM_NET_IMPORT] = aggregated_trades.sum_net_import
-        # Converting pd.Series to dicts here, to make them JSON-serializable
-        result_dict[ResultsKey.MONTHLY_SUM_NET_IMPORT] = aggregated_trades.monthly_sum_net_import.to_dict()
-        result_dict[ResultsKey.MONTHLY_MAX_NET_IMPORT] = aggregated_trades.monthly_max_net_import.to_dict()
-        result_dict[ResultsKey.SUM_LEC_EXPENDITURE] = aggregated_trades.sum_lec_expenditure
-        save_results(PreCalculatedResults(job_id=self.job_id, result_dict=result_dict))
+        calculate_results_and_save(self.job_id)
 
         logger.info("Finished simulating trades, beginning calculations on district heating price...")
 

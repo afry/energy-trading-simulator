@@ -10,6 +10,8 @@ from tradingplatformpoc.app.app_comparison import ComparisonIds, construct_compa
 from tradingplatformpoc.market.trade import TradeMetadataKey
 from tradingplatformpoc.sql.agent.crud import get_agent_type
 from tradingplatformpoc.sql.config.crud import get_all_agents_in_config, get_all_finished_job_config_id_pairs_in_db
+from tradingplatformpoc.sql.results.crud import get_results
+
 logger = logging.getLogger(__name__)
 
 show_pages_from_config("tradingplatformpoc/app/pages_config/pages.toml")
@@ -30,13 +32,14 @@ if len(job_id_per_config_id) >= 2:
     chosen_config_ids = [chosen_config_id_to_view_1, chosen_config_id_to_view_2]
     if None not in chosen_config_ids:
         comparison_ids = ComparisonIds(job_id_per_config_id, chosen_config_ids)
+        pre_calculated_results_1 = get_results(comparison_ids.id_pairs[0].job_id)
+        pre_calculated_results_2 = get_results(comparison_ids.id_pairs[1].job_id)
+        show_key_figures(pre_calculated_results_1, pre_calculated_results_2)
 
         # Import export graph
         logger.info("Constructing import/export graph")
         with st.spinner("Constructing import/export graph"):
-            imp_exp_chart, aggregations = import_export_calculations(comparison_ids)
-            show_key_figures(comparison_ids, aggregations)
-
+            imp_exp_chart = import_export_calculations(comparison_ids)
             st.caption("Hold *Shift* and click on multiple variables in the legend to highlight them in the graph.")
             st.altair_chart(imp_exp_chart, use_container_width=True, theme=None)
         

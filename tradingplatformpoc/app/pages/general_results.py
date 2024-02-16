@@ -9,7 +9,7 @@ from tradingplatformpoc.app import footer
 from tradingplatformpoc.app.app_charts import construct_avg_day_elec_chart, construct_price_chart
 from tradingplatformpoc.app.app_data_display import aggregated_import_and_export_results_df_split_on_period, \
     aggregated_import_and_export_results_df_split_on_temperature, aggregated_local_production_df, \
-    aggregated_net_elec_import_results_df_split_on_period, construct_combined_price_df, \
+    aggregated_net_elec_import_results_df_split_on_period, combine_trades_dfs, construct_combined_price_df, \
     get_price_df_when_local_price_inbetween
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.sql.clearing_price.crud import db_to_construct_local_prices_df
@@ -29,7 +29,6 @@ if len(ids) > 0:
     
     config = read_config(chosen_config_id_to_view)
     job_id = ids[chosen_config_id_to_view]
-    t_start = time.time()
     pre_calculated_results = get_results(job_id)
 
     col_tax, col_fee = st.columns(2)
@@ -43,8 +42,6 @@ if len(ids) > 0:
         total_grid_fees_paid = pre_calculated_results[ResultsKey.GRID_FEES_PAID]
         st.metric(label="Total grid fees paid on internal trades",
                   value="{:,.2f} SEK".format(total_grid_fees_paid))
-    t_end = time.time()
-    logger.info('Time to display tax and grid fee: {:.3f} seconds'.format(t_end - t_start))
 
     tab_price_graph, tab_price_table = st.tabs(['Graph', 'Table'])
     with tab_price_graph:
@@ -85,15 +82,8 @@ if len(ids) > 0:
                 
             agg_buy_trades = db_to_aggregated_trade_df(job_id, resource, Action.BUY)
             agg_sell_trades = db_to_aggregated_trade_df(job_id, resource, Action.SELL)
-
-            if agg_buy_trades is not None and agg_sell_trades is not None:
-                agg_trades = agg_buy_trades.merge(agg_sell_trades, on='Agent', how='outer')
-            elif agg_buy_trades is not None:
-                agg_trades = agg_buy_trades
-            elif agg_sell_trades is not None:
-                agg_trades = agg_sell_trades
-            else:
-                agg_trades = None
+            # The above can be None if there were no trades for the resource
+            agg_trades = combine_trades_dfs(agg_buy_trades, agg_sell_trades)
             if agg_trades is not None:
                 agg_trades = agg_trades.transpose().style.set_properties(**{'width': '400px'})
                 st.dataframe(agg_trades)

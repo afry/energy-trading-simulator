@@ -1,7 +1,7 @@
 
 import datetime
 from time import strptime
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -282,3 +282,15 @@ def build_heat_pump_levels_df(job_id: str, agent_chosen_guid: str, agent_config:
             level_type=TradeMetadataKey.HEAT_PUMP_WORKLOAD.name)
     else:
         return pd.DataFrame()
+
+
+def combine_trades_dfs(agg_buy_trades: Optional[pd.DataFrame], agg_sell_trades: Optional[pd.DataFrame]) \
+        -> Optional[pd.DataFrame]:
+    if agg_buy_trades is not None and agg_sell_trades is not None:
+        return agg_buy_trades.merge(agg_sell_trades, on='Agent', how='outer')
+    elif agg_buy_trades is not None:
+        return agg_buy_trades
+    elif agg_sell_trades is not None:
+        return agg_sell_trades
+    else:
+        return None
