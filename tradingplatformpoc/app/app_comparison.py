@@ -11,6 +11,7 @@ from tradingplatformpoc.app.app_charts import altair_area_chart, altair_line_cha
 from tradingplatformpoc.app.app_functions import IdPair
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.market.trade import TradeMetadataKey
+from tradingplatformpoc.simulation_runner.results_calculator import AggregatedTrades
 from tradingplatformpoc.sql.clearing_price.crud import db_to_construct_local_prices_df
 from tradingplatformpoc.sql.level.crud import db_to_viewable_level_df_by_agent
 from tradingplatformpoc.sql.trade.crud import get_external_trades_df
@@ -57,27 +58,6 @@ def construct_comparison_price_chart(ids: ComparisonIds) -> alt.Chart:
                              app_constants.ALTAIR_BASE_COLORS[:len(combined_price_df_domain)],
                              app_constants.ALTAIR_STROKE_DASH[:len(combined_price_df_domain)],
                              "Price [SEK]", "Price over Time")
-
-
-class AggregatedTrades:
-
-    def __init__(self, external_trades_df: pd.DataFrame, value_column_name: str = 'quantity_post_loss'):
-        """
-        Expected columns in external_trades_df:
-        ['period', 'action', 'price', value_column_name]
-        """
-        # Sold by the external = bought by the LEC
-        # So a positive "net" means the LEC imported
-        external_trades_df['net_imported'] = external_trades_df.apply(lambda x: x[value_column_name]
-                                                                      if x.action == Action.SELL
-                                                                      else -x[value_column_name],
-                                                                      axis=1)
-        self.sum_net_import = external_trades_df['net_imported'].sum()
-        self.monthly_sum_net_import = external_trades_df['net_imported']. \
-            groupby(external_trades_df['period'].dt.month).sum()
-        self.monthly_max_net_import = external_trades_df['net_imported']. \
-            groupby(external_trades_df['period'].dt.month).max()
-        self.sum_lec_expenditure = (external_trades_df['net_imported'] * external_trades_df['price']).sum()
 
 
 class AggregatedTradesPerJobAndResource:

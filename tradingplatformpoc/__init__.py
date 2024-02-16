@@ -9,4 +9,5 @@ from tradingplatformpoc.sql.input_data.models import InputData  # noqa: F401
 from tradingplatformpoc.sql.job.models import Job  # noqa: F401
 from tradingplatformpoc.sql.level.models import Level  # noqa: F401
 from tradingplatformpoc.sql.mock_data.models import MockData  # noqa: F401
+from tradingplatformpoc.sql.results.models import PreCalculatedResults  # noqa: F401
 from tradingplatformpoc.sql.trade.models import Trade  # noqa: F401

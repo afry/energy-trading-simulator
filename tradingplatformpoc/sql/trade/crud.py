@@ -109,7 +109,7 @@ def trades_to_db_dict(lists_of_trade_lists: List[List[Trade]], job_id: str) -> L
 
 def db_to_aggregated_trade_df(job_id: str, resource: Resource, action: Action,
                               session_generator: Callable[[], _GeneratorContextManager[Session]]
-                              = session_scope):
+                              = session_scope) -> Optional[pd.DataFrame]:
     """Fetches aggregated trades data from database for specified agent (source), resource and action."""
     with session_generator() as db:
         if action == Action.BUY:
@@ -128,7 +128,8 @@ def db_to_aggregated_trade_df(job_id: str, resource: Resource, action: Action,
                  TableTrade.action == action,
                  TableTrade.resource == resource)\
          .group_by(TableTrade.source, TableTrade.resource).all()
-
+        if len(res) == 0:
+            return None
         df = pd.DataFrame(res).set_index('Agent')
         df['Average ' + action.name.lower() + ' price [SEK/kWh]'] = \
             df['Total amount ' + label + ' for [SEK]'] / df['Total quantity ' + label + ' [kWh]']
