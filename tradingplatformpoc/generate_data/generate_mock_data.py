@@ -47,10 +47,13 @@ SCHOOL_ELECTRICITY_SEED_SUFFIX = "SE"
 This script generates the following, for BlockAgents:
 *Household electricity consumption data
 *Commercial electricity consumption data
+*School electricity consumption data
 *Residential hot water consumption data
 *Commercial hot water consumption data
+*School hot water consumption data
 *Residential space heating consumption data
 *Commercial space heating consumption data
+*School space heating consumption data
 *Commercial cooling consumption data
 It stores such data in the mock_data table in the database.
 For some more information: https://doc.afdrift.se/display/RPJ/Household+electricity+mock-up
@@ -132,8 +135,11 @@ def simulate_for_agents(agent_dicts: List[Dict[str, Any]], mock_data_constants: 
     logger.info('Beginning mock data generation for {} agents'.format(len(agent_dicts)))
 
     # Load model
-    model = bz2_decompress_pickle(resource_filename(DATA_PATH, 'models/household_electricity_model.pbz2'))
-    logger.debug('Model loaded')
+    household_electricity_model = bz2_decompress_pickle(resource_filename(DATA_PATH,
+                                                                          'models/household_electricity_model.pbz2'))
+    household_hot_water_model = bz2_decompress_pickle(resource_filename(DATA_PATH,
+                                                                        'models/household_hot_water_model.pbz2'))
+    logger.debug('Models loaded')
 
     # Read input data: Temperature, irradiation and heat consumption
     df_inputs_pandas = read_inputs_df_for_mock_data_generation()
@@ -152,14 +158,17 @@ def simulate_for_agents(agent_dicts: List[Dict[str, Any]], mock_data_constants: 
 
         logger.info('Generating new data for ' + agent_dict[key])
         output_per_block = simulate(mock_data_constants, agent_dict, lazy_inputs,
-                                    n_rows, model, output_per_actor.clone(), key)
+                                    n_rows, household_electricity_model, household_hot_water_model,
+                                    output_per_actor.clone(), key)
         dfs_new[agent_dict[key]] = output_per_block
     
     return dfs_new
 
 
 def simulate(mock_data_constants: Dict[str, Any], agent: dict, df_inputs: pl.LazyFrame, n_rows: int,
-             model: RegressionResultsWrapper, output_per_actor: pl.DataFrame, key: str) -> pl.DataFrame:
+             household_electricity_model: RegressionResultsWrapper, household_hot_water_model: RegressionResultsWrapper,
+             output_per_actor: pl.DataFrame, key: str) \
+        -> pl.DataFrame:
     """
     Simulate mock data for agent and mock data constants.
     """
@@ -227,7 +236,8 @@ def simulate(mock_data_constants: Dict[str, Any], agent: dict, df_inputs: pl.Laz
     if fraction_residential > 0:
         residential_gross_floor_area = agent['GrossFloorArea'] * fraction_residential
 
-        household_el = simulate_household_electricity_aggregated(df_inputs, model, residential_gross_floor_area,
+        household_el = simulate_household_electricity_aggregated(df_inputs, household_electricity_model,
+                                                                 residential_gross_floor_area,
                                                                  seed_residential_electricity, n_rows,
                                                                  mock_data_constants['HouseholdElecKwhPerYearM2Atemp'])
         property_el = property_electricity(df_inputs, residential_gross_floor_area, n_rows,
@@ -235,7 +245,8 @@ def simulate(mock_data_constants: Dict[str, Any], agent: dict, df_inputs: pl.Laz
         electricity_consumption.append(add_datetime_value_frames([household_el, property_el]))
 
         residential_space_heating_cons, residential_hot_tap_water_cons = simulate_residential_total_heating(
-            mock_data_constants, df_inputs, n_rows, residential_gross_floor_area, seed_residential_heating)
+            mock_data_constants, df_inputs, n_rows, residential_gross_floor_area, seed_residential_heating,
+            household_hot_water_model)
         space_heating_consumption.append(residential_space_heating_cons)
         hot_tap_water_consumption.append(residential_hot_tap_water_cons)
 

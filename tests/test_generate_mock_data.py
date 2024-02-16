@@ -19,6 +19,7 @@ from tradingplatformpoc.generate_data.generation_functions.non_residential.schoo
     get_school_heating_consumption_hourly_factor
 from tradingplatformpoc.generate_data.generation_functions.residential.electricity import \
     simulate_series_with_log_energy_model
+from tradingplatformpoc.generate_data.generation_functions.residential.heating import simulate_series_with_energy_model
 from tradingplatformpoc.generate_data.mock_data_utils import all_parameters_match
 from tradingplatformpoc.trading_platform_utils import hourly_datetime_array_between
 
@@ -81,6 +82,32 @@ class Test(TestCase):
         values_pd = unscaled_simulated_values_for_area.to_pandas().value
         self.assertAlmostEqual(358.64245460289527, values_pd[:8766].sum())
         self.assertAlmostEqual(0.286418874824197, values_pd[0])
+
+    def test_simulate_residential_hot_water(self):
+        """
+        Test residential hot water generation.
+        """
+        model = bz2_decompress_pickle(resource_filename(DATA_PATH, 'models/household_hot_water_model.pbz2'))
+        random_seed = 10
+        rng = np.random.default_rng(random_seed)
+        datetimes = hourly_datetime_array_between(datetime(2019, 12, 31, 23, tzinfo=timezone.utc),
+                                                  datetime(2020, 1, 31, 22, tzinfo=timezone.utc))
+        input_df = pd.DataFrame({'datetime': datetimes,
+                                 'temperature': rng.normal(loc=8, scale=8, size=len(datetimes))})
+        input_df['hour_of_day'] = input_df['datetime'].dt.hour + 1
+        input_df['day_of_week'] = input_df['datetime'].dt.dayofweek + 1
+        input_df['day_of_month'] = input_df['datetime'].dt.day
+        input_df['month_of_year'] = input_df['datetime'].dt.month
+        input_df['major_holiday'] = input_df['datetime'].apply(lambda dt: is_major_holiday_sweden(dt)).\
+            astype(bool)
+        input_df['pre_major_holiday'] = input_df['datetime'].apply(lambda dt: is_day_before_major_holiday_sweden(dt)).\
+            astype(bool)
+
+        unscaled_simulated_values_for_area = simulate_series_with_energy_model(pl.from_pandas(input_df),
+                                                                               random_seed, model)
+        values_pd = unscaled_simulated_values_for_area.to_pandas().value
+        self.assertAlmostEqual(6365.078569414178, values_pd[:8766].sum())
+        self.assertAlmostEqual(4.286543373585984, values_pd[0])
 
     def test_all_parameters_match_true(self):
         """When agents do not contain any commercial buildings, it shouldn't matter that commercial mock data generation
