@@ -31,14 +31,27 @@ if len(ids) > 0:
     job_id = ids[chosen_config_id_to_view]
     pre_calculated_results = get_results(job_id)
 
-    col_tax, col_fee = st.columns(2)
-    with col_tax:
+    col_tot_expend, col_empty = st.columns(2)  # SUM_LEC_EXPENDITURE at the top, and nothing in the other column
+    with col_tot_expend:
+        total_lec_expend = pre_calculated_results[ResultsKey.SUM_LEC_EXPENDITURE]
+        st.metric(label="Total energy expenditure",
+                  value="{:,.2f} SEK".format(total_lec_expend),
+                  help="Total energy spend, minus total income from energy sales, for the local energy community.")
+
+    col_1, col_2 = st.columns(2)
+    with col_1:
+        total_elec_import = pre_calculated_results[ResultsKey.SUM_NET_IMPORT_ELEC]
+        st.metric(label="Total net electricity imported",
+                  value="{:,.2f} MWh".format(total_elec_import / 1000))
         total_tax_paid = pre_calculated_results[ResultsKey.TAX_PAID]
         st.metric(label="Total tax paid",
                   value="{:,.2f} SEK".format(total_tax_paid),
                   help="Tax paid includes taxes that the ElectricityGridAgent has paid"
                   " on sales to the microgrid")
-    with col_fee:
+    with col_2:
+        total_heat_import = pre_calculated_results[ResultsKey.SUM_NET_IMPORT_HEAT]
+        st.metric(label="Total net heating imported",
+                  value="{:,.2f} MWh".format(total_heat_import / 1000))
         total_grid_fees_paid = pre_calculated_results[ResultsKey.GRID_FEES_PAID]
         st.metric(label="Total grid fees paid on internal trades",
                   value="{:,.2f} SEK".format(total_grid_fees_paid))
@@ -91,7 +104,7 @@ if len(ids) > 0:
             st.caption("The quantities used for calculations are before losses for purchases but"
                        " after losses for sales.")
 
-    with st.expander('Total imported and exported electricity and heating:'):
+    with st.expander('Total imported and exported electricity and heating:'):  # TODO: Pre-calculate?
         imp_exp_period_dict = aggregated_import_and_export_results_df_split_on_period(job_id)
         imp_exp_temp_dict = aggregated_import_and_export_results_df_split_on_temperature(job_id)
         st.caption("Split on period of year:")
@@ -107,7 +120,7 @@ if len(ids) > 0:
 
     t_start = time.time()
 
-    with st.expander('Total of locally produced heating and electricity:'):
+    with st.expander('Total of locally produced heating and electricity:'):  # TODO: Pre-calculate?
         loc_prod = aggregated_local_production_df(job_id, chosen_config_id_to_view, config)
         st.dataframe(loc_prod)
         st.caption("Total amount of heating produced by local heat pumps "
