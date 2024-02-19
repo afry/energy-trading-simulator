@@ -61,8 +61,8 @@ def calculate_results_and_save(job_id: str, agents: List[IAgent]):
     result_dict[ResultsKey.MONTHLY_SUM_NET_IMPORT_HEAT] = agg_heat_trades.monthly_sum_net_import
     result_dict[ResultsKey.MONTHLY_MAX_NET_IMPORT_HEAT] = agg_heat_trades.monthly_max_net_import
     # Taxes and grid fees
-    result_dict = {ResultsKey.TAX_PAID: get_total_tax_paid(job_id=job_id),
-                   ResultsKey.GRID_FEES_PAID: get_total_grid_fee_paid_on_internal_trades(job_id=job_id)}
+    result_dict[ResultsKey.TAX_PAID] = get_total_tax_paid(job_id=job_id)
+    result_dict[ResultsKey.GRID_FEES_PAID] = get_total_grid_fee_paid_on_internal_trades(job_id=job_id)
     # Aggregated local production
     loc_prod = aggregated_local_production_df(agents, agg_heat_trades.sum_net_import)
     result_dict[ResultsKey.LOCALLY_PRODUCED_RESOURCES] = loc_prod
