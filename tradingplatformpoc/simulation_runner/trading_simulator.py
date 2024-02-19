@@ -26,6 +26,7 @@ from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
 from tradingplatformpoc.simulation_runner import optimization_problem
 from tradingplatformpoc.simulation_runner.chalmers_interface import optimize
+from tradingplatformpoc.simulation_runner.results_calculator import calculate_results_and_save
 from tradingplatformpoc.simulation_runner.simulation_utils import get_external_heating_prices, \
     get_quantity_heating_sold_by_external_grid, go_through_trades_metadata, \
     net_bids_from_gross_bids
@@ -306,6 +307,8 @@ class TradingSimulator:
         bulk_insert(TableClearingPrice, clearing_prices_dicts)
         bulk_insert(TableLevel, heat_pump_level_dicts)
         bulk_insert(TableLevel, storage_level_dicts)
+
+        calculate_results_and_save(self.job_id, self.agents)
 
         logger.info("Finished simulating trades, beginning calculations on district heating price...")
 
