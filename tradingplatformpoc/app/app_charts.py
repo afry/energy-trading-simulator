@@ -52,41 +52,38 @@ def construct_static_digital_twin_chart(digital_twin: StaticDigitalTwin, agent_c
     df = pd.DataFrame()
     # Defining colors manually, so that for example heat consumption has the same color for every agent, even if for
     # example electricity production doesn't exist for one of them.
-    domain = []
-    range_color = []
-    if digital_twin.electricity_production is not None:
-        df = pd.concat((df, pd.DataFrame({'period': digital_twin.electricity_production.index,
-                                          'value': digital_twin.electricity_production.values,
-                                          'variable': app_constants.ELEC_PROD})))
-        if (df.value != 0).any():
-            domain.append(app_constants.ELEC_PROD)
-            range_color.append(app_constants.ALTAIR_BASE_COLORS[0])
-    if digital_twin.electricity_usage is not None:
-        df = pd.concat((df, pd.DataFrame({'period': digital_twin.electricity_usage.index,
-                                          'value': digital_twin.electricity_usage.values,
-                                          'variable': app_constants.ELEC_CONS})))
-        if (df.value != 0).any():
-            domain.append(app_constants.ELEC_CONS)
-            range_color.append(app_constants.ALTAIR_BASE_COLORS[1])
-    if digital_twin.heating_production is not None:
-        df = pd.concat((df, pd.DataFrame({'period': digital_twin.heating_production.index,
-                                          'value': digital_twin.heating_production.values,
-                                          'variable': app_constants.HEAT_PROD})))
-        if (df.value != 0).any():
-            domain.append(app_constants.HEAT_PROD)
-            range_color.append(app_constants.ALTAIR_BASE_COLORS[2])
-    if digital_twin.heating_usage is not None:
-        df = pd.concat((df, pd.DataFrame({'period': digital_twin.heating_usage.index,
-                                          'value': digital_twin.heating_usage.values,
-                                          'variable': app_constants.HEAT_CONS})))
-        if (df.value != 0).any():
-            domain.append(app_constants.HEAT_CONS)
-            range_color.append(app_constants.ALTAIR_BASE_COLORS[3])
+    domain: List[str] = []
+    range_color: List[str] = []
+    df = add_to_df_and_lists(df, digital_twin.electricity_production, domain, range_color,
+                             app_constants.ELEC_PROD, app_constants.ALTAIR_BASE_COLORS[0])
+    df = add_to_df_and_lists(df, digital_twin.electricity_usage, domain, range_color,
+                             app_constants.ELEC_CONS, app_constants.ALTAIR_BASE_COLORS[1])
+    df = add_to_df_and_lists(df, digital_twin.total_heating_production, domain, range_color,
+                             app_constants.HEAT_PROD, app_constants.ALTAIR_BASE_COLORS[2])
+    # TODO: Replace with low-temp and high-temp heat separated
+    df = add_to_df_and_lists(df, digital_twin.total_heating_usage, domain, range_color,
+                             app_constants.HEAT_CONS, app_constants.ALTAIR_BASE_COLORS[3])
+    df = add_to_df_and_lists(df, digital_twin.cooling_usage, domain, range_color,
+                             app_constants.COOL_CONS, app_constants.ALTAIR_BASE_COLORS[4])
+    df = add_to_df_and_lists(df, digital_twin.cooling_production, domain, range_color,
+                             app_constants.COOL_PROD, app_constants.ALTAIR_BASE_COLORS[5])
     if should_add_hp_to_legend:
         domain.append('Heat pump workload')
         range_color.append(app_constants.HEAT_PUMP_CHART_COLOR)
     return altair_line_chart(df, domain, range_color, [], "Energy [kWh]",
                              "Energy production/consumption for " + agent_chosen_guid)
+
+
+def add_to_df_and_lists(df: pd.DataFrame, series: pd.Series, domain: List[str], range_color: List[str], var_name: str,
+                        color: str):
+    if series is not None:
+        df = pd.concat((df, pd.DataFrame({'period': series.index,
+                                          'value': series.values,
+                                          'variable': var_name})))
+        if (df.value != 0).any():
+            domain.append(var_name)
+            range_color.append(color)
+    return df
 
 
 def construct_traded_amount_by_agent_chart(agent_chosen_guid: str,
@@ -142,9 +139,8 @@ def construct_price_chart(prices_df: pd.DataFrame, resource: Resource) -> alt.Ch
     return altair_line_chart(data_to_use, domain, range_color, range_dash, "Price [SEK]", "Price over Time")
 
 
-def construct_building_with_heat_pump_chart(agent_chosen_guid: str, digital_twin: StaticDigitalTwin,
-                                            heat_pump_df: pd.DataFrame) -> \
-        alt.Chart:
+def construct_agent_with_heat_pump_chart(agent_chosen_guid: str, digital_twin: StaticDigitalTwin,
+                                         heat_pump_df: pd.DataFrame) -> alt.Chart:
     """
     Constructs a multi-line chart with energy production/consumption levels, with any heat pump workload data in the
     background. If there is no heat_pump_data, will just return construct_static_digital_twin_chart(digital_twin).
@@ -177,3 +173,42 @@ def construct_storage_level_chart(storage_levels_df: pd.DataFrame) -> alt.Chart:
     range_dash = [[0, 0]]
     return altair_line_chart(storage_levels_df, domain, range_color, range_dash,
                              "Capacity [kWh]", "Charging level")
+
+    
+def construct_avg_day_elec_chart(elec_use_df: pd.DataFrame, period: tuple) -> alt.Chart:
+    """
+    Creates a chart of average monthly electricity use with points and error bars.
+    The points are colored by the weekday.
+    """
+
+    title_str = "Average hourly net electricity consumed from " + period[0] + " to " + period[1]
+    var_title_str = "Average of net electricity consumed [kWh]"
+    domain = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    range_color = app_constants.ALTAIR_BASE_COLORS[:len(domain)]
+
+    alt_title = alt.TitleParams(title_str, anchor='middle')
+    selection = alt.selection_multi(fields=['weekday'], bind='legend')
+
+    elec_use_df['ymin'] = elec_use_df['mean_total_elec'] - elec_use_df['std_total_elec']
+    elec_use_df['ymax'] = elec_use_df['mean_total_elec'] + elec_use_df['std_total_elec']
+
+    base = alt.Chart(elec_use_df, title=alt_title)
+
+    points = base.mark_point(filled=True, size=80).encode(
+        x=alt.X('hour', axis=alt.Axis(title='Hour')),
+        y=alt.Y('mean_total_elec:Q', axis=alt.Axis(title=var_title_str), scale=alt.Scale(zero=False)),
+        color=alt.Color('weekday', scale=alt.Scale(domain=domain, range=range_color)),
+        opacity=alt.condition(selection, alt.value(0.7), alt.value(0.0))
+    )
+
+    error_bars = base.mark_rule(strokeWidth=2).encode(
+        x='hour',
+        y='ymin:Q',
+        y2='ymax:Q',
+        color=alt.Color('weekday', scale=alt.Scale(domain=domain, range=range_color)),
+        opacity=alt.condition(selection, alt.value(0.8), alt.value(0.0))
+    )
+
+    combined_chart = points + error_bars
+
+    return combined_chart.add_selection(selection).interactive(bind_y=False)

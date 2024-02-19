@@ -33,9 +33,9 @@ def duplicate_agent(some_agent: Dict[str, Any]):
     st.session_state.config_data['Agents'].append(new_agent)
 
 
-def remove_all_building_agents():
+def remove_all_block_agents():
     st.session_state.config_data['Agents'] = [agent for agent in st.session_state.config_data['Agents']
-                                              if agent['Type'] != 'BuildingAgent']
+                                              if agent['Type'] != 'BlockAgent']
 
 
 def add_agent(new_agent: Dict[str, Any]):
@@ -52,24 +52,10 @@ def add_agent(new_agent: Dict[str, Any]):
     agent_inputs(new_agent, new=True)
 
 
-def add_building_agent():
+def add_block_agent():
     add_agent({
-        "Type": "BuildingAgent",
-        **read_agent_defaults("BuildingAgent", read_agent_specs())
-    })
-
-
-def add_battery_agent():
-    add_agent({
-        "Type": "BatteryAgent",
-        **read_agent_defaults("BatteryAgent", read_agent_specs())
-    })
-
-
-def add_pv_agent():
-    add_agent({
-        "Type": "PVAgent",
-        **read_agent_defaults("PVAgent", read_agent_specs())
+        "Type": "BlockAgent",
+        **read_agent_defaults("BlockAgent", read_agent_specs())
     })
 
 
@@ -134,10 +120,15 @@ def get_agent(all_agents: Iterable[IAgent], agent_chosen_guid: str) -> IAgent:
 
 
 def add_params_to_form(form, param_spec_dict: dict, info_type: str):
-    """Populate parameter forms."""
+    """Populate parameter forms. Will use radio buttons for booleans, number inputs for all others."""
     current_config = st.session_state.config_data
+    bool_options = [True, False]
     for key, val in param_spec_dict[info_type].items():
         params = {k: v for k, v in val.items() if k not in ['display', 'default']}
-        st.session_state.config_data[info_type][key] = form.number_input(
-            val['display'], **params,
-            value=current_config[info_type][key])
+        if isinstance(val['default'], bool):
+            st.session_state.config_data[info_type][key] = form.radio(
+                label=val['display'], options=bool_options, index=bool_options.index(current_config[info_type][key]),
+                **params)
+        else:
+            st.session_state.config_data[info_type][key] = form.number_input(
+                val['display'], value=current_config[info_type][key], **params)

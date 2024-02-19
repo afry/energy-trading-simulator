@@ -13,9 +13,11 @@ class IAgent(ABC):
     """Interface for agents to implement"""
 
     guid: str
+    local_market_enabled: bool
 
-    def __init__(self, guid: str):
+    def __init__(self, guid: str, local_market_enabled: bool):
         self.guid = guid
+        self.local_market_enabled = local_market_enabled
 
     @abstractmethod
     def make_bids(self, period: datetime.datetime, clearing_prices_historical: Union[Dict[datetime.datetime, Dict[
@@ -82,16 +84,14 @@ class IAgent(ABC):
                      price=price, source=self.guid, by_external=False, market=market,
                      loss=heat_transfer_loss_per_side)
 
+    def get_price_and_market_to_use_when_buying(self, clearing_price: float, retail_price: float):
+        if clearing_price != np.nan and clearing_price <= retail_price and self.local_market_enabled:
+            return clearing_price, Market.LOCAL
+        else:
+            return retail_price, Market.EXTERNAL
 
-def get_price_and_market_to_use_when_buying(clearing_price: float, retail_price: float):
-    if clearing_price != np.nan and clearing_price <= retail_price:
-        return clearing_price, Market.LOCAL
-    else:
-        return retail_price, Market.EXTERNAL
-
-
-def get_price_and_market_to_use_when_selling(clearing_price: float, wholesale_price: float):
-    if clearing_price != np.nan and clearing_price >= wholesale_price:
-        return clearing_price, Market.LOCAL
-    else:
-        return wholesale_price, Market.EXTERNAL
+    def get_price_and_market_to_use_when_selling(self, clearing_price: float, wholesale_price: float):
+        if clearing_price != np.nan and clearing_price >= wholesale_price and self.local_market_enabled:
+            return clearing_price, Market.LOCAL
+        else:
+            return wholesale_price, Market.EXTERNAL

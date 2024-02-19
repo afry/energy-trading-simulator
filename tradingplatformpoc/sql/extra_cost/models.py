@@ -23,10 +23,8 @@ class ExtraCost(SQLModel, table=True):
         nullable=False
     )
     period: datetime.datetime = Field(
-        primary_key=False,
         title="Period",
-        nullable=True,
-        sa_column=Column(DateTime(timezone=True))
+        sa_column=Column(DateTime(timezone=True), primary_key=False, nullable=True)
     )
     agent: str = Field(
         primary_key=False,

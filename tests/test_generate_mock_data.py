@@ -17,7 +17,8 @@ from tradingplatformpoc.generate_data.generation_functions.common import is_day_
 from tradingplatformpoc.generate_data.generation_functions.non_residential.common import simulate_space_heating
 from tradingplatformpoc.generate_data.generation_functions.non_residential.school import \
     get_school_heating_consumption_hourly_factor
-from tradingplatformpoc.generate_data.generation_functions.residential.residential import simulate_series
+from tradingplatformpoc.generate_data.generation_functions.residential.electricity import \
+    simulate_series_with_log_energy_model
 from tradingplatformpoc.generate_data.mock_data_utils import all_parameters_match
 from tradingplatformpoc.trading_platform_utils import hourly_datetime_array_between
 
@@ -53,7 +54,7 @@ class Test(TestCase):
                                                get_school_heating_consumption_hourly_factor, len(datetimes))
         space_heating_pd = space_heating.collect().to_pandas()
         self.assertAlmostEqual(2500, space_heating_pd.value[:8766].sum())
-        self.assertAlmostEqual(0.7098387777531893, space_heating_pd.value[0])
+        self.assertAlmostEqual(0.708267777993458, space_heating_pd.value[0])
 
     def test_simulate_residential_electricity(self):
         """
@@ -75,7 +76,8 @@ class Test(TestCase):
         input_df['pre_major_holiday'] = input_df['datetime'].apply(lambda dt: is_day_before_major_holiday_sweden(dt)).\
             astype(bool)
 
-        unscaled_simulated_values_for_area = simulate_series(pl.from_pandas(input_df), random_seed, model)
+        unscaled_simulated_values_for_area = simulate_series_with_log_energy_model(pl.from_pandas(input_df),
+                                                                                   random_seed, model)
         values_pd = unscaled_simulated_values_for_area.to_pandas().value
         self.assertAlmostEqual(358.64245460289527, values_pd[:8766].sum())
         self.assertAlmostEqual(0.286418874824197, values_pd[0])
@@ -83,7 +85,7 @@ class Test(TestCase):
     def test_all_parameters_match_true(self):
         """When agents do not contain any commercial buildings, it shouldn't matter that commercial mock data generation
         constants are different."""
-        agent_1 = {'Name': 'ResidentialBuildingAgentB1', 'FractionCommercial': 0.0}
+        agent_1 = {'Name': 'ResidentialBlockAgentB1', 'FractionCommercial': 0.0}
         agent_2 = agent_1.copy()
         mock_data_constants_1 = {'CommercialElecKwhPerYearM2': 50}
         mock_data_constants_2 = {'CommercialElecKwhPerYearM2': 60}
@@ -92,7 +94,7 @@ class Test(TestCase):
     def test_all_parameters_match_false(self):
         """When agents do contain commercial buildings, it should matter that commercial mock data generation
         constants are different."""
-        agent_1 = {'Name': 'ResidentialBuildingAgentB1', 'FractionCommercial': 0.1}
+        agent_1 = {'Name': 'ResidentialBlockAgentB1', 'FractionCommercial': 0.1}
         agent_2 = agent_1.copy()
         mock_data_constants_1 = {'CommercialElecKwhPerYearM2': 50}
         mock_data_constants_2 = {'CommercialElecKwhPerYearM2': 60}

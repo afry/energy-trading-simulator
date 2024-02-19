@@ -12,20 +12,21 @@ from statsmodels.regression.linear_model import RegressionResultsWrapper
 
 from tradingplatformpoc.compress import bz2_decompress_pickle
 from tradingplatformpoc.database import bulk_insert
-from tradingplatformpoc.generate_data.generation_functions.common import add_datetime_value_frames, \
+from tradingplatformpoc.generate_data.generation_functions.common import add_datetime_value_frames, constants, \
     extract_datetime_features_from_inputs_df
 from tradingplatformpoc.generate_data.generation_functions.non_residential.commercial import \
-    get_commercial_electricity_consumption_hourly_factor, \
+    get_commercial_electricity_consumption_hourly_factor, simulate_commercial_area_cooling, \
     simulate_commercial_area_total_heating
 from tradingplatformpoc.generate_data.generation_functions.non_residential.common import simulate_area_electricity
 from tradingplatformpoc.generate_data.generation_functions.non_residential.school import \
     get_school_heating_consumption_hourly_factor, simulate_school_area_heating
-from tradingplatformpoc.generate_data.generation_functions.residential.residential import \
-    simulate_household_electricity_aggregated, simulate_residential_total_heating
+from tradingplatformpoc.generate_data.generation_functions.residential.electricity import \
+    property_electricity, simulate_household_electricity_aggregated
+from tradingplatformpoc.generate_data.generation_functions.residential.heating import simulate_residential_total_heating
 from tradingplatformpoc.generate_data.mock_data_utils import \
-    calculate_seed_from_string, get_elec_cons_key, get_hot_tap_water_cons_key, get_space_heat_cons_key, \
-    join_list_of_polar_dfs
-from tradingplatformpoc.sql.agent.crud import get_building_agent_dicts_from_id_list
+    calculate_seed_from_string, get_cooling_cons_key, get_elec_cons_key, get_hot_tap_water_cons_key, \
+    get_space_heat_cons_key, join_list_of_polar_dfs
+from tradingplatformpoc.sql.agent.crud import get_block_agent_dicts_from_id_list
 from tradingplatformpoc.sql.config.crud import get_all_agents_in_config, get_mock_data_constants
 from tradingplatformpoc.sql.input_data.crud import read_inputs_df_for_mock_data_generation
 from tradingplatformpoc.sql.mock_data.crud import db_to_mock_data_df, get_mock_data_agent_pairs_in_db, \
@@ -35,8 +36,6 @@ from tradingplatformpoc.trading_platform_utils import get_if_exists_else
 
 DATA_PATH = 'tradingplatformpoc.data'
 
-MOCK_DATAS_PICKLE = resource_filename(DATA_PATH, 'mock_datas.pickle')
-
 # Will use these to set random seed.
 RESIDENTIAL_HEATING_SEED_SUFFIX = "RH"
 COMMERCIAL_ELECTRICITY_SEED_SUFFIX = "CE"
@@ -45,16 +44,18 @@ SCHOOL_HEATING_SEED_SUFFIX = "SH"
 SCHOOL_ELECTRICITY_SEED_SUFFIX = "SE"
 
 """
-This script generates the following, for BuildingAgents:
+This script generates the following, for BlockAgents:
 *Household electricity consumption data
 *Commercial electricity consumption data
+*School electricity consumption data
 *Residential hot water consumption data
 *Commercial hot water consumption data
+*School hot water consumption data
 *Residential space heating consumption data
 *Commercial space heating consumption data
-It stores such data in the MOCK_DATAS_PICKLE file, as a dictionary, where the set of BuildingAgents used to generate the
-data is the key, and a pl.DataFrame of generated data is the value. This way, simulation_runner can get the correct mock
-data set for the given config.
+*School space heating consumption data
+*Commercial cooling consumption data
+It stores such data in the mock_data table in the database.
 For some more information: https://doc.afdrift.se/display/RPJ/Household+electricity+mock-up
 """
 
@@ -63,9 +64,9 @@ logger = logging.getLogger(__name__)
 
 def get_generated_mock_data(config_id: str) -> pd.DataFrame:
     """
-    Get mock data.
+    Fetch mock data if it exists, else generate it.
     @param config_id: Config id in db
-    @return: A pd.DataFrame containing mock data for building agents
+    @return: A pd.DataFrame containing mock data for block agents
     """
     logger.info("Running mock data generation.")
     data_set = run(config_id)
@@ -74,22 +75,27 @@ def get_generated_mock_data(config_id: str) -> pd.DataFrame:
 
 
 def run(config_id: str) -> Union[pl.DataFrame, pl.LazyFrame]:
+    """
+    Fetch mock data if it exists, else generate it.
+    @param config_id: Config id in db
+    @return: A pl.DataFrame or pl.LazyFrame containing mock data for block agents
+    """
     agent_specs = get_all_agents_in_config(config_id)
     mock_data_constants = get_mock_data_constants(config_id)
     agent_ids_in_config = list(agent_specs.values())
     mock_data_agent_ids_dict = get_mock_data_agent_pairs_in_db(agent_ids_in_config, mock_data_constants)
     agent_ids_without_mock_data = [agent_id for agent_id in agent_ids_in_config
                                    if agent_id not in mock_data_agent_ids_dict.values()]
-    building_agents_to_simulate_for = get_building_agent_dicts_from_id_list(agent_ids_without_mock_data)
+    block_agents_to_simulate_for = get_block_agent_dicts_from_id_list(agent_ids_without_mock_data)
     existing_mock_data_ids = mock_data_agent_ids_dict.keys()
     
-    if (len(existing_mock_data_ids) == 0) and (len(building_agents_to_simulate_for) == 0):
+    if (len(existing_mock_data_ids) == 0) and (len(block_agents_to_simulate_for) == 0):
         logger.info('No mock data needed.')
         return pl.DataFrame(columns=['datetime'])
 
-    if len(building_agents_to_simulate_for) > 0:
-        # Simulate mock data for building agents
-        dfs_new = simulate_for_agents(building_agents_to_simulate_for, mock_data_constants)
+    if len(block_agents_to_simulate_for) > 0:
+        # Simulate mock data for block agents
+        dfs_new = simulate_for_agents(block_agents_to_simulate_for, mock_data_constants)
 
         # Insert simulated mock data into database
         mock_data_dicts = [mock_data_df_to_db_dict(key, mock_data_constants, value) for key, value in dfs_new.items()]
@@ -148,9 +154,9 @@ def simulate_for_agents(agent_dicts: List[Dict[str, Any]], mock_data_constants: 
     for agent_dict in agent_dicts:
 
         logger.info('Generating new data for ' + agent_dict[key])
-        output_per_building = simulate(mock_data_constants, agent_dict, lazy_inputs,
-                                       n_rows, model, output_per_actor.clone(), key)
-        dfs_new[agent_dict[key]] = output_per_building
+        output_per_block = simulate(mock_data_constants, agent_dict, lazy_inputs,
+                                    n_rows, model, output_per_actor.clone(), key)
+        dfs_new[agent_dict[key]] = output_per_block
     
     return dfs_new
 
@@ -183,6 +189,7 @@ def simulate(mock_data_constants: Dict[str, Any], agent: dict, df_inputs: pl.Laz
     electricity_consumption: List[Union[pl.DataFrame, pl.LazyFrame]] = []
     space_heating_consumption: List[Union[pl.DataFrame, pl.LazyFrame]] = []
     hot_tap_water_consumption: List[Union[pl.DataFrame, pl.LazyFrame]] = []
+    cooling_consumption: List[Union[pl.DataFrame, pl.LazyFrame]] = []
 
     # COMMERCIAL
     if fraction_commercial > 0:
@@ -197,6 +204,9 @@ def simulate(mock_data_constants: Dict[str, Any], agent: dict, df_inputs: pl.Laz
             mock_data_constants, commercial_gross_floor_area, seed_commercial_heating, df_inputs, n_rows)
         space_heating_consumption.append(commercial_space_heating_cons)
         hot_tap_water_consumption.append(commercial_hot_tap_water_cons)
+
+        commercial_cooling = simulate_commercial_area_cooling(commercial_gross_floor_area, df_inputs)
+        cooling_consumption.append(commercial_cooling)
     
     # SCHOOL
     if fraction_school > 0:
@@ -213,19 +223,27 @@ def simulate(mock_data_constants: Dict[str, Any], agent: dict, df_inputs: pl.Laz
         space_heating_consumption.append(school_space_heating_cons)
         hot_tap_water_consumption.append(school_hot_tap_water_cons)
 
+        school_cooling = constants(df_inputs, 0)
+        cooling_consumption.append(school_cooling)
+
     # RESIDENTIAL
     if fraction_residential > 0:
         residential_gross_floor_area = agent['GrossFloorArea'] * fraction_residential
 
-        electricity_consumption.append(
-            simulate_household_electricity_aggregated(
-                df_inputs, model, residential_gross_floor_area, seed_residential_electricity, n_rows,
-                mock_data_constants['ResidentialElecKwhPerYearM2Atemp']))
+        household_el = simulate_household_electricity_aggregated(df_inputs, model, residential_gross_floor_area,
+                                                                 seed_residential_electricity, n_rows,
+                                                                 mock_data_constants['HouseholdElecKwhPerYearM2Atemp'])
+        property_el = property_electricity(df_inputs, residential_gross_floor_area, n_rows,
+                                           mock_data_constants['ResidentialPropertyElecKwhPerYearM2Atemp'])
+        electricity_consumption.append(add_datetime_value_frames([household_el, property_el]))
 
         residential_space_heating_cons, residential_hot_tap_water_cons = simulate_residential_total_heating(
             mock_data_constants, df_inputs, n_rows, residential_gross_floor_area, seed_residential_heating)
         space_heating_consumption.append(residential_space_heating_cons)
         hot_tap_water_consumption.append(residential_hot_tap_water_cons)
+
+        residential_cooling = constants(df_inputs, 0)
+        cooling_consumption.append(residential_cooling)
 
     logger.debug("Adding output for agent {}".format(agent[key]))
     # Note: Here we join a normal DataFrame (output_per_actor) with LazyFrames
@@ -235,7 +253,9 @@ def simulate(mock_data_constants: Dict[str, Any], agent: dict, df_inputs: pl.Laz
         join(add_datetime_value_frames(space_heating_consumption), on='datetime'). \
         rename({'value': get_space_heat_cons_key(agent[key])}). \
         join(add_datetime_value_frames(hot_tap_water_consumption), on='datetime'). \
-        rename({'value': get_hot_tap_water_cons_key(agent[key])})
+        rename({'value': get_hot_tap_water_cons_key(agent[key])}). \
+        join(add_datetime_value_frames(cooling_consumption), on='datetime'). \
+        rename({'value': get_cooling_cons_key(agent[key])})
 
     return output_per_actor
 

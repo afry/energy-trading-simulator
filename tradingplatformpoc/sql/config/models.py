@@ -20,28 +20,20 @@ class Config(SQLModel, table=True):
         nullable=True
     )
     created_at: Optional[datetime.datetime] = Field(
-        primary_key=False,
         title='Created time, with tz',
-        nullable=False,
-        sa_column=Column(DateTime(timezone=True), server_default=func.now())
+        sa_column=Column(DateTime(timezone=True), server_default=func.now(), primary_key=False, nullable=False)
     )
     agents_spec: Optional[Dict[str, str]] = Field(
-        primary_key=False,
         title="Agents names and ids",
-        nullable=True,
-        sa_column=Column(JSONB(none_as_null=True))
+        sa_column=Column(JSONB(none_as_null=True), primary_key=False, nullable=True)
     )
     area_info: Optional[dict] = Field(
-        primary_key=False,
         title="Area info parameters",
-        nullable=True,
-        sa_column=Column(JSONB(none_as_null=True))
+        sa_column=Column(JSONB(none_as_null=True), primary_key=False, nullable=True)
     )
     mock_data_constants: Optional[dict] = Field(
-        primary_key=False,
         title="Mock data constants",
-        nullable=True,
-        sa_column=Column(JSONB(none_as_null=True))
+        sa_column=Column(JSONB(none_as_null=True), primary_key=False, nullable=True)
     )
 
 

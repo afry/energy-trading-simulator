@@ -11,8 +11,13 @@ class Action(Enum):
 
 class Resource(Enum):
     ELECTRICITY = 0
-    HEATING = 1
+    HEATING = 1  # TODO: remove
     COOLING = 2
+    LOW_TEMP_HEAT = 3  # ~40 degrees Celsius - can cover space heating demand
+    HIGH_TEMP_HEAT = 4  # ~65 degrees Celsius - needed for hot water, but can also cover space heating
+
+    def get_display_name(self) -> str:
+        return self.name.lower().capitalize()
 
 
 logger = logging.getLogger(__name__)

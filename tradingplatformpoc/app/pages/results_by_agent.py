@@ -3,42 +3,36 @@ from st_pages import add_indentation, show_pages_from_config
 import streamlit as st
 
 from tradingplatformpoc.app import footer
-from tradingplatformpoc.app.app_charts import construct_building_with_heat_pump_chart, \
-    construct_static_digital_twin_chart, construct_storage_level_chart, \
+from tradingplatformpoc.app.app_charts import construct_agent_with_heat_pump_chart, \
     construct_traded_amount_by_agent_chart
-from tradingplatformpoc.app.app_data_display import \
-    get_savings_vs_only_external_buy, get_total_profit_net, \
-    reconstruct_building_digital_twin, reconstruct_pv_digital_twin
-from tradingplatformpoc.app.app_functions import download_df_as_csv_button
-from tradingplatformpoc.market.trade import TradeMetadataKey
+from tradingplatformpoc.app.app_data_display import build_heat_pump_levels_df, \
+    get_savings_vs_only_external_buy, reconstruct_static_digital_twin
+from tradingplatformpoc.app.app_functions import IdPair, download_df_as_csv_button, make_room_for_menu_in_sidebar
 from tradingplatformpoc.sql.agent.crud import get_agent_config, get_agent_type
 from tradingplatformpoc.sql.bid.crud import db_to_viewable_bid_df_for_agent
 from tradingplatformpoc.sql.config.crud import get_all_agents_in_config, get_all_finished_job_config_id_pairs_in_db, \
-    get_mock_data_constants
+    read_config
 from tradingplatformpoc.sql.extra_cost.crud import db_to_viewable_extra_costs_df_by_agent
-from tradingplatformpoc.sql.level.crud import db_to_viewable_level_df_by_agent
-from tradingplatformpoc.sql.trade.crud import db_to_viewable_trade_df_by_agent, \
-    get_total_grid_fee_paid_on_internal_trades, get_total_tax_paid
+from tradingplatformpoc.sql.trade.crud import db_to_viewable_trade_df_by_agent
 
 TABLE_HEIGHT: int = 300
 
 show_pages_from_config("tradingplatformpoc/app/pages_config/pages.toml")
 add_indentation()
+make_room_for_menu_in_sidebar()
 
 ids = get_all_finished_job_config_id_pairs_in_db()
 if len(ids) > 0:
     chosen_config_id_to_view = st.selectbox('Choose a configuration to view results for', ids.keys())
-    chosen_id_to_view = {'config_id': chosen_config_id_to_view,
-                         'job_id': ids[chosen_config_id_to_view]}
-    
-    agent_specs = get_all_agents_in_config(chosen_id_to_view['config_id'])
+    chosen_id_to_view = IdPair(chosen_config_id_to_view, ids[chosen_config_id_to_view])
+    agent_specs = get_all_agents_in_config(chosen_id_to_view.config_id)
     agent_names = [name for name in agent_specs.keys()]
     agent_chosen_guid = st.sidebar.selectbox('Choose agent:', agent_names)
     agent_type = get_agent_type(agent_specs[agent_chosen_guid])
     st.write("Showing results for: " + agent_chosen_guid)
 
     with st.expander('Bids'):
-        bids_df = db_to_viewable_bid_df_for_agent(job_id=chosen_id_to_view['job_id'],
+        bids_df = db_to_viewable_bid_df_for_agent(job_id=chosen_id_to_view.job_id,
                                                   agent_guid=agent_chosen_guid)
         if bids_df.empty:
             st.dataframe(bids_df, hide_index=True)
@@ -48,7 +42,7 @@ if len(ids) > 0:
                                       include_index=True)
 
     with st.expander('Trades'):
-        trades_df = db_to_viewable_trade_df_by_agent(job_id=chosen_id_to_view['job_id'],
+        trades_df = db_to_viewable_trade_df_by_agent(job_id=chosen_id_to_view.job_id,
                                                      agent_guid=agent_chosen_guid)
         if trades_df.empty:
             st.dataframe(trades_df, hide_index=True)
@@ -63,7 +57,7 @@ if len(ids) > 0:
     with st.expander('Extra costs'):
         st.write('A negative cost means that the agent was owed money for the period, rather than owing the '
                  'money to someone else.')
-        extra_costs_df = db_to_viewable_extra_costs_df_by_agent(job_id=chosen_id_to_view['job_id'],
+        extra_costs_df = db_to_viewable_extra_costs_df_by_agent(job_id=chosen_id_to_view.job_id,
                                                                 agent_guid=agent_chosen_guid)
         
         if extra_costs_df.empty:
@@ -72,21 +66,22 @@ if len(ids) > 0:
             st.dataframe(extra_costs_df.replace(float('inf'), 'inf'), height=TABLE_HEIGHT)
             download_df_as_csv_button(extra_costs_df, "extra_costs_for_agent_" + agent_chosen_guid,
                                       include_index=True)
-            
-    if agent_type == 'BatteryAgent':
-        storage_levels_df = db_to_viewable_level_df_by_agent(job_id=chosen_id_to_view['job_id'],
-                                                             agent_guid=agent_chosen_guid,
-                                                             level_type=TradeMetadataKey.STORAGE_LEVEL.name)
-        if not storage_levels_df.empty:
-            with st.expander('Charging level over time for ' + agent_chosen_guid + ':'):
-                storage_chart = construct_storage_level_chart(storage_levels_df)
-                st.altair_chart(storage_chart, use_container_width=True, theme=None)
+
+    # TODO: uncomment when we've fixed saving storage level for block agents
+    # if agent_type == 'BlockAgent':
+    #     storage_levels_df = db_to_viewable_level_df_by_agent(job_id=chosen_id_to_view.job_id,
+    #                                                          agent_guid=agent_chosen_guid,
+    #                                                          level_type=TradeMetadataKey.STORAGE_LEVEL.name)
+    #     if not storage_levels_df.empty:
+    #         with st.expander('Charging level over time for ' + agent_chosen_guid + ':'):
+    #             storage_chart = construct_storage_level_chart(storage_levels_df)
+    #             st.altair_chart(storage_chart, use_container_width=True, theme=None)
     
     # Exclude GridAgent
     if agent_type != 'GridAgent':
 
         total_saved, extra_costs_for_bad_bids = get_savings_vs_only_external_buy(
-            job_id=chosen_id_to_view['job_id'],
+            job_id=chosen_id_to_view.job_id,
             agent_guid=agent_chosen_guid)
 
         st.metric(
@@ -107,49 +102,24 @@ if len(ids) > 0:
             help=r"Agent {} was penalized with a total of {:,.2f} SEK due to inaccurate projections. This brought "
                  r"total savings after penalties to {:,.2f} SEK.".format(agent_chosen_guid, extra_costs_for_bad_bids,
                                                                          total_saved - extra_costs_for_bad_bids))
-        if agent_type == 'BatteryAgent':
-            battery_agent_total_net_profit = get_total_profit_net(
-                job_id=chosen_id_to_view['job_id'],
-                agent_guid=agent_chosen_guid)
-            st.metric(
-                label="Net profit.",
-                value="{:,.2f} SEK".format(battery_agent_total_net_profit),
-                help=r"What the {} sold minus what it bought.".format(agent_chosen_guid))
-            battery_agent_tax_paid = get_total_tax_paid(
-                job_id=chosen_id_to_view['job_id'],
-                agent_guid=agent_chosen_guid)
-            battery_agent_grid_fee_paid = get_total_grid_fee_paid_on_internal_trades(
-                job_id=chosen_id_to_view['job_id'],
-                agent_guid=agent_chosen_guid)
-            st.metric(
-                label="Gross profit.",
-                value="{:,.2f} SEK".format(
-                    battery_agent_total_net_profit + battery_agent_tax_paid + battery_agent_grid_fee_paid),
-                help=r"Net profit plus what the {} paid for tax and grid fees.".format(agent_chosen_guid))
 
-    if agent_type in ["BuildingAgent", 'PVAgent']:
-        # Any building agent with a StaticDigitalTwin
+    if agent_type == "BlockAgent":
         with st.expander('Energy production/consumption'):
             agent_config = get_agent_config(agent_specs[agent_chosen_guid])
             st.caption("Click on a variable to highlight it.")
-            if agent_type == 'BuildingAgent':
-                heat_pump_levels_df = db_to_viewable_level_df_by_agent(
-                    job_id=chosen_id_to_view['job_id'],
-                    agent_guid=agent_chosen_guid,
-                    level_type=TradeMetadataKey.HEAT_PUMP_WORKLOAD.name)
-                mock_data_constants = get_mock_data_constants(chosen_id_to_view['config_id'])
-                building_digital_twin = reconstruct_building_digital_twin(
-                    agent_specs[agent_chosen_guid], mock_data_constants,
-                    agent_config['PVArea'], agent_config['PVEfficiency'])
-                static_digital_twin_chart = construct_building_with_heat_pump_chart(
-                    agent_chosen_guid, building_digital_twin, heat_pump_levels_df)
-                st.caption("Heat consumption here refers to the building agent's heat demand, and does not consider "
+            if agent_type == 'BlockAgent':
+                heat_pump_levels_df = build_heat_pump_levels_df(agent_chosen_guid, chosen_id_to_view.job_id,
+                                                                agent_config)
+                config = read_config(chosen_id_to_view.config_id)
+                block_digital_twin = reconstruct_static_digital_twin(
+                    agent_specs[agent_chosen_guid], config['MockDataConstants'],
+                    agent_config['PVArea'], config['AreaInfo']['PVEfficiency'])
+                static_digital_twin_chart = construct_agent_with_heat_pump_chart(
+                    agent_chosen_guid, block_digital_twin, heat_pump_levels_df)
+                st.caption("Heat consumption here refers to the block agent's heat demand, and does not consider "
                            "the source of the heat. To investigate the effects of running heat pumps, this graph "
                            "should be studied together with the graph displaying resources bought and sold further "
                            "up the page under the *Trades*-expander.")
-            elif agent_type == 'PVAgent':
-                pv_digital_twin = reconstruct_pv_digital_twin(agent_config['PVArea'], agent_config['PVEfficiency'])
-                static_digital_twin_chart = construct_static_digital_twin_chart(pv_digital_twin, agent_chosen_guid)
 
             st.altair_chart(static_digital_twin_chart, use_container_width=True, theme=None)
 

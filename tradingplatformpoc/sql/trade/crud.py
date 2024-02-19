@@ -12,13 +12,13 @@ from sqlmodel import Session
 
 from tradingplatformpoc.connection import session_scope
 from tradingplatformpoc.market.bid import Action, Resource
-from tradingplatformpoc.market.trade import Trade
+from tradingplatformpoc.market.trade import Market, Trade
 from tradingplatformpoc.sql.trade.models import Trade as TableTrade
 
 
 def heat_trades_from_db_for_periods(trading_periods, job_id: str,
                                     session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope)\
-        -> Dict[datetime.datetime, Dict]:
+        -> Dict[datetime.datetime, List]:
     with session_generator() as db:
         trades_for_month = db.execute(select(TableTrade.period.label('period'),
                                              TableTrade.action.label('action').label('action'),
@@ -35,6 +35,42 @@ def heat_trades_from_db_for_periods(trading_periods, job_id: str,
 
         return dict((period, list(vals)) for period, vals in
                     itertools.groupby(trades_for_month, operator.itemgetter(0)))
+
+
+def elec_trades_by_external_for_periods_to_df(job_id: str, trading_periods,
+                                              session_generator: Callable[[], _GeneratorContextManager[Session]]
+                                              = session_scope) -> pd.DataFrame:
+    """Get the summed amount of electricity used each period for all agents combined.
+    """
+    with session_generator() as db:
+        trades = db.query(
+            TableTrade.period.label('period'),
+            TableTrade.action.label('action'),
+            func.sum(TableTrade.quantity_pre_loss).label("total_quantity_pre"),
+            func.sum(TableTrade.quantity_post_loss).label("total_quantity_post"))\
+            .filter(
+                TableTrade.job_id == job_id,
+                TableTrade.by_external,
+                TableTrade.resource == Resource.ELECTRICITY,
+                TableTrade.period.in_(trading_periods))\
+            .group_by(TableTrade.period, TableTrade.action).all()
+        df = pd.DataFrame.from_records([{'period': trade.period,
+                                         'action': trade.action,
+                                         'total_quantity_pre': trade.total_quantity_pre,
+                                         'total_quantity_post': trade.total_quantity_post,
+                                         'weekday': trade.period.strftime('%A'),
+                                         'hour': trade.period.hour
+                                         } for trade in trades])
+        df_export = df[df.action == Action.BUY].drop(columns=['action', 'total_quantity_post']).rename(
+            columns={'total_quantity_pre': 'total_export_quantity'})  # GridAgent buys --> local grid exports
+        df_import = df[df.action == Action.SELL].drop(columns=['action', 'total_quantity_pre']).rename(
+            columns={'total_quantity_post': 'total_import_quantity'})  # GridAgent sells --> local grid imports
+
+        trades_df = df_import.merge(df_export, on=['period', 'weekday', 'hour'], how='outer')
+        trades_df[['total_import_quantity', 'total_export_quantity']] = \
+            trades_df[['total_import_quantity', 'total_export_quantity']].fillna(0.0)
+        trades_df['net_import_quantity'] = trades_df.total_import_quantity - trades_df.total_export_quantity
+        return trades_df
 
 
 def db_to_trade_df(job_id: str,
@@ -55,26 +91,25 @@ def db_to_trade_df(job_id: str,
                                            } for (trade, ) in trades])
 
 
-def trades_to_db_dict(bids_list: List[Trade], job_id: str) -> List[Dict[str, Any]]:
-    dict = [{'job_id': job_id,
-             'period': x.period,
-             'source': x.source,
-             'by_external': x.by_external,
-             'action': x.action,
-             'resource': x.resource,
-             'quantity_pre_loss': x.quantity_pre_loss,
-             'quantity_post_loss': x.quantity_post_loss,
-             'price': x.price,
-             'market': x.market,
-             'tax_paid': x.tax_paid,
-             'grid_fee_paid': x.grid_fee_paid}
-            for some_collection in bids_list for x in some_collection]
-    return dict
+def trades_to_db_dict(lists_of_trade_lists: List[List[Trade]], job_id: str) -> List[Dict[str, Any]]:
+    return [{'job_id': job_id,
+             'period': trade.period,
+             'source': trade.source,
+             'by_external': trade.by_external,
+             'action': trade.action,
+             'resource': trade.resource,
+             'quantity_pre_loss': trade.quantity_pre_loss,
+             'quantity_post_loss': trade.quantity_post_loss,
+             'price': trade.price,
+             'market': trade.market,
+             'tax_paid': trade.tax_paid,
+             'grid_fee_paid': trade.grid_fee_paid}
+            for list_of_trades in lists_of_trade_lists for trade in list_of_trades]
 
 
 def db_to_aggregated_trade_df(job_id: str, resource: Resource, action: Action,
                               session_generator: Callable[[], _GeneratorContextManager[Session]]
-                              = session_scope):
+                              = session_scope) -> Optional[pd.DataFrame]:
     """Fetches aggregated trades data from database for specified agent (source), resource and action."""
     with session_generator() as db:
         if action == Action.BUY:
@@ -93,12 +128,13 @@ def db_to_aggregated_trade_df(job_id: str, resource: Resource, action: Action,
                  TableTrade.action == action,
                  TableTrade.resource == resource)\
          .group_by(TableTrade.source, TableTrade.resource).all()
-
+        if len(res) == 0:
+            return None
         df = pd.DataFrame(res).set_index('Agent')
         df['Average ' + action.name.lower() + ' price [SEK/kWh]'] = \
             df['Total amount ' + label + ' for [SEK]'] / df['Total quantity ' + label + ' [kWh]']
         return df
-    
+
 
 def get_total_traded_for_agent(job_id: str, agent_guid: str, action: Action,
                                session_generator: Callable[[], _GeneratorContextManager[Session]]
@@ -135,7 +171,7 @@ def db_to_trades_by_agent_and_resource_action(job_id: str, agent_guid: str, reso
             TableTrade.source == agent_guid,
             TableTrade.action == action,
             TableTrade.resource == resource).all()
-    
+
 
 def db_to_viewable_trade_df_by_agent(job_id: str, agent_guid: str,
                                      session_generator: Callable[[], _GeneratorContextManager[Session]]
@@ -184,7 +220,7 @@ def get_total_grid_fee_paid_on_internal_trades(job_id: str, agent_guid: Optional
         query = db.query(
             func.sum(TableTrade.grid_fee_paid_for_quantity).label('sum_grid_fee_paid_for_quantities'),
         ).filter(TableTrade.action == Action.SELL, TableTrade.by_external.is_(False),
-                 TableTrade.job_id == job_id)
+                 TableTrade.market == Market.LOCAL, TableTrade.job_id == job_id)
         if agent_guid is not None:
             query = query.filter(TableTrade.source == agent_guid)
         res = query.first()
@@ -209,15 +245,16 @@ def get_total_import_export(job_id: str, resource: Resource, action: Action,
         return res.sum_quantity_post_loss if res.sum_quantity_post_loss is not None else 0.0
 
 
-def get_import_export_df(job_ids: List[str],
-                         session_generator: Callable[[], _GeneratorContextManager[Session]]
-                         = session_scope) -> float:
+def get_external_trades_df(job_ids: List[str],
+                           session_generator: Callable[[], _GeneratorContextManager[Session]]
+                           = session_scope) -> pd.DataFrame:
     with session_generator() as db:
         res = db.query(
             TableTrade.job_id.label('job_id'),
             TableTrade.period.label('period'),
-            TableTrade.resource.label('resource'),
             TableTrade.action.label('action'),
+            TableTrade.resource.label('resource'),
+            TableTrade.price.label('price'),
             TableTrade.quantity_post_loss.label('quantity_post_loss'),
         ).filter(TableTrade.job_id.in_(job_ids),
                  TableTrade.by_external).all()
@@ -226,7 +263,8 @@ def get_import_export_df(job_ids: List[str],
                                                'period': elem.period,
                                                'action': elem.action,
                                                'resource': elem.resource,
+                                               'price': elem.price,
                                                'quantity_post_loss': elem.quantity_post_loss}
                                               for elem in res])
         else:
-            return pd.DataFrame(columns=['job_id', 'period', 'action', 'resource', 'quantity_post_loss'])
+            return pd.DataFrame(columns=['job_id', 'period', 'action', 'resource', 'price', 'quantity_post_loss'])

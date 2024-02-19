@@ -1,5 +1,6 @@
 from unittest import TestCase
 
+from tradingplatformpoc.app.app_functions import config_naming_is_valid, has_control_characters
 from tradingplatformpoc.config.screen_config import config_data_agent_screening, config_data_keys_screening, \
     config_data_param_screening
 
@@ -22,10 +23,10 @@ class TestAppFunctions(TestCase):
     def test_config_data_param_screening(self):
         """Test of parameter check."""
         self.assertIsNotNone(config_data_param_screening({'AreaInfo': {'ThisIsNotAValidParam': 1.0}}))
-        # DefaultPVEfficiency, min value: 0.01, max value: 0.99
-        self.assertIsNotNone(config_data_param_screening({'AreaInfo': {'DefaultPVEfficiency': -0.1}}))
-        self.assertIsNotNone(config_data_param_screening({'AreaInfo': {'DefaultPVEfficiency': 2.0}}))
-        self.assertIsNone(config_data_param_screening({'AreaInfo': {'DefaultPVEfficiency': 0.165}}))
+        # PVEfficiency, min value: 0.01, max value: 0.99
+        self.assertIsNotNone(config_data_param_screening({'AreaInfo': {'PVEfficiency': -0.1}}))
+        self.assertIsNotNone(config_data_param_screening({'AreaInfo': {'PVEfficiency': 2.0}}))
+        self.assertIsNone(config_data_param_screening({'AreaInfo': {'PVEfficiency': 0.165}}))
 
     def test_config_data_agent_screening(self):
         """Test of agent input check."""
@@ -33,7 +34,15 @@ class TestAppFunctions(TestCase):
                         "Resource": "ELECTRICITY", "TransferRate": 5.0}
         mock_grid_he = {"Type": "GridAgent", "Name": "HeatingGridAgent",
                         "Resource": "HEATING", "TransferRate": 5.0}
-        mock_pv = {"Type": "PVAgent", "Name": "PVAgent1", "PVArea": 20.0, "PVEfficiency": 0.165}
+        mock_pv = {"Type": "BlockAgent",
+                   "Name": "PVParkAgent",
+                   "GrossFloorArea": 0.0,
+                   "FractionCommercial": 0.0,
+                   "FractionSchool": 0.0,
+                   "HeatPumpMaxInput": 0.0,
+                   "HeatPumpMaxOutput": 0.0,
+                   "BatteryCapacity": 0.0,
+                   "PVArea": 20.0}
 
         self.assertIsNone(config_data_agent_screening({'Agents': [mock_grid_el, mock_grid_he, mock_pv]}))
 
@@ -60,7 +69,7 @@ class TestAppFunctions(TestCase):
                                                                  mock_grid_he,
                                                                  mock_pv]}))
         
-        # To many GridAgents
+        # Too many GridAgents
         self.assertEqual('Too many GridAgents provided, should be one for each resource!',
                          config_data_agent_screening({'Agents': [{"Type": "GridAgent",
                                                                   "Name": "ElectricityGridAgent",
@@ -127,4 +136,13 @@ class TestAppFunctions(TestCase):
         mock_grid_he['TransferRate'] = -0.1
         self.assertEqual("Specified TransferRate: -0.1 < 0.0.",
                          config_data_agent_screening({'Agents': [mock_grid_he, mock_grid_el, mock_pv]}))
-        
+
+    def test_config_naming_is_valid(self):
+        """Test that we allow/disallow config names appropriately"""
+        self.assertTrue(config_naming_is_valid('2 block agents'))
+        self.assertFalse(config_naming_is_valid(' '))
+        self.assertFalse(config_naming_is_valid('abc\x0123'))
+
+    def test_has_control_characters(self):
+        self.assertTrue(has_control_characters('abc\x0123'))
+        self.assertFalse(has_control_characters('Just a normal string'))

@@ -69,6 +69,10 @@ def config_data_param_screening(config_data: dict) -> Optional[str]:
                     if val > param_specs[info_type][key]["max_value"]:
                         return "Specified {}: {} > {}.".format(key, val, param_specs[
                             info_type][key]["max_value"])
+                if "default" in param_specs[info_type][key].keys():
+                    param_type = type(param_specs[info_type][key]['default'])
+                    if not isinstance(val, param_type):
+                        return "Provided value for {} should be of type {}!".format(key, param_type)
             else:
                 return "Parameter {} is not a valid parameter.".format(key)
     return None
@@ -86,7 +90,7 @@ def config_data_agent_screening(config_data: dict) -> Optional[str]:
 
     # Make sure no agents are passed with unknown type
     for agent in config_data['Agents']:
-        if agent['Type'] not in ['BuildingAgent', 'BatteryAgent', 'PVAgent', 'GridAgent', 'GroceryStoreAgent']:
+        if agent['Type'] not in ['BlockAgent', 'GridAgent', 'GroceryStoreAgent']:
             return 'Agent {} provided with unrecognized \'Type\' {}.'.format(agent['Name'], agent['Type'])
         
         # Check if resource is valid
@@ -109,7 +113,7 @@ def config_data_agent_screening(config_data: dict) -> Optional[str]:
     # Needs at least one other agent
     if len([agent for agent in config_data['Agents'] if agent['Type'] != 'GridAgent']) == 0:
         return 'No non-GridAgents provided, needs at least one other agent!'
-    # TODO: Should we allow for having no BuildingAgents?
+    # TODO: Should we allow for having no BlockAgents?
     
     # Check agents for correct keys and values in ranges
     agent_specs = read_agent_specs()
@@ -149,16 +153,16 @@ def agent_diff(default: dict, new: dict) -> Tuple[List[str], List[str], Dict[str
     agents_only_in_default = [x for x in agents_in_default if x not in set(agents_same)]
     agents_only_in_new = [x for x in agents_in_new if x not in set(agents_same)]
 
-    param_diff = {}
+    param_diff_dict = {}
     for agent_name in agents_same:
         agent_default = [agent for agent in default['Agents'] if agent['Name'] == agent_name][0]
         agent_new = [agent for agent in new['Agents'] if agent['Name'] == agent_name][0]
         diff = set(agent_default.items()) - set(agent_new.items())
         if len(diff) > 0:
-            param_diff[agent_name] = dict((key, {'default': agent_default[key],
-                                                 'new': agent_new[key]}) for key in dict(diff).keys())
+            param_diff_dict[agent_name] = dict((key, {'default': agent_default[key],
+                                                      'new': agent_new[key]}) for key in dict(diff).keys())
 
-    return agents_only_in_default, agents_only_in_new, param_diff
+    return agents_only_in_default, agents_only_in_new, param_diff_dict
 
 
 def param_diff(default: dict, new: dict) -> Tuple[List[Tuple], List[Tuple]]:
@@ -204,13 +208,3 @@ def display_diff_in_config(default: dict, new: dict) -> List[str]:
 
     return str_to_disp
 # --------------------------------------- End diff display ------------------------------------
-
-
-def compare_pv_efficiency(config: dict) -> Optional[str]:
-    """If the PVEfficiency of agents differs from default, return message."""
-    agents_w_pv_eff = [agent for agent in config['Agents'] if 'PVEfficiency' in agent.keys()]
-    agents_w_other_pv_eff = [agent['Name'] for agent in agents_w_pv_eff if
-                             agent['PVEfficiency'] != config['AreaInfo']['DefaultPVEfficiency']]
-    if len(agents_w_other_pv_eff) > 0:
-        return "PV efficiency differs from default for {}".format(', '.join(agents_w_other_pv_eff))
-    return None

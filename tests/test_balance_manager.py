@@ -95,7 +95,7 @@ class TestBalanceManager(TestCase):
         # Discrepancy of 50: 1800+100+50 = 1950 paid in, 2000 paid out. Need 50 more paid in.
         costs = calculate_penalty_costs_for_period_and_resource(bids, trades, retail_price, wholesale_price)
         self.assertEqual(1, len(costs))
-        self.assertAlmostEqual(50, costs["Buyer1"], places=3)
+        self.assertAlmostEqual(50.0, costs["Buyer1"], places=3)
 
     def test_no_bid_from_seller(self):
         """

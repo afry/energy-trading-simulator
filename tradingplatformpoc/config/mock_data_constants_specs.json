@@ -1,10 +1,17 @@
 {
-    "ResidentialElecKwhPerYearM2Atemp": {
-        "display": "Residential electricity kWh/year/m2:",
+    "HouseholdElecKwhPerYearM2Atemp": {
+        "display": "Household electricity kWh/year/m2:",
         "min_value": 1,
         "max_value": 100,
         "default": 20,
         "help": "Number indicating the electricity consumption of residential areas, in kWh per year and square meter. The default of 20 kWh/year/m2 'atemp' comes from a 2017-2018 metering study made by Skanska, 'Hushållsel i nybyggda flerbostadshus'. 'Atemp' refers to a specific surface area measurement from which energy-related metrics are calculated. Essentially, it's the surface area which experiences a temperature modulation by an energy source."
+    },
+    "ResidentialPropertyElecKwhPerYearM2Atemp": {
+        "display": "Residential property electricity kWh/year/m2:",
+        "min_value": 1,
+        "max_value": 100,
+        "default": 15,
+        "help": "Number indicating the electricity consumption of residential buildings, EXCLUDING HOUSEHOLDS, in kWh per year and square meter. The default of 15 kWh/year/m2 has been provided by BDAB."
     },
     "ResidentialSpaceHeatKwhPerYearM2": {
         "display": "Residential space heat kWh/year/m2:",
