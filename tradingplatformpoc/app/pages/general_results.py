@@ -8,14 +8,15 @@ import streamlit as st
 from tradingplatformpoc.app import footer
 from tradingplatformpoc.app.app_charts import construct_avg_day_elec_chart, construct_price_chart
 from tradingplatformpoc.app.app_data_display import aggregated_import_and_export_results_df_split_on_period, \
-    aggregated_import_and_export_results_df_split_on_temperature, aggregated_local_production_df, \
-    aggregated_net_elec_import_results_df_split_on_period, construct_combined_price_df, \
-    get_price_df_when_local_price_inbetween
+    aggregated_import_and_export_results_df_split_on_temperature, \
+    aggregated_net_elec_import_results_df_split_on_period, combine_trades_dfs, construct_combined_price_df, \
+    get_price_df_when_local_price_inbetween, resource_dict_to_display_df
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.sql.clearing_price.crud import db_to_construct_local_prices_df
 from tradingplatformpoc.sql.config.crud import get_all_finished_job_config_id_pairs_in_db, read_config
-from tradingplatformpoc.sql.trade.crud import db_to_aggregated_trade_df, \
-    get_total_grid_fee_paid_on_internal_trades, get_total_tax_paid
+from tradingplatformpoc.sql.results.crud import get_results
+from tradingplatformpoc.sql.results.models import ResultsKey
+from tradingplatformpoc.sql.trade.crud import db_to_aggregated_trade_df
 
 logger = logging.getLogger(__name__)
 
@@ -28,23 +29,40 @@ if len(ids) > 0:
     
     config = read_config(chosen_config_id_to_view)
     job_id = ids[chosen_config_id_to_view]
+    pre_calculated_results = get_results(job_id)
 
-    col_tax, col_fee = st.columns(2)
-    with col_tax:
+    col_tot_expend, col_empty = st.columns(2)  # SUM_LEC_EXPENDITURE at the top, and nothing in the other column
+    with col_tot_expend:
+        total_lec_expend = pre_calculated_results[ResultsKey.SUM_LEC_EXPENDITURE]
+        st.metric(label="Total energy expenditure",
+                  value="{:,.2f} SEK".format(total_lec_expend),
+                  help="Total energy spend, minus total income from energy sales, for the local energy community.")
+
+    col_1, col_2 = st.columns(2)
+    with col_1:
+        total_elec_import = pre_calculated_results[ResultsKey.SUM_NET_IMPORT_ELEC]
+        st.metric(label="Total net electricity imported",
+                  value="{:,.2f} MWh".format(total_elec_import / 1000))
+        total_tax_paid = pre_calculated_results[ResultsKey.TAX_PAID]
         st.metric(label="Total tax paid",
-                  value="{:,.2f} SEK".format(get_total_tax_paid(job_id=job_id)),
+                  value="{:,.2f} SEK".format(total_tax_paid),
                   help="Tax paid includes taxes that the ElectricityGridAgent has paid"
                   " on sales to the microgrid")
-    with col_fee:
+    with col_2:
+        total_heat_import = pre_calculated_results[ResultsKey.SUM_NET_IMPORT_HEAT]
+        st.metric(label="Total net heating imported",
+                  value="{:,.2f} MWh".format(total_heat_import / 1000))
+        total_grid_fees_paid = pre_calculated_results[ResultsKey.GRID_FEES_PAID]
         st.metric(label="Total grid fees paid on internal trades",
-                  value="{:,.2f} SEK".format(get_total_grid_fee_paid_on_internal_trades(job_id=job_id)))
+                  value="{:,.2f} SEK".format(total_grid_fees_paid))
 
     tab_price_graph, tab_price_table = st.tabs(['Graph', 'Table'])
     with tab_price_graph:
         logger.info("Constructing price graph")
         st.spinner("Constructing price graph")
 
-        local_price_df = db_to_construct_local_prices_df(job_id=job_id)
+        local_price_df = db_to_construct_local_prices_df(
+            job_id=job_id)
         combined_price_df = construct_combined_price_df(local_price_df, config)
         if not combined_price_df.empty:
             price_chart = construct_price_chart(combined_price_df, Resource.ELECTRICITY,)
@@ -77,15 +95,8 @@ if len(ids) > 0:
                 
             agg_buy_trades = db_to_aggregated_trade_df(job_id, resource, Action.BUY)
             agg_sell_trades = db_to_aggregated_trade_df(job_id, resource, Action.SELL)
-
-            if agg_buy_trades is not None and agg_sell_trades is not None:
-                agg_trades = agg_buy_trades.merge(agg_sell_trades, on='Agent', how='outer')
-            elif agg_buy_trades is not None:
-                agg_trades = agg_buy_trades
-            elif agg_sell_trades is not None:
-                agg_trades = agg_sell_trades
-            else:
-                agg_trades = None
+            # The above can be None if there were no trades for the resource
+            agg_trades = combine_trades_dfs(agg_buy_trades, agg_sell_trades)
             if agg_trades is not None:
                 agg_trades = agg_trades.transpose().style.set_properties(**{'width': '400px'})
                 st.dataframe(agg_trades)
@@ -93,7 +104,8 @@ if len(ids) > 0:
             st.caption("The quantities used for calculations are before losses for purchases but"
                        " after losses for sales.")
 
-    with st.expander('Total imported and exported electricity and heating:'):
+    t_start = time.time()
+    with st.expander('Total imported and exported electricity and heating:'):  # TODO: Pre-calculate?
         imp_exp_period_dict = aggregated_import_and_export_results_df_split_on_period(job_id)
         imp_exp_temp_dict = aggregated_import_and_export_results_df_split_on_temperature(job_id)
         st.caption("Split on period of year:")
@@ -106,16 +118,12 @@ if len(ids) > 0:
         col1, col2 = st.columns(2)
         col1.dataframe(imp_exp_temp_dict['Imported'])
         col2.dataframe(imp_exp_temp_dict['Exported'])
-
-    t_start = time.time()
-
-    with st.expander('Total of locally produced heating and electricity:'):
-        loc_prod = aggregated_local_production_df(job_id, chosen_config_id_to_view, config)
-        st.dataframe(loc_prod)
-        st.caption("Total amount of heating produced by local heat pumps "
-                   + "and total amount of locally produced electricity.")
     t_end = time.time()
     logger.info('Time to display aggregated results: {:.3f} seconds'.format(t_end - t_start))
+
+    with st.expander('Total of locally produced resources:'):
+        loc_prod = pre_calculated_results[ResultsKey.LOCALLY_PRODUCED_RESOURCES]
+        st.dataframe(resource_dict_to_display_df(loc_prod, 1 / 1000, 'MWh', 'Total'))
             
 else:
     st.markdown('No results to view yet, set up a configuration in '

@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List
 
 import altair as alt
 
@@ -13,6 +13,7 @@ from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.market.trade import TradeMetadataKey
 from tradingplatformpoc.sql.clearing_price.crud import db_to_construct_local_prices_df
 from tradingplatformpoc.sql.level.crud import db_to_viewable_level_df_by_agent
+from tradingplatformpoc.sql.results.models import ResultsKey
 from tradingplatformpoc.sql.trade.crud import get_external_trades_df
 
 
@@ -59,41 +60,7 @@ def construct_comparison_price_chart(ids: ComparisonIds) -> alt.Chart:
                              "Price [SEK]", "Price over Time")
 
 
-class AggregatedTrades:
-
-    def __init__(self, external_trades_df: pd.DataFrame, value_column_name: str = 'quantity_post_loss'):
-        """
-        Expected columns in external_trades_df:
-        ['period', 'action', 'price', value_column_name]
-        """
-        # Sold by the external = bought by the LEC
-        # So a positive "net" means the LEC imported
-        external_trades_df['net_imported'] = external_trades_df.apply(lambda x: x[value_column_name]
-                                                                      if x.action == Action.SELL
-                                                                      else -x[value_column_name],
-                                                                      axis=1)
-        self.sum_net_import = external_trades_df['net_imported'].sum()
-        self.monthly_sum_net_import = external_trades_df['net_imported']. \
-            groupby(external_trades_df['period'].dt.month).sum()
-        self.monthly_max_net_import = external_trades_df['net_imported']. \
-            groupby(external_trades_df['period'].dt.month).max()
-        self.sum_lec_expenditure = (external_trades_df['net_imported'] * external_trades_df['price']).sum()
-
-
-class AggregatedTradesPerJobAndResource:
-    base_dict: Dict[Tuple[str, Resource], AggregatedTrades]
-
-    def __init__(self):
-        self.base_dict = {}
-
-    def put(self, job_id: str, resource: Resource, aggregated_trades: AggregatedTrades):
-        self.base_dict[(job_id, resource)] = aggregated_trades
-
-    def get(self, job_id: str, resource: Resource) -> AggregatedTrades:
-        return self.base_dict[(job_id, resource)]
-
-
-def import_export_calculations(ids: ComparisonIds) -> Tuple[alt.Chart, AggregatedTradesPerJobAndResource]:
+def import_export_calculations(ids: ComparisonIds) -> alt.Chart:
 
     # Get data from database
     df = get_external_trades_df(ids.get_job_ids())
@@ -109,9 +76,6 @@ def import_export_calculations(ids: ComparisonIds) -> Tuple[alt.Chart, Aggregate
     colors[::2] = app_constants.ALTAIR_BASE_COLORS[:4]
     colors[1::2] = app_constants.ALTAIR_DARK_COLORS[:4]
 
-    # In this variable, we'll store some aggregations, which we'll return along with the chart
-    aggregations = AggregatedTradesPerJobAndResource()
-
     # Process data to be of a form that fits the altair chart
     domain: List[str] = []
     range_color: List[str] = []
@@ -120,13 +84,9 @@ def import_export_calculations(ids: ComparisonIds) -> Tuple[alt.Chart, Aggregate
     new_df = pd.DataFrame()
     for resource in [Resource.HEATING, Resource.ELECTRICITY]:
         for job_id in pd.unique(df.job_id):
-            both_actions = df[(df.resource == resource) & (df.job_id == job_id)][[
-                'period', 'action', 'price', 'quantity_post_loss']]
-
-            aggregations.put(job_id, resource, AggregatedTrades(both_actions))
-
             for action in [Action.BUY, Action.SELL]:
-                subset = both_actions[(both_actions.action == action)][['period', 'quantity_post_loss']]
+                subset = df[(df.resource == resource) & (df.job_id == job_id) & (df.action == action)][[
+                    'period', 'quantity_post_loss']]
                 
                 if not subset.empty:
                     subset = subset.set_index('period')
@@ -146,31 +106,24 @@ def import_export_calculations(ids: ComparisonIds) -> Tuple[alt.Chart, Aggregate
                 j = j + 1
     chart = altair_line_chart(new_df, domain, range_color, range_dash, "Energy [kWh]",
                               'Import and export of resources through trades with grid agents')
-    return chart, aggregations
+    return chart
 
 
-def show_key_figures(ids: ComparisonIds, aggregations: AggregatedTradesPerJobAndResource):
+def show_key_figures(pre_calculated_results_1: Dict[str, Any], pre_calculated_results_2: Dict[str, Any]):
     c1, c2 = st.columns(2)
     with c1:
-        job_1_id = ids.id_pairs[0].job_id
-        job_1_elec = aggregations.get(job_1_id, Resource.ELECTRICITY)
-        job_1_heat = aggregations.get(job_1_id, Resource.HEATING)
-        st.metric(label="Net import of electricity:",
-                  value="{:,.2f} MWh".format(job_1_elec.sum_net_import / 1000))
-        st.metric(label="Net import of heating:",
-                  value="{:,.2f} MWh".format(job_1_heat.sum_net_import / 1000))
-        st.metric(label="Total energy expenditure:",
-                  value="{:,.2f} SEK".format(job_1_elec.sum_lec_expenditure + job_1_heat.sum_lec_expenditure))
+        show_key_figs_for_one(pre_calculated_results_1)
     with c2:
-        job_2_id = ids.id_pairs[1].job_id
-        job_2_elec = aggregations.get(job_2_id, Resource.ELECTRICITY)
-        job_2_heat = aggregations.get(job_2_id, Resource.HEATING)
-        st.metric(label="Net import of electricity:",
-                  value="{:,.2f} MWh".format(job_2_elec.sum_net_import / 1000))
-        st.metric(label="Net import of heating:",
-                  value="{:,.2f} MWh".format(job_2_heat.sum_net_import / 1000))
-        st.metric(label="Total energy expenditure:",
-                  value="{:,.2f} SEK".format(job_2_elec.sum_lec_expenditure + job_2_heat.sum_lec_expenditure))
+        show_key_figs_for_one(pre_calculated_results_2)
+
+
+def show_key_figs_for_one(pre_calculated_results: Dict[str, Any]):
+    st.metric(label="Net import of electricity:",
+              value="{:,.2f} MWh".format(pre_calculated_results[ResultsKey.SUM_NET_IMPORT_ELEC] / 1000))
+    st.metric(label="Net import of heating:",
+              value="{:,.2f} MWh".format(pre_calculated_results[ResultsKey.SUM_NET_IMPORT_HEAT] / 1000))
+    st.metric(label="Total energy expenditure:",
+              value="{:,.2f} SEK".format(pre_calculated_results[ResultsKey.SUM_LEC_EXPENDITURE]))
 
 
 def construct_level_comparison_chart(ids: ComparisonIds, agent_names: List[str],

@@ -17,6 +17,7 @@ from tradingplatformpoc.sql.extra_cost.models import ExtraCost as TableExtraCost
 from tradingplatformpoc.sql.heating_price.models import HeatingPrice as TableHeatingPrice
 from tradingplatformpoc.sql.job.models import Job, JobCreate
 from tradingplatformpoc.sql.level.models import Level
+from tradingplatformpoc.sql.results.models import PreCalculatedResults
 from tradingplatformpoc.sql.trade.models import Trade as TableTrade
 
 logger = logging.getLogger(__name__)
@@ -66,6 +67,7 @@ def delete_job(job_id: str,
             db.execute(delete(TableHeatingPrice).where(TableHeatingPrice.job_id == job_id))
             db.execute(delete(Level).where(Level.job_id == job_id))
             db.execute(delete(TableTrade).where(TableTrade.job_id == job_id))
+            db.execute(delete(PreCalculatedResults).where(PreCalculatedResults.job_id == job_id))
 
             db.delete(job)
             db.commit()
