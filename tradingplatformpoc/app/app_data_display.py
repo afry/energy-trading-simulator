@@ -26,7 +26,7 @@ from tradingplatformpoc.sql.input_electricity_price.crud import electricity_pric
 from tradingplatformpoc.sql.level.crud import db_to_viewable_level_df_by_agent
 from tradingplatformpoc.sql.mock_data.crud import db_to_mock_data_df, get_mock_data_agent_pairs_in_db
 from tradingplatformpoc.sql.trade.crud import db_to_trades_by_agent_and_resource_action, \
-    elec_trades_by_external_for_periods_to_df, get_total_import_export, get_total_traded_for_agent
+    elec_trades_by_external_for_periods_to_df, get_total_import_export
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod
 
 
@@ -91,17 +91,6 @@ def construct_combined_price_df(local_price_df: pd.DataFrame, config_data: dict)
     return pd.concat([local_price_df, retail_df, wholesale_df])
 
 
-def aggregated_taxes_and_fees_results_df(tax_paid: float, grid_fees_paid_on_internal_trades: float) -> pd.DataFrame:
-    """
-    @return: Dataframe displaying total taxes and fees.
-    """
-    return pd.DataFrame(index=["Taxes paid", "Grid fees paid on internal trades"],
-                        columns=['Total'],
-                        data=["{:.2f} SEK".format(tax_paid),
-                              "{:.2f} SEK".format(grid_fees_paid_on_internal_trades)
-                              ])
-
-
 def aggregated_net_elec_import_results_df_split_on_period(job_id: str, period: tuple) -> pd.DataFrame:
     """
     Display total import and export for electricity, computed for specified time period.
@@ -122,7 +111,6 @@ def aggregated_net_elec_import_results_df_split_on_period(job_id: str, period: t
 
 
 def avg_weekday_electricity(df: pd.DataFrame) -> pd.DataFrame:
-
     mean_df = df.groupby(['weekday', 'hour']).agg({'net_import_quantity': [np.mean, np.std]})
     mean_df.columns = ['mean_total_elec', 'std_total_elec']
     mean_df.reset_index(inplace=True)
@@ -131,26 +119,26 @@ def avg_weekday_electricity(df: pd.DataFrame) -> pd.DataFrame:
   
 
 def aggregated_import_and_export_results_df_split_on_mask(job_id: str, periods: List[datetime.datetime],
-                                                          mask_colnames: List[str]) -> Dict[str, pd.DataFrame]:
+                                                          mask_col_names: List[str]) -> Dict[str, pd.DataFrame]:
     """
     Display total import and export for electricity and heat, computed for specified subsets.
     @param job_id: Which job to get trades for
     @param periods: What periods to get trades for
-    @param mask_colnames: List with strings to display as subset names
+    @param mask_col_names: List with strings to display as subset names
     @return: Dict of dataframes displaying total import and export of resources split by the mask
     """
 
-    rows = {'Electricity': Resource.ELECTRICITY, 'Heating': Resource.HEATING}
+    rows = [Resource.ELECTRICITY, Resource.HEATING]
     cols = {'Imported': Action.SELL, 'Exported': Action.BUY}
 
     res_dict = {}
-    for colname, action in cols.items():
-        subdict = {}
-        for rowname, resource in rows.items():
+    for col_name, action in cols.items():
+        subdict: Dict[str, Dict[str, str]] = {}
+        for resource in rows:
             w_mask = "{:.2f} MWh".format(get_total_import_export(job_id, resource, action, periods) / 10**3)
             total = "{:.2f} MWh".format(get_total_import_export(job_id, resource, action) / 10**3)
-            subdict[rowname] = {mask_colnames[0]: w_mask, 'Total': total}
-        res_dict[colname] = pd.DataFrame.from_dict(subdict, orient='index')
+            subdict[resource.get_display_name()] = {mask_col_names[0]: w_mask, 'Total': total}
+        res_dict[col_name] = pd.DataFrame.from_dict(subdict, orient='index')
 
     return res_dict
 
@@ -179,7 +167,8 @@ def aggregated_import_and_export_results_df_split_on_temperature(job_id: str) ->
 def resource_dict_to_display_df(number_by_resource: Dict[str, float], scale_factor: float, unit: str, col_header: str) \
         -> pd.DataFrame:
     """
-    Computing total amount of locally produced resources.
+    Converts a dict to a pd.DataFrame, with some extra bells and whistles to make it display prettier when using
+    st.dataframe(...).
     """
     data_list = []
     index_list = []
@@ -249,11 +238,6 @@ def get_savings_vs_only_external_buy(job_id: str, agent_guid: str) -> Tuple[floa
     # TODO: This is bugged somehow.
     #  Test running simulations with only 1 grocery store agent, then total_saved should be 0, but isn't
     return total_saved, extra_costs_for_bad_bids
-
-
-def get_total_profit_net(job_id: str, agent_guid: str) -> float:
-    return get_total_traded_for_agent(job_id, agent_guid, Action.SELL) \
-        - get_total_traded_for_agent(job_id, agent_guid, Action.BUY)
 
 
 def build_heat_pump_levels_df(job_id: str, agent_chosen_guid: str, agent_config: dict) -> pd.DataFrame:
