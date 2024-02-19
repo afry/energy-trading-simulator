@@ -69,7 +69,7 @@ def aggregated_local_production_df(agents: List[IAgent], net_heat_import: float)
     production_electricity_lst = []
     production_cooling_lst = []
     # TODO: When changing to Chalmers solver, we'll save the HP production levels for each trading period, and use that
-    #  here. But now, we save heat pump workload, it is messy to calculate, so instead we look at the usage, and then
+    #  here. But now, as we save heat pump workload, it is messy to calculate, so instead we look at the usage, and then
     #  subtract the net import at the end.
     usage_heating_lst = []
     for agent in agents:
