@@ -48,8 +48,8 @@ def calculate_results_and_save(job_id: str, agents: List[IAgent]):
     logger.info('Calculating some results...')
     result_dict: Dict[str, Any] = {}
     df = get_external_trades_df([job_id])
-    elec_trades = df[(df.resource == Resource.ELECTRICITY)]
-    heat_trades = df[(df.resource == Resource.HEATING)]
+    elec_trades = df[(df.resource == Resource.ELECTRICITY)].copy()
+    heat_trades = df[(df.resource == Resource.HEATING)].copy()
     agg_elec_trades = AggregatedTrades(elec_trades)
     agg_heat_trades = AggregatedTrades(heat_trades)
     result_dict[ResultsKey.SUM_LEC_EXPENDITURE] = (agg_elec_trades.sum_lec_expenditure
