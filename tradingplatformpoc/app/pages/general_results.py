@@ -8,9 +8,9 @@ import streamlit as st
 from tradingplatformpoc.app import footer
 from tradingplatformpoc.app.app_charts import construct_avg_day_elec_chart, construct_price_chart
 from tradingplatformpoc.app.app_data_display import aggregated_import_and_export_results_df_split_on_period, \
-    aggregated_import_and_export_results_df_split_on_temperature, aggregated_local_production_df, \
+    aggregated_import_and_export_results_df_split_on_temperature, \
     aggregated_net_elec_import_results_df_split_on_period, combine_trades_dfs, construct_combined_price_df, \
-    get_price_df_when_local_price_inbetween
+    get_price_df_when_local_price_inbetween, resource_dict_to_display_df
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.sql.clearing_price.crud import db_to_construct_local_prices_df
 from tradingplatformpoc.sql.config.crud import get_all_finished_job_config_id_pairs_in_db, read_config
@@ -104,6 +104,7 @@ if len(ids) > 0:
             st.caption("The quantities used for calculations are before losses for purchases but"
                        " after losses for sales.")
 
+    t_start = time.time()
     with st.expander('Total imported and exported electricity and heating:'):  # TODO: Pre-calculate?
         imp_exp_period_dict = aggregated_import_and_export_results_df_split_on_period(job_id)
         imp_exp_temp_dict = aggregated_import_and_export_results_df_split_on_temperature(job_id)
@@ -117,16 +118,12 @@ if len(ids) > 0:
         col1, col2 = st.columns(2)
         col1.dataframe(imp_exp_temp_dict['Imported'])
         col2.dataframe(imp_exp_temp_dict['Exported'])
-
-    t_start = time.time()
-
-    with st.expander('Total of locally produced heating and electricity:'):  # TODO: Pre-calculate?
-        loc_prod = aggregated_local_production_df(job_id, chosen_config_id_to_view, config)
-        st.dataframe(loc_prod)
-        st.caption("Total amount of heating produced by local heat pumps "
-                   + "and total amount of locally produced electricity.")
     t_end = time.time()
     logger.info('Time to display aggregated results: {:.3f} seconds'.format(t_end - t_start))
+
+    with st.expander('Total of locally produced resources:'):
+        loc_prod = pre_calculated_results[ResultsKey.LOCALLY_PRODUCED_RESOURCES]
+        st.dataframe(resource_dict_to_display_df(loc_prod, 1 / 1000, 'MWh', 'Total'))
             
 else:
     st.markdown('No results to view yet, set up a configuration in '

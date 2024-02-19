@@ -16,6 +16,9 @@ class Resource(Enum):
     LOW_TEMP_HEAT = 3  # ~40 degrees Celsius - can cover space heating demand
     HIGH_TEMP_HEAT = 4  # ~65 degrees Celsius - needed for hot water, but can also cover space heating
 
+    def get_display_name(self) -> str:
+        return self.name.lower().capitalize()
+
 
 logger = logging.getLogger(__name__)
 

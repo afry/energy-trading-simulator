@@ -17,8 +17,6 @@ from tradingplatformpoc.generate_data.mock_data_utils import get_cooling_cons_ke
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.market.trade import TradeMetadataKey
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
-from tradingplatformpoc.sql.agent.crud import get_agent_config, get_agent_type
-from tradingplatformpoc.sql.config.crud import get_all_agents_in_config
 from tradingplatformpoc.sql.electricity_price.crud import db_to_electricity_price_dict
 from tradingplatformpoc.sql.extra_cost.crud import db_to_aggregated_extra_costs_by_agent
 from tradingplatformpoc.sql.heating_price.crud import db_to_heating_price_dict
@@ -178,33 +176,17 @@ def aggregated_import_and_export_results_df_split_on_temperature(job_id: str) ->
     return aggregated_import_and_export_results_df_split_on_mask(job_id, periods, ['Above'])
 
 
-def aggregated_local_production_df(job_id: str, config_id: str, config: Dict[str, Any]) -> pd.DataFrame:
+def resource_dict_to_display_df(number_by_resource: Dict[str, float], scale_factor: float, unit: str, col_header: str) \
+        -> pd.DataFrame:
     """
     Computing total amount of locally produced resources.
     """
-
-    agent_specs = get_all_agents_in_config(config_id)
-
-    production_electricity_lst = []
-    usage_heating_lst = []
-    for agent_id in agent_specs.values():
-        agent_type = get_agent_type(agent_id)
-        if agent_type == "BlockAgent":
-            agent_config = get_agent_config(agent_id)
-            digital_twin = reconstruct_static_digital_twin(
-                agent_id, config['MockDataConstants'], agent_config['PVArea'], config['AreaInfo']['PVEfficiency'])
-            # TODO: Replace with low-temp and high-temp heat separated
-            if digital_twin.total_heating_usage is not None:
-                usage_heating_lst.append(sum(digital_twin.total_heating_usage.dropna()))  # Issue with NaNs
-            production_electricity_lst.append(sum(digital_twin.electricity_production))
-    
-    production_electricity = sum(production_electricity_lst)
-
-    production_heating = (sum(usage_heating_lst) - get_total_import_export(job_id, Resource.HEATING, Action.BUY)
-                          + get_total_import_export(job_id, Resource.HEATING, Action.SELL))
-
-    data = [["{:.2f} MWh".format(production_electricity / 10**3)], ["{:.2f} MWh".format(production_heating / 10**3)]]
-    return pd.DataFrame(data=data, index=['Electricity', 'Heating'], columns=['Total'])
+    data_list = []
+    index_list = []
+    for (resource, number) in number_by_resource.items():
+        data_list.append("{:.2f} {}".format(number * scale_factor, unit))
+        index_list.append(resource)
+    return pd.DataFrame(data=data_list, index=index_list, columns=[col_header])
 
 
 # @st.cache_data
@@ -286,6 +268,7 @@ def build_heat_pump_levels_df(job_id: str, agent_chosen_guid: str, agent_config:
 
 def combine_trades_dfs(agg_buy_trades: Optional[pd.DataFrame], agg_sell_trades: Optional[pd.DataFrame]) \
         -> Optional[pd.DataFrame]:
+    """Aims to merge two pd.DataFrames, if they are present."""
     if agg_buy_trades is not None and agg_sell_trades is not None:
         return agg_buy_trades.merge(agg_sell_trades, on='Agent', how='outer')
     elif agg_buy_trades is not None:
