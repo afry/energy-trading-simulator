@@ -14,7 +14,7 @@ from tradingplatformpoc.app.app_data_display import aggregated_import_and_export
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.sql.clearing_price.crud import db_to_construct_local_prices_df
 from tradingplatformpoc.sql.config.crud import get_all_finished_job_config_id_pairs_in_db, read_config
-from tradingplatformpoc.sql.results.crud import get_results
+from tradingplatformpoc.sql.results.crud import get_results_for_job
 from tradingplatformpoc.sql.results.models import ResultsKey
 from tradingplatformpoc.sql.trade.crud import db_to_aggregated_trade_df
 
@@ -29,7 +29,7 @@ if len(ids) > 0:
     
     config = read_config(chosen_config_id_to_view)
     job_id = ids[chosen_config_id_to_view]
-    pre_calculated_results = get_results(job_id)
+    pre_calculated_results = get_results_for_job(job_id)
 
     col_tot_expend, col_empty = st.columns(2)  # SUM_LEC_EXPENDITURE at the top, and nothing in the other column
     with col_tot_expend:

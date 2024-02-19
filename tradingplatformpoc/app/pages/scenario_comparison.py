@@ -10,7 +10,7 @@ from tradingplatformpoc.app.app_comparison import ComparisonIds, construct_compa
 from tradingplatformpoc.market.trade import TradeMetadataKey
 from tradingplatformpoc.sql.agent.crud import get_agent_type
 from tradingplatformpoc.sql.config.crud import get_all_agents_in_config, get_all_finished_job_config_id_pairs_in_db
-from tradingplatformpoc.sql.results.crud import get_results
+from tradingplatformpoc.sql.results.crud import get_results_for_job
 
 logger = logging.getLogger(__name__)
 
@@ -32,8 +32,8 @@ if len(job_id_per_config_id) >= 2:
     chosen_config_ids = [chosen_config_id_to_view_1, chosen_config_id_to_view_2]
     if None not in chosen_config_ids:
         comparison_ids = ComparisonIds(job_id_per_config_id, chosen_config_ids)
-        pre_calculated_results_1 = get_results(comparison_ids.id_pairs[0].job_id)
-        pre_calculated_results_2 = get_results(comparison_ids.id_pairs[1].job_id)
+        pre_calculated_results_1 = get_results_for_job(comparison_ids.id_pairs[0].job_id)
+        pre_calculated_results_2 = get_results_for_job(comparison_ids.id_pairs[1].job_id)
         show_key_figures(pre_calculated_results_1, pre_calculated_results_2)
 
         # Import export graph

@@ -21,3 +21,7 @@ name = "Results by agent"
 [[pages]]
 path = "tradingplatformpoc/app/pages/scenario_comparison.py"
 name = "Scenario comparison"
+
+[[pages]]
+path = "tradingplatformpoc/app/pages/leaderboard.py"
+name = "Leaderboard"
