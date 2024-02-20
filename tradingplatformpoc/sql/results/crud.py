@@ -1,10 +1,14 @@
 import logging
 from contextlib import _GeneratorContextManager
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, List, Optional, Union
+
+from sqlalchemy import select
 
 from sqlmodel import Session
 
 from tradingplatformpoc.connection import session_scope
+from tradingplatformpoc.sql.config.models import Config
+from tradingplatformpoc.sql.job.models import Job
 from tradingplatformpoc.sql.results.models import PreCalculatedResults
 
 logger = logging.getLogger(__name__)
@@ -13,7 +17,7 @@ logger = logging.getLogger(__name__)
 def save_results(results: PreCalculatedResults,
                  session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope):
     with session_generator() as db:
-        exists = get_results(results.job_id, raise_exception_if_not_found=False)
+        exists = get_results_for_job(results.job_id, raise_exception_if_not_found=False)
         if not exists:
             logger.info('Saving results for job ID ' + results.job_id)
             save_results_given_session(results, db)
@@ -40,19 +44,41 @@ def delete_results(job_id: str,
             db.commit()
 
 
-def get_results(job_id: str, raise_exception_if_not_found: bool = False,
-                session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope) \
+def get_results_for_job(job_id: str, raise_exception_if_not_found: bool = False,
+                        session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope) \
         -> Optional[Dict[str, Any]]:
+    """
+    Fetches a dict of pre-calculated results for a given job ID.
+    The keys in this dict are strings, as specified in ResultsKey. The values are of differing types, some floats, some
+    more complex.
+    If no results are found for the given job ID, this function will either return None, or raise an Exception, based
+    on the raise_exception_if_not_found parameter.
+    """
     with session_generator() as db:
-        return get_results_given_session(job_id, db, raise_exception_if_not_found)
+        res = db.query(PreCalculatedResults.result_dict).filter(PreCalculatedResults.job_id == job_id).first()
+        if res is not None:
+            return res[0]
+        else:
+            if raise_exception_if_not_found:
+                raise Exception('Found no results for job ID ' + job_id)
+        return None
 
 
-def get_results_given_session(job_id: str, db: Session, raise_exception_if_not_found: bool = False) \
-        -> Optional[Dict[str, Any]]:
-    res = db.query(PreCalculatedResults.result_dict).filter(PreCalculatedResults.job_id == job_id).first()
-    if res is not None:
-        return res[0]
-    else:
-        if raise_exception_if_not_found:
-            raise Exception('Found no results for job ID ' + job_id)
-    return None
+def get_all_results(session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope) \
+        -> List[Dict[str, Union[str, int, float]]]:
+    """
+    Fetches all pre-calculated results in the database. Joins these with Config, via the Job table, to get the ID and
+    description of the configuration which yielded the respective results.
+    @return A list of dicts, each dict containing config ID, description, and the PreCalculatedResults.result_dict.
+    """
+    with session_generator() as db:
+        res = db.execute(select(Config.id, Config.description, PreCalculatedResults.result_dict).
+                         join(Job, Config.id == Job.config_id).
+                         join(PreCalculatedResults, Job.id == PreCalculatedResults.job_id)).all()
+        if res is not None:
+            return [{'Config ID': config_id, 'Description': desc}
+                    # Filter the dict, removing entries where the value is of a complex data type such as dict or list
+                    | {key: value for key, value in pre_calc_res_dict.items() if isinstance(value, (str, int, float))}
+                    for (config_id, desc, pre_calc_res_dict) in res]
+        else:
+            raise Exception('No results found!')

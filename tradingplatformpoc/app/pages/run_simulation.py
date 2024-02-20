@@ -33,7 +33,7 @@ if len(config_ids) > 0:
     with st.expander('Configuration *{}* in JSON format'.format(chosen_config_id)):
         st.json(read_config(chosen_config_id), expanded=True)
 else:
-    st.markdown('Set up a configuration in **Setup simulation**')
+    st.markdown('Set up a configuration in **Setup configuration**')
 
 run_sim = st.button("**CLICK TO RUN/QUEUE SIMULATION FOR *{}***".format(chosen_config_id)
                     if chosen_config_id is not None else "**CLICK TO RUN SIMULATION**",

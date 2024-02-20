@@ -10,11 +10,11 @@ from tradingplatformpoc.app.app_charts import construct_avg_day_elec_chart, cons
 from tradingplatformpoc.app.app_data_display import aggregated_import_and_export_results_df_split_on_period, \
     aggregated_import_and_export_results_df_split_on_temperature, \
     aggregated_net_elec_import_results_df_split_on_period, combine_trades_dfs, construct_combined_price_df, \
-    get_price_df_when_local_price_inbetween, resource_dict_to_display_df
+    get_price_df_when_local_price_inbetween
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.sql.clearing_price.crud import db_to_construct_local_prices_df
 from tradingplatformpoc.sql.config.crud import get_all_finished_job_config_id_pairs_in_db, read_config
-from tradingplatformpoc.sql.results.crud import get_results
+from tradingplatformpoc.sql.results.crud import get_results_for_job
 from tradingplatformpoc.sql.results.models import ResultsKey
 from tradingplatformpoc.sql.trade.crud import db_to_aggregated_trade_df
 
@@ -29,14 +29,15 @@ if len(ids) > 0:
     
     config = read_config(chosen_config_id_to_view)
     job_id = ids[chosen_config_id_to_view]
-    pre_calculated_results = get_results(job_id)
+    pre_calculated_results = get_results_for_job(job_id)
 
-    col_tot_expend, col_empty = st.columns(2)  # SUM_LEC_EXPENDITURE at the top, and nothing in the other column
+    col_tot_expend, col_empty = st.columns(2)  # NET_ENERGY_SPEND at the top, and nothing in the other column
     with col_tot_expend:
-        total_lec_expend = pre_calculated_results[ResultsKey.SUM_LEC_EXPENDITURE]
-        st.metric(label="Total energy expenditure",
+        total_lec_expend = pre_calculated_results[ResultsKey.NET_ENERGY_SPEND]
+        st.metric(label="Total net energy spend",
                   value="{:,.2f} SEK".format(total_lec_expend),
-                  help="Total energy spend, minus total income from energy sales, for the local energy community.")
+                  help="The net energy spend is calculated by subtracting the total revenue from energy exports from "
+                       "the total expenditure on importing energy.")
 
     col_1, col_2 = st.columns(2)
     with col_1:
@@ -122,11 +123,17 @@ if len(ids) > 0:
     logger.info('Time to display aggregated results: {:.3f} seconds'.format(t_end - t_start))
 
     with st.expander('Total of locally produced resources:'):
-        loc_prod = pre_calculated_results[ResultsKey.LOCALLY_PRODUCED_RESOURCES]
-        st.dataframe(resource_dict_to_display_df(loc_prod, 1 / 1000, 'MWh', 'Total'))
+        st.metric(label="Electricity",
+                  value="{:,.2f} MWh".format(pre_calculated_results[ResultsKey.LOCALLY_PRODUCED_ELECTRICITY] / 1000))
+        st.metric(label="Cooling",
+                  value="{:,.2f} MWh".format(pre_calculated_results[ResultsKey.LOCALLY_PRODUCED_COOLING] / 1000))
+        # Will be replaced by low/high tempered heat
+        st.metric(label="Heating",
+                  value="{:,.2f} MWh".format(pre_calculated_results[ResultsKey.LOCALLY_PRODUCED_HEATING] / 1000),
+                  help="Heating produced by heat pumps in the local energy community")
             
 else:
     st.markdown('No results to view yet, set up a configuration in '
-                '**Setup simulation** and run it in **Run simulation**.')
+                '**Setup configuration** and run it in **Run simulation**.')
 
 st.write(footer.html, unsafe_allow_html=True)

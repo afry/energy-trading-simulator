@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, List
+from typing import Any, Dict, List, Tuple
 
 import pandas as pd
 
@@ -15,6 +15,10 @@ logger = logging.getLogger(__name__)
 
 
 class AggregatedTrades:
+    net_energy_spend: float
+    sum_net_import: float
+    monthly_sum_net_import: Dict[int, float]
+    monthly_max_net_import: Dict[int, float]
 
     def __init__(self, external_trades_df: pd.DataFrame, value_column_name: str = 'quantity_post_loss'):
         """
@@ -27,44 +31,50 @@ class AggregatedTrades:
                                                                       if x.action == Action.SELL
                                                                       else -x[value_column_name],
                                                                       axis=1)
+        self.net_energy_spend = (external_trades_df['net_imported'] * external_trades_df['price']).sum()
         self.sum_net_import = external_trades_df['net_imported'].sum()
+        # These are converted to dicts, to make them JSON-serializable
         self.monthly_sum_net_import = external_trades_df['net_imported']. \
-            groupby(external_trades_df['period'].dt.month).sum()
+            groupby(external_trades_df['period'].dt.month).sum().to_dict()
         self.monthly_max_net_import = external_trades_df['net_imported']. \
-            groupby(external_trades_df['period'].dt.month).max()
-        self.sum_lec_expenditure = (external_trades_df['net_imported'] * external_trades_df['price']).sum()
+            groupby(external_trades_df['period'].dt.month).max().to_dict()
 
 
 def calculate_results_and_save(job_id: str, agents: List[IAgent]):
-    """Pre-calculates some results, so that they can be easily fetched later."""
+    """
+    Pre-calculates some results, so that they can be easily fetched later.
+    """
     logger.info('Calculating some results...')
-    result_dict = {ResultsKey.TAX_PAID: get_total_tax_paid(job_id=job_id),
-                   ResultsKey.GRID_FEES_PAID: get_total_grid_fee_paid_on_internal_trades(job_id=job_id)}
+    result_dict: Dict[str, Any] = {}
     df = get_external_trades_df([job_id])
-    col_names_needed = ['period', 'action', 'price', 'quantity_post_loss']
-    elec_trades = df[(df.resource == Resource.ELECTRICITY)][col_names_needed]
-    heat_trades = df[(df.resource == Resource.HEATING)][col_names_needed]
+    elec_trades = df[(df.resource == Resource.ELECTRICITY)].copy()
+    heat_trades = df[(df.resource == Resource.HEATING)].copy()
     agg_elec_trades = AggregatedTrades(elec_trades)
     agg_heat_trades = AggregatedTrades(heat_trades)
+    result_dict[ResultsKey.NET_ENERGY_SPEND] = (agg_elec_trades.net_energy_spend
+                                                + agg_heat_trades.net_energy_spend)
     result_dict[ResultsKey.SUM_NET_IMPORT_ELEC] = agg_elec_trades.sum_net_import
-    # Converting pd.Series to dicts here, to make them JSON-serializable
-    result_dict[ResultsKey.MONTHLY_SUM_NET_IMPORT_ELEC] = agg_elec_trades.monthly_sum_net_import.to_dict()
-    result_dict[ResultsKey.MONTHLY_MAX_NET_IMPORT_ELEC] = agg_elec_trades.monthly_max_net_import.to_dict()
+    result_dict[ResultsKey.MONTHLY_SUM_NET_IMPORT_ELEC] = agg_elec_trades.monthly_sum_net_import
+    result_dict[ResultsKey.MONTHLY_MAX_NET_IMPORT_ELEC] = agg_elec_trades.monthly_max_net_import
     result_dict[ResultsKey.SUM_NET_IMPORT_HEAT] = agg_heat_trades.sum_net_import
-    # Converting pd.Series to dicts here, to make them JSON-serializable
-    result_dict[ResultsKey.MONTHLY_SUM_NET_IMPORT_HEAT] = agg_heat_trades.monthly_sum_net_import.to_dict()
-    result_dict[ResultsKey.MONTHLY_MAX_NET_IMPORT_HEAT] = agg_heat_trades.monthly_max_net_import.to_dict()
-    result_dict[ResultsKey.SUM_LEC_EXPENDITURE] = (agg_elec_trades.sum_lec_expenditure
-                                                   + agg_heat_trades.sum_lec_expenditure)
+    result_dict[ResultsKey.MONTHLY_SUM_NET_IMPORT_HEAT] = agg_heat_trades.monthly_sum_net_import
+    result_dict[ResultsKey.MONTHLY_MAX_NET_IMPORT_HEAT] = agg_heat_trades.monthly_max_net_import
     # Aggregated local production
-    loc_prod = aggregated_local_production_df(agents, agg_heat_trades.sum_net_import)
-    result_dict[ResultsKey.LOCALLY_PRODUCED_RESOURCES] = loc_prod
+    prod_elec, prod_cool, prod_heat = aggregated_local_productions(agents, agg_heat_trades.sum_net_import)
+    result_dict[ResultsKey.LOCALLY_PRODUCED_ELECTRICITY] = prod_elec
+    result_dict[ResultsKey.LOCALLY_PRODUCED_COOLING] = prod_cool
+    result_dict[ResultsKey.LOCALLY_PRODUCED_HEATING] = prod_heat
+    # Taxes and grid fees
+    result_dict[ResultsKey.TAX_PAID] = get_total_tax_paid(job_id=job_id)
+    result_dict[ResultsKey.GRID_FEES_PAID] = get_total_grid_fee_paid_on_internal_trades(job_id=job_id)
+
     save_results(PreCalculatedResults(job_id=job_id, result_dict=result_dict))
 
 
-def aggregated_local_production_df(agents: List[IAgent], net_heat_import: float) -> Dict[str, float]:
+def aggregated_local_productions(agents: List[IAgent], net_heat_import: float) -> Tuple[float, float, float]:
     """
     Computing total amount of locally produced resources.
+    @return Three values: Summed local production of electricity, cooling, and heating, respectively.
     """
     production_electricity_lst = []
     production_cooling_lst = []
@@ -85,6 +95,4 @@ def aggregated_local_production_df(agents: List[IAgent], net_heat_import: float)
     production_cooling = sum(production_cooling_lst)
     production_heating = sum(usage_heating_lst) - net_heat_import
 
-    return {Resource.ELECTRICITY.get_display_name(): production_electricity,
-            Resource.COOLING.get_display_name(): production_cooling,
-            Resource.HEATING.get_display_name(): production_heating}
+    return production_electricity, production_cooling, production_heating
