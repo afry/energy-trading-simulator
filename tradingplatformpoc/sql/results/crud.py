@@ -1,6 +1,6 @@
 import logging
 from contextlib import _GeneratorContextManager
-from typing import Any, Callable, Dict, Optional, List, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from sqlalchemy import select
 
