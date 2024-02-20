@@ -73,9 +73,10 @@ if __name__ == '__main__':
         ## Prototype data presentation app for energy microgrid trading platform
 
         **Navigate** by using the sidebar menu to a page
-        - *Setup simulation*: Create new scenario configurations
+        - *Setup configuration*: Create new scenario configurations
         - *Run simulation*: Run or delete simulations for previously created configurations
-        - *General results*: View general results for one scenario
+        - *Summarized results*: View general results for all scenarios that have been simulated
+        - *Detailed results*: View detailed results for one scenario
         - *Results by agent*: View agent-specific results for one scenario
         - *Scenario comparison*: Compare results for two scenarios
         """
