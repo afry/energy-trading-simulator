@@ -94,6 +94,6 @@ if len(job_id_per_config_id) >= 2:
 
 else:
     st.markdown('Too few scenarios to compare, set up a configuration in '
-                '**Setup simulation** and run it in **Run simulation**.')
+                '**Setup configuration** and run it in **Run simulation**.')
 
 st.write(footer.html, unsafe_allow_html=True)

@@ -133,6 +133,6 @@ if len(ids) > 0:
             
 else:
     st.markdown('No results to view yet, set up a configuration in '
-                '**Setup simulation** and run it in **Run simulation**.')
+                '**Setup configuration** and run it in **Run simulation**.')
 
 st.write(footer.html, unsafe_allow_html=True)
