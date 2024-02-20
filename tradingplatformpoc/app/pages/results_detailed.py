@@ -1,5 +1,4 @@
 import logging
-import time
 
 from st_pages import add_indentation, show_pages_from_config
 
@@ -7,10 +6,8 @@ import streamlit as st
 
 from tradingplatformpoc.app import footer
 from tradingplatformpoc.app.app_charts import construct_avg_day_elec_chart, construct_price_chart
-from tradingplatformpoc.app.app_data_display import aggregated_import_and_export_results_df_split_on_period, \
-    aggregated_import_and_export_results_df_split_on_temperature, \
-    aggregated_net_elec_import_results_df_split_on_period, combine_trades_dfs, construct_combined_price_df, \
-    get_price_df_when_local_price_inbetween
+from tradingplatformpoc.app.app_data_display import aggregated_net_elec_import_results_df_split_on_period, \
+    combine_trades_dfs, construct_combined_price_df, construct_dict_for_display, get_price_df_when_local_price_inbetween
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.sql.clearing_price.crud import db_to_construct_local_prices_df
 from tradingplatformpoc.sql.config.crud import get_all_finished_job_config_id_pairs_in_db, read_config
@@ -105,22 +102,32 @@ if len(ids) > 0:
             st.caption("The quantities used for calculations are before losses for purchases but"
                        " after losses for sales.")
 
-    t_start = time.time()
-    with st.expander('Total imported and exported electricity and heating:'):  # TODO: Pre-calculate?
-        imp_exp_period_dict = aggregated_import_and_export_results_df_split_on_period(job_id)
-        imp_exp_temp_dict = aggregated_import_and_export_results_df_split_on_temperature(job_id)
-        st.caption("Split on period of year:")
+    with st.expander('Total imported and exported electricity and heating:'):
         col1, col2 = st.columns(2)
         col1.header('Imported')
         col2.header("Exported")
-        col1.dataframe(imp_exp_period_dict['Imported'])
-        col2.dataframe(imp_exp_period_dict['Exported'])
+        st.caption("Split on period of year:")
+        col1, col2 = st.columns(2)
+        total_values_import = {Resource.ELECTRICITY: pre_calculated_results[ResultsKey.SUM_IMPORT_ELEC],
+                               Resource.HEATING: pre_calculated_results[ResultsKey.SUM_IMPORT_HEAT]}
+        mask_values = {Resource.ELECTRICITY: pre_calculated_results[ResultsKey.SUM_IMPORT_JAN_FEB_ELEC],
+                       Resource.HEATING: pre_calculated_results[ResultsKey.SUM_IMPORT_JAN_FEB_HEAT]}
+        col1.dataframe(construct_dict_for_display('Jan-Feb', 'Total', mask_values, total_values_import))
+        total_values_export = {Resource.ELECTRICITY: pre_calculated_results[ResultsKey.SUM_EXPORT_ELEC],
+                               Resource.HEATING: pre_calculated_results[ResultsKey.SUM_EXPORT_HEAT]}
+        mask_values = {Resource.ELECTRICITY: pre_calculated_results[ResultsKey.SUM_EXPORT_JAN_FEB_ELEC],
+                       Resource.HEATING: pre_calculated_results[ResultsKey.SUM_EXPORT_JAN_FEB_HEAT]}
+        col2.dataframe(construct_dict_for_display('Jan-Feb', 'Total', mask_values, total_values_export))
         st.caption("Split on temperature above or below 1 degree Celsius:")
         col1, col2 = st.columns(2)
-        col1.dataframe(imp_exp_temp_dict['Imported'])
-        col2.dataframe(imp_exp_temp_dict['Exported'])
-    t_end = time.time()
-    logger.info('Time to display aggregated results: {:.3f} seconds'.format(t_end - t_start))
+        below_values = {Resource.ELECTRICITY: pre_calculated_results[ResultsKey.SUM_IMPORT_BELOW_1_C_ELEC],
+                        Resource.HEATING: pre_calculated_results[ResultsKey.SUM_IMPORT_BELOW_1_C_HEAT]}
+        above_values = {k: total_values_import[k] - v for k, v in below_values.items()}
+        col1.dataframe(construct_dict_for_display('Below', 'Above', below_values, above_values))
+        below_values = {Resource.ELECTRICITY: pre_calculated_results[ResultsKey.SUM_EXPORT_BELOW_1_C_ELEC],
+                        Resource.HEATING: pre_calculated_results[ResultsKey.SUM_EXPORT_BELOW_1_C_HEAT]}
+        above_values = {k: total_values_export[k] - v for k, v in below_values.items()}
+        col2.dataframe(construct_dict_for_display('Below', 'Above', below_values, above_values))
 
     with st.expander('Total of locally produced resources:'):
         st.metric(label="Electricity",

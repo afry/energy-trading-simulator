@@ -143,6 +143,16 @@ def aggregated_import_and_export_results_df_split_on_mask(job_id: str, periods: 
     return res_dict
 
 
+def construct_dict_for_display(col_name_1: str, col_name_2: str, values_1: Dict[Resource, float],
+                               values_2: Dict[Resource, float]) -> Dict[str, Dict[str, str]]:
+    return {col_name_1: resource_values_to_mwh(values_1),
+            col_name_2: resource_values_to_mwh(values_2)}
+
+
+def resource_values_to_mwh(resource_dict: Dict[Resource, float]) -> Dict[str, str]:
+    return {k.get_display_name(): f'{v / 1000:.2f} MWh' for k, v in resource_dict.items()}
+
+
 def aggregated_import_and_export_results_df_split_on_period(job_id: str) -> Dict[str, pd.DataFrame]:
     """
     Dict of dataframes displaying total import and export of resources split for January and
