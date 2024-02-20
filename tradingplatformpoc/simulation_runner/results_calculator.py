@@ -43,7 +43,6 @@ class AggregatedTrades:
 def calculate_results_and_save(job_id: str, agents: List[IAgent]):
     """
     Pre-calculates some results, so that they can be easily fetched later.
-    Some results are calculated as
     """
     logger.info('Calculating some results...')
     result_dict: Dict[str, Any] = {}
@@ -75,6 +74,7 @@ def calculate_results_and_save(job_id: str, agents: List[IAgent]):
 def aggregated_local_productions(agents: List[IAgent], net_heat_import: float) -> Tuple[float, float, float]:
     """
     Computing total amount of locally produced resources.
+    @return Three values: Summed local production of electricity, cooling, and heating, respectively.
     """
     production_electricity_lst = []
     production_cooling_lst = []
