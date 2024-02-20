@@ -10,7 +10,7 @@ from tradingplatformpoc.app.app_charts import construct_avg_day_elec_chart, cons
 from tradingplatformpoc.app.app_data_display import aggregated_import_and_export_results_df_split_on_period, \
     aggregated_import_and_export_results_df_split_on_temperature, \
     aggregated_net_elec_import_results_df_split_on_period, combine_trades_dfs, construct_combined_price_df, \
-    get_price_df_when_local_price_inbetween, resource_dict_to_display_df
+    get_price_df_when_local_price_inbetween
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.sql.clearing_price.crud import db_to_construct_local_prices_df
 from tradingplatformpoc.sql.config.crud import get_all_finished_job_config_id_pairs_in_db, read_config
@@ -122,8 +122,14 @@ if len(ids) > 0:
     logger.info('Time to display aggregated results: {:.3f} seconds'.format(t_end - t_start))
 
     with st.expander('Total of locally produced resources:'):
-        loc_prod = pre_calculated_results[ResultsKey.LOCALLY_PRODUCED_RESOURCES]
-        st.dataframe(resource_dict_to_display_df(loc_prod, 1 / 1000, 'MWh', 'Total'))
+        st.metric(label="Electricity",
+                  value="{:,.2f} MWh".format(pre_calculated_results[ResultsKey.LOCALLY_PRODUCED_ELECTRICITY] / 1000))
+        st.metric(label="Cooling",
+                  value="{:,.2f} MWh".format(pre_calculated_results[ResultsKey.LOCALLY_PRODUCED_COOLING] / 1000))
+        # Will be replaced by low/high tempered heat
+        st.metric(label="Heating",
+                  value="{:,.2f} MWh".format(pre_calculated_results[ResultsKey.LOCALLY_PRODUCED_HEATING] / 1000),
+                  help="Heating produced by heat pumps in the local energy community")
             
 else:
     st.markdown('No results to view yet, set up a configuration in '

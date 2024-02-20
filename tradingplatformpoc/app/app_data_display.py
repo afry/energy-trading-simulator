@@ -164,20 +164,6 @@ def aggregated_import_and_export_results_df_split_on_temperature(job_id: str) ->
     return aggregated_import_and_export_results_df_split_on_mask(job_id, periods, ['Above'])
 
 
-def resource_dict_to_display_df(number_by_resource: Dict[str, float], scale_factor: float, unit: str, col_header: str) \
-        -> pd.DataFrame:
-    """
-    Converts a dict to a pd.DataFrame, with some extra bells and whistles to make it display prettier when using
-    st.dataframe(...).
-    """
-    data_list = []
-    index_list = []
-    for (resource, number) in number_by_resource.items():
-        data_list.append("{:.2f} {}".format(number * scale_factor, unit))
-        index_list.append(resource)
-    return pd.DataFrame(data=data_list, index=index_list, columns=[col_header])
-
-
 # @st.cache_data
 def results_by_agent_as_df() -> pd.DataFrame:
     res_by_agents = st.session_state.simulation_results.results_by_agent
