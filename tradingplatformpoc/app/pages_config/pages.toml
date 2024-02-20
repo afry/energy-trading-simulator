@@ -11,8 +11,12 @@ path = "tradingplatformpoc/app/pages/run_simulation.py"
 name = "Run simulation"
 
 [[pages]]
-path = "tradingplatformpoc/app/pages/general_results.py"
-name = "General results"
+path = "tradingplatformpoc/app/pages/results_summary.py"
+name = "Summarized results"
+
+[[pages]]
+path = "tradingplatformpoc/app/pages/results_detailed.py"
+name = "Detailed results"
 
 [[pages]]
 path = "tradingplatformpoc/app/pages/results_by_agent.py"
@@ -21,7 +25,3 @@ name = "Results by agent"
 [[pages]]
 path = "tradingplatformpoc/app/pages/scenario_comparison.py"
 name = "Scenario comparison"
-
-[[pages]]
-path = "tradingplatformpoc/app/pages/leaderboard.py"
-name = "Leaderboard"
