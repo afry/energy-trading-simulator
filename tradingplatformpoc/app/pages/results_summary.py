@@ -6,6 +6,7 @@ from st_pages import add_indentation, show_pages_from_config
 
 import streamlit as st
 
+from tradingplatformpoc.app import footer
 from tradingplatformpoc.sql.results.crud import get_all_results
 from tradingplatformpoc.sql.results.models import ResultsKey
 
@@ -28,3 +29,5 @@ if len(list_of_dicts):
 else:
     st.markdown('No results to display. Set up a configuration in '
                 '**Setup configuration** and run it in **Run simulation**.')
+
+st.write(footer.html, unsafe_allow_html=True)
