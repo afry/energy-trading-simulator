@@ -31,12 +31,13 @@ if len(ids) > 0:
     job_id = ids[chosen_config_id_to_view]
     pre_calculated_results = get_results_for_job(job_id)
 
-    col_tot_expend, col_empty = st.columns(2)  # SUM_LEC_EXPENDITURE at the top, and nothing in the other column
+    col_tot_expend, col_empty = st.columns(2)  # NET_ENERGY_SPEND at the top, and nothing in the other column
     with col_tot_expend:
-        total_lec_expend = pre_calculated_results[ResultsKey.SUM_LEC_EXPENDITURE]
-        st.metric(label="Total energy expenditure",
+        total_lec_expend = pre_calculated_results[ResultsKey.NET_ENERGY_SPEND]
+        st.metric(label="Total net energy spend",
                   value="{:,.2f} SEK".format(total_lec_expend),
-                  help="Total energy spend, minus total income from energy sales, for the local energy community.")
+                  help="The net energy spend is calculated by subtracting the total revenue from energy exports from "
+                       "the total expenditure on importing energy.")
 
     col_1, col_2 = st.columns(2)
     with col_1:

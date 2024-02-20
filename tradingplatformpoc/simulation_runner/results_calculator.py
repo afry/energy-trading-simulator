@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class AggregatedTrades:
-    sum_lec_expenditure: float
+    net_energy_spend: float
     sum_net_import: float
     monthly_sum_net_import: Dict[int, float]
     monthly_max_net_import: Dict[int, float]
@@ -31,7 +31,7 @@ class AggregatedTrades:
                                                                       if x.action == Action.SELL
                                                                       else -x[value_column_name],
                                                                       axis=1)
-        self.sum_lec_expenditure = (external_trades_df['net_imported'] * external_trades_df['price']).sum()
+        self.net_energy_spend = (external_trades_df['net_imported'] * external_trades_df['price']).sum()
         self.sum_net_import = external_trades_df['net_imported'].sum()
         # These are converted to dicts, to make them JSON-serializable
         self.monthly_sum_net_import = external_trades_df['net_imported']. \
@@ -51,8 +51,8 @@ def calculate_results_and_save(job_id: str, agents: List[IAgent]):
     heat_trades = df[(df.resource == Resource.HEATING)].copy()
     agg_elec_trades = AggregatedTrades(elec_trades)
     agg_heat_trades = AggregatedTrades(heat_trades)
-    result_dict[ResultsKey.SUM_LEC_EXPENDITURE] = (agg_elec_trades.sum_lec_expenditure
-                                                   + agg_heat_trades.sum_lec_expenditure)
+    result_dict[ResultsKey.NET_ENERGY_SPEND] = (agg_elec_trades.net_energy_spend
+                                                + agg_heat_trades.net_energy_spend)
     result_dict[ResultsKey.SUM_NET_IMPORT_ELEC] = agg_elec_trades.sum_net_import
     result_dict[ResultsKey.MONTHLY_SUM_NET_IMPORT_ELEC] = agg_elec_trades.monthly_sum_net_import
     result_dict[ResultsKey.MONTHLY_MAX_NET_IMPORT_ELEC] = agg_elec_trades.monthly_max_net_import

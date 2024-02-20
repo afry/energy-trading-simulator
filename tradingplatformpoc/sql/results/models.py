@@ -23,7 +23,7 @@ class PreCalculatedResults(SQLModel, table=True):
 class ResultsKey:
     TAX_PAID = 'Tax paid [SEK]'
     GRID_FEES_PAID = 'Grid fees paid [SEK]'
-    SUM_LEC_EXPENDITURE = 'Total energy spend [SEK]'
+    NET_ENERGY_SPEND = 'Net energy spend [SEK]'
     SUM_NET_IMPORT_ELEC = 'Net electricity import [kWh]'
     MONTHLY_SUM_NET_IMPORT_ELEC = 'MONTHLY_SUM_NET_IMPORT_ELEC'
     MONTHLY_MAX_NET_IMPORT_ELEC = 'MONTHLY_MAX_NET_IMPORT_ELEC'
