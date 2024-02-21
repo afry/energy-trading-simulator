@@ -130,13 +130,14 @@ if len(ids) > 0:
         col2.dataframe(construct_dict_for_display('Below', 'Above', below_values, above_values))
 
     with st.expander('Total of locally produced resources:'):
+        res_dict = pre_calculated_results[ResultsKey.LOCALLY_PRODUCED_RESOURCES]
         st.metric(label="Electricity",
-                  value="{:,.2f} MWh".format(pre_calculated_results[ResultsKey.LOCALLY_PRODUCED_ELECTRICITY] / 1000))
+                  value="{:,.2f} MWh".format(res_dict[Resource.ELECTRICITY.name] / 1000))
         st.metric(label="Cooling",
-                  value="{:,.2f} MWh".format(pre_calculated_results[ResultsKey.LOCALLY_PRODUCED_COOLING] / 1000))
+                  value="{:,.2f} MWh".format(res_dict[Resource.COOLING.name] / 1000))
         # Will be replaced by low/high tempered heat
         st.metric(label="Heating",
-                  value="{:,.2f} MWh".format(pre_calculated_results[ResultsKey.LOCALLY_PRODUCED_HEATING] / 1000),
+                  value="{:,.2f} MWh".format(res_dict[Resource.HEATING.name] / 1000),
                   help="Heating produced by heat pumps in the local energy community")
             
 else:
