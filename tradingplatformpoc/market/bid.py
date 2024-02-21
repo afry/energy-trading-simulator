@@ -30,15 +30,6 @@ class Resource(Enum):
 logger = logging.getLogger(__name__)
 
 
-def action_string(action: Action) -> str:
-    return "BUY" if action == Action.BUY else "SELL"
-
-
-def resource_string(resource: Resource) -> str:
-    return "ELECTRICITY" if resource == Resource.ELECTRICITY else \
-        ("HEATING" if resource == Resource.HEATING else "COOLING")
-
-
 class GrossBid:
     """The bid model for our trading platform.
 
@@ -105,8 +96,8 @@ class NetBidWithAcceptanceStatus(NetBid):
         return "{},{},{},{},{},{},{},{}".format(self.period,
                                                 self.source,
                                                 self.by_external,
-                                                action_string(self.action),
-                                                resource_string(self.resource),
+                                                self.action.name,
+                                                self.resource.name,
                                                 self.quantity,
                                                 self.price,
                                                 self.accepted_quantity)
