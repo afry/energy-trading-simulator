@@ -144,14 +144,14 @@ def aggregated_import_and_export_results_df_split_on_mask(job_id: str, periods: 
     return res_dict
 
 
-def construct_dict_for_display(col_name_1: str, col_name_2: str, values_1: Dict[Resource, float],
-                               values_2: Dict[Resource, float]) -> Dict[str, Dict[str, str]]:
-    return {col_name_1: resource_values_to_mwh(values_1),
-            col_name_2: resource_values_to_mwh(values_2)}
+def construct_dict_for_display(col_name_1: str, col_name_2: str, values_1: Dict[str, float],
+                               values_2: Dict[str, float]) -> Dict[str, Dict[str, str]]:
+    return {col_name_1: values_to_mwh(values_1),
+            col_name_2: values_to_mwh(values_2)}
 
 
-def resource_values_to_mwh(resource_dict: Dict[Resource, float]) -> Dict[str, str]:
-    return {k.get_display_name(): f'{v / 1000:.2f} MWh' for k, v in resource_dict.items()}
+def values_to_mwh(str_float_dict: Dict[str, float]) -> Dict[str, str]:
+    return {k.lower().capitalize(): f'{v / 1000:.2f} MWh' for k, v in str_float_dict.items()}
 
 
 def aggregated_import_and_export_results_df_split_on_period(job_id: str) -> Dict[str, pd.DataFrame]:
@@ -267,16 +267,18 @@ def build_leaderboard_df(list_of_dicts: List[dict]) -> pd.DataFrame:
         if isinstance(df_to_display[col][0], dict):
             for key in df_to_display[col][0].keys():
                 if Resource.is_resource_name(key):
-                    df_to_display[col.format(key.lower())] = df_to_display[col].apply(lambda d, k=key: d[k])
+                    new_col_name = ResultsKey.format_results_key_name(col, key)
+                    df_to_display[new_col_name] = df_to_display[col].apply(lambda d, k=key: d[k])
     wanted_columns = ['Description',
                       ResultsKey.NET_ENERGY_SPEND,
-                      ResultsKey.SUM_NET_IMPORT_HEAT,
-                      ResultsKey.SUM_NET_IMPORT_ELEC,
-                      ResultsKey.LOCALLY_PRODUCED_RESOURCES.format(Resource.ELECTRICITY.name.lower()),
-                      ResultsKey.LOCALLY_PRODUCED_RESOURCES.format(Resource.HEATING.name.lower()),
-                      ResultsKey.LOCALLY_PRODUCED_RESOURCES.format(Resource.COOLING.name.lower()),
+                      ResultsKey.format_results_key_name(ResultsKey.SUM_NET_IMPORT, Resource.ELECTRICITY.name),
+                      ResultsKey.format_results_key_name(ResultsKey.SUM_NET_IMPORT, Resource.HEATING.name),
+                      ResultsKey.format_results_key_name(ResultsKey.LOCALLY_PRODUCED_RESOURCES,
+                                                         Resource.ELECTRICITY.name),
+                      ResultsKey.format_results_key_name(ResultsKey.LOCALLY_PRODUCED_RESOURCES, Resource.HEATING.name),
+                      ResultsKey.format_results_key_name(ResultsKey.LOCALLY_PRODUCED_RESOURCES, Resource.COOLING.name),
                       ResultsKey.TAX_PAID,
                       ResultsKey.GRID_FEES_PAID,
-                      ResultsKey.SUM_IMPORT_BELOW_1_C_HEAT,
-                      ResultsKey.SUM_IMPORT_JAN_FEB_HEAT]
+                      ResultsKey.format_results_key_name(ResultsKey.SUM_IMPORT_BELOW_1_C, Resource.HEATING.name),
+                      ResultsKey.format_results_key_name(ResultsKey.SUM_IMPORT_JAN_FEB, Resource.HEATING.name)]
     return df_to_display[wanted_columns].round(decimals=0)

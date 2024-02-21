@@ -38,7 +38,7 @@ if len(ids) > 0:
 
     col_1, col_2 = st.columns(2)
     with col_1:
-        total_elec_import = pre_calculated_results[ResultsKey.SUM_NET_IMPORT_ELEC]
+        total_elec_import = pre_calculated_results[ResultsKey.SUM_NET_IMPORT][Resource.ELECTRICITY.name]
         st.metric(label="Total net electricity imported",
                   value="{:,.2f} MWh".format(total_elec_import / 1000))
         total_tax_paid = pre_calculated_results[ResultsKey.TAX_PAID]
@@ -47,7 +47,7 @@ if len(ids) > 0:
                   help="Tax paid includes taxes that the ElectricityGridAgent has paid"
                   " on sales to the microgrid")
     with col_2:
-        total_heat_import = pre_calculated_results[ResultsKey.SUM_NET_IMPORT_HEAT]
+        total_heat_import = pre_calculated_results[ResultsKey.SUM_NET_IMPORT][Resource.HEATING.name]
         st.metric(label="Total net heating imported",
                   value="{:,.2f} MWh".format(total_heat_import / 1000))
         total_grid_fees_paid = pre_calculated_results[ResultsKey.GRID_FEES_PAID]
@@ -108,24 +108,18 @@ if len(ids) > 0:
         col2.header("Exported")
         st.caption("Split on period of year:")
         col1, col2 = st.columns(2)
-        total_values_import = {Resource.ELECTRICITY: pre_calculated_results[ResultsKey.SUM_IMPORT_ELEC],
-                               Resource.HEATING: pre_calculated_results[ResultsKey.SUM_IMPORT_HEAT]}
-        mask_values = {Resource.ELECTRICITY: pre_calculated_results[ResultsKey.SUM_IMPORT_JAN_FEB_ELEC],
-                       Resource.HEATING: pre_calculated_results[ResultsKey.SUM_IMPORT_JAN_FEB_HEAT]}
+        total_values_import = pre_calculated_results[ResultsKey.SUM_IMPORT]
+        mask_values = pre_calculated_results[ResultsKey.SUM_IMPORT_JAN_FEB]
         col1.dataframe(construct_dict_for_display('Jan-Feb', 'Total', mask_values, total_values_import))
-        total_values_export = {Resource.ELECTRICITY: pre_calculated_results[ResultsKey.SUM_EXPORT_ELEC],
-                               Resource.HEATING: pre_calculated_results[ResultsKey.SUM_EXPORT_HEAT]}
-        mask_values = {Resource.ELECTRICITY: pre_calculated_results[ResultsKey.SUM_EXPORT_JAN_FEB_ELEC],
-                       Resource.HEATING: pre_calculated_results[ResultsKey.SUM_EXPORT_JAN_FEB_HEAT]}
+        total_values_export = pre_calculated_results[ResultsKey.SUM_EXPORT]
+        mask_values = pre_calculated_results[ResultsKey.SUM_EXPORT_JAN_FEB]
         col2.dataframe(construct_dict_for_display('Jan-Feb', 'Total', mask_values, total_values_export))
         st.caption("Split on temperature above or below 1 degree Celsius:")
         col1, col2 = st.columns(2)
-        below_values = {Resource.ELECTRICITY: pre_calculated_results[ResultsKey.SUM_IMPORT_BELOW_1_C_ELEC],
-                        Resource.HEATING: pre_calculated_results[ResultsKey.SUM_IMPORT_BELOW_1_C_HEAT]}
+        below_values = pre_calculated_results[ResultsKey.SUM_IMPORT_BELOW_1_C]
         above_values = {k: total_values_import[k] - v for k, v in below_values.items()}
         col1.dataframe(construct_dict_for_display('Below', 'Above', below_values, above_values))
-        below_values = {Resource.ELECTRICITY: pre_calculated_results[ResultsKey.SUM_EXPORT_BELOW_1_C_ELEC],
-                        Resource.HEATING: pre_calculated_results[ResultsKey.SUM_EXPORT_BELOW_1_C_HEAT]}
+        below_values = pre_calculated_results[ResultsKey.SUM_EXPORT_BELOW_1_C]
         above_values = {k: total_values_export[k] - v for k, v in below_values.items()}
         col2.dataframe(construct_dict_for_display('Below', 'Above', below_values, above_values))
 
