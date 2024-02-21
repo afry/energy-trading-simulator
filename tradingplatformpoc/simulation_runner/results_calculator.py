@@ -1,6 +1,6 @@
 import datetime
 import logging
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
 
 import pandas as pd
 
@@ -76,7 +76,7 @@ def calculate_results_and_save(job_id: str, agents: List[IAgent]):
     """
     Pre-calculates some results, so that they can be easily fetched later.
     """
-    logger.info('Calculating some results...')
+    logger.info('Calculating some results')
     result_dict: Dict[str, Any] = {}
     df = get_external_trades_df([job_id])
     temperature_df = read_input_column_df_from_db('temperature')
@@ -111,21 +111,20 @@ def calculate_results_and_save(job_id: str, agents: List[IAgent]):
     result_dict[ResultsKey.SUM_IMPORT_BELOW_1_C_HEAT] = agg_heat_trades.sum_import_below_1_c
     result_dict[ResultsKey.SUM_EXPORT_BELOW_1_C_HEAT] = agg_heat_trades.sum_export_below_1_c
     # Aggregated local production
-    prod_elec, prod_cool, prod_heat = aggregated_local_productions(agents, agg_heat_trades.sum_net_import)
-    result_dict[ResultsKey.LOCALLY_PRODUCED_ELECTRICITY] = prod_elec
-    result_dict[ResultsKey.LOCALLY_PRODUCED_COOLING] = prod_cool
-    result_dict[ResultsKey.LOCALLY_PRODUCED_HEATING] = prod_heat
+    local_prod_dict = aggregated_local_productions(agents, agg_heat_trades.sum_net_import)
+    result_dict[ResultsKey.LOCALLY_PRODUCED_RESOURCES] = local_prod_dict
     # Taxes and grid fees
     result_dict[ResultsKey.TAX_PAID] = get_total_tax_paid(job_id=job_id)
     result_dict[ResultsKey.GRID_FEES_PAID] = get_total_grid_fee_paid_on_internal_trades(job_id=job_id)
 
+    logger.info('Saving calculated results')
     save_results(PreCalculatedResults(job_id=job_id, result_dict=result_dict))
 
 
-def aggregated_local_productions(agents: List[IAgent], net_heat_import: float) -> Tuple[float, float, float]:
+def aggregated_local_productions(agents: List[IAgent], net_heat_import: float) -> Dict[str, float]:
     """
     Computing total amount of locally produced resources.
-    @return Three values: Summed local production of electricity, cooling, and heating, respectively.
+    @return Summed local production by resource name
     """
     production_electricity_lst = []
     production_cooling_lst = []
@@ -146,4 +145,6 @@ def aggregated_local_productions(agents: List[IAgent], net_heat_import: float) -
     production_cooling = sum(production_cooling_lst)
     production_heating = sum(usage_heating_lst) - net_heat_import
 
-    return production_electricity, production_cooling, production_heating
+    return {Resource.ELECTRICITY.name: production_electricity,
+            Resource.HEATING.name: production_heating,
+            Resource.COOLING.name: production_cooling}

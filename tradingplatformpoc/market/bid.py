@@ -19,6 +19,13 @@ class Resource(Enum):
     def get_display_name(self) -> str:
         return self.name.lower().capitalize()
 
+    @staticmethod
+    def is_resource_name(a_string: str, case_sensitive: bool = True) -> bool:
+        for res in Resource:
+            if (a_string == res.name) or (not case_sensitive and (a_string.lower() == res.name.lower())):
+                return True
+        return False
+
 
 logger = logging.getLogger(__name__)
 

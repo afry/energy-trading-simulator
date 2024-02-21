@@ -25,6 +25,7 @@ from tradingplatformpoc.sql.input_data.crud import get_periods_from_db, read_inp
 from tradingplatformpoc.sql.input_electricity_price.crud import electricity_price_series_from_db
 from tradingplatformpoc.sql.level.crud import db_to_viewable_level_df_by_agent
 from tradingplatformpoc.sql.mock_data.crud import db_to_mock_data_df, get_mock_data_agent_pairs_in_db
+from tradingplatformpoc.sql.results.models import ResultsKey
 from tradingplatformpoc.sql.trade.crud import db_to_trades_by_agent_and_resource_action, \
     elec_trades_by_external_for_periods_to_df, get_total_import_export
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod
@@ -257,3 +258,25 @@ def combine_trades_dfs(agg_buy_trades: Optional[pd.DataFrame], agg_sell_trades: 
         return agg_sell_trades
     else:
         return None
+
+
+def build_leaderboard_df(list_of_dicts: List[dict]) -> pd.DataFrame:
+    df_to_display = pd.DataFrame.from_records(list_of_dicts, index='Config ID')
+    # Some pre-calculated results are saved as Dicts, with resource-names as keys. We expand these here:
+    for col in df_to_display.columns:
+        if isinstance(df_to_display[col][0], dict):
+            for key in df_to_display[col][0].keys():
+                if Resource.is_resource_name(key):
+                    df_to_display[col.format(key.lower())] = df_to_display[col].apply(lambda d, k=key: d[k])
+    wanted_columns = ['Description',
+                      ResultsKey.NET_ENERGY_SPEND,
+                      ResultsKey.SUM_NET_IMPORT_HEAT,
+                      ResultsKey.SUM_NET_IMPORT_ELEC,
+                      ResultsKey.LOCALLY_PRODUCED_RESOURCES.format(Resource.ELECTRICITY.name.lower()),
+                      ResultsKey.LOCALLY_PRODUCED_RESOURCES.format(Resource.HEATING.name.lower()),
+                      ResultsKey.LOCALLY_PRODUCED_RESOURCES.format(Resource.COOLING.name.lower()),
+                      ResultsKey.TAX_PAID,
+                      ResultsKey.GRID_FEES_PAID,
+                      ResultsKey.SUM_IMPORT_BELOW_1_C_HEAT,
+                      ResultsKey.SUM_IMPORT_JAN_FEB_HEAT]
+    return df_to_display[wanted_columns].round(decimals=0)

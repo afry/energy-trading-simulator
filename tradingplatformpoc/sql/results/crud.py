@@ -1,6 +1,6 @@
 import logging
 from contextlib import _GeneratorContextManager
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional
 
 from sqlalchemy import select
 
@@ -65,7 +65,7 @@ def get_results_for_job(job_id: str, raise_exception_if_not_found: bool = False,
 
 
 def get_all_results(session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope) \
-        -> List[Dict[str, Union[str, int, float]]]:
+        -> List[Dict[str, Any]]:
     """
     Fetches all pre-calculated results in the database. Joins these with Config, via the Job table, to get the ID and
     description of the configuration which yielded the respective results.
@@ -76,9 +76,7 @@ def get_all_results(session_generator: Callable[[], _GeneratorContextManager[Ses
                          join(Job, Config.id == Job.config_id).
                          join(PreCalculatedResults, Job.id == PreCalculatedResults.job_id)).all()
         if res is not None:
-            return [{'Config ID': config_id, 'Description': desc}
-                    # Filter the dict, removing entries where the value is of a complex data type such as dict or list
-                    | {key: value for key, value in pre_calc_res_dict.items() if isinstance(value, (str, int, float))}
+            return [{'Config ID': config_id, 'Description': desc} | pre_calc_res_dict
                     for (config_id, desc, pre_calc_res_dict) in res]
         else:
             raise Exception('No results found!')

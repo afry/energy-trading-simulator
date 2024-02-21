@@ -46,6 +46,4 @@ class ResultsKey:
     SUM_EXPORT_JAN_FEB_HEAT = 'SUM_EXPORT_JAN_FEB_HEAT'
     SUM_IMPORT_BELOW_1_C_HEAT = 'Heating import when <1C [kWh]'
     SUM_EXPORT_BELOW_1_C_HEAT = 'SUM_EXPORT_BELOW_1_C_HEAT'
-    LOCALLY_PRODUCED_ELECTRICITY = 'Local prod. electricity [kWh]'
-    LOCALLY_PRODUCED_COOLING = 'Local prod. cooling [kWh]'
-    LOCALLY_PRODUCED_HEATING = 'Local prod. heating [kWh]'
+    LOCALLY_PRODUCED_RESOURCES = 'Local prod. {} [kWh]'
