@@ -51,6 +51,12 @@ class InputData(SQLModel, table=True):
     coop_space_heating_consumed: float = Field(
         primary_key=False,
         default=None,
-        title='Coop space heating consumed (net), in kWh.',
+        title='Coop space heating consumed, in kWh.',
+        nullable=False
+    )
+    coop_space_heating_produced: float = Field(
+        primary_key=False,
+        default=None,
+        title='Coop space heating produced, in kWh.',
         nullable=False
     )

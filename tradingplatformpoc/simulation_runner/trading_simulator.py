@@ -141,9 +141,11 @@ class TradingSimulator:
                 pv_prod_series = calculate_solar_prod(inputs_df['irradiation'],
                                                       agent['PVArea'],
                                                       agent['PVEfficiency'])
+                space_heat_prod = inputs_df['coop_space_heating_produced'] if agent["SellExcessHeat"] else None
                 grocery_store_digital_twin = StaticDigitalTwin(electricity_usage=inputs_df['coop_electricity_consumed'],
                                                                space_heating_usage=inputs_df[
                                                                    'coop_space_heating_consumed'],
+                                                               space_heating_production=space_heat_prod,
                                                                hot_water_usage=inputs_df['coop_hot_tap_water_consumed'],
                                                                electricity_production=pv_prod_series)
                 agents.append(
