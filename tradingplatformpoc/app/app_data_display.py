@@ -144,12 +144,6 @@ def aggregated_import_and_export_results_df_split_on_mask(job_id: str, periods: 
     return res_dict
 
 
-def construct_dict_for_display(col_name_1: str, col_name_2: str, values_1: Dict[str, float],
-                               values_2: Dict[str, float]) -> Dict[str, Dict[str, str]]:
-    return {col_name_1: values_to_mwh(values_1),
-            col_name_2: values_to_mwh(values_2)}
-
-
 def values_to_mwh(str_float_dict: Dict[str, float]) -> Dict[str, str]:
     return {k.lower().capitalize(): f'{v / 1000:.2f} MWh' for k, v in str_float_dict.items()}
 
