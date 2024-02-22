@@ -196,7 +196,7 @@ def simulate(mock_data_constants: Dict[str, Any], agent: dict, df_inputs: pl.Laz
         commercial_gross_floor_area = agent['GrossFloorArea'] * fraction_commercial
 
         electricity_consumption.append(simulate_area_electricity(
-            agent['GrossFloorArea'] * fraction_commercial, seed_commercial_electricity, df_inputs,
+            commercial_gross_floor_area, seed_commercial_electricity, df_inputs,
             mock_data_constants['CommercialElecKwhPerYearM2'], mock_data_constants['CommercialElecRelativeErrorStdDev'],
             get_commercial_electricity_consumption_hourly_factor, n_rows))
         
@@ -205,7 +205,11 @@ def simulate(mock_data_constants: Dict[str, Any], agent: dict, df_inputs: pl.Laz
         space_heating_consumption.append(commercial_space_heating_cons)
         hot_tap_water_consumption.append(commercial_hot_tap_water_cons)
 
-        commercial_cooling = simulate_commercial_area_cooling(commercial_gross_floor_area, df_inputs)
+        commercial_cooling = simulate_commercial_area_cooling(commercial_gross_floor_area, seed_commercial_electricity,
+                                                              df_inputs,
+                                                              mock_data_constants['CommercialCoolKwhPerYearM2'],
+                                                              mock_data_constants['CommercialCoolRelativeErrorStdDev'],
+                                                              n_rows)
         cooling_consumption.append(commercial_cooling)
     
     # SCHOOL
