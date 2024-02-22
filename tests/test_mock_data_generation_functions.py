@@ -17,7 +17,7 @@ class Test(TestCase):
         self.assertTrue(is_break(datetime.datetime(2019, 7, 1, tzinfo=datetime.timezone.utc)))
         self.assertFalse(is_break(datetime.datetime(2019, 9, 1, tzinfo=datetime.timezone.utc)))
 
-    def test_cooling(self):
+    def test_commercial_cooling(self):
         # Set the start date and time
         start_date = datetime.datetime(2019, 1, 1, 0, 0, 0)
 
@@ -32,3 +32,4 @@ class Test(TestCase):
         output_pd_df = cooling.collect().to_pandas()
         self.assertAlmostEqual(34000, output_pd_df['value'].sum())
         self.assertEqual(0.0, output_pd_df['value'][0])  # no cooling consumption during winter
+        self.assertFalse((output_pd_df['value'] < 0).any())
