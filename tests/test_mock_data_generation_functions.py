@@ -28,6 +28,7 @@ class Test(TestCase):
         date_values = [start_date + datetime.timedelta(hours=i) for i in range(num_hours_in_year)]
 
         input_df = pd.DataFrame({'datetime': date_values})
-        cooling = simulate_commercial_area_cooling(1000, 1, pl.from_pandas(input_df).lazy(), 34, 0.2, 8760)
+        cooling = simulate_commercial_area_cooling(1000, 1, pl.from_pandas(input_df).lazy(), 34, 0.2, num_hours_in_year)
         output_pd_df = cooling.collect().to_pandas()
         self.assertAlmostEqual(34000, output_pd_df['value'].sum())
+        self.assertEqual(0.0, output_pd_df['value'][0])  # no cooling consumption during winter

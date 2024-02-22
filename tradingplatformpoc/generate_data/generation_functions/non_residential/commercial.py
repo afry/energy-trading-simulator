@@ -96,15 +96,15 @@ def get_cooling_consumption_kwh(timestamp: datetime.datetime) -> float:
 def get_cooling_month_scaling_factor(month: int) -> float:
     """Returns a dimensionless scaling factor. Values from BDAB. See https://doc.afdrift.se/x/cgLBAg"""
     if month == 4:
-        return 0.142449331673908 / 34
+        return 0.142449331673908
     elif month == 5:
-        return 2.19526298112194 / 34
+        return 2.19526298112194
     elif month == 6:
-        return 7.16367834002871 / 34
+        return 7.16367834002871
     elif month == 7:
-        return 18.4204412705042 / 34
+        return 18.4204412705042
     elif month == 8:
-        return 16.4748764483724 / 34
+        return 16.4748764483724
     elif month == 9:
-        return 1.58772770812892 / 34
+        return 1.58772770812892
     return 0
