@@ -10,6 +10,7 @@ from tradingplatformpoc.agent.block_agent import BlockAgent
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.app.app_threading import StoppableThread
+from tradingplatformpoc.constants import LEC_CAN_SELL_HEAT_TO_EXTERNAL
 from tradingplatformpoc.database import bulk_insert
 from tradingplatformpoc.digitaltwin.battery import Battery
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
@@ -133,6 +134,7 @@ class TradingSimulator:
                 agents.append(
                     BlockAgent(self.local_market_enabled, heat_pricing=self.heat_pricing,
                                electricity_pricing=self.electricity_pricing, digital_twin=block_digital_twin,
+                               can_sell_heat_to_external=LEC_CAN_SELL_HEAT_TO_EXTERNAL,
                                heat_pump_max_input=agent["HeatPumpMaxInput"],
                                heat_pump_max_output=agent["HeatPumpMaxOutput"],
                                coeff_of_perf=area_info["COPHeatPumps"], battery=storage_digital_twin, guid=agent_name))
@@ -141,22 +143,25 @@ class TradingSimulator:
                 pv_prod_series = calculate_solar_prod(inputs_df['irradiation'],
                                                       agent['PVArea'],
                                                       agent['PVEfficiency'])
+                space_heat_prod = inputs_df['coop_space_heating_produced'] if agent["SellExcessHeat"] else None
                 grocery_store_digital_twin = StaticDigitalTwin(electricity_usage=inputs_df['coop_electricity_consumed'],
                                                                space_heating_usage=inputs_df[
                                                                    'coop_space_heating_consumed'],
+                                                               space_heating_production=space_heat_prod,
                                                                hot_water_usage=inputs_df['coop_hot_tap_water_consumed'],
                                                                electricity_production=pv_prod_series)
                 agents.append(
                     BlockAgent(self.local_market_enabled, heat_pricing=self.heat_pricing,
                                electricity_pricing=self.electricity_pricing, digital_twin=grocery_store_digital_twin,
-                               guid=agent_name))
+                               can_sell_heat_to_external=LEC_CAN_SELL_HEAT_TO_EXTERNAL, guid=agent_name))
             elif agent_type == "GridAgent":
                 if Resource[agent["Resource"]] == Resource.ELECTRICITY:
                     grid_agent = GridAgent(self.local_market_enabled, self.electricity_pricing,
-                                           Resource[agent["Resource"]],
+                                           Resource[agent["Resource"]], can_buy=True,
                                            max_transfer_per_hour=agent["TransferRate"], guid=agent_name)
                 elif Resource[agent["Resource"]] == Resource.HEATING:
                     grid_agent = GridAgent(self.local_market_enabled, self.heat_pricing, Resource[agent["Resource"]],
+                                           can_buy=LEC_CAN_SELL_HEAT_TO_EXTERNAL,
                                            max_transfer_per_hour=agent["TransferRate"], guid=agent_name)
                 agents.append(grid_agent)
                 grid_agents.append(grid_agent)

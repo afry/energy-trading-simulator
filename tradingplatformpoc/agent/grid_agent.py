@@ -15,13 +15,15 @@ class GridAgent(IAgent):
     resource: Resource
     max_transfer_per_hour: float
     pricing: Union[HeatingPrice, ElectricityPrice]
+    can_buy: bool
 
     def __init__(self, local_market_enabled: bool, pricing: Union[HeatingPrice, ElectricityPrice], resource: Resource,
-                 max_transfer_per_hour=10000, guid="GridAgent"):
+                 can_buy: bool, max_transfer_per_hour=10000, guid="GridAgent"):
         super().__init__(guid, local_market_enabled)
         self.resource = resource
         self.pricing = self._is_valid_pricing(pricing)
         self.max_transfer_per_hour = max_transfer_per_hour
+        self.can_buy = can_buy
         self.resource_loss_per_side = self.pricing.heat_transfer_loss_per_side if isinstance(self.pricing,
                                                                                              HeatingPrice) else 0.0
         
@@ -123,20 +125,24 @@ class GridAgent(IAgent):
                                    "price".format(period))
         elif sum_buys < sum_sells:
             surplus_in_market = sum_sells - sum_buys
-            need_to_buy = surplus_in_market * (1 - self.resource_loss_per_side)
-            trades_to_add.append(
-                Trade(period=period, action=Action.BUY, resource=resource, quantity=need_to_buy, price=wholesale_price,
-                      source=self.guid, by_external=True, market=market,
-                      loss=self.resource_loss_per_side))
-            if market == Market.LOCAL:
-                if local_clearing_price > wholesale_price:
-                    # What happened here is that the market solver believed that there would be a local deficit,
-                    # but it turned out to not be the case, instead there was a local surplus. So, producing agents
-                    # had to export some energy to the external grid, at a lower price than the local price. Some
-                    # penalisation will be applied in the balance manager.
-                    logger.debug("In period {}: External grid buys at {:.5f} SEK/kWh from the local market, but the "
-                                 "clearing price was {:.5f} SEK/kWh".
-                                 format(period, wholesale_price, local_clearing_price))
-                elif wholesale_price - local_clearing_price > 1e-10:
-                    logger.warning("In period {}: Unexpected result: Local clearing price lower than external "
-                                   "wholesale price".format(period))
+            if self.can_buy:
+                need_to_buy = surplus_in_market * (1 - self.resource_loss_per_side)
+                trades_to_add.append(
+                    Trade(period=period, action=Action.BUY, resource=resource, quantity=need_to_buy,
+                          price=wholesale_price, source=self.guid, by_external=True, market=market,
+                          loss=self.resource_loss_per_side))
+                if market == Market.LOCAL:
+                    if local_clearing_price > wholesale_price:
+                        # What happened here is that the market solver believed that there would be a local deficit,
+                        # but it turned out to not be the case, instead there was a local surplus. So, producing agents
+                        # had to export some energy to the external grid, at a lower price than the local price. Some
+                        # penalisation will be applied in the balance manager.
+                        logger.debug("In period {}: External grid buys at {:.5f} SEK/kWh from the local market, but "
+                                     "the clearing price was {:.5f} SEK/kWh".
+                                     format(period, wholesale_price, local_clearing_price))
+                    elif wholesale_price - local_clearing_price > 1e-10:
+                        logger.warning("In period {}: Unexpected result: Local clearing price lower than external "
+                                       "wholesale price".format(period))
+            else:
+                logger.debug("For {}, {:.2f} kWh {} went unused since {} cannot buy energy".
+                             format(period, surplus_in_market, self.resource, self.guid))

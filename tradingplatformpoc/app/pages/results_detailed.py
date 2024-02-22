@@ -132,7 +132,7 @@ if len(ids) > 0:
         # Will be replaced by low/high tempered heat
         st.metric(label="Heating",
                   value="{:,.2f} MWh".format(res_dict[Resource.HEATING.name] / 1000),
-                  help="Heating produced by heat pumps in the local energy community")
+                  help="Heating produced by heat pumps, and excess heat from cooling machines.")
             
 else:
     st.markdown('No results to view yet, set up a configuration in '
