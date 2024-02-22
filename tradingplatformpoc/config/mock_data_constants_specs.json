@@ -37,7 +37,6 @@
     "CommercialElecKwhPerYearM2": {
         "display": "Commercial electricity kWh/year/m2:",
         "min_value": 1,
-        
         "max_value": 200,
         "default": 118,
         "help": "Number indicating the electricity consumption of commercial areas, in kWh per year and square meter. The default of 118 kWh/year/m2 comes from Energimyndigheten's 2009 report 'Energianvändning i handelslokaler'. This number is given for 'non-grocery-related' trades premises."
@@ -70,6 +69,20 @@
         "max_value": 1.0,
         "default": 0.2,
         "help": "The standard deviation of simulated hot tap water consumption of commercial areas, in relative terms. For a given hour, an expected value will be calculated, and the simulated value will then be this expected value, multiplied with a factor normally distributed with a mean of 1 and a standard deviation of this value. Basically, the higher this value is, the more commercial hot tap water consumption will vary, hour-to-hour."
+    },
+    "CommercialCoolKwhPerYearM2": {
+        "display": "Commercial cooling kWh/year/m2:",
+        "min_value": 0,
+        "max_value": 100,
+        "default": 34,
+        "help": "Number indicating the cooling consumption of commercial areas, in kWh per year and square meter. The default of 34 kWh/year/m2 comes from BDAB."
+    },
+    "CommercialCoolRelativeErrorStdDev": {
+        "display": "Commercial cooling relative standard deviation:",
+        "min_value": 0.0,
+        "max_value": 1.0,
+        "default": 0.2,
+        "help": "The standard deviation of simulated cooling consumption of commercial areas, in relative terms. For a given hour, an expected value will be calculated, and the simulated value will then be this expected value, multiplied with a factor normally distributed with a mean of 1 and a standard deviation of this value. Basically, the higher this value is, the more commercial cooling consumption will vary, hour-to-hour."
     },
     "SchoolElecKwhPerYearM2": {
         "display": "School electricity kWh/year/m2:",

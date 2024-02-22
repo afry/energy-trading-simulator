@@ -51,8 +51,10 @@ electricity_pricing: ElectricityPrice = ElectricityPrice(
 
 
 class TestGridAgent(unittest.TestCase):
-    electricity_grid_agent = GridAgent(True, electricity_pricing, Resource.ELECTRICITY, guid='ElectricityGridAgent')
-    heating_grid_agent = GridAgent(True, heat_pricing, Resource.HEATING, guid='HeatingGridAgent')
+    electricity_grid_agent = GridAgent(True, electricity_pricing, Resource.ELECTRICITY, True,
+                                       guid='ElectricityGridAgent')
+    heating_grid_agent = GridAgent(True, heat_pricing, Resource.HEATING, False,
+                                   guid='HeatingGridAgent')
 
     def test_make_bids_electricity(self):
         """Test basic functionality of GridAgent's make_bids method, for the ELECTRICITY resource."""
@@ -208,15 +210,15 @@ class TestBlockAgent(TestCase):
     static_digital_twin_cons = StaticDigitalTwin(electricity_usage=pd.Series(elec_values, index=DATETIME_ARRAY),
                                                  space_heating_usage=pd.Series(heat_values, index=DATETIME_ARRAY))
     block_agent_cons = BlockAgent(True, heat_pricing=heat_pricing, electricity_pricing=electricity_pricing,
-                                  digital_twin=static_digital_twin_cons)
+                                  digital_twin=static_digital_twin_cons, can_sell_heat_to_external=False)
     static_digital_twin_prod = StaticDigitalTwin(electricity_usage=-pd.Series(elec_values, index=DATETIME_ARRAY),
                                                  space_heating_usage=-pd.Series(heat_values, index=DATETIME_ARRAY))
     block_agent_prod = BlockAgent(True, heat_pricing=heat_pricing, electricity_pricing=electricity_pricing,
-                                  digital_twin=static_digital_twin_prod)
+                                  digital_twin=static_digital_twin_prod, can_sell_heat_to_external=False)
     static_digital_twin_zeros = StaticDigitalTwin(electricity_usage=pd.Series(elec_values * 0, index=DATETIME_ARRAY),
                                                   space_heating_usage=pd.Series(heat_values * 0, index=DATETIME_ARRAY))
     block_agent_zeros = BlockAgent(True, heat_pricing=heat_pricing, electricity_pricing=electricity_pricing,
-                                   digital_twin=static_digital_twin_zeros)
+                                   digital_twin=static_digital_twin_zeros, can_sell_heat_to_external=False)
 
     def test_make_bids_consumer(self):
         """Test basic functionality of BlockAgent's make_bids method."""
@@ -341,16 +343,13 @@ class TestBlockAgentHeatPump(TestCase):
     # Create agent with 2 heat pumps, default COP
     block_agent_2_pumps_default_cop = BlockAgent(True, heat_pricing=heat_pricing,
                                                  electricity_pricing=electricity_pricing,
-                                                 digital_twin=block_digital_twin,
-                                                 heat_pump_max_input=30,
-                                                 heat_pump_max_output=100)
+                                                 digital_twin=block_digital_twin, can_sell_heat_to_external=False,
+                                                 heat_pump_max_input=30, heat_pump_max_output=100)
     # Create agent with 3 pumps, COP = 4.3
     block_agent_3_pumps_custom_cop = BlockAgent(True, heat_pricing=heat_pricing,
                                                 electricity_pricing=electricity_pricing,
-                                                digital_twin=block_digital_twin,
-                                                heat_pump_max_input=45,
-                                                heat_pump_max_output=145,
-                                                coeff_of_perf=4.3)
+                                                digital_twin=block_digital_twin, can_sell_heat_to_external=False,
+                                                heat_pump_max_input=45, heat_pump_max_output=145, coeff_of_perf=4.3)
 
     def test_construct_workloads_df(self):
         """Test that when a BlockAgent doesn't have any heat pumps, the workloads data frame is still created as
