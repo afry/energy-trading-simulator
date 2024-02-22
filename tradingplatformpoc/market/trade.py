@@ -1,7 +1,7 @@
 import datetime
 from enum import Enum
 
-from tradingplatformpoc.market.bid import Action, Resource, action_string, resource_string
+from tradingplatformpoc.market.bid import Action, Resource
 
 
 class Market(Enum):
@@ -76,9 +76,9 @@ class Trade:
         return "{},{},{},{},{},{},{},{},{},{},{}".format(self.period,
                                                          self.source,
                                                          self.by_external,
-                                                         action_string(self.action),
-                                                         resource_string(self.resource),
-                                                         market_string(self.market),
+                                                         self.action.name,
+                                                         self.resource.name,
+                                                         self.market.name,
                                                          self.quantity_pre_loss,
                                                          self.quantity_post_loss,
                                                          self.price,
@@ -127,7 +127,3 @@ class Trade:
             return 0.0
         else:
             return self.quantity_post_loss * self.tax_paid
-
-
-def market_string(market: Market) -> str:
-    return "LOCAL" if market == Market.LOCAL else "EXTERNAL"

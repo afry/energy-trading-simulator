@@ -122,10 +122,11 @@ def show_key_figs_for_one(pre_calculated_results: Dict[str, Any]):
               value="{:,.2f} SEK".format(pre_calculated_results[ResultsKey.NET_ENERGY_SPEND]),
               help="The net energy spend is calculated by subtracting the total revenue from energy exports from the "
                    "total expenditure on importing energy.")
+    net_import_dict = pre_calculated_results[ResultsKey.SUM_NET_IMPORT]
     st.metric(label="Net import of electricity:",
-              value="{:,.2f} MWh".format(pre_calculated_results[ResultsKey.SUM_NET_IMPORT_ELEC] / 1000))
+              value="{:,.2f} MWh".format(net_import_dict[Resource.ELECTRICITY.name] / 1000))
     st.metric(label="Net import of heating:",
-              value="{:,.2f} MWh".format(pre_calculated_results[ResultsKey.SUM_NET_IMPORT_HEAT] / 1000))
+              value="{:,.2f} MWh".format(net_import_dict[Resource.HEATING.name] / 1000))
 
 
 def construct_level_comparison_chart(ids: ComparisonIds, agent_names: List[str],

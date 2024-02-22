@@ -59,6 +59,7 @@ def delete_job(job_id: str,
         if not job:
             logger.error('No job in database with ID {}'.format(job_id))
         else:
+            logger.info('Deleting job in database with ID {}, along with all related data'.format(job_id))
             # Delete job AND ALL RELATED DATA
             db.execute(delete(TableBid).where(TableBid.job_id == job_id))
             db.execute(delete(ClearingPrice).where(ClearingPrice.job_id == job_id))

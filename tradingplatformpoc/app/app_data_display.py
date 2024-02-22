@@ -25,6 +25,7 @@ from tradingplatformpoc.sql.input_data.crud import get_periods_from_db, read_inp
 from tradingplatformpoc.sql.input_electricity_price.crud import electricity_price_series_from_db
 from tradingplatformpoc.sql.level.crud import db_to_viewable_level_df_by_agent
 from tradingplatformpoc.sql.mock_data.crud import db_to_mock_data_df, get_mock_data_agent_pairs_in_db
+from tradingplatformpoc.sql.results.models import ResultsKey
 from tradingplatformpoc.sql.trade.crud import db_to_trades_by_agent_and_resource_action, \
     elec_trades_by_external_for_periods_to_df, get_total_import_export
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod
@@ -143,6 +144,10 @@ def aggregated_import_and_export_results_df_split_on_mask(job_id: str, periods: 
     return res_dict
 
 
+def values_to_mwh(str_float_dict: Dict[str, float]) -> Dict[str, str]:
+    return {k.lower().capitalize(): f'{v / 1000:.2f} MWh' for k, v in str_float_dict.items()}
+
+
 def aggregated_import_and_export_results_df_split_on_period(job_id: str) -> Dict[str, pd.DataFrame]:
     """
     Dict of dataframes displaying total import and export of resources split for January and
@@ -247,3 +252,27 @@ def combine_trades_dfs(agg_buy_trades: Optional[pd.DataFrame], agg_sell_trades: 
         return agg_sell_trades
     else:
         return None
+
+
+def build_leaderboard_df(list_of_dicts: List[dict]) -> pd.DataFrame:
+    df_to_display = pd.DataFrame.from_records(list_of_dicts, index='Config ID')
+    # Some pre-calculated results are saved as Dicts, with resource-names as keys. We expand these here:
+    for col in df_to_display.columns:
+        if isinstance(df_to_display[col][0], dict):
+            for key in df_to_display[col][0].keys():
+                if Resource.is_resource_name(key):
+                    new_col_name = ResultsKey.format_results_key_name(col, key)
+                    df_to_display[new_col_name] = df_to_display[col].apply(lambda d, k=key: d[k])
+    wanted_columns = ['Description',
+                      ResultsKey.NET_ENERGY_SPEND,
+                      ResultsKey.format_results_key_name(ResultsKey.SUM_NET_IMPORT, Resource.ELECTRICITY.name),
+                      ResultsKey.format_results_key_name(ResultsKey.SUM_NET_IMPORT, Resource.HEATING.name),
+                      ResultsKey.format_results_key_name(ResultsKey.LOCALLY_PRODUCED_RESOURCES,
+                                                         Resource.ELECTRICITY.name),
+                      ResultsKey.format_results_key_name(ResultsKey.LOCALLY_PRODUCED_RESOURCES, Resource.HEATING.name),
+                      ResultsKey.format_results_key_name(ResultsKey.LOCALLY_PRODUCED_RESOURCES, Resource.COOLING.name),
+                      ResultsKey.TAX_PAID,
+                      ResultsKey.GRID_FEES_PAID,
+                      ResultsKey.format_results_key_name(ResultsKey.SUM_IMPORT_BELOW_1_C, Resource.HEATING.name),
+                      ResultsKey.format_results_key_name(ResultsKey.SUM_IMPORT_JAN_FEB, Resource.HEATING.name)]
+    return df_to_display[wanted_columns].round(decimals=0)
