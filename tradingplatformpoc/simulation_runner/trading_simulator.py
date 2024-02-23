@@ -313,7 +313,7 @@ class TradingSimulator:
         bulk_insert(TableLevel, heat_pump_level_dicts)
         bulk_insert(TableLevel, storage_level_dicts)
 
-        calculate_results_and_save(self.job_id, self.agents)
+        calculate_results_and_save(self.job_id, self.agents, self.grid_agents)
 
         logger.info("Finished simulating trades, beginning calculations on district heating price...")
 

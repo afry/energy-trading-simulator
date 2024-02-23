@@ -29,6 +29,7 @@ class BlockAgent(IAgent):
     workloads_low_heat: Workloads
     battery: Battery
     can_sell_heat_to_external: bool
+    allow_sell_heat: bool
     heat_pump_max_input: float
     heat_pump_max_output: float
     # Our heat pump implementation is built on "Thermia Mega" heat pumps - we translate the "max power" and "max heat"
@@ -46,6 +47,7 @@ class BlockAgent(IAgent):
         self.heat_pump_max_input = heat_pump_max_input
         self.heat_pump_max_output = heat_pump_max_output
         self.can_sell_heat_to_external = can_sell_heat_to_external
+        self.allow_sell_heat = False
         self.battery = Battery(0, 0, 0, 0) if battery is None else battery
         # Calculate an implied number of Thermia Mega Normal size heat pumps, taking both input and output power into
         # account
@@ -140,18 +142,24 @@ class BlockAgent(IAgent):
                                                         .heat_transfer_loss_per_side))
         elif heat_net_consumption_incl_pump < 0:
             # Negative net consumption, meaning there is a surplus, which the agent will sell
-            if self.can_sell_heat_to_external or not np.isnan(heat_clearing_price):
-                if self.can_sell_heat_to_external:
-                    price_to_use, market_to_use = self.get_price_and_market_to_use_when_selling(
-                        heat_clearing_price, heat_wholesale_price)
-                else:
-                    price_to_use = heat_clearing_price
-                    market_to_use = Market.LOCAL
-                trades.append(self.construct_sell_heat_trade(period=period, quantity=-heat_net_consumption_incl_pump,
-                                                             price=price_to_use, market=market_to_use,
-                                                             heat_transfer_loss_per_side=self.heat_pricing
-                                                             .heat_transfer_loss_per_side))
-            # If we can't sell heat externally, and the local heat clearing price is NaN, no trade is made
+            if self.allow_sell_heat:
+                if self.can_sell_heat_to_external or not np.isnan(heat_clearing_price):
+                    if self.can_sell_heat_to_external:
+                        price_to_use, market_to_use = self.get_price_and_market_to_use_when_selling(
+                            heat_clearing_price, heat_wholesale_price)
+                    else:
+                        price_to_use = heat_clearing_price
+                        market_to_use = Market.LOCAL
+                    trades.append(self.construct_sell_heat_trade(period=period,
+                                                                 quantity=-heat_net_consumption_incl_pump,
+                                                                 price=price_to_use, market=market_to_use,
+                                                                 heat_transfer_loss_per_side=self.heat_pricing
+                                                                 .heat_transfer_loss_per_side))
+                # If we can't sell heat externally, and the local heat clearing price is NaN, no trade is made
+            else:
+                logger.debug('For period {}, had excess heat of {:.2f} kWh, but could not sell that surplus. This heat '
+                             'will be seen as having effectively vanished'.
+                             format(period, -heat_net_consumption_incl_pump))
         return trades, {TradeMetadataKey.HEAT_PUMP_WORKLOAD: workload_to_use}
 
     def make_bids_with_heat_pump(self, period: datetime.datetime, pred_elec_price: float, pred_heat_price: float) -> \
@@ -189,7 +197,7 @@ class BlockAgent(IAgent):
             bids.append(self.construct_buy_heat_bid(period, heat_net_consumption_incl_pump, math.inf,
                                                     self.heat_pricing.heat_transfer_loss_per_side))
             # This demand must be fulfilled - therefore price is inf
-        elif heat_net_consumption_incl_pump < 0:
+        elif heat_net_consumption_incl_pump < 0 and self.allow_sell_heat:
             # What price to use here? The predicted local clearing price, or the external grid wholesale price?
             # External grid may not want to buy heat at all, so going with the former, for now.
             bids.append(self.construct_sell_heat_bid(period, -heat_net_consumption_incl_pump, pred_heat_price,
@@ -244,11 +252,11 @@ class BlockAgent(IAgent):
             -> Tuple[float, float]:
         if self.local_market_enabled:
             # No taxes or grid fees for heating
-            heat_sell_price = clearing_price
+            heat_sell_price = clearing_price if self.allow_sell_heat else 0
             heat_buy_price = clearing_price
         else:
             heat_sell_price = self.heat_pricing.get_estimated_wholesale_price(period) \
-                if self.can_sell_heat_to_external else 0
+                if self.allow_sell_heat and self.can_sell_heat_to_external else 0
             heat_buy_price = self.heat_pricing.get_estimated_retail_price(period, True)
         return heat_sell_price, heat_buy_price
 
