@@ -217,7 +217,7 @@ with config_container:
             st.markdown("#")
             st.json(st.session_state.config_data, expanded=True)
     with coltext:
-        with st.expander('Configuration changes from default'):
+        with st.expander('Configuration changes from ' + chosen_config_id):
             str_to_disp = display_diff_in_config(read_config(chosen_config_id), st.session_state.config_data)
             if len(str_to_disp) > 1:
                 for s in str_to_disp:
