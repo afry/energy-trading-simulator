@@ -22,7 +22,6 @@ from tradingplatformpoc.generate_data.generation_functions.non_residential.schoo
     get_school_heating_consumption_hourly_factor, is_break
 from tradingplatformpoc.generate_data.generation_functions.residential.electricity import \
     simulate_series_with_log_energy_model
-from tradingplatformpoc.generate_data.mock_data_utils import all_parameters_match
 from tradingplatformpoc.trading_platform_utils import hourly_datetime_array_between
 
 
@@ -78,24 +77,6 @@ class Test(TestCase):
         values_pd = unscaled_simulated_values_for_area.to_pandas().value
         self.assertAlmostEqual(358.64245460289527, values_pd[:8766].sum())
         self.assertAlmostEqual(0.286418874824197, values_pd[0])
-
-    def test_all_parameters_match_true(self):
-        """When agents do not contain any commercial buildings, it shouldn't matter that commercial mock data generation
-        constants are different."""
-        agent_1 = {'Name': 'ResidentialBlockAgentB1', 'FractionCommercial': 0.0}
-        agent_2 = agent_1.copy()
-        mock_data_constants_1 = {'CommercialElecKwhPerYearM2': 50}
-        mock_data_constants_2 = {'CommercialElecKwhPerYearM2': 60}
-        self.assertTrue(all_parameters_match(agent_1, agent_2, mock_data_constants_1, mock_data_constants_2))
-
-    def test_all_parameters_match_false(self):
-        """When agents do contain commercial buildings, it should matter that commercial mock data generation
-        constants are different."""
-        agent_1 = {'Name': 'ResidentialBlockAgentB1', 'FractionCommercial': 0.1}
-        agent_2 = agent_1.copy()
-        mock_data_constants_1 = {'CommercialElecKwhPerYearM2': 50}
-        mock_data_constants_2 = {'CommercialElecKwhPerYearM2': 60}
-        self.assertFalse(all_parameters_match(agent_1, agent_2, mock_data_constants_1, mock_data_constants_2))
 
     def test_is_break(self):
         """Simple test of is_break method. Using UTC just because it is the most convenient."""

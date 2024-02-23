@@ -65,7 +65,7 @@ def simulate_commercial_area_total_heating(mock_data_constants: Dict[str, Any], 
                                            n_rows)
 
     hot_tap_water_per_year_m2 = mock_data_constants['CommercialHotTapWaterKwhPerYearM2']
-    hot_tap_water_relative_error_std_dev = mock_data_constants['CommercialHotTapWaterRelativeErrorStdDev']
+    hot_tap_water_relative_error_std_dev = mock_data_constants['RelativeErrorStdDev']
     hot_tap_water = simulate_hot_tap_water(commercial_gross_floor_area_m2, random_seed, input_df,
                                            hot_tap_water_per_year_m2, get_commercial_heating_consumption_hourly_factor,
                                            hot_tap_water_relative_error_std_dev,

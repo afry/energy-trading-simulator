@@ -29,7 +29,7 @@ def simulate_residential_total_heating(mock_data_constants: Dict[str, Any], df_i
     points_to_generate = len(every_xth)
 
     rng = np.random.default_rng(random_seed)
-    std_dev = mock_data_constants['ResidentialHeatingRelativeErrorStdDev']
+    std_dev = mock_data_constants['RelativeErrorStdDev']
     generated_points = rng.normal(1, std_dev, points_to_generate)
 
     noise = np.empty((n_rows,))
