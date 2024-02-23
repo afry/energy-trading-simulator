@@ -5,8 +5,10 @@ from typing import Any, Dict, List
 import pandas as pd
 
 from tradingplatformpoc.agent.block_agent import BlockAgent
+from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.market.bid import Action, Resource
+from tradingplatformpoc.sql.extra_cost.crud import db_to_extra_cost_df
 from tradingplatformpoc.sql.input_data.crud import read_input_column_df_from_db
 from tradingplatformpoc.sql.results.crud import save_results
 from tradingplatformpoc.sql.results.models import PreCalculatedResults, ResultsKey
@@ -72,20 +74,26 @@ class AggregatedTrades:
         self.monthly_max_net_import = grouped_by_month.max().to_dict()
 
 
-def calculate_results_and_save(job_id: str, agents: List[IAgent]):
+def calculate_results_and_save(job_id: str, agents: List[IAgent], grid_agents: List[GridAgent]):
     """
     Pre-calculates some results, so that they can be easily fetched later.
     """
     logger.info('Calculating some results')
     result_dict: Dict[str, Any] = {}
-    df = get_external_trades_df([job_id])
+    external_trades = get_external_trades_df([job_id])
+
+    extra_costs = db_to_extra_cost_df(job_id)
+    extra_costs = extra_costs[~extra_costs['agent'].isin([x.guid for x in grid_agents])]
+
     temperature_df = read_input_column_df_from_db('temperature')
     periods_below_1_c = list(temperature_df[temperature_df['temperature'].values < 1.0].period)
-    elec_trades = df[(df.resource == Resource.ELECTRICITY)].copy()
-    heat_trades = df[(df.resource == Resource.HEATING)].copy()
+
+    elec_trades = external_trades[(external_trades.resource == Resource.ELECTRICITY)].copy()
+    heat_trades = external_trades[(external_trades.resource == Resource.HEATING)].copy()
     agg_elec_trades = AggregatedTrades(elec_trades, periods_below_1_c)
     agg_heat_trades = AggregatedTrades(heat_trades, periods_below_1_c)
     result_dict[ResultsKey.NET_ENERGY_SPEND] = (agg_elec_trades.net_energy_spend
+                                                + extra_costs['cost'].sum()
                                                 + agg_heat_trades.net_energy_spend)
     result_dict[ResultsKey.SUM_NET_IMPORT] = {Resource.ELECTRICITY.name: agg_elec_trades.sum_net_import,
                                               Resource.HEATING.name: agg_heat_trades.sum_net_import}
