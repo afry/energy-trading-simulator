@@ -17,10 +17,8 @@ from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.generate_data.generate_mock_data import get_generated_mock_data
 from tradingplatformpoc.generate_data.mock_data_utils import get_cooling_cons_key, get_elec_cons_key, \
     get_hot_tap_water_cons_key, get_space_heat_cons_key
-from tradingplatformpoc.market import balance_manager
-from tradingplatformpoc.market import market_solver
 from tradingplatformpoc.market.balance_manager import correct_for_exact_heating_price
-from tradingplatformpoc.market.bid import GrossBid, NetBidWithAcceptanceStatus, Resource
+from tradingplatformpoc.market.bid import NetBidWithAcceptanceStatus, Resource
 from tradingplatformpoc.market.extra_cost import ExtraCost
 from tradingplatformpoc.market.trade import Trade, TradeMetadataKey
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
@@ -28,9 +26,7 @@ from tradingplatformpoc.price.heating_price import HeatingPrice
 from tradingplatformpoc.simulation_runner import optimization_problem
 from tradingplatformpoc.simulation_runner.chalmers_interface import optimize
 from tradingplatformpoc.simulation_runner.results_calculator import calculate_results_and_save
-from tradingplatformpoc.simulation_runner.simulation_utils import get_external_heating_prices, \
-    get_quantity_heating_sold_by_external_grid, go_through_trades_metadata, \
-    net_bids_from_gross_bids
+from tradingplatformpoc.simulation_runner.simulation_utils import get_external_heating_prices
 from tradingplatformpoc.sql.bid.crud import bids_to_db_dict
 from tradingplatformpoc.sql.bid.models import Bid as TableBid
 from tradingplatformpoc.sql.clearing_price.crud import clearing_prices_to_db_dict
@@ -48,7 +44,7 @@ from tradingplatformpoc.sql.level.crud import levels_to_db_dict
 from tradingplatformpoc.sql.level.models import Level as TableLevel
 from tradingplatformpoc.sql.trade.crud import trades_to_db_dict
 from tradingplatformpoc.sql.trade.models import Trade as TableTrade
-from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, flatten_collection, get_glpk_solver
+from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, get_glpk_solver
 
 logger = logging.getLogger(__name__)
 
@@ -202,10 +198,6 @@ class TradingSimulator:
                     raise Exception("Simulation stopped by event.")
             logger.info("Simulating batch number {} of {}".format(batch_number + 1, number_of_batches))
 
-            # Periods in batch
-            trading_periods_in_this_batch = self.trading_periods[
-                batch_number * batch_size:min((batch_number + 1) * batch_size, number_of_trading_periods)]
-
             # Horizons in batch
             trading_horizon_start_points = self.trading_periods[::self.trading_horizon]
             thsps_in_this_batch = trading_horizon_start_points[
@@ -221,76 +213,78 @@ class TradingSimulator:
                 if horizon_start.day == horizon_start.hour == 1:
                     info_string = "Simulations entering {:%B}".format(horizon_start)
                     logger.info(info_string)
-                optimize(self.solver, self.agents, self.grid_agents, self.config_data['AreaInfo'], horizon_start,
-                         self.trading_horizon)
+                chalmers_outputs = optimize(self.solver, self.agents, self.grid_agents, self.config_data['AreaInfo'],
+                                            horizon_start, self.trading_horizon, self.electricity_pricing,
+                                            self.heat_pricing)
+                all_trades_list_batch.append(chalmers_outputs.trades)
             logger.info('End new bit')
 
-            # ------- OLD --------
-            for period in trading_periods_in_this_batch:
-                if period.day == period.hour == 1:
-                    info_string = "Simulations entering {:%B}".format(period)
-                    logger.info(info_string)
-
-                if self.local_market_enabled:
-                    # Get all bids
-                    bids = [agent.make_bids(period, self.clearing_prices_historical) for agent in self.agents]
-
-                    # Flatten bids list
-                    bids_flat: List[GrossBid] = flatten_collection(bids)
-
-                    # Add in tax and grid fee for SELL bids (for electricity, heating is not taxed)
-                    net_bids = net_bids_from_gross_bids(bids_flat, self.electricity_pricing)
-
-                    # Resolve bids
-                    clearing_prices, bids_with_acceptance_status = market_solver.resolve_bids(period, net_bids)
-                    self.clearing_prices_historical[period] = clearing_prices
-
-                    all_bids_list_batch.append(bids_with_acceptance_status)
-                else:
-                    clearing_prices, bids_with_acceptance_status = market_solver.without_local_market()
-
-                # Send clearing price back to agents, allow them to "make trades", i.e. decide if they want to buy/sell
-                # energy, from/to either the local market or directly from/to the external grid.
-                # To be clear: These "trades" are for _actual_ amounts, not predicted.
-                # All agents except the external grid agent
-                # makes these, then finally the external grid agent "fills in" the energy
-                # imbalances through "trades" of its own
-                trades_excl_external = []
-                for agent in self.agents:
-                    accepted_bids_for_agent = [bid for bid in bids_with_acceptance_status
-                                               if bid.source == agent.guid and bid.accepted_quantity > 0]
-                    trades, metadata = agent.make_trades_given_clearing_price(period, clearing_prices,
-                                                                              accepted_bids_for_agent)
-                    trades_excl_external.extend(trades)
-                    go_through_trades_metadata(metadata, period, agent.guid, self.heat_pump_levels_dict,
-                                               self.storage_levels_dict)
-
-                trades_excl_external = [i for i in trades_excl_external if i]  # filter out None
-                external_trades = flatten_collection([ga.calculate_external_trades(trades_excl_external,
-                                                                                   clearing_prices)
-                                                      for ga in self.grid_agents.values()])
-                all_trades_for_period = trades_excl_external + external_trades
-                all_trades_list_batch.append(all_trades_for_period)
-
-                external_heating_sell_quantity = get_quantity_heating_sold_by_external_grid(external_trades)
-                self.heat_pricing.add_external_heating_sell(period, external_heating_sell_quantity)
-
-                wholesale_price_elec = self.electricity_pricing.get_exact_wholesale_price(period)
-                retail_price_elec = self.electricity_pricing.get_exact_retail_price(period, include_tax=True)
-                wholesale_prices = {Resource.ELECTRICITY: wholesale_price_elec,
-                                    Resource.HEATING: self.heat_pricing.get_estimated_wholesale_price(period)}
-                extra_costs = balance_manager.calculate_penalty_costs_for_period(bids_with_acceptance_status,
-                                                                                 all_trades_for_period,
-                                                                                 period,
-                                                                                 clearing_prices,
-                                                                                 wholesale_prices,
-                                                                                 self.local_market_enabled)
-
-                electricity_price_list_batch.append({
-                    'job_id': self.job_id, 'period': period, 'retail_price': retail_price_elec,
-                    'wholesale_price': wholesale_price_elec})
-
-                all_extra_costs_batch.extend(extra_costs)
+            # # ------- OLD --------
+            # for period in trading_periods_in_this_batch:
+            #     if period.day == period.hour == 1:
+            #         info_string = "Simulations entering {:%B}".format(period)
+            #         logger.info(info_string)
+            #
+            #     if self.local_market_enabled:
+            #         # Get all bids
+            #         bids = [agent.make_bids(period, self.clearing_prices_historical) for agent in self.agents]
+            #
+            #         # Flatten bids list
+            #         bids_flat: List[GrossBid] = flatten_collection(bids)
+            #
+            #         # Add in tax and grid fee for SELL bids (for electricity, heating is not taxed)
+            #         net_bids = net_bids_from_gross_bids(bids_flat, self.electricity_pricing)
+            #
+            #         # Resolve bids
+            #         clearing_prices, bids_with_acceptance_status = market_solver.resolve_bids(period, net_bids)
+            #         self.clearing_prices_historical[period] = clearing_prices
+            #
+            #         all_bids_list_batch.append(bids_with_acceptance_status)
+            #     else:
+            #         clearing_prices, bids_with_acceptance_status = market_solver.without_local_market()
+            #
+            #     # Send clearing price back to agents, allow them to "make trades", i.e. decide if they want to
+            #     # buy/sell energy, from/to either the local market or directly from/to the external grid.
+            #     # To be clear: These "trades" are for _actual_ amounts, not predicted.
+            #     # All agents except the external grid agent
+            #     # makes these, then finally the external grid agent "fills in" the energy
+            #     # imbalances through "trades" of its own
+            #     trades_excl_external = []
+            #     for agent in self.agents:
+            #         accepted_bids_for_agent = [bid for bid in bids_with_acceptance_status
+            #                                    if bid.source == agent.guid and bid.accepted_quantity > 0]
+            #         trades, metadata = agent.make_trades_given_clearing_price(period, clearing_prices,
+            #                                                                   accepted_bids_for_agent)
+            #         trades_excl_external.extend(trades)
+            #         go_through_trades_metadata(metadata, period, agent.guid, self.heat_pump_levels_dict,
+            #                                    self.storage_levels_dict)
+            #
+            #     trades_excl_external = [i for i in trades_excl_external if i]  # filter out None
+            #     external_trades = flatten_collection([ga.calculate_external_trades(trades_excl_external,
+            #                                                                        clearing_prices)
+            #                                           for ga in self.grid_agents.values()])
+            #     all_trades_for_period = trades_excl_external + external_trades
+            #     all_trades_list_batch.append(all_trades_for_period)
+            #
+            #     external_heating_sell_quantity = get_quantity_heating_sold_by_external_grid(external_trades)
+            #     self.heat_pricing.add_external_heating_sell(period, external_heating_sell_quantity)
+            #
+            #     wholesale_price_elec = self.electricity_pricing.get_exact_wholesale_price(period)
+            #     retail_price_elec = self.electricity_pricing.get_exact_retail_price(period, include_tax=True)
+            #     wholesale_prices = {Resource.ELECTRICITY: wholesale_price_elec,
+            #                         Resource.HEATING: self.heat_pricing.get_estimated_wholesale_price(period)}
+            #     extra_costs = balance_manager.calculate_penalty_costs_for_period(bids_with_acceptance_status,
+            #                                                                      all_trades_for_period,
+            #                                                                      period,
+            #                                                                      clearing_prices,
+            #                                                                      wholesale_prices,
+            #                                                                      self.local_market_enabled)
+            #
+            #     electricity_price_list_batch.append({
+            #         'job_id': self.job_id, 'period': period, 'retail_price': retail_price_elec,
+            #         'wholesale_price': wholesale_price_elec})
+            #
+            #     all_extra_costs_batch.extend(extra_costs)
 
             logger.info('Saving bids to db...')
             bid_dict = bids_to_db_dict(all_bids_list_batch, self.job_id)

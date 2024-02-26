@@ -257,11 +257,11 @@ def con_rul5_9(model, i, t):
 
 
 def con_rul5_10(model, i, t):
-    return model.Hdis_shallow[i, t] <= model.Hsh.iloc[i, t]
+    return model.Hdis_shallow[i, t] <= model.Hsh[i, t]
 
 
 def con_rul5_11(model, i, t):
-    return model.Hcha_shallow[i, t] <= model.Hhpmax[i] + model.Hmax_grid - model.Hsh.iloc[i, t]
+    return model.Hcha_shallow[i, t] <= model.Hhpmax[i] + model.Hmax_grid - model.Hsh[i, t]
 
 
 # Electrical/heat/cool power balance equation for grid (eqs. 7 to 9 of the report)

@@ -1,6 +1,6 @@
 import datetime
 import logging
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Optional
 
 import numpy as np
 
@@ -15,7 +15,9 @@ from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.market.trade import Market, Trade
-from tradingplatformpoc.simulation_runner import optimization_problem, CEMSSummerMode_function, CEMSWinterMode_function
+from tradingplatformpoc.price.electricity_price import ElectricityPrice
+from tradingplatformpoc.price.heating_price import HeatingPrice
+from tradingplatformpoc.simulation_runner import CEMSSummerMode_function, CEMSWinterMode_function
 from tradingplatformpoc.trading_platform_utils import add_to_nested_dict
 
 logger = logging.getLogger(__name__)
@@ -41,45 +43,37 @@ class ChalmersOutputs:
         self.hp_workloads = hp_workloads
 
 
-def optimize(solver: OptSolver,
-             agents: List[IAgent],
-             grid_agents: Dict[Resource, GridAgent],
-             area_info: Dict[str, Any],
-             start_datetime: datetime.datetime,
-             trading_horizon: int) -> ChalmersOutputs:
-    agents = [agent for agent in agents if isinstance(agent, BlockAgent)]  # Filter out grid agents
+def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource, GridAgent], area_info: Dict[str, Any],
+             start_datetime: datetime.datetime, trading_horizon: int, elec_pricing: ElectricityPrice,
+             heat_pricing: HeatingPrice) -> ChalmersOutputs:
+    block_agents: List[BlockAgent] = [agent for agent in agents if isinstance(agent, BlockAgent)]
     agent_guids = [agent.guid for agent in agents]
     # The order specified in "agents" will be used throughout
 
     elec_demand_df, elec_supply_df, high_heat_demand_df, high_heat_supply_df, \
         low_heat_demand_df, low_heat_supply_df, cooling_demand_df, cooling_supply_df = \
-        build_supply_and_demand_dfs(agents, start_datetime, trading_horizon)
+        build_supply_and_demand_dfs(block_agents, start_datetime, trading_horizon)
 
-    battery_capacities = [agent.battery.capacity_kwh for agent in agents]
-    heatpump_max_power = [agent.heat_pump_max_input for agent in agents]
-    heatpump_max_heat = [agent.heat_pump_max_output for agent in agents]
+    battery_capacities = [max(0.01, agent.battery.capacity_kwh) for agent in block_agents]  # Crashes if 0
+    heatpump_max_power = [agent.heat_pump_max_input for agent in block_agents]
+    heatpump_max_heat = [agent.heat_pump_max_output for agent in block_agents]
 
-    # The following will be extracted from area_info:
-    # area_info['TradingHorizon'] - DONE
-    # area_info['BatteryChargeRate'] - DONE
-    # area_info['BatteryDischargeRate'] - DONE
-    # area_info['BatteryEfficiency'] - DONE
-    # area_info['BatteryEndChargeLevel'] - DONE
-    # area_info['COPHeatPumps'] - DONE
-    # area_info['COPCompChiller'] - DONE
+    elec_retail_prices = elec_pricing.get_exact_retail_prices(start_datetime, trading_horizon, True).reset_index(drop=True)
+    elec_wholesale_prices = elec_pricing.get_exact_wholesale_prices(start_datetime, trading_horizon).reset_index(drop=True)
+    heat_retail_price = heat_pricing.get_estimated_retail_price(start_datetime, True)
 
     # WIP: Add more stuff here
 
     # Question-marks:
     # energy_shallow_cap, energy_deep_cap - capacity of thermal energy storage [kWh] - specify? calculate from sqm?
 
-    n_agents = len(agents)
+    n_agents = len(block_agents)
     if start_datetime.month in constants.SUMMER_MODE_MONTHS:
         optimized_model, results = CEMSSummerMode_function.solve_model(solver=solver,
                                                                        n_agents=n_agents,
-                                                                       external_elec_buy_price=None,  # TODO
-                                                                       external_elec_sell_price=None,  # TODO
-                                                                       external_heat_buy_price=None,  # TODO
+                                                                       external_elec_buy_price=elec_retail_prices,
+                                                                       external_elec_sell_price=elec_wholesale_prices,
+                                                                       external_heat_buy_price=[heat_retail_price] * 12,  # Should just be int - Chalmers code should be changed
                                                                        battery_capacity=battery_capacities,
                                                                        battery_charge_rate=[area_info['BatteryChargeRate']] * n_agents,
                                                                        battery_discharge_rate=[area_info['BatteryDischargeRate']] * n_agents,
@@ -87,8 +81,8 @@ def optimize(solver: OptSolver,
                                                                        heatpump_COP=[area_info['COPHeatPumps']] * n_agents,
                                                                        heatpump_max_power=heatpump_max_power,
                                                                        heatpump_max_heat=heatpump_max_heat,
-                                                                       energy_shallow_cap=[0] * n_agents,  # TODO
-                                                                       energy_deep_cap=[0] * n_agents,  # TODO
+                                                                       energy_shallow_cap=[10] * n_agents,  # TODO
+                                                                       energy_deep_cap=[10] * n_agents,  # TODO
                                                                        heat_rate_shallow=[0] * n_agents,  # TODO
                                                                        Kval=[0] * n_agents,  # TODO
                                                                        Kloss_shallow=[0] * n_agents,  # TODO
@@ -104,13 +98,46 @@ def optimize(solver: OptSolver,
                                                                        max_heat_transfer_between_agents=area_info['InterAgentHeatTransferCapacity'],
                                                                        max_heat_transfer_to_external=grid_agents[Resource.HEATING].max_transfer_per_hour,
                                                                        chiller_COP=area_info['COPCompChiller'],
-                                                                       thermalstorage_capacity=0.0,  # TODO
+                                                                       thermalstorage_capacity=10.0,  # TODO
                                                                        thermalstorage_charge_rate=0.0,  # TODO
                                                                        thermalstorage_efficiency=0.0,  # TODO
                                                                        trading_horizon=area_info['TradingHorizon']
                                                                        )
     else:
-        optimized_model, results = CEMSWinterMode_function.solve_model(solver)
+        optimized_model, results = CEMSWinterMode_function.solve_model(solver=solver,
+                                                                       n_agents=n_agents,
+                                                                       external_elec_buy_price=elec_retail_prices,
+                                                                       external_elec_sell_price=elec_wholesale_prices,
+                                                                       external_heat_buy_price=[heat_retail_price] * 12,  # Should just be int - Chalmers code should be changed
+                                                                       battery_capacity=battery_capacities,
+                                                                       battery_charge_rate=[area_info['BatteryChargeRate']] * n_agents,
+                                                                       battery_discharge_rate=[area_info['BatteryDischargeRate']] * n_agents,
+                                                                       SOCBES0=[area_info['BatteryEndChargeLevel']] * n_agents,
+                                                                       heatpump_COP=[area_info['COPHeatPumps']] * n_agents,
+                                                                       heatpump_max_power=heatpump_max_power,
+                                                                       heatpump_max_heat=heatpump_max_heat,
+                                                                       energy_shallow_cap=[10] * n_agents,  # TODO
+                                                                       energy_deep_cap=[10] * n_agents,  # TODO
+                                                                       heat_rate_shallow=[0] * n_agents,  # TODO
+                                                                       Kval=[0] * n_agents,  # TODO
+                                                                       Kloss_shallow=[0] * n_agents,  # TODO
+                                                                       Kloss_deep=[0] * n_agents,  # TODO
+                                                                       elec_consumption=elec_demand_df,
+                                                                       hot_water_heatdem=high_heat_demand_df,
+                                                                       space_heating_heatdem=low_heat_demand_df,
+                                                                       cold_consumption=cooling_demand_df,
+                                                                       pv_production=elec_supply_df,
+                                                                       battery_efficiency=area_info['BatteryEfficiency'],
+                                                                       max_elec_transfer_between_agents=area_info['InterAgentElectricityTransferCapacity'],
+                                                                       max_elec_transfer_to_external=grid_agents[Resource.ELECTRICITY].max_transfer_per_hour,
+                                                                       max_heat_transfer_between_agents=area_info['InterAgentHeatTransferCapacity'],
+                                                                       max_heat_transfer_to_external=grid_agents[Resource.HEATING].max_transfer_per_hour,
+                                                                       chiller_COP=area_info['COPCompChiller'],
+                                                                       thermalstorage_capacity=10.0,  # TODO
+                                                                       thermalstorage_charge_rate=1.0,  # TODO
+                                                                       thermalstorage_efficiency=1.0,  # TODO
+                                                                       trading_horizon=area_info['TradingHorizon']
+                                                                       )
 
     elec_grid_agent_guid = grid_agents[Resource.ELECTRICITY].guid
     return extract_outputs(optimized_model, results, start_datetime, elec_grid_agent_guid, agent_guids)
@@ -128,7 +155,7 @@ def extract_outputs(optimized_model: pyo.ConcreteModel,
     return ChalmersOutputs(elec_trades, battery_storage_levels, hp_workloads)
 
 
-def build_supply_and_demand_dfs(agents: List[IAgent], start_datetime: datetime.datetime, trading_horizon: int) -> \
+def build_supply_and_demand_dfs(agents: List[BlockAgent], start_datetime: datetime.datetime, trading_horizon: int) -> \
         Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame,
               pd.DataFrame]:
     elec_demand = []
@@ -200,23 +227,28 @@ def get_transfers(optimized_model: pyo.ConcreteModel, start_datetime: datetime.d
                   sold_internal_name: str, bought_internal_name: str, resource: Resource, grid_agent_guid: str,
                   agent_guids: List[str]) -> List[Trade]:
     transfers = []
-    for hour in optimized_model.time:
+    for hour in optimized_model.T:
         trade = construct_external_trade(bought_from_external_name, hour, optimized_model, sold_to_external_name,
                                          start_datetime, grid_agent_guid, resource)
+        if trade is not None:
+            transfers.append(trade)
         transfers.append(trade)
-        for i_agent in optimized_model.agent:
+        for i_agent in optimized_model.I:
             t = construct_agent_trade(bought_internal_name, sold_internal_name, hour, i_agent, optimized_model,
                                       start_datetime, resource, agent_guids)
-            transfers.append(t)
+            if t is not None:
+                transfers.append(t)
     return transfers
 
 
 def construct_agent_trade(bought_internal_name: str, sold_internal_name: str, hour: int, i_agent: int,
                           optimized_model: pyo.ConcreteModel, start_datetime: datetime.datetime, resource: Resource,
-                          agent_guids: List[str]) -> Trade:
+                          agent_guids: List[str]) -> Optional[Trade]:
     quantity = pyo.value(getattr(optimized_model, bought_internal_name)[i_agent, hour]
                          - getattr(optimized_model, sold_internal_name)[i_agent, hour])
     agent_name = agent_guids[i_agent]
+    if quantity == 0:
+        return None
     return Trade(period=start_datetime + datetime.timedelta(hours=hour),
                  action=Action.BUY if quantity > 0 else Action.SELL, resource=resource,
                  quantity=abs(quantity), price=np.nan, source=agent_name, by_external=False, market=Market.LOCAL)
@@ -224,9 +256,11 @@ def construct_agent_trade(bought_internal_name: str, sold_internal_name: str, ho
 
 def construct_external_trade(bought_from_external_name: str, hour: int, optimized_model: pyo.ConcreteModel,
                              sold_to_external_name: str, start_datetime: datetime.datetime, grid_agent_guid: str,
-                             resource: Resource) -> Trade:
+                             resource: Resource) -> Optional[Trade]:
     external_quantity = pyo.value(getattr(optimized_model, sold_to_external_name)[hour]
                                   - getattr(optimized_model, bought_from_external_name)[hour])
+    if external_quantity == 0:
+        return None
     return Trade(period=start_datetime + datetime.timedelta(hours=hour),
                  action=Action.BUY if external_quantity > 0 else Action.SELL, resource=resource,
                  quantity=abs(external_quantity), price=np.nan, source=grid_agent_guid, by_external=True,
@@ -239,8 +273,8 @@ def add_value_per_agent_to_dict(optimized_model: pyo.ConcreteModel, start_dateti
     """
     Example variable names: Hhp for heat pump production, SOCBES for state of charge of battery storage
     """
-    for hour in optimized_model.time:
-        for i_agent in optimized_model.agent:
+    for hour in optimized_model.T:
+        for i_agent in optimized_model.I:
             quantity = pyo.value(getattr(optimized_model, variable_name)[i_agent, hour])
             period = start_datetime + datetime.timedelta(hours=hour)
             add_to_nested_dict(dict_to_add_to, agent_guids[i_agent], period, quantity)
@@ -252,8 +286,8 @@ def get_value_per_agent(optimized_model: pyo.ConcreteModel, start_datetime: date
     Example variable names: Hhp for heat pump production, SOCBES for state of charge of battery storage
     """
     dict_to_add_to: Dict[str, Dict[datetime.datetime, Any]] = {}
-    for hour in optimized_model.time:
-        for i_agent in optimized_model.agent:
+    for hour in optimized_model.T:
+        for i_agent in optimized_model.I:
             quantity = pyo.value(getattr(optimized_model, variable_name)[i_agent, hour])
             period = start_datetime + datetime.timedelta(hours=hour)
             add_to_nested_dict(dict_to_add_to, agent_guids[i_agent], period, quantity)
