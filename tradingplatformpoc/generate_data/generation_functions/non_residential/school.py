@@ -78,7 +78,7 @@ def simulate_school_area_heating(mock_data_constants: Dict[str, Any], school_gro
                                            space_heating_per_year_m2,
                                            get_school_heating_consumption_hourly_factor, n_rows)
     hot_tap_water_per_year_m2 = mock_data_constants['SchoolHotTapWaterKwhPerYearM2']
-    hot_tap_water_relative_error_std_dev = mock_data_constants['SchoolHotTapWaterRelativeErrorStdDev']
+    hot_tap_water_relative_error_std_dev = mock_data_constants['RelativeErrorStdDev']
     hot_tap_water = simulate_hot_tap_water(school_gross_floor_area_m2, random_seed, input_df,
                                            hot_tap_water_per_year_m2,
                                            get_school_heating_consumption_hourly_factor,
