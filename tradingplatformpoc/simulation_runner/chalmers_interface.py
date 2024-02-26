@@ -9,11 +9,13 @@ import pandas as pd
 import pyomo.environ as pyo
 from pyomo.opt import OptSolver, SolverResults
 
+from tradingplatformpoc import constants
+from tradingplatformpoc.agent.block_agent import BlockAgent
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.market.trade import Market, Trade
-from tradingplatformpoc.simulation_runner import optimization_problem
+from tradingplatformpoc.simulation_runner import optimization_problem, CEMSSummerMode_function, CEMSWinterMode_function
 from tradingplatformpoc.trading_platform_utils import add_to_nested_dict
 
 logger = logging.getLogger(__name__)
@@ -45,7 +47,7 @@ def optimize(solver: OptSolver,
              area_info: Dict[str, Any],
              start_datetime: datetime.datetime,
              trading_horizon: int) -> ChalmersOutputs:
-    agents = [agent for agent in agents if not isinstance(agent, GridAgent)]  # Filter out grid agents
+    agents = [agent for agent in agents if isinstance(agent, BlockAgent)]  # Filter out grid agents
     agent_guids = [agent.guid for agent in agents]
     # The order specified in "agents" will be used throughout
 
@@ -53,26 +55,62 @@ def optimize(solver: OptSolver,
         low_heat_demand_df, low_heat_supply_df, cooling_demand_df, cooling_supply_df = \
         build_supply_and_demand_dfs(agents, start_datetime, trading_horizon)
 
-    # battery_capacities = [agent.battery.capacity_kwh for agent in agents]
-    # heatpump_max_power = [agent.heat_pump_max_input for agent in agents]
-    # heatpump_max_heat = [agent.heat_pump_max_output for agent in agents]
+    battery_capacities = [agent.battery.capacity_kwh for agent in agents]
+    heatpump_max_power = [agent.heat_pump_max_input for agent in agents]
+    heatpump_max_heat = [agent.heat_pump_max_output for agent in agents]
 
     # The following will be extracted from area_info:
-    # area_info['TradingHorizon']
-    # area_info['BatteryChargeRate']
-    # area_info['BatteryDischargeRate']
-    # area_info['BatteryEfficiency']
-    # area_info['BatteryEndChargeLevel']
-    # area_info['PVEfficiency']
-    # area_info['COPHeatPumps']
-    # area_info['COPCompChiller']
+    # area_info['TradingHorizon'] - DONE
+    # area_info['BatteryChargeRate'] - DONE
+    # area_info['BatteryDischargeRate'] - DONE
+    # area_info['BatteryEfficiency'] - DONE
+    # area_info['BatteryEndChargeLevel'] - DONE
+    # area_info['COPHeatPumps'] - DONE
+    # area_info['COPCompChiller'] - DONE
 
     # WIP: Add more stuff here
 
     # Question-marks:
     # energy_shallow_cap, energy_deep_cap - capacity of thermal energy storage [kWh] - specify? calculate from sqm?
 
-    optimized_model, results = optimization_problem.mock_opt_problem(solver)
+    n_agents = len(agents)
+    if start_datetime.month in constants.SUMMER_MODE_MONTHS:
+        optimized_model, results = CEMSSummerMode_function.solve_model(solver=solver,
+                                                                       n_agents=n_agents,
+                                                                       external_elec_buy_price=None,  # TODO
+                                                                       external_elec_sell_price=None,  # TODO
+                                                                       external_heat_buy_price=None,  # TODO
+                                                                       battery_capacity=battery_capacities,
+                                                                       battery_charge_rate=[area_info['BatteryChargeRate']] * n_agents,
+                                                                       battery_discharge_rate=[area_info['BatteryDischargeRate']] * n_agents,
+                                                                       SOCBES0=[area_info['BatteryEndChargeLevel']] * n_agents,
+                                                                       heatpump_COP=[area_info['COPHeatPumps']] * n_agents,
+                                                                       heatpump_max_power=heatpump_max_power,
+                                                                       heatpump_max_heat=heatpump_max_heat,
+                                                                       energy_shallow_cap=[0] * n_agents,  # TODO
+                                                                       energy_deep_cap=[0] * n_agents,  # TODO
+                                                                       heat_rate_shallow=[0] * n_agents,  # TODO
+                                                                       Kval=[0] * n_agents,  # TODO
+                                                                       Kloss_shallow=[0] * n_agents,  # TODO
+                                                                       Kloss_deep=[0] * n_agents,  # TODO
+                                                                       elec_consumption=elec_demand_df,
+                                                                       hot_water_heatdem=high_heat_demand_df,
+                                                                       space_heating_heatdem=low_heat_demand_df,
+                                                                       cold_consumption=cooling_demand_df,
+                                                                       pv_production=elec_supply_df,
+                                                                       battery_efficiency=area_info['BatteryEfficiency'],
+                                                                       max_elec_transfer_between_agents=area_info['InterAgentElectricityTransferCapacity'],
+                                                                       max_elec_transfer_to_external=grid_agents[Resource.ELECTRICITY].max_transfer_per_hour,
+                                                                       max_heat_transfer_between_agents=area_info['InterAgentHeatTransferCapacity'],
+                                                                       max_heat_transfer_to_external=grid_agents[Resource.HEATING].max_transfer_per_hour,
+                                                                       chiller_COP=area_info['COPCompChiller'],
+                                                                       thermalstorage_capacity=0.0,  # TODO
+                                                                       thermalstorage_charge_rate=0.0,  # TODO
+                                                                       thermalstorage_efficiency=0.0,  # TODO
+                                                                       trading_horizon=area_info['TradingHorizon']
+                                                                       )
+    else:
+        optimized_model, results = CEMSWinterMode_function.solve_model(solver)
 
     elec_grid_agent_guid = grid_agents[Resource.ELECTRICITY].guid
     return extract_outputs(optimized_model, results, start_datetime, elec_grid_agent_guid, agent_guids)
