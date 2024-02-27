@@ -7,7 +7,7 @@ from pyomo.opt import OptSolver, SolverResults
 
 
 def solve_model(solver: OptSolver, n_agents: int, external_elec_buy_price: pd.Series,
-                external_elec_sell_price: pd.Series, external_heat_buy_price: List[float],
+                external_elec_sell_price: pd.Series, external_heat_buy_price: float,
                 battery_capacity: List[float], battery_charge_rate: List[float], battery_discharge_rate: List[float],
                 SOCBES0: List[float], heatpump_COP: List[float], heatpump_max_power: List[float],
                 heatpump_max_heat: List[float],
@@ -41,17 +41,15 @@ def solve_model(solver: OptSolver, n_agents: int, external_elec_buy_price: pd.Se
     assert len(cold_consumption.columns) >= trading_horizon
     assert len(external_elec_buy_price) >= trading_horizon
     assert len(external_elec_sell_price) >= trading_horizon
-    assert len(external_heat_buy_price) >= 12
 
     model = pyo.ConcreteModel()
     # Sets
     model.T = pyo.Set(initialize=range(int(trading_horizon)))  # index of time intervals
     model.I = pyo.Set(initialize=range(int(n_agents)))  # index of agents
-    model.M = pyo.Set(initialize=range(12))  # index of months
     # Parameters
     model.price_buy = pyo.Param(model.T, initialize=external_elec_buy_price)
     model.price_sell = pyo.Param(model.T, initialize=external_elec_sell_price)
-    model.Hprice_energy = pyo.Param(model.M, initialize=external_heat_buy_price)
+    model.Hprice_energy = pyo.Param(initialize=external_heat_buy_price)
     # Grid data
     model.Pmax_grid = pyo.Param(initialize=max_elec_transfer_between_agents)
     model.Hmax_grid = pyo.Param(initialize=max_heat_transfer_between_agents)
@@ -169,7 +167,7 @@ def add_obj_and_constraints(model: pyo.ConcreteModel):
 def obj_rul(model):
     return sum(
         model.Pbuy_market[t] * model.price_buy[t] - model.Psell_market[t] * model.price_sell[t]
-        + model.Hbuy_market[t] * model.Hprice_energy[0]
+        + model.Hbuy_market[t] * model.Hprice_energy
         for t in model.T)
 
 
@@ -201,6 +199,7 @@ def con_rul3(model, t):
 def con_rul4(model, t):
     return model.Psell_market[t] <= model.Pmax_market * (1 - model.U_buy_sell_market[t])
 
+
 # (eq. 2 and 3 of the report)
 # Electrical/heat/cool power balance equation for agents
 def con_rul5_1(model, i, t):
@@ -211,6 +210,7 @@ def con_rul5_1(model, i, t):
 def con_rul5_2(model, i, t):
     return model.Hbuy_grid[i, t] + model.Hhp[i, t] + model.Hdis_shallow[i, t] == \
            model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] + model.Hhw[i, t] + model.Hsh[i, t]
+
 
 # (eqs. 22 to 28 of the report)
 def con_rul5_3(model, i, t):

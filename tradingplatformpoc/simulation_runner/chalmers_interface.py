@@ -1,13 +1,13 @@
 import datetime
 import logging
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
 
 import pandas as pd
 
 import pyomo.environ as pyo
-from pyomo.core.base.param import IndexedParam
+from pyomo.core.base.param import IndexedParam, ScalarParam
 from pyomo.opt import OptSolver, SolverResults
 
 from tradingplatformpoc import constants
@@ -76,7 +76,7 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
                                                                        n_agents=n_agents,
                                                                        external_elec_buy_price=elec_retail_prices,
                                                                        external_elec_sell_price=elec_wholesale_prices,
-                                                                       external_heat_buy_price=[heat_retail_price] * 12,  # Should just be int - Chalmers code should be changed
+                                                                       external_heat_buy_price=heat_retail_price,
                                                                        battery_capacity=battery_capacities,
                                                                        battery_charge_rate=[area_info['BatteryChargeRate']] * n_agents,
                                                                        battery_discharge_rate=[area_info['BatteryDischargeRate']] * n_agents,
@@ -111,7 +111,7 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
                                                                        n_agents=n_agents,
                                                                        external_elec_buy_price=elec_retail_prices,
                                                                        external_elec_sell_price=elec_wholesale_prices,
-                                                                       external_heat_buy_price=[heat_retail_price] * 12,  # Should just be int - Chalmers code should be changed
+                                                                       external_heat_buy_price=heat_retail_price,
                                                                        battery_capacity=battery_capacities,
                                                                        battery_charge_rate=[area_info['BatteryChargeRate']] * n_agents,
                                                                        battery_discharge_rate=[area_info['BatteryDischargeRate']] * n_agents,
@@ -293,20 +293,27 @@ def add_external_trade(trade_list: List[Trade], bought_from_external_name: str, 
                        resource: Resource):
     external_quantity = pyo.value(get_variable_value_or_else(optimized_model, sold_to_external_name, hour)
                                   - get_variable_value_or_else(optimized_model, bought_from_external_name, hour))
-    if resource != Resource.ELECTRICITY:
-        hour = 0  # FIXME: remove when indexing of heat price is fixed
     if external_quantity > VERY_SMALL_NUMBER:
         wholesale_prices = getattr(optimized_model, wholesale_price_name)
-        price = wholesale_prices[hour] if isinstance(wholesale_prices, IndexedParam) else wholesale_prices
+        price = get_value_from_param(wholesale_prices, hour)
         trade_list.append(Trade(period=start_datetime + datetime.timedelta(hours=hour),
-                                action=Action.BUY, resource=resource, quantity=abs(external_quantity),
+                                action=Action.BUY, resource=resource, quantity=external_quantity,
                                 price=price, source=grid_agent_guid, by_external=True, market=Market.LOCAL))
     elif external_quantity < -VERY_SMALL_NUMBER:
         retail_prices = getattr(optimized_model, retail_price_name)
-        price = retail_prices[hour] if isinstance(retail_prices, IndexedParam) else retail_prices
+        price = get_value_from_param(retail_prices, hour)
         trade_list.append(Trade(period=start_datetime + datetime.timedelta(hours=hour),
-                                action=Action.SELL, resource=resource, quantity=abs(external_quantity),
+                                action=Action.SELL, resource=resource, quantity=-external_quantity,
                                 price=price, source=grid_agent_guid, by_external=True, market=Market.LOCAL))
+
+
+def get_value_from_param(maybe_indexed_param: Union[IndexedParam, ScalarParam], index: int) -> float:
+    """If maybe_indexed_param is indexed, gets the 'index':th value. If it is a scalar, gets its value."""
+    if isinstance(maybe_indexed_param, IndexedParam):
+        return maybe_indexed_param[index]
+    elif isinstance(maybe_indexed_param, ScalarParam):
+        return maybe_indexed_param.value
+    raise RuntimeError('Unsupported type: {}'.format(type(maybe_indexed_param)))
 
 
 def get_variable_value_or_else(optimized_model: pyo.ConcreteModel, variable_name: str, index: int,
