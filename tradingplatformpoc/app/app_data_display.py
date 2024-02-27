@@ -261,18 +261,17 @@ def build_leaderboard_df(list_of_dicts: List[dict]) -> pd.DataFrame:
         if isinstance(df_to_display[col][0], dict):
             for key in df_to_display[col][0].keys():
                 if Resource.is_resource_name(key):
-                    new_col_name = ResultsKey.format_results_key_name(col, key)
+                    new_col_name = ResultsKey.format_results_key_name(col, Resource.from_string(key))
                     df_to_display[new_col_name] = df_to_display[col].apply(lambda d, k=key: d[k])
     wanted_columns = ['Description',
                       ResultsKey.NET_ENERGY_SPEND,
-                      ResultsKey.format_results_key_name(ResultsKey.SUM_NET_IMPORT, Resource.ELECTRICITY.name),
-                      ResultsKey.format_results_key_name(ResultsKey.SUM_NET_IMPORT, Resource.HEATING.name),
-                      ResultsKey.format_results_key_name(ResultsKey.LOCALLY_PRODUCED_RESOURCES,
-                                                         Resource.ELECTRICITY.name),
-                      ResultsKey.format_results_key_name(ResultsKey.LOCALLY_PRODUCED_RESOURCES, Resource.HEATING.name),
-                      ResultsKey.format_results_key_name(ResultsKey.LOCALLY_PRODUCED_RESOURCES, Resource.COOLING.name),
+                      ResultsKey.format_results_key_name(ResultsKey.SUM_NET_IMPORT, Resource.ELECTRICITY),
+                      ResultsKey.format_results_key_name(ResultsKey.SUM_NET_IMPORT, Resource.HEATING),
+                      ResultsKey.format_results_key_name(ResultsKey.LOCALLY_PRODUCED_RESOURCES, Resource.ELECTRICITY),
+                      ResultsKey.format_results_key_name(ResultsKey.LOCALLY_PRODUCED_RESOURCES, Resource.HEATING),
+                      ResultsKey.format_results_key_name(ResultsKey.LOCALLY_PRODUCED_RESOURCES, Resource.COOLING),
                       ResultsKey.TAX_PAID,
                       ResultsKey.GRID_FEES_PAID,
-                      ResultsKey.format_results_key_name(ResultsKey.SUM_IMPORT_BELOW_1_C, Resource.HEATING.name),
-                      ResultsKey.format_results_key_name(ResultsKey.SUM_IMPORT_JAN_FEB, Resource.HEATING.name)]
+                      ResultsKey.format_results_key_name(ResultsKey.SUM_IMPORT_BELOW_1_C, Resource.HEATING),
+                      ResultsKey.format_results_key_name(ResultsKey.SUM_IMPORT_JAN_FEB, Resource.HEATING)]
     return df_to_display[wanted_columns].round(decimals=0)
