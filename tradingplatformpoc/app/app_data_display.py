@@ -266,12 +266,12 @@ def build_leaderboard_df(list_of_dicts: List[dict]) -> pd.DataFrame:
     wanted_columns = ['Description',
                       ResultsKey.NET_ENERGY_SPEND,
                       ResultsKey.format_results_key_name(ResultsKey.SUM_NET_IMPORT, Resource.ELECTRICITY),
-                      ResultsKey.format_results_key_name(ResultsKey.SUM_NET_IMPORT, Resource.HEATING),
+                      ResultsKey.format_results_key_name(ResultsKey.SUM_NET_IMPORT, Resource.HIGH_TEMP_HEAT),
                       ResultsKey.format_results_key_name(ResultsKey.LOCALLY_PRODUCED_RESOURCES, Resource.ELECTRICITY),
                       ResultsKey.format_results_key_name(ResultsKey.LOCALLY_PRODUCED_RESOURCES, Resource.HEATING),
                       ResultsKey.format_results_key_name(ResultsKey.LOCALLY_PRODUCED_RESOURCES, Resource.COOLING),
                       ResultsKey.TAX_PAID,
                       ResultsKey.GRID_FEES_PAID,
-                      ResultsKey.format_results_key_name(ResultsKey.SUM_IMPORT_BELOW_1_C, Resource.HEATING),
-                      ResultsKey.format_results_key_name(ResultsKey.SUM_IMPORT_JAN_FEB, Resource.HEATING)]
+                      ResultsKey.format_results_key_name(ResultsKey.SUM_IMPORT_BELOW_1_C, Resource.HIGH_TEMP_HEAT),
+                      ResultsKey.format_results_key_name(ResultsKey.SUM_IMPORT_JAN_FEB, Resource.HIGH_TEMP_HEAT)]
     return df_to_display[wanted_columns].round(decimals=0)
