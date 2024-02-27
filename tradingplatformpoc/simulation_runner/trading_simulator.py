@@ -29,8 +29,6 @@ from tradingplatformpoc.simulation_runner.results_calculator import calculate_re
 from tradingplatformpoc.simulation_runner.simulation_utils import get_external_heating_prices
 from tradingplatformpoc.sql.bid.crud import bids_to_db_dict
 from tradingplatformpoc.sql.bid.models import Bid as TableBid
-from tradingplatformpoc.sql.clearing_price.crud import clearing_prices_to_db_dict
-from tradingplatformpoc.sql.clearing_price.models import ClearingPrice as TableClearingPrice
 from tradingplatformpoc.sql.config.crud import get_all_agents_in_config, read_config
 from tradingplatformpoc.sql.electricity_price.models import ElectricityPrice as TableElectricityPrice
 from tradingplatformpoc.sql.extra_cost.crud import extra_costs_to_db_dict
@@ -92,10 +90,6 @@ class TradingSimulator:
 
         self.trading_periods = get_periods_from_db().sort_values()
         self.trading_horizon = self.config_data['AreaInfo']['TradingHorizon']
-
-        self.clearing_prices_historical: Dict[datetime.datetime, Dict[Resource, float]] = {}
-        self.storage_levels_dict: Dict[str, Dict[datetime.datetime, float]] = {}
-        self.heat_pump_levels_dict: Dict[str, Dict[datetime.datetime, float]] = {}
 
     def initialize_agents(self) -> Tuple[List[IAgent], Dict[Resource, GridAgent]]:
         # Register all agents
@@ -182,8 +176,9 @@ class TradingSimulator:
 
         logger.info("Starting trading simulations")
 
-        number_of_trading_periods = len(self.trading_periods)
-        batch_size = math.ceil(number_of_trading_periods / number_of_batches)
+        # clearing_prices_historical: Dict[datetime.datetime, Dict[Resource, float]] = {}
+        storage_levels_dict: Dict[str, Dict[datetime.datetime, float]] = {}
+        heat_pump_levels_dict: Dict[str, Dict[datetime.datetime, float]] = {}
 
         number_of_trading_horizons = int(len(self.trading_periods) // self.trading_horizon)
         logger.info('Will run {} trading horizons'.format(number_of_trading_horizons))
@@ -210,9 +205,10 @@ class TradingSimulator:
             # ------- NEW --------
             logger.info('Starting new bit')
             for horizon_start in thsps_in_this_batch:
-                if horizon_start.day == horizon_start.hour == 1:
-                    info_string = "Simulations entering {:%B}".format(horizon_start)
-                    logger.info(info_string)
+                logger.info("Simulating {:%Y-%m-%d}".format(horizon_start))
+                # if horizon_start.day == horizon_start.hour == 1:
+                #     info_string = "Simulations entering {:%B}".format(horizon_start)
+                #     logger.info(info_string)
                 chalmers_outputs = optimize(self.solver, self.agents, self.grid_agents, self.config_data['AreaInfo'],
                                             horizon_start, self.trading_horizon, self.electricity_pricing,
                                             self.heat_pricing)
@@ -298,12 +294,12 @@ class TradingSimulator:
             logger.info('Saving electricity price to db...')
             bulk_insert(TableElectricityPrice, electricity_price_list_batch)
 
-        clearing_prices_dicts = clearing_prices_to_db_dict(self.clearing_prices_historical, self.job_id)
-        heat_pump_level_dicts = levels_to_db_dict(self.heat_pump_levels_dict,
+        # clearing_prices_dicts = clearing_prices_to_db_dict(clearing_prices_historical, self.job_id)
+        heat_pump_level_dicts = levels_to_db_dict(heat_pump_levels_dict,
                                                   TradeMetadataKey.HEAT_PUMP_WORKLOAD.name, self.job_id)
-        storage_level_dicts = levels_to_db_dict(self.storage_levels_dict,
+        storage_level_dicts = levels_to_db_dict(storage_levels_dict,
                                                 TradeMetadataKey.STORAGE_LEVEL.name, self.job_id)
-        bulk_insert(TableClearingPrice, clearing_prices_dicts)
+        # bulk_insert(TableClearingPrice, clearing_prices_dicts)
         bulk_insert(TableLevel, heat_pump_level_dicts)
         bulk_insert(TableLevel, storage_level_dicts)
 

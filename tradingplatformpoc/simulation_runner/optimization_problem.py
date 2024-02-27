@@ -20,49 +20,49 @@ def mock_opt_problem(solver, verbose: bool = False) -> Tuple[pyo.ConcreteModel, 
     # Sets
     hours_to_run = 3
     n_agents = 4
-    model.time = pyo.Set(initialize=range(hours_to_run))  # index of time intervals
-    model.agent = pyo.Set(initialize=range(n_agents))  # index of agents
+    model.T = pyo.Set(initialize=range(hours_to_run))  # index of time intervals
+    model.I = pyo.Set(initialize=range(n_agents))  # index of agents
     # Parameters
-    model.price_buy = pyo.Param(model.time, initialize=np.random.randn(hours_to_run) + 1)
-    model.price_sell = pyo.Param(model.time, initialize=0.9 * (np.ones(hours_to_run) + 1))
+    model.price_buy = pyo.Param(model.T, initialize=np.random.randn(hours_to_run) + 1)
+    model.price_sell = pyo.Param(model.T, initialize=0.9 * (np.ones(hours_to_run) + 1))
     model.power_max_grid = pyo.Param(initialize=500)
     model.power_max_market = pyo.Param(initialize=1000)
     power_dem_df = pd.DataFrame(np.random.randn(n_agents, hours_to_run))
     power_pv_df = pd.DataFrame(np.random.randn(n_agents, hours_to_run))
-    model.power_dem = pyo.Param(model.agent, model.time, initialize=lambda m, i, t: power_dem_df.iloc[i, t])
-    model.power_pv = pyo.Param(model.agent, model.time, initialize=lambda m, i, t: power_pv_df.iloc[i, t])
+    model.power_dem = pyo.Param(model.I, model.T, initialize=lambda m, i, t: power_dem_df.iloc[i, t])
+    model.power_pv = pyo.Param(model.I, model.T, initialize=lambda m, i, t: power_pv_df.iloc[i, t])
     model.Hhpmax = pyo.Param(initialize=70)
     # Define variables
-    model.Pbuy_market = pyo.Var(model.time, within=pyo.NonNegativeReals, initialize=0)
-    model.Psell_market = pyo.Var(model.time, within=pyo.NonNegativeReals, initialize=0)
-    model.U_buy_sell_market = pyo.Var(model.time, within=pyo.Binary, initialize=0)
-    model.Pbuy_grid = pyo.Var(model.agent, model.time, within=pyo.NonNegativeReals, initialize=0)
-    model.Psell_grid = pyo.Var(model.agent, model.time, within=pyo.NonNegativeReals, initialize=0)
-    model.U_power_buy_sell_grid = pyo.Var(model.agent, model.time, within=pyo.Binary, initialize=0)
-    model.Hhp = pyo.Var(model.agent, model.time, bounds=(0, model.Hhpmax), within=pyo.NonNegativeReals, initialize=0)
-    model.SOCBES = pyo.Var(model.agent, model.time, bounds=(0, 1), within=pyo.NonNegativeReals, initialize=0)
+    model.Pbuy_market = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
+    model.Psell_market = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
+    model.U_buy_sell_market = pyo.Var(model.T, within=pyo.Binary, initialize=0)
+    model.Pbuy_grid = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
+    model.Psell_grid = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
+    model.U_power_buy_sell_grid = pyo.Var(model.I, model.T, within=pyo.Binary, initialize=0)
+    model.Hhp = pyo.Var(model.I, model.T, bounds=(0, model.Hhpmax), within=pyo.NonNegativeReals, initialize=0)
+    model.SOCBES = pyo.Var(model.I, model.T, bounds=(0, 1), within=pyo.NonNegativeReals, initialize=0)
 
     # Define objective function
     model.obj = pyo.Objective(rule=lambda m, t: sum(m.Pbuy_market[t] * m.price_buy[t]
-                                                    - m.Psell_market[t] * m.price_sell[t] for t in m.time))
+                                                    - m.Psell_market[t] * m.price_sell[t] for t in m.T))
 
     # Define a constraint
-    model.con1_1 = pyo.Constraint(model.agent, model.time, rule=lambda m, i, t:
+    model.con1_1 = pyo.Constraint(model.I, model.T, rule=lambda m, i, t:
                                   m.Pbuy_grid[i, t] <= m.power_max_grid * m.U_power_buy_sell_grid[i, t])
-    model.con1_2 = pyo.Constraint(model.agent, model.time, rule=lambda m, i, t:
+    model.con1_2 = pyo.Constraint(model.I, model.T, rule=lambda m, i, t:
                                   m.Psell_grid[i, t] <= m.power_max_grid * (1 - m.U_power_buy_sell_grid[i, t]))
-    model.con3 = pyo.Constraint(model.time, rule=lambda m, t:
+    model.con3 = pyo.Constraint(model.T, rule=lambda m, t:
                                 m.Pbuy_market[t] <= m.power_max_market * m.U_buy_sell_market[t])
-    model.con4 = pyo.Constraint(model.time, rule=lambda m, t:
+    model.con4 = pyo.Constraint(model.T, rule=lambda m, t:
                                 m.Psell_market[t] <= m.power_max_market * (1 - m.U_buy_sell_market[t]))
     # Power balance equation for agents
-    model.con5 = pyo.Constraint(model.agent, model.time, rule=lambda m, i, t:
+    model.con5 = pyo.Constraint(model.I, model.T, rule=lambda m, i, t:
                                 m.power_pv[i, t] + m.Pbuy_grid[i, t]
                                 == m.power_dem[i, t] + m.Psell_grid[i, t])
     # Power balance equation for grid
-    model.con6 = pyo.Constraint(model.time, rule=lambda m, t:
-                                sum(m.Psell_grid[i, t] for i in m.agent)
-                                + m.Pbuy_market[t] == sum(m.Pbuy_grid[i, t] for i in m.agent)
+    model.con6 = pyo.Constraint(model.T, rule=lambda m, t:
+                                sum(m.Psell_grid[i, t] for i in m.I)
+                                + m.Pbuy_market[t] == sum(m.Pbuy_grid[i, t] for i in m.I)
                                 + m.Psell_market[t])
 
     # Solve the optimization problem

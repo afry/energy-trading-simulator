@@ -74,7 +74,7 @@ class AggregatedTrades:
         self.monthly_max_net_import = grouped_by_month.max().to_dict()
 
 
-def calculate_results_and_save(job_id: str, agents: List[IAgent], grid_agents: List[GridAgent]):
+def calculate_results_and_save(job_id: str, agents: List[IAgent], grid_agents: Dict[Resource, GridAgent]):
     """
     Pre-calculates some results, so that they can be easily fetched later.
     """
@@ -82,8 +82,7 @@ def calculate_results_and_save(job_id: str, agents: List[IAgent], grid_agents: L
     result_dict: Dict[str, Any] = {}
     external_trades = get_external_trades_df([job_id])
 
-    extra_costs = db_to_extra_cost_df(job_id)
-    extra_costs = extra_costs[~extra_costs['agent'].isin([x.guid for x in grid_agents])]
+    extra_costs_sum = get_extra_costs_sum(grid_agents, job_id)
 
     temperature_df = read_input_column_df_from_db('temperature')
     periods_below_1_c = list(temperature_df[temperature_df['temperature'].values < 1.0].period)
@@ -93,7 +92,7 @@ def calculate_results_and_save(job_id: str, agents: List[IAgent], grid_agents: L
     agg_elec_trades = AggregatedTrades(elec_trades, periods_below_1_c)
     agg_heat_trades = AggregatedTrades(heat_trades, periods_below_1_c)
     result_dict[ResultsKey.NET_ENERGY_SPEND] = (agg_elec_trades.net_energy_spend
-                                                + extra_costs['cost'].sum()
+                                                + extra_costs_sum
                                                 + agg_heat_trades.net_energy_spend)
     result_dict[ResultsKey.SUM_NET_IMPORT] = {Resource.ELECTRICITY.name: agg_elec_trades.sum_net_import,
                                               Resource.HEATING.name: agg_heat_trades.sum_net_import}
@@ -126,6 +125,15 @@ def calculate_results_and_save(job_id: str, agents: List[IAgent], grid_agents: L
     result_dict[ResultsKey.GRID_FEES_PAID] = get_total_grid_fee_paid_on_internal_trades(job_id=job_id)
 
     save_results(PreCalculatedResults(job_id=job_id, result_dict=result_dict))
+
+
+def get_extra_costs_sum(grid_agents: Dict[Resource, GridAgent], job_id: str) -> float:
+    extra_costs = db_to_extra_cost_df(job_id)
+    if len(extra_costs) > 0:
+        extra_costs = extra_costs[~extra_costs['agent'].isin([x.guid for x in grid_agents.values()])]
+        extra_costs_sum = extra_costs['cost'].sum()
+        return extra_costs_sum
+    return 0.0
 
 
 def aggregated_local_productions(agents: List[IAgent], net_heat_import: float) -> Dict[str, float]:

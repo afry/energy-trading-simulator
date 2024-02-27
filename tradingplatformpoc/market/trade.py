@@ -12,6 +12,12 @@ class Market(Enum):
 class TradeMetadataKey(Enum):
     STORAGE_LEVEL = 0
     HEAT_PUMP_WORKLOAD = 1
+    BATTERY_LEVEL = 2
+    BITES_LEVEL = 3  # Building inertia thermal energy storage
+    ACC_TANK_LEVEL = 4
+    HP_HIGH_HEAT_PROD = 5
+    HP_LOW_HEAT_PROD = 6
+    CM_PROD = 6  # Cooling machine
 
 
 class Trade:

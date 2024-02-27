@@ -58,11 +58,11 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
     heatpump_max_power = [agent.heat_pump_max_input for agent in block_agents]
     heatpump_max_heat = [agent.heat_pump_max_output for agent in block_agents]
 
-    elec_retail_prices = elec_pricing.get_exact_retail_prices(start_datetime, trading_horizon, True).reset_index(drop=True)
-    elec_wholesale_prices = elec_pricing.get_exact_wholesale_prices(start_datetime, trading_horizon).reset_index(drop=True)
+    retail_prices: pd.Series = elec_pricing.get_exact_retail_prices(start_datetime, trading_horizon, True)
+    wholesale_prices: pd.Series = elec_pricing.get_exact_wholesale_prices(start_datetime, trading_horizon)
+    elec_retail_prices = retail_prices.reset_index(drop=True)
+    elec_wholesale_prices = wholesale_prices.reset_index(drop=True)
     heat_retail_price = heat_pricing.get_estimated_retail_price(start_datetime, True)
-
-    # WIP: Add more stuff here
 
     # Question-marks:
     # energy_shallow_cap, energy_deep_cap - capacity of thermal energy storage [kWh] - specify? calculate from sqm?
@@ -99,8 +99,8 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
                                                                        max_heat_transfer_to_external=grid_agents[Resource.HEATING].max_transfer_per_hour,
                                                                        chiller_COP=area_info['COPCompChiller'],
                                                                        thermalstorage_capacity=10.0,  # TODO
-                                                                       thermalstorage_charge_rate=0.0,  # TODO
-                                                                       thermalstorage_efficiency=0.0,  # TODO
+                                                                       thermalstorage_charge_rate=1.0,  # TODO
+                                                                       thermalstorage_efficiency=1.0,  # TODO
                                                                        trading_horizon=area_info['TradingHorizon']
                                                                        )
     else:
@@ -226,7 +226,7 @@ def get_transfers(optimized_model: pyo.ConcreteModel, start_datetime: datetime.d
                   sold_to_external_name: str, bought_from_external_name: str,
                   sold_internal_name: str, bought_internal_name: str, resource: Resource, grid_agent_guid: str,
                   agent_guids: List[str]) -> List[Trade]:
-    transfers = []
+    transfers: List[Trade] = []
     for hour in optimized_model.T:
         add_external_trade(transfers, bought_from_external_name, hour, optimized_model, sold_to_external_name,
                            start_datetime, grid_agent_guid, resource)
@@ -265,7 +265,8 @@ def add_value_per_agent_to_dict(optimized_model: pyo.ConcreteModel, start_dateti
                                 dict_to_add_to: Dict[str, Dict[datetime.datetime, Any]],
                                 variable_name: str, agent_guids: List[str]):
     """
-    Example variable names: Hhp for heat pump production, SOCBES for state of charge of battery storage
+    Example variable names: "Hhp" for heat pump production, "SOCBES" for state of charge of battery storage.
+    Adds to a nested dict where agent GUID is the first key, the period the second.
     """
     for hour in optimized_model.T:
         for i_agent in optimized_model.I:
@@ -277,7 +278,8 @@ def add_value_per_agent_to_dict(optimized_model: pyo.ConcreteModel, start_dateti
 def get_value_per_agent(optimized_model: pyo.ConcreteModel, start_datetime: datetime.datetime,
                         variable_name: str, agent_guids: List[str]) -> Dict[str, Dict[datetime.datetime, Any]]:
     """
-    Example variable names: Hhp for heat pump production, SOCBES for state of charge of battery storage
+    Example variable names: "Hhp" for heat pump production, "SOCBES" for state of charge of battery storage.
+    Returns a nested dict where agent GUID is the first key, the period the second.
     """
     dict_to_add_to: Dict[str, Dict[datetime.datetime, Any]] = {}
     for hour in optimized_model.T:
