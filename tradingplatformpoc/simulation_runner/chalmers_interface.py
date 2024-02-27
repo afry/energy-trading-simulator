@@ -149,7 +149,8 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
                            elec_grid_agent_guid, heat_grid_agent_guid, agent_guids)
 
 
-def should_use_summer_mode(start_datetime):
+def should_use_summer_mode(start_datetime: datetime.datetime) -> bool:
+    """In the 'summer mode', heat trades within the LEC are of LOW_TEMP_HEAT, instead of HIGH_TEMP_HEAT."""
     return start_datetime.month in constants.SUMMER_MODE_MONTHS
 
 
