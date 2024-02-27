@@ -219,17 +219,20 @@ def get_power_transfers(optimized_model: pyo.ConcreteModel, start_datetime: date
     return get_transfers(optimized_model, start_datetime,
                          sold_to_external_name='Psell_market', bought_from_external_name='Pbuy_market',
                          sold_internal_name='Psell_grid', bought_internal_name='Pbuy_grid',
+                         retail_price_name='price_buy', wholesale_price_name='price_sell',
                          resource=Resource.ELECTRICITY, grid_agent_guid=grid_agent_guid, agent_guids=agent_guids)
 
 
 def get_transfers(optimized_model: pyo.ConcreteModel, start_datetime: datetime.datetime,
                   sold_to_external_name: str, bought_from_external_name: str,
-                  sold_internal_name: str, bought_internal_name: str, resource: Resource, grid_agent_guid: str,
+                  sold_internal_name: str, bought_internal_name: str,
+                  retail_price_name: str, wholesale_price_name: str,
+                  resource: Resource, grid_agent_guid: str,
                   agent_guids: List[str]) -> List[Trade]:
     transfers: List[Trade] = []
     for hour in optimized_model.T:
         add_external_trade(transfers, bought_from_external_name, hour, optimized_model, sold_to_external_name,
-                           start_datetime, grid_agent_guid, resource)
+                           retail_price_name, wholesale_price_name, start_datetime, grid_agent_guid, resource)
         for i_agent in optimized_model.I:
             add_agent_trade(transfers, bought_internal_name, sold_internal_name, hour, i_agent, optimized_model,
                             start_datetime, resource, agent_guids)
@@ -250,14 +253,22 @@ def add_agent_trade(trade_list: List[Trade], bought_internal_name: str, sold_int
 
 
 def add_external_trade(trade_list: List[Trade], bought_from_external_name: str, hour: int,
-                       optimized_model: pyo.ConcreteModel, sold_to_external_name: str,
-                       start_datetime: datetime.datetime, grid_agent_guid: str, resource: Resource):
+                       optimized_model: pyo.ConcreteModel, sold_to_external_name: str, retail_price_name: str,
+                       wholesale_price_name: str, start_datetime: datetime.datetime, grid_agent_guid: str,
+                       resource: Resource):
     external_quantity = pyo.value(getattr(optimized_model, sold_to_external_name)[hour]
                                   - getattr(optimized_model, bought_from_external_name)[hour])
-    if external_quantity != 0:
+    if external_quantity > 0:
+        wholesale_prices = getattr(optimized_model, wholesale_price_name)
         trade_list.append(Trade(period=start_datetime + datetime.timedelta(hours=hour),
-                                action=Action.BUY if external_quantity > 0 else Action.SELL, resource=resource,
-                                quantity=abs(external_quantity), price=np.nan, source=grid_agent_guid, by_external=True,
+                                action=Action.BUY, resource=resource, quantity=abs(external_quantity),
+                                price=wholesale_prices[hour], source=grid_agent_guid, by_external=True,
+                                market=Market.LOCAL))
+    elif external_quantity < 0:
+        retail_prices = getattr(optimized_model, retail_price_name)
+        trade_list.append(Trade(period=start_datetime + datetime.timedelta(hours=hour),
+                                action=Action.SELL, resource=resource, quantity=abs(external_quantity),
+                                price=retail_prices[hour], source=grid_agent_guid, by_external=True,
                                 market=Market.LOCAL))
 
 
