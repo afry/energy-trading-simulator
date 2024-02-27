@@ -73,8 +73,6 @@ class TradingSimulator:
                 delete_job(self.job_id)
 
     def initialize_data(self):
-        self.config_data = self.config_data
-
         self.local_market_enabled = self.config_data['AreaInfo']['LocalMarketEnabled']
 
         self.heat_pricing: HeatingPrice = HeatingPrice(
@@ -88,7 +86,7 @@ class TradingSimulator:
             elec_grid_fee_internal=self.config_data['AreaInfo']["ElectricityGridFeeInternal"],
             nordpool_data=electricity_price_series_from_db())
 
-        self.trading_periods = get_periods_from_db().sort_values()
+        self.trading_periods = get_periods_from_db().sort_values()[:100]  # FIXME: Remove [:100]
         self.trading_horizon = self.config_data['AreaInfo']['TradingHorizon']
 
     def initialize_agents(self) -> Tuple[List[IAgent], Dict[Resource, GridAgent]]:
