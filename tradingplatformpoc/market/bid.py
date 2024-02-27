@@ -17,7 +17,11 @@ class Resource(Enum):
     HIGH_TEMP_HEAT = 4  # ~65 degrees Celsius - needed for hot water, but can also cover space heating
 
     def get_display_name(self) -> str:
-        return self.name.lower().capitalize()
+        if self.name == 'LOW_TEMP_HEAT':
+            return 'low-temp heat'
+        elif self.name == 'HIGH_TEMP_HEAT':
+            return 'high-temp heat'
+        return self.name.lower()
 
     @staticmethod
     def is_resource_name(a_string: str, case_sensitive: bool = True) -> bool:
@@ -25,6 +29,13 @@ class Resource(Enum):
             if (a_string == res.name) or (not case_sensitive and (a_string.lower() == res.name.lower())):
                 return True
         return False
+
+    @staticmethod
+    def from_string(a_string: str):
+        for res in Resource:
+            if a_string.lower() == res.name.lower():
+                return res
+        raise RuntimeError('No resource with name ' + a_string)
 
 
 logger = logging.getLogger(__name__)

@@ -5,6 +5,8 @@ from sqlalchemy.dialects.postgresql import JSONB
 
 from sqlmodel import Field, SQLModel
 
+from tradingplatformpoc.market.bid import Resource
+
 
 class PreCalculatedResults(SQLModel, table=True):
     __tablename__ = 'results'
@@ -42,7 +44,7 @@ class ResultsKey:
     LOCALLY_PRODUCED_RESOURCES = 'Local prod. {} [kWh]'
 
     @staticmethod
-    def format_results_key_name(results_key_name: str, to_insert: str) -> str:
+    def format_results_key_name(results_key_name: str, resource: Resource) -> str:
         """
         For example, the following inputs:
         results_key_name = '{} import when <1C [kWh]'
@@ -50,5 +52,7 @@ class ResultsKey:
         should lead to the following output:
         'Heating import when <1C [kWh]'
         """
-        new_name = results_key_name.format(to_insert.lower())
+        new_name = results_key_name.format(resource.get_display_name())
+        # .capitalize() makes the first character upper-case, but all others lower-case. Here, we make the first
+        # character upper-case, but leave the others un-changed.
         return new_name[0].upper() + new_name[1:]
