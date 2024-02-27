@@ -21,7 +21,7 @@ def mock_opt_problem(solver, verbose: bool = False) -> Tuple[pyo.ConcreteModel, 
     hours_to_run = 3
     n_agents = 4
     model.T = pyo.Set(initialize=range(hours_to_run))  # index of time intervals
-    model.I = pyo.Set(initialize=range(n_agents))  # index of agents
+    model.I = pyo.Set(initialize=range(n_agents))  # noqa: E741
     # Parameters
     model.price_buy = pyo.Param(model.T, initialize=np.random.randn(hours_to_run) + 1)
     model.price_sell = pyo.Param(model.T, initialize=0.9 * (np.ones(hours_to_run) + 1))
