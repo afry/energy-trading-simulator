@@ -92,11 +92,26 @@ def get_if_exists_else(some_dict: Dict[str, Any], key: str, default_value: Any) 
 
 
 # TODO: move to simulation_runner_utils.py
-def add_to_nested_dict(nested_dict: dict, key1, key2, value):
+def add_to_nested_dict(nested_dict: Dict[Any, dict], key1, key2, value):
+    """
+    Will add value to nested_dict, using key1 and then key2.
+    If nested_dict already has a value for these keys, it will be overwritten.
+    If nested_dict[key1] is empty, a new dict will be assigned to it, with the (key2: value) pair.
+    """
     if key1 in nested_dict:
         nested_dict[key1][key2] = value
     else:
         nested_dict[key1] = {key2: value}
+
+
+def add_all_to_nested_dict(nested_dict: Dict[Any, dict], other_nested_dict: Dict[Any, dict]):
+    """
+    Will add all data from other_nested_dict into nested_dict. If there are key pairs that exist in both, the values
+    in other_nested_dict will overwrite those in nested_dict.
+    """
+    for (k1, subdict) in other_nested_dict.items():
+        for (k2, v) in subdict.items():
+            add_to_nested_dict(nested_dict, k1, k2, v)
 
 
 def get_glpk_solver() -> OptSolver:

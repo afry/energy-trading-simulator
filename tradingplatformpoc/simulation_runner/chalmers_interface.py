@@ -36,14 +36,17 @@ Here we keep methods that do either
 class ChalmersOutputs:
     trades: List[Trade]
     battery_storage_levels: Dict[str, Dict[datetime.datetime, float]]  # (agent_guid, (period, storage_level))
-    hp_workloads: Dict[str, Dict[datetime.datetime, float]]  # (agent_guid, (period, storage_level))
+    hp_high_prod: Dict[str, Dict[datetime.datetime, float]]
+    hp_low_prod: Dict[str, Dict[datetime.datetime, float]]
 
     def __init__(self, trades: List[Trade],
                  battery_storage_levels: Dict[str, Dict[datetime.datetime, float]],
-                 hp_workloads: Dict[str, Dict[datetime.datetime, float]]):
+                 hp_high_prod: Dict[str, Dict[datetime.datetime, float]],
+                 hp_low_prod: Dict[str, Dict[datetime.datetime, float]]):
         self.trades = trades
         self.battery_storage_levels = battery_storage_levels
-        self.hp_workloads = hp_workloads
+        self.hp_high_prod = hp_high_prod
+        self.hp_low_prod = hp_low_prod
 
 
 def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource, GridAgent], area_info: Dict[str, Any],
@@ -163,8 +166,13 @@ def extract_outputs(optimized_model: pyo.ConcreteModel,
     elec_trades = get_power_transfers(optimized_model, start_datetime, elec_grid_agent_guid, agent_guids)
     heat_trades = get_heat_transfers(optimized_model, start_datetime, heat_grid_agent_guid, agent_guids)
     battery_storage_levels = get_value_per_agent(optimized_model, start_datetime, 'SOCBES', agent_guids)
-    hp_workloads = get_value_per_agent(optimized_model, start_datetime, 'Hhp', agent_guids)
-    return ChalmersOutputs(elec_trades + heat_trades, battery_storage_levels, hp_workloads)
+    if should_use_summer_mode(start_datetime):
+        hp_low_prod = get_value_per_agent(optimized_model, start_datetime, 'Hhp1', agent_guids)
+        hp_high_prod = get_value_per_agent(optimized_model, start_datetime, 'Hhp2', agent_guids)
+    else:
+        hp_high_prod = get_value_per_agent(optimized_model, start_datetime, 'Hhp', agent_guids)
+        hp_low_prod = {}  # Will this work? Do we need to insert 0s?
+    return ChalmersOutputs(elec_trades + heat_trades, battery_storage_levels, hp_high_prod, hp_low_prod)
 
 
 def build_supply_and_demand_dfs(agents: List[BlockAgent], start_datetime: datetime.datetime, trading_horizon: int) -> \

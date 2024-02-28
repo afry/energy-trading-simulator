@@ -74,7 +74,8 @@ class AggregatedTrades:
         self.monthly_max_net_import = grouped_by_month.max().to_dict()
 
 
-def calculate_results_and_save(job_id: str, agents: List[IAgent], grid_agents: Dict[Resource, GridAgent]):
+def calculate_results_and_save(job_id: str, agents: List[IAgent], grid_agents: Dict[Resource, GridAgent],
+                               high_heat_prod: float, low_heat_prod: float):
     """
     Pre-calculates some results, so that they can be easily fetched later.
     """
@@ -118,7 +119,7 @@ def calculate_results_and_save(job_id: str, agents: List[IAgent], grid_agents: D
     result_dict[ResultsKey.SUM_EXPORT_BELOW_1_C] = {Resource.ELECTRICITY.name: agg_elec_trades.sum_export_below_1_c,
                                                     Resource.HIGH_TEMP_HEAT.name: agg_heat_trades.sum_export_below_1_c}
     # Aggregated local production
-    local_prod_dict = aggregated_local_productions(agents, agg_heat_trades.sum_net_import)
+    local_prod_dict = aggregated_local_productions(agents, high_heat_prod, low_heat_prod)
     result_dict[ResultsKey.LOCALLY_PRODUCED_RESOURCES] = local_prod_dict
     # Taxes and grid fees
     result_dict[ResultsKey.TAX_PAID] = get_total_tax_paid(job_id=job_id)
@@ -136,30 +137,22 @@ def get_extra_costs_sum(grid_agents: Dict[Resource, GridAgent], job_id: str) -> 
     return 0.0
 
 
-def aggregated_local_productions(agents: List[IAgent], net_heat_import: float) -> Dict[str, float]:
+def aggregated_local_productions(agents: List[IAgent], high_heat_prod: float, low_heat_prod: float) -> Dict[str, float]:
     """
     Computing total amount of locally produced resources.
     @return Summed local production by resource name
     """
     production_electricity_lst = []
     production_cooling_lst = []
-    # TODO: When changing to Chalmers solver, we'll save the HP production levels for each trading period, and use that
-    #  here. But now, as we save heat pump workload, it is messy to calculate, so instead we look at the usage, and then
-    #  subtract the net import at the end.
-    usage_heating_lst = []
     for agent in agents:
         if isinstance(agent, BlockAgent):
-            # TODO: Replace with low-temp and high-temp heat separated
-            if agent.digital_twin.total_heating_usage is not None:
-                usage_heating_lst.append(sum(agent.digital_twin.total_heating_usage.dropna()))  # Issue with NaNs
-            production_electricity_lst.append(sum(agent.digital_twin.electricity_production))
+            if agent.digital_twin.electricity_production is not None:
+                production_electricity_lst.append(sum(agent.digital_twin.electricity_production))
             if agent.digital_twin.cooling_production is not None:
                 production_cooling_lst.append(sum(agent.digital_twin.cooling_production))
 
-    production_electricity = sum(production_electricity_lst)
-    production_cooling = sum(production_cooling_lst)
-    production_heating = sum(usage_heating_lst) - net_heat_import
-
-    return {Resource.ELECTRICITY.name: production_electricity,
-            Resource.HEATING.name: production_heating,
-            Resource.COOLING.name: production_cooling}
+    return {Resource.ELECTRICITY.name: sum(production_electricity_lst),
+            Resource.HEATING.name: high_heat_prod + low_heat_prod,
+            Resource.HIGH_TEMP_HEAT.name: high_heat_prod,
+            Resource.LOW_TEMP_HEAT.name: low_heat_prod,
+            Resource.COOLING.name: sum(production_cooling_lst)}
