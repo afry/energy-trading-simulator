@@ -2,7 +2,6 @@ import datetime
 import logging
 import math
 import threading
-import time
 from typing import Any, Dict, List, Tuple
 
 import pandas as pd
@@ -24,7 +23,6 @@ from tradingplatformpoc.market.extra_cost import ExtraCost
 from tradingplatformpoc.market.trade import Trade, TradeMetadataKey
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
-from tradingplatformpoc.simulation_runner import optimization_problem
 from tradingplatformpoc.simulation_runner.chalmers_interface import optimize
 from tradingplatformpoc.simulation_runner.results_calculator import calculate_results_and_save
 from tradingplatformpoc.simulation_runner.simulation_utils import get_external_heating_prices
