@@ -62,7 +62,6 @@ def calculate_solar_prod(irradiation_data: pd.Series, pv_sqm: float, pv_efficien
     return irradiation_data * pv_sqm * pv_efficiency / 1000
 
 
-# TODO: move to simulation_runner_utils.py
 def flatten_collection(collection_of_lists: Collection[Collection[Any]]) -> List[Any]:
     return [bid for sublist in collection_of_lists for bid in sublist]
 
@@ -91,7 +90,6 @@ def get_if_exists_else(some_dict: Dict[str, Any], key: str, default_value: Any) 
     return some_dict[key] if key in some_dict else default_value
 
 
-# TODO: move to simulation_runner_utils.py
 def add_to_nested_dict(nested_dict: Dict[Any, dict], key1, key2, value):
     """
     Will add value to nested_dict, using key1 and then key2.
