@@ -23,7 +23,6 @@ from tradingplatformpoc.market.extra_cost import ExtraCost
 from tradingplatformpoc.market.trade import Trade, TradeMetadataKey
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
-from tradingplatformpoc.simulation_runner import optimization_problem
 from tradingplatformpoc.simulation_runner.chalmers_interface import optimize
 from tradingplatformpoc.simulation_runner.results_calculator import calculate_results_and_save
 from tradingplatformpoc.simulation_runner.simulation_utils import get_external_heating_prices
@@ -42,7 +41,8 @@ from tradingplatformpoc.sql.level.crud import levels_to_db_dict
 from tradingplatformpoc.sql.level.models import Level as TableLevel
 from tradingplatformpoc.sql.trade.crud import trades_to_db_dict
 from tradingplatformpoc.sql.trade.models import Trade as TableTrade
-from tradingplatformpoc.trading_platform_utils import calculate_solar_prod, get_glpk_solver
+from tradingplatformpoc.trading_platform_utils import add_all_to_nested_dict, calculate_solar_prod, get_glpk_solver
+
 
 logger = logging.getLogger(__name__)
 
@@ -50,9 +50,6 @@ logger = logging.getLogger(__name__)
 class TradingSimulator:
     def __init__(self, job_id: str):
         self.solver = get_glpk_solver()
-        # To verify that the solver works: REMOVE ME WHEN WE START USING THE SOLVER FOR REAL
-        optimization_problem.mock_opt_problem(self.solver, verbose=True)
-
         self.job_id = job_id
         self.config_id = get_config_id_for_job_id(self.job_id)
         self.config_data: Dict[str, Any] = read_config(self.config_id)
@@ -86,7 +83,7 @@ class TradingSimulator:
             elec_grid_fee_internal=self.config_data['AreaInfo']["ElectricityGridFeeInternal"],
             nordpool_data=electricity_price_series_from_db())
 
-        self.trading_periods = get_periods_from_db().sort_values()[:100]  # FIXME: Remove [:100]
+        self.trading_periods = get_periods_from_db().sort_values()[:200]  # FIXME: Remove [:200]
         self.trading_horizon = self.config_data['AreaInfo']['TradingHorizon']
 
     def initialize_agents(self) -> Tuple[List[IAgent], Dict[Resource, GridAgent]]:
@@ -175,8 +172,9 @@ class TradingSimulator:
         logger.info("Starting trading simulations")
 
         # clearing_prices_historical: Dict[datetime.datetime, Dict[Resource, float]] = {}
-        storage_levels_dict: Dict[str, Dict[datetime.datetime, float]] = {}
-        heat_pump_levels_dict: Dict[str, Dict[datetime.datetime, float]] = {}
+        battery_levels_dict: Dict[str, Dict[datetime.datetime, float]] = {}
+        hp_high_prod: Dict[str, Dict[datetime.datetime, float]] = {}
+        hp_low_prod: Dict[str, Dict[datetime.datetime, float]] = {}
 
         number_of_trading_horizons = int(len(self.trading_periods) // self.trading_horizon)
         logger.info('Will run {} trading horizons'.format(number_of_trading_horizons))
@@ -211,6 +209,9 @@ class TradingSimulator:
                                             horizon_start, self.trading_horizon, self.electricity_pricing,
                                             self.heat_pricing)
                 all_trades_list_batch.append(chalmers_outputs.trades)
+                add_all_to_nested_dict(battery_levels_dict, chalmers_outputs.battery_storage_levels)
+                add_all_to_nested_dict(hp_high_prod, chalmers_outputs.hp_high_prod)
+                add_all_to_nested_dict(hp_low_prod, chalmers_outputs.hp_low_prod)
             logger.info('End new bit')
 
             # # ------- OLD --------
@@ -293,15 +294,17 @@ class TradingSimulator:
             bulk_insert(TableElectricityPrice, electricity_price_list_batch)
 
         # clearing_prices_dicts = clearing_prices_to_db_dict(clearing_prices_historical, self.job_id)
-        heat_pump_level_dicts = levels_to_db_dict(heat_pump_levels_dict,
-                                                  TradeMetadataKey.HEAT_PUMP_WORKLOAD.name, self.job_id)
-        storage_level_dicts = levels_to_db_dict(storage_levels_dict,
-                                                TradeMetadataKey.STORAGE_LEVEL.name, self.job_id)
+        battery_level_dicts = levels_to_db_dict(battery_levels_dict, TradeMetadataKey.BATTERY_LEVEL.name, self.job_id)
+        hp_high_prod_dicts = levels_to_db_dict(hp_high_prod, TradeMetadataKey.HP_HIGH_HEAT_PROD.name, self.job_id)
+        hp_low_prod_dicts = levels_to_db_dict(hp_low_prod, TradeMetadataKey.HP_LOW_HEAT_PROD.name, self.job_id)
         # bulk_insert(TableClearingPrice, clearing_prices_dicts)
-        bulk_insert(TableLevel, heat_pump_level_dicts)
-        bulk_insert(TableLevel, storage_level_dicts)
+        bulk_insert(TableLevel, battery_level_dicts)
+        bulk_insert(TableLevel, hp_high_prod_dicts)
+        bulk_insert(TableLevel, hp_low_prod_dicts)
 
-        calculate_results_and_save(self.job_id, self.agents, self.grid_agents)
+        calculate_results_and_save(self.job_id, self.agents, self.grid_agents,
+                                   high_heat_prod=sum(sum(subdict.values()) for subdict in hp_high_prod.values()),
+                                   low_heat_prod=sum(sum(subdict.values()) for subdict in hp_low_prod.values()))
 
         logger.info("Finished simulating trades, beginning calculations on district heating price...")
 
