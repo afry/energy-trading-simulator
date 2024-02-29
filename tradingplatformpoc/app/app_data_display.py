@@ -65,7 +65,7 @@ def reconstruct_static_digital_twin(agent_id: str, mock_data_constants: Dict[str
 
 
 # maybe we should move this to simulation_runner/trading_simulator
-def construct_combined_price_df(local_price_df: pd.DataFrame, config_data: dict) -> pd.DataFrame:
+def construct_combined_price_df(config_data: dict, local_price_df: pd.DataFrame = pd.DataFrame()) -> pd.DataFrame:
 
     # TODO: Improve this
     elec_pricing: ElectricityPrice = ElectricityPrice(

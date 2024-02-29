@@ -47,7 +47,7 @@ if len(ids) > 0:
                   help="Tax paid includes taxes that the ElectricityGridAgent has paid"
                   " on sales to the microgrid")
     with col_2:
-        total_heat_import = pre_calculated_results[ResultsKey.SUM_NET_IMPORT][Resource.HEATING.name]
+        total_heat_import = pre_calculated_results[ResultsKey.SUM_NET_IMPORT][Resource.HIGH_TEMP_HEAT.name]
         st.metric(label="Total net heating imported",
                   value="{:,.2f} MWh".format(total_heat_import / 1000))
         total_grid_fees_paid = pre_calculated_results[ResultsKey.GRID_FEES_PAID]
@@ -59,19 +59,12 @@ if len(ids) > 0:
         logger.info("Constructing price graph")
         st.spinner("Constructing price graph")
 
-        local_price_df = db_to_construct_local_prices_df(
-            job_id=job_id)
-        combined_price_df = construct_combined_price_df(local_price_df, config)
+        combined_price_df = construct_combined_price_df(config)
         if not combined_price_df.empty:
             price_chart = construct_price_chart(combined_price_df, Resource.ELECTRICITY,)
         st.caption("Click on a variable in legend to highlight it in the graph.")
         st.altair_chart(price_chart, use_container_width=True, theme=None)
 
-        if config['AreaInfo']['LocalMarketEnabled']:
-            with tab_price_table:
-                st.caption("Periods where local electricity price was "
-                           "between external retail and wholesale price:")
-                st.dataframe(get_price_df_when_local_price_inbetween(combined_price_df, Resource.ELECTRICITY))
     resources = [Resource.ELECTRICITY, Resource.HEATING]
     agg_tabs = st.tabs([resource.name.capitalize() for resource in resources])
     for resource, tab in zip(resources, agg_tabs):

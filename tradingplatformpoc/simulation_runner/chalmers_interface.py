@@ -251,7 +251,7 @@ def get_heat_transfers(optimized_model: pyo.ConcreteModel, start_datetime: datet
                        agent_guids: List[str]) -> List[Trade]:
     resource = Resource.LOW_TEMP_HEAT if should_use_summer_mode(start_datetime) else Resource.HIGH_TEMP_HEAT
     inter_agent_trades = get_agent_transfers(optimized_model, start_datetime,
-                                             sold_internal_name='Psell_grid', bought_internal_name='Pbuy_grid',
+                                             sold_internal_name='Hsell_grid', bought_internal_name='Hbuy_grid',
                                              resource=resource, agent_guids=agent_guids)
     external_trades = get_external_transfers(optimized_model, start_datetime,
                                              sold_to_external_name='NA', bought_from_external_name='Hbuy_market',

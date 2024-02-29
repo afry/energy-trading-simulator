@@ -83,7 +83,8 @@ class TradingSimulator:
             elec_grid_fee_internal=self.config_data['AreaInfo']["ElectricityGridFeeInternal"],
             nordpool_data=electricity_price_series_from_db())
 
-        self.trading_periods = get_periods_from_db().sort_values()[:200]  # FIXME: Remove [:200]
+        self.trading_periods = get_periods_from_db().sort_values()
+        self.trading_periods = self.trading_periods.take(list(range(100)) + list(range(4000, 4101)))  # FIXME: Remove
         self.trading_horizon = self.config_data['AreaInfo']['TradingHorizon']
 
     def initialize_agents(self) -> Tuple[List[IAgent], Dict[Resource, GridAgent]]:
