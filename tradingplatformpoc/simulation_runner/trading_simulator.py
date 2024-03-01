@@ -113,11 +113,12 @@ class TradingSimulator:
                                                       agent['PVArea'],
                                                       area_info['PVEfficiency'])
 
-                block_digital_twin = StaticDigitalTwin(electricity_usage=elec_cons_series,
+                block_digital_twin = StaticDigitalTwin(gross_floor_area=agent['GrossFloorArea'],
+                                                       electricity_usage=elec_cons_series,
                                                        space_heating_usage=space_heat_cons_series,
                                                        hot_water_usage=hot_tap_water_cons_series,
-                                                       electricity_production=pv_prod_series,
-                                                       cooling_usage=cool_cons_series)
+                                                       cooling_usage=cool_cons_series,
+                                                       electricity_production=pv_prod_series)
 
                 storage_digital_twin = Battery(max_capacity_kwh=agent["BatteryCapacity"],
                                                max_charge_rate_fraction=area_info["BatteryChargeRate"],
@@ -137,12 +138,13 @@ class TradingSimulator:
                                                       agent['PVArea'],
                                                       agent['PVEfficiency'])
                 space_heat_prod = inputs_df['coop_space_heating_produced'] if agent["SellExcessHeat"] else None
-                grocery_store_digital_twin = StaticDigitalTwin(electricity_usage=inputs_df['coop_electricity_consumed'],
+                grocery_store_digital_twin = StaticDigitalTwin(gross_floor_area=agent['GrossFloorArea'],
+                                                               electricity_usage=inputs_df['coop_electricity_consumed'],
                                                                space_heating_usage=inputs_df[
                                                                    'coop_space_heating_consumed'],
-                                                               space_heating_production=space_heat_prod,
                                                                hot_water_usage=inputs_df['coop_hot_tap_water_consumed'],
-                                                               electricity_production=pv_prod_series)
+                                                               electricity_production=pv_prod_series,
+                                                               space_heating_production=space_heat_prod)
                 agents.append(
                     BlockAgent(self.local_market_enabled, heat_pricing=self.heat_pricing,
                                electricity_pricing=self.electricity_pricing, digital_twin=grocery_store_digital_twin,

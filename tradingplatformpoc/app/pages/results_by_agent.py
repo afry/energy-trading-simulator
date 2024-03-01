@@ -113,7 +113,7 @@ if len(ids) > 0:
                 config = read_config(chosen_id_to_view.config_id)
                 block_digital_twin = reconstruct_static_digital_twin(
                     agent_specs[agent_chosen_guid], config['MockDataConstants'],
-                    agent_config['PVArea'], config['AreaInfo']['PVEfficiency'])
+                    agent_config['PVArea'], config['AreaInfo']['PVEfficiency'], agent_config['GrossFloorArea'])
                 static_digital_twin_chart = construct_agent_with_heat_pump_chart(
                     agent_chosen_guid, block_digital_twin, heat_pump_levels_df)
                 st.caption("Heat consumption here refers to the block agent's heat demand, and does not consider "

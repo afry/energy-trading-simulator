@@ -46,7 +46,7 @@ def get_price_df_when_local_price_inbetween(prices_df: pd.DataFrame, resource: R
 
 
 def reconstruct_static_digital_twin(agent_id: str, mock_data_constants: Dict[str, Any],
-                                    pv_area: float, pv_efficiency: float) -> StaticDigitalTwin:
+                                    pv_area: float, pv_efficiency: float, gross_floor_area: float) -> StaticDigitalTwin:
     mock_data_id = list(get_mock_data_agent_pairs_in_db([agent_id], mock_data_constants).keys())[0]
     block_mock_data = db_to_mock_data_df(mock_data_id).to_pandas().set_index('datetime')
 
@@ -57,11 +57,9 @@ def reconstruct_static_digital_twin(agent_id: str, mock_data_constants: Dict[str
     hot_tap_water_cons_series = block_mock_data[get_hot_tap_water_cons_key(agent_id)]
     cooling_cons_series = block_mock_data[get_cooling_cons_key(agent_id)]
 
-    return StaticDigitalTwin(electricity_usage=elec_cons_series,
-                             space_heating_usage=space_heat_cons_series,
-                             hot_water_usage=hot_tap_water_cons_series,
-                             electricity_production=pv_prod_series,
-                             cooling_usage=cooling_cons_series)
+    return StaticDigitalTwin(gross_floor_area=gross_floor_area, electricity_usage=elec_cons_series,
+                             space_heating_usage=space_heat_cons_series, hot_water_usage=hot_tap_water_cons_series,
+                             cooling_usage=cooling_cons_series, electricity_production=pv_prod_series)
 
 
 # maybe we should move this to simulation_runner/trading_simulator
