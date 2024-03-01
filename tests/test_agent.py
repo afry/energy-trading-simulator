@@ -207,15 +207,17 @@ class TestBlockAgent(TestCase):
     # Won't test exact values so don't need to set random seed
     elec_values = np.random.uniform(0, 100.0, len(DATETIME_ARRAY))
     heat_values = np.random.uniform(0, 100.0, len(DATETIME_ARRAY))
-    static_digital_twin_cons = StaticDigitalTwin(electricity_usage=pd.Series(elec_values, index=DATETIME_ARRAY),
+    static_digital_twin_cons = StaticDigitalTwin(1000.0, electricity_usage=pd.Series(elec_values, index=DATETIME_ARRAY),
                                                  space_heating_usage=pd.Series(heat_values, index=DATETIME_ARRAY))
     block_agent_cons = BlockAgent(True, heat_pricing=heat_pricing, electricity_pricing=electricity_pricing,
                                   digital_twin=static_digital_twin_cons, can_sell_heat_to_external=False)
-    static_digital_twin_prod = StaticDigitalTwin(electricity_usage=-pd.Series(elec_values, index=DATETIME_ARRAY),
+    static_digital_twin_prod = StaticDigitalTwin(1000.0,
+                                                 electricity_usage=-pd.Series(elec_values, index=DATETIME_ARRAY),
                                                  space_heating_usage=-pd.Series(heat_values, index=DATETIME_ARRAY))
     block_agent_prod = BlockAgent(True, heat_pricing=heat_pricing, electricity_pricing=electricity_pricing,
                                   digital_twin=static_digital_twin_prod, can_sell_heat_to_external=False)
-    static_digital_twin_zeros = StaticDigitalTwin(electricity_usage=pd.Series(elec_values * 0, index=DATETIME_ARRAY),
+    static_digital_twin_zeros = StaticDigitalTwin(1000.0,
+                                                  electricity_usage=pd.Series(elec_values * 0, index=DATETIME_ARRAY),
                                                   space_heating_usage=pd.Series(heat_values * 0, index=DATETIME_ARRAY))
     block_agent_zeros = BlockAgent(True, heat_pricing=heat_pricing, electricity_pricing=electricity_pricing,
                                    digital_twin=static_digital_twin_zeros, can_sell_heat_to_external=False)
@@ -338,7 +340,7 @@ class TestBlockAgentHeatPump(TestCase):
     rng = np.random.default_rng(0)  # set random seed
     elec_values = rng.uniform(0, 100.0, len(DATETIME_ARRAY))
     heat_values = rng.uniform(0, 100.0, len(DATETIME_ARRAY))
-    block_digital_twin = StaticDigitalTwin(electricity_usage=pd.Series(elec_values, index=DATETIME_ARRAY),
+    block_digital_twin = StaticDigitalTwin(1000.0, electricity_usage=pd.Series(elec_values, index=DATETIME_ARRAY),
                                            space_heating_usage=pd.Series(heat_values, index=DATETIME_ARRAY))
     # Create agent with 2 heat pumps, default COP
     block_agent_2_pumps_default_cop = BlockAgent(True, heat_pricing=heat_pricing,

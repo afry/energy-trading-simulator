@@ -235,6 +235,7 @@
 		"Name": "GroceryStoreAgent",
 		"PVArea": 320,
 		"PVEfficiency": 0.165,
+		"GrossFloorArea": 6000,
 		"SellExcessHeat": true,
 		"HeatPumpMaxInput": 15,
 		"HeatPumpMaxOutput": 48
