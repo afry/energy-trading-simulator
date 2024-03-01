@@ -65,7 +65,7 @@ def reconstruct_static_digital_twin(agent_id: str, mock_data_constants: Dict[str
 
 
 # maybe we should move this to simulation_runner/trading_simulator
-def construct_combined_price_df(local_price_df: pd.DataFrame, config_data: dict) -> pd.DataFrame:
+def construct_combined_price_df(config_data: dict, local_price_df: Optional[pd.DataFrame] = None) -> pd.DataFrame:
 
     # TODO: Improve this
     elec_pricing: ElectricityPrice = ElectricityPrice(
@@ -144,8 +144,13 @@ def aggregated_import_and_export_results_df_split_on_mask(job_id: str, periods: 
     return res_dict
 
 
-def values_to_mwh(str_float_dict: Dict[str, float]) -> Dict[str, str]:
-    return {k.lower().capitalize(): f'{v / 1000:.2f} MWh' for k, v in str_float_dict.items()}
+def values_by_resource_to_mwh(str_float_dict: Dict[str, float]) -> Dict[str, str]:
+    """
+    The input dict must fulfill:
+    Keys must be resource names (otherwise a RuntimeError will be raised)
+    Values should be energy amounts in kWh (since the value will be divided by 1000)
+    """
+    return {Resource.from_string(k).get_display_name(True): f'{v / 1000:.2f} MWh' for k, v in str_float_dict.items()}
 
 
 def aggregated_import_and_export_results_df_split_on_period(job_id: str) -> Dict[str, pd.DataFrame]:
@@ -268,7 +273,9 @@ def build_leaderboard_df(list_of_dicts: List[dict]) -> pd.DataFrame:
                       ResultsKey.format_results_key_name(ResultsKey.SUM_NET_IMPORT, Resource.ELECTRICITY),
                       ResultsKey.format_results_key_name(ResultsKey.SUM_NET_IMPORT, Resource.HIGH_TEMP_HEAT),
                       ResultsKey.format_results_key_name(ResultsKey.LOCALLY_PRODUCED_RESOURCES, Resource.ELECTRICITY),
-                      ResultsKey.format_results_key_name(ResultsKey.LOCALLY_PRODUCED_RESOURCES, Resource.HEATING),
+                      ResultsKey.format_results_key_name(ResultsKey.LOCALLY_PRODUCED_RESOURCES,
+                                                         Resource.HIGH_TEMP_HEAT),
+                      ResultsKey.format_results_key_name(ResultsKey.LOCALLY_PRODUCED_RESOURCES, Resource.LOW_TEMP_HEAT),
                       ResultsKey.format_results_key_name(ResultsKey.LOCALLY_PRODUCED_RESOURCES, Resource.COOLING),
                       ResultsKey.TAX_PAID,
                       ResultsKey.GRID_FEES_PAID,

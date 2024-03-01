@@ -126,7 +126,7 @@
         "min_value": 0,
         "step": 10,
         "help": "The maximum amount of electricity an agent can buy/sell from/to the local energy community, in a single trading period (i.e. an hour). For the external transfer capacity, see the external grid agent",
-        "default": 500,
+        "default": 5000,
         "disabled": true
     },
     "InterAgentHeatTransferCapacity": {

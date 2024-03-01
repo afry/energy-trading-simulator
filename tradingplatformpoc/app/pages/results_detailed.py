@@ -7,9 +7,8 @@ import streamlit as st
 from tradingplatformpoc.app import footer
 from tradingplatformpoc.app.app_charts import construct_avg_day_elec_chart, construct_price_chart
 from tradingplatformpoc.app.app_data_display import aggregated_net_elec_import_results_df_split_on_period, \
-    combine_trades_dfs, construct_combined_price_df, get_price_df_when_local_price_inbetween, values_to_mwh
+    combine_trades_dfs, construct_combined_price_df, values_by_resource_to_mwh
 from tradingplatformpoc.market.bid import Action, Resource
-from tradingplatformpoc.sql.clearing_price.crud import db_to_construct_local_prices_df
 from tradingplatformpoc.sql.config.crud import get_all_finished_job_config_id_pairs_in_db, read_config
 from tradingplatformpoc.sql.results.crud import get_results_for_job
 from tradingplatformpoc.sql.results.models import ResultsKey
@@ -47,35 +46,28 @@ if len(ids) > 0:
                   help="Tax paid includes taxes that the ElectricityGridAgent has paid"
                   " on sales to the microgrid")
     with col_2:
-        total_heat_import = pre_calculated_results[ResultsKey.SUM_NET_IMPORT][Resource.HEATING.name]
+        total_heat_import = pre_calculated_results[ResultsKey.SUM_NET_IMPORT][Resource.HIGH_TEMP_HEAT.name]
         st.metric(label="Total net heating imported",
                   value="{:,.2f} MWh".format(total_heat_import / 1000))
         total_grid_fees_paid = pre_calculated_results[ResultsKey.GRID_FEES_PAID]
         st.metric(label="Total grid fees paid on internal trades",
                   value="{:,.2f} SEK".format(total_grid_fees_paid))
 
-    tab_price_graph, tab_price_table = st.tabs(['Graph', 'Table'])
-    with tab_price_graph:
-        logger.info("Constructing price graph")
-        st.spinner("Constructing price graph")
-
-        local_price_df = db_to_construct_local_prices_df(
-            job_id=job_id)
-        combined_price_df = construct_combined_price_df(local_price_df, config)
-        if not combined_price_df.empty:
-            price_chart = construct_price_chart(combined_price_df, Resource.ELECTRICITY,)
-        st.caption("Click on a variable in legend to highlight it in the graph.")
-        st.altair_chart(price_chart, use_container_width=True, theme=None)
-
-        if config['AreaInfo']['LocalMarketEnabled']:
-            with tab_price_table:
-                st.caption("Periods where local electricity price was "
-                           "between external retail and wholesale price:")
-                st.dataframe(get_price_df_when_local_price_inbetween(combined_price_df, Resource.ELECTRICITY))
-    resources = [Resource.ELECTRICITY, Resource.HEATING]
-    agg_tabs = st.tabs([resource.name.capitalize() for resource in resources])
+    resources = [Resource.ELECTRICITY, Resource.HIGH_TEMP_HEAT, Resource.LOW_TEMP_HEAT]
+    agg_tabs = st.tabs([resource.get_display_name(True) for resource in resources])
     for resource, tab in zip(resources, agg_tabs):
         with tab:
+            agg_buy_trades = db_to_aggregated_trade_df(job_id, resource, Action.BUY)
+            agg_sell_trades = db_to_aggregated_trade_df(job_id, resource, Action.SELL)
+            # The above can be None if there were no trades for the resource
+            agg_trades = combine_trades_dfs(agg_buy_trades, agg_sell_trades)
+            if agg_trades is not None:
+                agg_trades = agg_trades.transpose().style.set_properties(**{'width': '400px'})
+                st.dataframe(agg_trades)
+
+            st.caption("The quantities used for calculations are before losses for purchases but"
+                       " after losses for sales.")
+
             if resource == Resource.ELECTRICITY:
                 # TODO: Make it possible to choose ex. Dec-Jan
                 time_period = st.select_slider('Select which months to view',
@@ -90,17 +82,15 @@ if len(ids) > 0:
                 st.caption("The energy use is calculated from trades, and therefore includes the electricity used \
                            for running heat pumps. The error bars are the standard deviation of the electricity used.")
                 st.divider()
-                
-            agg_buy_trades = db_to_aggregated_trade_df(job_id, resource, Action.BUY)
-            agg_sell_trades = db_to_aggregated_trade_df(job_id, resource, Action.SELL)
-            # The above can be None if there were no trades for the resource
-            agg_trades = combine_trades_dfs(agg_buy_trades, agg_sell_trades)
-            if agg_trades is not None:
-                agg_trades = agg_trades.transpose().style.set_properties(**{'width': '400px'})
-                st.dataframe(agg_trades)
 
-            st.caption("The quantities used for calculations are before losses for purchases but"
-                       " after losses for sales.")
+                logger.info("Constructing price graph")
+                st.spinner("Constructing price graph")
+
+                combined_price_df = construct_combined_price_df(config)
+                if not combined_price_df.empty:
+                    price_chart = construct_price_chart(combined_price_df, Resource.ELECTRICITY,)
+                st.caption("Click on a variable in legend to highlight it in the graph.")
+                st.altair_chart(price_chart, use_container_width=True, theme=None)
 
     with st.expander('Total imported and exported electricity and heating:'):
         col1, col2 = st.columns(2)
@@ -110,18 +100,22 @@ if len(ids) > 0:
         col1, col2 = st.columns(2)
         total_values_import = pre_calculated_results[ResultsKey.SUM_IMPORT]
         mask_values = pre_calculated_results[ResultsKey.SUM_IMPORT_JAN_FEB]
-        col1.dataframe({'Jan-Feb': values_to_mwh(mask_values), 'Total': values_to_mwh(total_values_import)})
+        col1.dataframe({'Jan-Feb': values_by_resource_to_mwh(mask_values),
+                        'Total': values_by_resource_to_mwh(total_values_import)})
         total_values_export = pre_calculated_results[ResultsKey.SUM_EXPORT]
         mask_values = pre_calculated_results[ResultsKey.SUM_EXPORT_JAN_FEB]
-        col2.dataframe({'Jan-Feb': values_to_mwh(mask_values), 'Total': values_to_mwh(total_values_export)})
+        col2.dataframe({'Jan-Feb': values_by_resource_to_mwh(mask_values),
+                        'Total': values_by_resource_to_mwh(total_values_export)})
         st.caption("Split on temperature above or below 1 degree Celsius:")
         col1, col2 = st.columns(2)
         below_values = pre_calculated_results[ResultsKey.SUM_IMPORT_BELOW_1_C]
         above_values = {k: total_values_import[k] - v for k, v in below_values.items()}
-        col1.dataframe({'Below': values_to_mwh(below_values), 'Above': values_to_mwh(above_values)})
+        col1.dataframe({'Below': values_by_resource_to_mwh(below_values),
+                        'Above': values_by_resource_to_mwh(above_values)})
         below_values = pre_calculated_results[ResultsKey.SUM_EXPORT_BELOW_1_C]
         above_values = {k: total_values_export[k] - v for k, v in below_values.items()}
-        col2.dataframe({'Below': values_to_mwh(below_values), 'Above': values_to_mwh(above_values)})
+        col2.dataframe({'Below': values_by_resource_to_mwh(below_values),
+                        'Above': values_by_resource_to_mwh(above_values)})
 
     with st.expander('Total of locally produced resources:'):
         res_dict = pre_calculated_results[ResultsKey.LOCALLY_PRODUCED_RESOURCES]
@@ -129,10 +123,12 @@ if len(ids) > 0:
                   value="{:,.2f} MWh".format(res_dict[Resource.ELECTRICITY.name] / 1000))
         st.metric(label="Cooling",
                   value="{:,.2f} MWh".format(res_dict[Resource.COOLING.name] / 1000))
-        # Will be replaced by low/high tempered heat
-        st.metric(label="Heating",
-                  value="{:,.2f} MWh".format(res_dict[Resource.HEATING.name] / 1000),
-                  help="Heating produced by heat pumps, and excess heat from cooling machines.")
+        st.metric(label="Low-tempered heating",
+                  value="{:,.2f} MWh".format(res_dict[Resource.LOW_TEMP_HEAT.name] / 1000),
+                  help="Heating produced by heat pumps during summer, and excess heat from cooling machines.")
+        st.metric(label="High-tempered heating",
+                  value="{:,.2f} MWh".format(res_dict[Resource.HIGH_TEMP_HEAT.name] / 1000),
+                  help="Heating produced by heat pumps during winter, and booster heat pumps during summer.")
             
 else:
     st.markdown('No results to view yet, set up a configuration in '

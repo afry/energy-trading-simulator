@@ -8,7 +8,8 @@ import pandas as pd
 
 import pyomo.environ as pyo
 from pyomo.core.base.param import IndexedParam, ScalarParam
-from pyomo.opt import OptSolver, SolverResults
+from pyomo.opt import OptSolver, SolverResults, TerminationCondition
+from pyomo.util.infeasible import log_infeasible_constraints
 
 from tradingplatformpoc import constants
 from tradingplatformpoc.agent.block_agent import BlockAgent
@@ -50,17 +51,18 @@ class ChalmersOutputs:
 
 
 def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource, GridAgent], area_info: Dict[str, Any],
-             start_datetime: datetime.datetime, trading_horizon: int, elec_pricing: ElectricityPrice,
-             heat_pricing: HeatingPrice) -> ChalmersOutputs:
+             start_datetime: datetime.datetime, elec_pricing: ElectricityPrice, heat_pricing: HeatingPrice) \
+        -> ChalmersOutputs:
     block_agents: List[BlockAgent] = [agent for agent in agents if isinstance(agent, BlockAgent)]
     agent_guids = [agent.guid for agent in agents]
     # The order specified in "agents" will be used throughout
+    trading_horizon = area_info['TradingHorizon']
 
     elec_demand_df, elec_supply_df, high_heat_demand_df, high_heat_supply_df, \
         low_heat_demand_df, low_heat_supply_df, cooling_demand_df, cooling_supply_df = \
         build_supply_and_demand_dfs(block_agents, start_datetime, trading_horizon)
 
-    battery_capacities = [max(0.01, agent.battery.capacity_kwh) for agent in block_agents]  # Crashes if 0
+    battery_capacities = [agent.battery.capacity_kwh for agent in block_agents]
     heatpump_max_power = [agent.heat_pump_max_input for agent in block_agents]
     heatpump_max_heat = [agent.heat_pump_max_output for agent in block_agents]
 
@@ -87,6 +89,9 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
                                                          heatpump_COP=[area_info['COPHeatPumps']] * n_agents,
                                                          heatpump_max_power=heatpump_max_power,
                                                          heatpump_max_heat=heatpump_max_heat,
+                                                         booster_heatpump_COP=[area_info['COPHeatPumps']] * n_agents,  # TODO: Separate heat pumps here?
+                                                         booster_heatpump_max_power=heatpump_max_power,  # TODO: Separate heat pumps here?
+                                                         booster_heatpump_max_heat=heatpump_max_heat,  # TODO: Separate heat pumps here?
                                                          energy_shallow_cap=[0] * n_agents,  # TODO
                                                          energy_deep_cap=[0] * n_agents,  # TODO
                                                          heat_rate_shallow=[10] * n_agents,  # TODO
@@ -104,11 +109,17 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
                                                          max_heat_transfer_between_agents=area_info['InterAgentHeatTransferCapacity'],
                                                          max_heat_transfer_to_external=grid_agents[Resource.HEATING].max_transfer_per_hour,
                                                          chiller_COP=area_info['COPCompChiller'],
-                                                         thermalstorage_capacity=0,  # TODO
+                                                         thermalstorage_capacity=0,  # TODO - if this should even be included?
                                                          thermalstorage_charge_rate=1.0,  # TODO
                                                          thermalstorage_efficiency=1.0,  # TODO
-                                                         trading_horizon=area_info['TradingHorizon']
+                                                         trading_horizon=trading_horizon
                                                          )
+
+    if results.solver.termination_condition != TerminationCondition.optimal:
+        # Raise error here?
+        logger.error('For period {}, the solver did not find an optimal solution. Solver status: {}'.format(
+            start_datetime, results.solver.termination_condition))
+        log_infeasible_constraints(optimized_model)
 
     elec_grid_agent_guid = grid_agents[Resource.ELECTRICITY].guid
     heat_grid_agent_guid = grid_agents[Resource.HIGH_TEMP_HEAT].guid if Resource.HIGH_TEMP_HEAT in grid_agents.keys() \
@@ -132,8 +143,8 @@ def extract_outputs(optimized_model: pyo.ConcreteModel,
     heat_trades = get_heat_transfers(optimized_model, start_datetime, heat_grid_agent_guid, agent_guids)
     battery_storage_levels = get_value_per_agent(optimized_model, start_datetime, 'SOCBES', agent_guids)
     if should_use_summer_mode(start_datetime):
-        hp_low_prod = get_value_per_agent(optimized_model, start_datetime, 'Hhp1', agent_guids)
-        hp_high_prod = get_value_per_agent(optimized_model, start_datetime, 'Hhp2', agent_guids)
+        hp_low_prod = get_value_per_agent(optimized_model, start_datetime, 'Hhp', agent_guids)
+        hp_high_prod = get_value_per_agent(optimized_model, start_datetime, 'HhpB', agent_guids)
     else:
         hp_high_prod = get_value_per_agent(optimized_model, start_datetime, 'Hhp', agent_guids)
         hp_low_prod = {}  # Will this work? Do we need to insert 0s?
@@ -216,7 +227,7 @@ def get_heat_transfers(optimized_model: pyo.ConcreteModel, start_datetime: datet
                        agent_guids: List[str]) -> List[Trade]:
     resource = Resource.LOW_TEMP_HEAT if should_use_summer_mode(start_datetime) else Resource.HIGH_TEMP_HEAT
     inter_agent_trades = get_agent_transfers(optimized_model, start_datetime,
-                                             sold_internal_name='Psell_grid', bought_internal_name='Pbuy_grid',
+                                             sold_internal_name='Hsell_grid', bought_internal_name='Hbuy_grid',
                                              resource=resource, agent_guids=agent_guids)
     external_trades = get_external_transfers(optimized_model, start_datetime,
                                              sold_to_external_name='NA', bought_from_external_name='Hbuy_market',

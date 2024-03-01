@@ -5,11 +5,16 @@ import pandas as pd
 import pyomo.environ as pyo
 from pyomo.opt import OptSolver, SolverResults
 
+# This share of high-temp heat need can be covered by low-temp heat (source: BDAB). The rest needs to be covered by
+# a booster heat pump.
+PERC_OF_HT_COVERABLE_BY_LT = 0.6
+
 
 def solve_model(solver: OptSolver, summer_mode: bool, n_agents: int, external_elec_buy_price: pd.Series,
                 external_elec_sell_price: pd.Series, external_heat_buy_price: float,
                 battery_capacity: List[float], battery_charge_rate: List[float], battery_discharge_rate: List[float],
                 SOCBES0: List[float], heatpump_COP: List[float], heatpump_max_power: List[float], heatpump_max_heat: List[float],
+                booster_heatpump_COP: List[float], booster_heatpump_max_power: List[float], booster_heatpump_max_heat: List[float],
                 energy_shallow_cap: List[float], energy_deep_cap: List[float], heat_rate_shallow: List[float],
                 Kval: List[float], Kloss_shallow: List[float], Kloss_deep: List[float],
                 elec_consumption: pd.DataFrame, hot_water_heatdem: pd.DataFrame, space_heating_heatdem: pd.DataFrame,
@@ -40,6 +45,18 @@ def solve_model(solver: OptSolver, summer_mode: bool, n_agents: int, external_el
     assert len(cold_consumption.columns) >= trading_horizon
     assert len(external_elec_buy_price) >= trading_horizon
     assert len(external_elec_sell_price) >= trading_horizon
+    assert battery_efficiency >= 0  # Otherwise we'll get division by zero
+    assert thermalstorage_efficiency >= 0  # Otherwise we'll get division by zero
+    if summer_mode:
+        # (1 - PERC_OF_HT_COVERABLE_BY_LT) of the high-temp-heat-demand needs to be covered by the booster heat pump.
+        # If the high-temp-heat-demand is higher than this, we won't be able to find a solution (the
+        # TerminationCondition will be 'infeasible'). Easier to raise this error straight away, so that the user knows
+        # specifically what went wrong.
+        max_hot_water_generated = [mhp / (1 - PERC_OF_HT_COVERABLE_BY_LT) for mhp in booster_heatpump_max_heat]
+        too_big_hot_water_demand = hot_water_heatdem.gt(max_hot_water_generated, axis=0).any(axis=1)
+        if too_big_hot_water_demand.any():
+            problematic_agent_indices = [i for i, x in enumerate(too_big_hot_water_demand.tolist()) if x]
+            raise RuntimeError('Unfillable hot water demand for agent indices: {}'.format(problematic_agent_indices))
 
     model = pyo.ConcreteModel()
     # Sets
@@ -77,6 +94,10 @@ def solve_model(solver: OptSolver, summer_mode: bool, n_agents: int, external_el
     model.COPhp = pyo.Param(model.I, initialize=heatpump_COP)
     model.Phpmax = pyo.Param(model.I, initialize=heatpump_max_power)
     model.Hhpmax = pyo.Param(model.I, initialize=heatpump_max_heat)
+    # Booster heat pump data
+    model.COPhpB = pyo.Param(model.I, initialize=booster_heatpump_COP)
+    model.PhpBmax = pyo.Param(model.I, initialize=booster_heatpump_max_power)
+    model.HhpBmax = pyo.Param(model.I, initialize=booster_heatpump_max_heat)
     # Chiller data
     model.COPcc = pyo.Param(initialize=chiller_COP)
     # Thermal energy storage data
@@ -97,12 +118,13 @@ def solve_model(solver: OptSolver, summer_mode: bool, n_agents: int, external_el
     model.U_heat_buy_sell_grid = pyo.Var(model.I, model.T, within=pyo.Binary, initialize=0)
     model.Pcha = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
     model.Pdis = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
-    model.SOCBES = pyo.Var(model.I, model.T, bounds=(0, 1), within=pyo.NonNegativeReals, initialize=0)
+    model.SOCBES = pyo.Var(model.I, model.T, bounds=(0, 1), within=pyo.NonNegativeReals,
+                           initialize=lambda m, i, t: SOCBES0[i])
     model.Hhp = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
     model.Php = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
     model.Hcha = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
     model.Hdis = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
-    model.SOCTES = pyo.Var(model.T, bounds=(0, 1), within=pyo.NonNegativeReals, initialize=0)
+    model.SOCTES = pyo.Var(model.T, bounds=(0, 1), within=pyo.NonNegativeReals, initialize=1)
     model.Ccc = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
     model.Hcc = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
     model.Pcc = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
@@ -114,8 +136,8 @@ def solve_model(solver: OptSolver, summer_mode: bool, n_agents: int, external_el
     model.Energy_deep = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
     model.Loss_deep = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
     if summer_mode:
-        model.Hhp1 = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
-        model.Hhp2 = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
+        model.HhpB = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
+        model.PhpB = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
 
     add_obj_and_constraints(model, summer_mode)
 
@@ -133,12 +155,12 @@ def add_obj_and_constraints(model: pyo.ConcreteModel, summer_mode: bool):
     model.con2_2 = pyo.Constraint(model.I, model.T, rule=con_rul2_2)
     model.con3 = pyo.Constraint(model.T, rule=con_rul3)
     model.con4 = pyo.Constraint(model.T, rule=con_rul4)
-    model.con5_1 = pyo.Constraint(model.I, model.T, rule=con_rul5_1)
     if summer_mode:
+        model.con5_1_2 = pyo.Constraint(model.I, model.T, rule=con_rul5_1_2)
         model.con5_2_1 = pyo.Constraint(model.I, model.T, rule=con_rul5_2_1)
         model.con5_2_2 = pyo.Constraint(model.I, model.T, rule=con_rul5_2_2)
-        model.con5_2_3 = pyo.Constraint(model.I, model.T, rule=con_rul5_2_3)
     else:
+        model.con5_1_1 = pyo.Constraint(model.I, model.T, rule=con_rul5_1_1)
         model.con5_2 = pyo.Constraint(model.I, model.T, rule=con_rul5_2)
     model.con5_3 = pyo.Constraint(model.I, model.T, rule=con_rul5_3)
     model.con5_4 = pyo.Constraint(model.I, model.T, rule=con_rul5_4)
@@ -211,9 +233,16 @@ def con_rul4(model, t):
 
 # (eq. 2 and 3 of the report)
 # Electrical/heat/cool power balance equation for agents
-def con_rul5_1(model, i, t):
+def con_rul5_1_1(model, i, t):
+    # Only used in winter mode
     return model.Ppv[i, t] + model.Pdis[i, t] + model.Pbuy_grid[i, t] == \
         model.Pdem[i, t] + model.Php[i, t] + model.Pcha[i, t] + model.Psell_grid[i, t]
+
+
+def con_rul5_1_2(model, i, t):
+    # Only used in summer mode
+    return model.Ppv[i, t] + model.Pdis[i, t] + model.Pbuy_grid[i, t] == \
+        model.Pdem[i, t] + model.Php[i, t] + model.PhpB[i, t] + model.Pcha[i, t] + model.Psell_grid[i, t]
 
 
 def con_rul5_2(model, i, t):
@@ -224,19 +253,15 @@ def con_rul5_2(model, i, t):
 
 def con_rul5_2_1(model, i, t):
     # Only used in summer mode
-    return model.Hbuy_grid[i, t] + model.Hhp1[i, t] + model.Hdis_shallow[i, t] == \
-        model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] + 0.6 * model.Hhw[i, t] + model.Hsh[i, t]
+    return model.Hbuy_grid[i, t] + model.Hhp[i, t] + model.Hdis_shallow[i, t] == \
+        model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] + PERC_OF_HT_COVERABLE_BY_LT * model.Hhw[i, t] + \
+        model.Hsh[i, t]
 
 
 # (eq. 5 and 6 of the report)
 def con_rul5_2_2(model, i, t):
     # Only used in summer mode
-    return model.Hhp2[i, t] == 0.4 * model.Hhw[i, t]
-
-
-def con_rul5_2_3(model, i, t):
-    # Only used in summer mode
-    return model.Hhp[i, t] == model.Hhp1[i, t] + model.Hhp2[i, t]
+    return model.HhpB[i, t] == (1 - PERC_OF_HT_COVERABLE_BY_LT) * model.Hhw[i, t]
 
 
 # (eqs. 22 to 28 of the report)
@@ -320,11 +345,10 @@ def con_rul8(model, i, t):
 
 # State of charge modelling
 def con_rul9(model, i, t):
-    if (model.Emax_BES[i] == 0) or (model.effe == 0):
-        if t == 0:
-            return model.SOCBES[i, 0] == model.SOCBES0[i]
-        else:
-            return model.SOCBES[i, t] == model.SOCBES[i, t - 1]
+    if model.Emax_BES[i] == 0:
+        # No storage capacity, then we need to ensure that charge and discharge are 0 as well.
+        return model.Pcha[i, t] + model.Pdis[i, t] == model.Emax_BES[i]
+    # We assume that model.effe cannot be 0
     if t == 0:
         charge = model.Pcha[i, 0] * model.effe / model.Emax_BES[i]
         discharge = model.Pdis[i, 0] / (model.Emax_BES[i] * model.effe)
@@ -358,12 +382,12 @@ def con_rul11_2(model, i, t):
 
 def con_rul11_3(model, i, t):
     # Only used in summer mode
-    return model.Hhp1[i, t] <= model.Hhpmax[i]
+    return model.HhpB[i, t] <= model.HhpBmax[i]
 
 
 def con_rul11_4(model, i, t):
     # Only used in summer mode
-    return model.Hhp2[i, t] <= model.Hhpmax[i]
+    return model.HhpB[i, t] == model.COPhpB[i] * model.PhpB[i, t]
 
 
 # Thermal energy storage model (eqs. 32 to 25 of the report)
@@ -378,11 +402,10 @@ def con_rul13(model, t):
 
 # State of charge modelling
 def con_rul14(model, t):
-    if (model.Emax_TES == 0) or (model.efft == 0):
-        if t == 0:
-            return model.SOCTES[0] == 1
-        else:
-            return model.SOCTES[t] == model.SOCTES[t - 1]
+    if model.Emax_TES == 0:
+        # No storage capacity, then we need to ensure that charge and discharge are 0 as well.
+        return model.Hdis[t] + model.Hcha[t] == model.Emax_TES
+    # We assume that model.efft cannot be 0
     if t == 0:
         discharge = model.Hdis[0] / (model.Emax_TES * model.efft)
         charge = model.Hcha[0] * model.efft / model.Emax_TES
