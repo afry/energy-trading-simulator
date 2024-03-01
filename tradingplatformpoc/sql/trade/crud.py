@@ -39,7 +39,7 @@ def heat_trades_from_db_for_periods(trading_periods, job_id: str,
 
 def elec_trades_by_external_for_periods_to_df(job_id: str, trading_periods,
                                               session_generator: Callable[[], _GeneratorContextManager[Session]]
-                                              = session_scope) -> pd.DataFrame:
+                                              = session_scope) -> Optional[pd.DataFrame]:
     """Get the summed amount of electricity used each period for all agents combined.
     """
     with session_generator() as db:
@@ -61,6 +61,8 @@ def elec_trades_by_external_for_periods_to_df(job_id: str, trading_periods,
                                          'weekday': trade.period.strftime('%A'),
                                          'hour': trade.period.hour
                                          } for trade in trades])
+        if len(df.index) == 0:
+            return None
         df_export = df[df.action == Action.BUY].drop(columns=['action', 'total_quantity_post']).rename(
             columns={'total_quantity_pre': 'total_export_quantity'})  # GridAgent buys --> local grid exports
         df_import = df[df.action == Action.SELL].drop(columns=['action', 'total_quantity_pre']).rename(

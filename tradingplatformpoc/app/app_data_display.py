@@ -92,7 +92,7 @@ def construct_combined_price_df(config_data: dict, local_price_df: Optional[pd.D
     return pd.concat([local_price_df, retail_df, wholesale_df])
 
 
-def aggregated_net_elec_import_results_df_split_on_period(job_id: str, period: tuple) -> pd.DataFrame:
+def aggregated_net_elec_import_results_df_split_on_period(job_id: str, period: tuple) -> Optional[pd.DataFrame]:
     """
     Display total import and export for electricity, computed for specified time period.
     @param job_id: Which job to get trades for
@@ -108,7 +108,9 @@ def aggregated_net_elec_import_results_df_split_on_period(job_id: str, period: t
                        list(range(start, end + 1, 1))]
   
     period_df = elec_trades_by_external_for_periods_to_df(job_id, selected_period)
-    return avg_weekday_electricity(period_df)
+    if period_df:
+        return avg_weekday_electricity(period_df)
+    return None
 
 
 def avg_weekday_electricity(df: pd.DataFrame) -> pd.DataFrame:

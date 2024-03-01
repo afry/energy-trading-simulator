@@ -76,12 +76,14 @@ if len(ids) > 0:
                                                value=('Jan', 'Mar'))
 
                 time_period_elec_bought = aggregated_net_elec_import_results_df_split_on_period(job_id, time_period)
-                st.caption("Hold *Shift* and click on multiple days in the legend to highlight them in the graph.")
-                st.altair_chart(construct_avg_day_elec_chart(time_period_elec_bought, time_period),
-                                use_container_width=True, theme=None)
-                st.caption("The energy use is calculated from trades, and therefore includes the electricity used \
-                           for running heat pumps. The error bars are the standard deviation of the electricity used.")
-                st.divider()
+                if time_period_elec_bought:
+                    st.caption("Hold *Shift* and click on multiple days in the legend to highlight them in the graph.")
+                    st.altair_chart(construct_avg_day_elec_chart(time_period_elec_bought, time_period),
+                                    use_container_width=True, theme=None)
+                    st.caption("The energy use is calculated from trades, and therefore includes the electricity used \
+                               for running heat pumps. The error bars are the standard deviation of the electricity \
+                               used.")
+                    st.divider()
 
                 logger.info("Constructing price graph")
                 st.spinner("Constructing price graph")
