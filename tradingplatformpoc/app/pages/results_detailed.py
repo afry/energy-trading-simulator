@@ -54,21 +54,21 @@ if len(ids) > 0:
         st.metric(label="Total grid fees paid on internal trades",
                   value="{:,.2f} SEK".format(total_grid_fees_paid))
 
-    tab_price_graph, tab_price_table = st.tabs(['Graph', 'Table'])
-    with tab_price_graph:
-        logger.info("Constructing price graph")
-        st.spinner("Constructing price graph")
-
-        combined_price_df = construct_combined_price_df(config)
-        if not combined_price_df.empty:
-            price_chart = construct_price_chart(combined_price_df, Resource.ELECTRICITY,)
-        st.caption("Click on a variable in legend to highlight it in the graph.")
-        st.altair_chart(price_chart, use_container_width=True, theme=None)
-
-    resources = [Resource.ELECTRICITY, Resource.HEATING]
-    agg_tabs = st.tabs([resource.name.capitalize() for resource in resources])
+    resources = [Resource.ELECTRICITY, Resource.HIGH_TEMP_HEAT, Resource.LOW_TEMP_HEAT]
+    agg_tabs = st.tabs([resource.get_display_name(True) for resource in resources])
     for resource, tab in zip(resources, agg_tabs):
         with tab:
+            agg_buy_trades = db_to_aggregated_trade_df(job_id, resource, Action.BUY)
+            agg_sell_trades = db_to_aggregated_trade_df(job_id, resource, Action.SELL)
+            # The above can be None if there were no trades for the resource
+            agg_trades = combine_trades_dfs(agg_buy_trades, agg_sell_trades)
+            if agg_trades is not None:
+                agg_trades = agg_trades.transpose().style.set_properties(**{'width': '400px'})
+                st.dataframe(agg_trades)
+
+            st.caption("The quantities used for calculations are before losses for purchases but"
+                       " after losses for sales.")
+
             if resource == Resource.ELECTRICITY:
                 # TODO: Make it possible to choose ex. Dec-Jan
                 time_period = st.select_slider('Select which months to view',
@@ -83,17 +83,15 @@ if len(ids) > 0:
                 st.caption("The energy use is calculated from trades, and therefore includes the electricity used \
                            for running heat pumps. The error bars are the standard deviation of the electricity used.")
                 st.divider()
-                
-            agg_buy_trades = db_to_aggregated_trade_df(job_id, resource, Action.BUY)
-            agg_sell_trades = db_to_aggregated_trade_df(job_id, resource, Action.SELL)
-            # The above can be None if there were no trades for the resource
-            agg_trades = combine_trades_dfs(agg_buy_trades, agg_sell_trades)
-            if agg_trades is not None:
-                agg_trades = agg_trades.transpose().style.set_properties(**{'width': '400px'})
-                st.dataframe(agg_trades)
 
-            st.caption("The quantities used for calculations are before losses for purchases but"
-                       " after losses for sales.")
+                logger.info("Constructing price graph")
+                st.spinner("Constructing price graph")
+
+                combined_price_df = construct_combined_price_df(config)
+                if not combined_price_df.empty:
+                    price_chart = construct_price_chart(combined_price_df, Resource.ELECTRICITY,)
+                st.caption("Click on a variable in legend to highlight it in the graph.")
+                st.altair_chart(price_chart, use_container_width=True, theme=None)
 
     with st.expander('Total imported and exported electricity and heating:'):
         col1, col2 = st.columns(2)
