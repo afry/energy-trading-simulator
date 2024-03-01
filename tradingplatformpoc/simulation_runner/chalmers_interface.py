@@ -65,6 +65,7 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
     battery_capacities = [agent.battery.capacity_kwh for agent in block_agents]
     heatpump_max_power = [agent.heat_pump_max_input for agent in block_agents]
     heatpump_max_heat = [agent.heat_pump_max_output for agent in block_agents]
+    gross_floor_area = [agent.digital_twin.gross_floor_area for agent in block_agents]
 
     retail_prices: pd.Series = elec_pricing.get_exact_retail_prices(start_datetime, trading_horizon, True)
     wholesale_prices: pd.Series = elec_pricing.get_exact_wholesale_prices(start_datetime, trading_horizon)
@@ -92,12 +93,7 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
                                                          booster_heatpump_COP=[area_info['COPHeatPumps']] * n_agents,  # TODO: Separate heat pumps here?
                                                          booster_heatpump_max_power=heatpump_max_power,  # TODO: Separate heat pumps here?
                                                          booster_heatpump_max_heat=heatpump_max_heat,  # TODO: Separate heat pumps here?
-                                                         energy_shallow_cap=[0] * n_agents,  # TODO
-                                                         energy_deep_cap=[0] * n_agents,  # TODO
-                                                         heat_rate_shallow=[10] * n_agents,  # TODO
-                                                         Kval=[180] * n_agents,  # TODO
-                                                         Kloss_shallow=[0.9913] * n_agents,  # TODO
-                                                         Kloss_deep=[0.9963] * n_agents,  # TODO
+                                                         build_area=gross_floor_area,
                                                          elec_consumption=elec_demand_df,
                                                          hot_water_heatdem=high_heat_demand_df,
                                                          space_heating_heatdem=low_heat_demand_df,
