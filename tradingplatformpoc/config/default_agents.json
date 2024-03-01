@@ -235,7 +235,9 @@
 		"Name": "GroceryStoreAgent",
 		"PVArea": 320,
 		"PVEfficiency": 0.165,
-		"SellExcessHeat": true
+		"SellExcessHeat": true,
+		"HeatPumpMaxInput": 15,
+		"HeatPumpMaxOutput": 48
 	},
 	{
 		"Type": "BlockAgent",

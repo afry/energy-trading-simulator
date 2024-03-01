@@ -72,6 +72,7 @@ def delete_job(job_id: str,
 
             db.delete(job)
             db.commit()
+            logger.info('Job {} deleted'.format(job_id))
 
 
 # TODO: If job for config exists show or delete and rerun

@@ -84,7 +84,7 @@ class TradingSimulator:
             nordpool_data=electricity_price_series_from_db())
 
         self.trading_periods = get_periods_from_db().sort_values()
-        self.trading_periods = self.trading_periods.take(list(range(100)) + list(range(4000, 4101)))  # FIXME: Remove
+        self.trading_periods = self.trading_periods.take(list(range(100)) + list(range(4008, 4101)))  # FIXME: Remove
         self.trading_horizon = self.config_data['AreaInfo']['TradingHorizon']
 
     def initialize_agents(self) -> Tuple[List[IAgent], Dict[Resource, GridAgent]]:
@@ -146,7 +146,10 @@ class TradingSimulator:
                 agents.append(
                     BlockAgent(self.local_market_enabled, heat_pricing=self.heat_pricing,
                                electricity_pricing=self.electricity_pricing, digital_twin=grocery_store_digital_twin,
-                               can_sell_heat_to_external=LEC_CAN_SELL_HEAT_TO_EXTERNAL, guid=agent_name))
+                               can_sell_heat_to_external=LEC_CAN_SELL_HEAT_TO_EXTERNAL,
+                               heat_pump_max_input=agent["HeatPumpMaxInput"],
+                               heat_pump_max_output=agent["HeatPumpMaxOutput"],
+                               coeff_of_perf=area_info["COPHeatPumps"], guid=agent_name))
             elif agent_type == "GridAgent":
                 if Resource[agent["Resource"]] == Resource.ELECTRICITY:
                     grid_agent = GridAgent(self.local_market_enabled, self.electricity_pricing,
@@ -206,9 +209,13 @@ class TradingSimulator:
                 # if horizon_start.day == horizon_start.hour == 1:
                 #     info_string = "Simulations entering {:%B}".format(horizon_start)
                 #     logger.info(info_string)
+                # for i in range(10, len(self.agents) - len(self.grid_agents.keys())):
+                #     print('Adding ' + self.agents[i-1].guid)
+                #     chalmers_outputs = optimize(self.solver, self.agents[:i], self.grid_agents,
+                #                                 self.config_data['AreaInfo'], horizon_start,
+                #                                 self.electricity_pricing, self.heat_pricing)
                 chalmers_outputs = optimize(self.solver, self.agents, self.grid_agents, self.config_data['AreaInfo'],
-                                            horizon_start, self.trading_horizon, self.electricity_pricing,
-                                            self.heat_pricing)
+                                            horizon_start, self.electricity_pricing, self.heat_pricing)
                 all_trades_list_batch.append(chalmers_outputs.trades)
                 add_all_to_nested_dict(battery_levels_dict, chalmers_outputs.battery_storage_levels)
                 add_all_to_nested_dict(hp_high_prod, chalmers_outputs.hp_high_prod)
