@@ -144,8 +144,12 @@ def aggregated_import_and_export_results_df_split_on_mask(job_id: str, periods: 
     return res_dict
 
 
-def values_to_mwh(str_float_dict: Dict[str, float]) -> Dict[str, str]:
-    """Dictionary keys must be Resource names!"""
+def values_by_resource_to_mwh(str_float_dict: Dict[str, float]) -> Dict[str, str]:
+    """
+    The input dict must fulfill:
+    Keys must be resource names (otherwise a RuntimeError will be raised)
+    Values should be energy amounts in kWh (since the value will be divided by 1000)
+    """
     return {Resource.from_string(k).get_display_name(True): f'{v / 1000:.2f} MWh' for k, v in str_float_dict.items()}
 
 

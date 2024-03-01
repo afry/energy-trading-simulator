@@ -7,7 +7,7 @@ import streamlit as st
 from tradingplatformpoc.app import footer
 from tradingplatformpoc.app.app_charts import construct_avg_day_elec_chart, construct_price_chart
 from tradingplatformpoc.app.app_data_display import aggregated_net_elec_import_results_df_split_on_period, \
-    combine_trades_dfs, construct_combined_price_df, values_to_mwh
+    combine_trades_dfs, construct_combined_price_df, values_by_resource_to_mwh
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.sql.config.crud import get_all_finished_job_config_id_pairs_in_db, read_config
 from tradingplatformpoc.sql.results.crud import get_results_for_job
@@ -100,18 +100,18 @@ if len(ids) > 0:
         col1, col2 = st.columns(2)
         total_values_import = pre_calculated_results[ResultsKey.SUM_IMPORT]
         mask_values = pre_calculated_results[ResultsKey.SUM_IMPORT_JAN_FEB]
-        col1.dataframe({'Jan-Feb': values_to_mwh(mask_values), 'Total': values_to_mwh(total_values_import)})
+        col1.dataframe({'Jan-Feb': values_by_resource_to_mwh(mask_values), 'Total': values_by_resource_to_mwh(total_values_import)})
         total_values_export = pre_calculated_results[ResultsKey.SUM_EXPORT]
         mask_values = pre_calculated_results[ResultsKey.SUM_EXPORT_JAN_FEB]
-        col2.dataframe({'Jan-Feb': values_to_mwh(mask_values), 'Total': values_to_mwh(total_values_export)})
+        col2.dataframe({'Jan-Feb': values_by_resource_to_mwh(mask_values), 'Total': values_by_resource_to_mwh(total_values_export)})
         st.caption("Split on temperature above or below 1 degree Celsius:")
         col1, col2 = st.columns(2)
         below_values = pre_calculated_results[ResultsKey.SUM_IMPORT_BELOW_1_C]
         above_values = {k: total_values_import[k] - v for k, v in below_values.items()}
-        col1.dataframe({'Below': values_to_mwh(below_values), 'Above': values_to_mwh(above_values)})
+        col1.dataframe({'Below': values_by_resource_to_mwh(below_values), 'Above': values_by_resource_to_mwh(above_values)})
         below_values = pre_calculated_results[ResultsKey.SUM_EXPORT_BELOW_1_C]
         above_values = {k: total_values_export[k] - v for k, v in below_values.items()}
-        col2.dataframe({'Below': values_to_mwh(below_values), 'Above': values_to_mwh(above_values)})
+        col2.dataframe({'Below': values_by_resource_to_mwh(below_values), 'Above': values_by_resource_to_mwh(above_values)})
 
     with st.expander('Total of locally produced resources:'):
         res_dict = pre_calculated_results[ResultsKey.LOCALLY_PRODUCED_RESOURCES]
