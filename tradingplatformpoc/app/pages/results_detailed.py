@@ -122,10 +122,12 @@ if len(ids) > 0:
                   value="{:,.2f} MWh".format(res_dict[Resource.ELECTRICITY.name] / 1000))
         st.metric(label="Cooling",
                   value="{:,.2f} MWh".format(res_dict[Resource.COOLING.name] / 1000))
-        # Will be replaced by low/high tempered heat
-        st.metric(label="Heating",
-                  value="{:,.2f} MWh".format(res_dict[Resource.HEATING.name] / 1000),
-                  help="Heating produced by heat pumps, and excess heat from cooling machines.")
+        st.metric(label="Low-tempered heating",
+                  value="{:,.2f} MWh".format(res_dict[Resource.LOW_TEMP_HEAT.name] / 1000),
+                  help="Heating produced by heat pumps during summer, and excess heat from cooling machines.")
+        st.metric(label="High-tempered heating",
+                  value="{:,.2f} MWh".format(res_dict[Resource.HIGH_TEMP_HEAT.name] / 1000),
+                  help="Heating produced by heat pumps during winter, and booster heat pumps during summer.")
             
 else:
     st.markdown('No results to view yet, set up a configuration in '

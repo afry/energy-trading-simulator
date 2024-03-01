@@ -145,7 +145,8 @@ def aggregated_import_and_export_results_df_split_on_mask(job_id: str, periods: 
 
 
 def values_to_mwh(str_float_dict: Dict[str, float]) -> Dict[str, str]:
-    return {k.lower().capitalize(): f'{v / 1000:.2f} MWh' for k, v in str_float_dict.items()}
+    """Dictionary keys must be Resource names!"""
+    return {Resource.from_string(k).get_display_name(True): f'{v / 1000:.2f} MWh' for k, v in str_float_dict.items()}
 
 
 def aggregated_import_and_export_results_df_split_on_period(job_id: str) -> Dict[str, pd.DataFrame]:

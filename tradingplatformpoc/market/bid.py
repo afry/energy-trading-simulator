@@ -16,12 +16,15 @@ class Resource(Enum):
     LOW_TEMP_HEAT = 3  # ~40 degrees Celsius - can cover space heating demand
     HIGH_TEMP_HEAT = 4  # ~65 degrees Celsius - needed for hot water, but can also cover space heating
 
-    def get_display_name(self) -> str:
+    def get_display_name(self, capitalized: bool = False) -> str:
+        un_capitalized: str
         if self.name == 'LOW_TEMP_HEAT':
-            return 'low-temp heat'
+            un_capitalized = 'low-temp heat'
         elif self.name == 'HIGH_TEMP_HEAT':
-            return 'high-temp heat'
-        return self.name.lower()
+            un_capitalized = 'high-temp heat'
+        else:
+            un_capitalized = self.name.lower()
+        return un_capitalized.capitalize() if capitalized else un_capitalized
 
     @staticmethod
     def is_resource_name(a_string: str, case_sensitive: bool = True) -> bool:
