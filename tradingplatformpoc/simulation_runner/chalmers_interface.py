@@ -109,13 +109,14 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
                                                          max_heat_transfer_between_agents=area_info['InterAgentHeatTransferCapacity'],
                                                          max_heat_transfer_to_external=grid_agents[Resource.HEATING].max_transfer_per_hour,
                                                          chiller_COP=area_info['COPCompChiller'],
-                                                         thermalstorage_capacity=0,  # TODO
+                                                         thermalstorage_capacity=0,  # TODO - if this should even be included?
                                                          thermalstorage_charge_rate=1.0,  # TODO
                                                          thermalstorage_efficiency=1.0,  # TODO
                                                          trading_horizon=trading_horizon
                                                          )
 
     if results.solver.termination_condition != TerminationCondition.optimal:
+        # Raise error here?
         logger.error('For period {}, the solver did not find an optimal solution. Solver status: {}'.format(
             start_datetime, results.solver.termination_condition))
         log_infeasible_constraints(optimized_model)
