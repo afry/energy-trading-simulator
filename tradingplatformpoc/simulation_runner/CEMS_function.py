@@ -15,9 +15,7 @@ def solve_model(solver: OptSolver, summer_mode: bool, n_agents: int, external_el
                 battery_capacity: List[float], battery_charge_rate: List[float], battery_discharge_rate: List[float],
                 SOCBES0: List[float], heatpump_COP: List[float], heatpump_max_power: List[float], heatpump_max_heat: List[float],
                 booster_heatpump_COP: List[float], booster_heatpump_max_power: List[float], booster_heatpump_max_heat: List[float],
-                energy_shallow_cap: List[float], energy_deep_cap: List[float], heat_rate_shallow: List[float],
-                Kval: List[float], Kloss_shallow: List[float], Kloss_deep: List[float],
-                elec_consumption: pd.DataFrame, hot_water_heatdem: pd.DataFrame, space_heating_heatdem: pd.DataFrame,
+                build_area: List[float], elec_consumption: pd.DataFrame, hot_water_heatdem: pd.DataFrame, space_heating_heatdem: pd.DataFrame,
                 cold_consumption: pd.DataFrame, pv_production: pd.DataFrame, battery_efficiency: float = 0.95,
                 max_elec_transfer_between_agents: float = 500, max_elec_transfer_to_external: float = 1000,
                 max_heat_transfer_between_agents: float = 500, max_heat_transfer_to_external: float = 1000,
@@ -84,12 +82,12 @@ def solve_model(solver: OptSolver, summer_mode: bool, n_agents: int, external_el
     model.Pmax_BES_Cha = pyo.Param(model.I, initialize=battery_charge_rate)
     model.Pmax_BES_Dis = pyo.Param(model.I, initialize=battery_discharge_rate)
     # Building inertia as thermal energy storage
-    model.Energy_shallow_cap = pyo.Param(model.I, initialize=energy_shallow_cap)
-    model.Energy_deep_cap = pyo.Param(model.I, initialize=energy_deep_cap)
-    model.Heat_rate_shallow = pyo.Param(model.I, initialize=heat_rate_shallow)
-    model.Kval = pyo.Param(model.I, initialize=Kval)
-    model.Kloss_shallow = pyo.Param(model.I, initialize=Kloss_shallow)
-    model.Kloss_deep = pyo.Param(model.I, initialize=Kloss_deep)
+    model.Energy_shallow_cap = pyo.Param(model.I, initialize=lambda model, i: 0.046 * build_area[i])
+    model.Energy_deep_cap = pyo.Param(model.I, initialize=lambda model, i: 0.291 * build_area[i])
+    model.Heat_rate_shallow = pyo.Param(model.I, initialize=lambda model, i: 0.023 * build_area[i])
+    model.Kval = pyo.Param(model.I, initialize=lambda model, i: 0.03 * build_area[i])
+    model.Kloss_shallow = pyo.Param(model.I, initialize=lambda model, i: 0.9913)
+    model.Kloss_deep = pyo.Param(model.I, initialize=lambda model, i: 0.9963)
     # Heat pump data
     model.COPhp = pyo.Param(model.I, initialize=heatpump_COP)
     model.Phpmax = pyo.Param(model.I, initialize=heatpump_max_power)
@@ -152,14 +150,15 @@ def add_obj_and_constraints(model: pyo.ConcreteModel, summer_mode: bool):
     model.con1_1 = pyo.Constraint(model.I, model.T, rule=con_rul1_1)
     model.con1_2 = pyo.Constraint(model.I, model.T, rule=con_rul1_2)
     model.con2_1 = pyo.Constraint(model.I, model.T, rule=con_rul2_1)
-    model.con2_2 = pyo.Constraint(model.I, model.T, rule=con_rul2_2)
     model.con3 = pyo.Constraint(model.T, rule=con_rul3)
     model.con4 = pyo.Constraint(model.T, rule=con_rul4)
     if summer_mode:
+        model.con2_2_2 = pyo.Constraint(model.I, model.T, rule=con_rul2_2_2)
         model.con5_1_2 = pyo.Constraint(model.I, model.T, rule=con_rul5_1_2)
         model.con5_2_1 = pyo.Constraint(model.I, model.T, rule=con_rul5_2_1)
         model.con5_2_2 = pyo.Constraint(model.I, model.T, rule=con_rul5_2_2)
     else:
+        model.con2_2_1 = pyo.Constraint(model.I, model.T, rule=con_rul2_2_1)
         model.con5_1_1 = pyo.Constraint(model.I, model.T, rule=con_rul5_1_1)
         model.con5_2 = pyo.Constraint(model.I, model.T, rule=con_rul5_2)
     model.con5_3 = pyo.Constraint(model.I, model.T, rule=con_rul5_3)
@@ -185,13 +184,15 @@ def add_obj_and_constraints(model: pyo.ConcreteModel, summer_mode: bool):
     if summer_mode:
         model.con11_3 = pyo.Constraint(model.I, model.T, rule=con_rul11_3)
         model.con11_4 = pyo.Constraint(model.I, model.T, rule=con_rul11_4)
+        model.con17_1 = pyo.Constraint(model.T, rule=con_rul17_1)
+    else:
+        model.con17_2 = pyo.Constraint(model.T, rule=con_rul17_2)
     model.con12 = pyo.Constraint(model.T, rule=con_rul12)
     model.con13 = pyo.Constraint(model.T, rule=con_rul13)
     model.con14 = pyo.Constraint(model.T, rule=con_rul14)
     model.con15 = pyo.Constraint(rule=con_rul15)
     model.con15_1 = pyo.Constraint(model.T, rule=con_rul15_1)
     model.con16 = pyo.Constraint(model.T, rule=con_rul16)
-    model.con17 = pyo.Constraint(model.T, rule=con_rul17)
 
 
 # Objective function: minimize the total charging cost (eq. 1 of the report)
@@ -217,7 +218,14 @@ def con_rul2_1(model, i, t):
     return model.Psell_grid[i, t] <= model.Pmax_grid * (1 - model.U_power_buy_sell_grid[i, t])
 
 
-def con_rul2_2(model, i, t):
+def con_rul2_2_1(model, i, t):
+    # Only used in winter mode : Due to high temperature of district heating (60 deg. C),
+    # it is not possible to export heat from building to the district heating
+    return model.Hsell_grid[i, t] <= 0
+
+
+def con_rul2_2_2(model, i, t):
+    # Only used in summer mode
     return model.Hsell_grid[i, t] <= model.Hmax_grid * (1 - model.U_heat_buy_sell_grid[i, t])
 
 
@@ -429,5 +437,12 @@ def con_rul16(model, t):
     return model.Ccc[t] == model.COPcc * model.Pcc[t]
 
 
-def con_rul17(model, t):
+def con_rul17_1(model, t):
+    # Only used in summer mode
     return model.Hcc[t] <= (1+model.COPcc) * model.Pcc[t]
+
+
+def con_rul17_2(model, t):
+    # Only used in winter mode : Due to high temperature of district heating (60 deg. C),
+    # it is not possible to export heat from building to the district heating
+    return model.Hcc[t] <= 0
