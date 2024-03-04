@@ -10,7 +10,6 @@ from tests import utility_test_objects
 
 from tradingplatformpoc.agent.block_agent import BlockAgent
 from tradingplatformpoc.agent.grid_agent import GridAgent
-from tradingplatformpoc.digitaltwin.heat_pump import Workloads
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.market.trade import Market, Trade
@@ -222,22 +221,6 @@ class TestBlockAgent(TestCase):
     block_agent_zeros = BlockAgent(True, heat_pricing=heat_pricing, electricity_pricing=electricity_pricing,
                                    digital_twin=static_digital_twin_zeros, can_sell_heat_to_external=False)
 
-    def test_make_bids_consumer(self):
-        """Test basic functionality of BlockAgent's make_bids method."""
-        bids = self.block_agent_cons.make_bids(SOME_DATETIME)
-        self.assertEqual(bids[0].resource, Resource.ELECTRICITY)
-        self.assertEqual(bids[0].action, Action.BUY)
-        self.assertTrue(bids[0].quantity > 0)
-        self.assertTrue(bids[0].price > 0)
-
-    def test_make_bids_producer(self):
-        """Test basic functionality of BlockAgent's make_bids method."""
-        bids = self.block_agent_prod.make_bids(SOME_DATETIME)
-        self.assertEqual(bids[0].resource, Resource.ELECTRICITY)
-        self.assertEqual(bids[0].action, Action.SELL)
-        self.assertTrue(bids[0].quantity > 0)
-        self.assertTrue(bids[0].price > 0)
-
     def test_make_prognosis(self):
         """Test basic functionality of BlockAgent's make_prognosis method."""
         prognosis_consumer = self.block_agent_cons.make_prognosis_for_resource(SOME_DATETIME, Resource.ELECTRICITY)
@@ -265,128 +248,3 @@ class TestBlockAgent(TestCase):
         usage_producer = self.block_agent_prod.get_actual_usage_for_resource(SOME_DATETIME, Resource.ELECTRICITY)
         self.assertFalse(np.isnan(usage_producer))
         self.assertTrue(usage_producer < 0)
-
-    def test_make_trades_given_clearing_price_consumer(self):
-        """Test basic functionality of BlockAgent's make_trades_given_clearing_price method."""
-        clearing_prices = {Resource.ELECTRICITY: 0.01, Resource.HEATING: np.nan}
-        trades, md = self.block_agent_cons.make_trades_given_clearing_price(SOME_DATETIME, clearing_prices, [])
-        self.assertEqual(2, len(trades))
-        elec_trades = [x for x in trades if x.resource == Resource.ELECTRICITY]
-        heat_trades = [x for x in trades if x.resource == Resource.HEATING]
-        self.assertEqual(1, len(elec_trades))
-        self.assertEqual(1, len(heat_trades))
-        elec_trade = elec_trades[0]
-        self.assertEqual(elec_trade.resource, Resource.ELECTRICITY)
-        self.assertEqual(elec_trade.action, Action.BUY)
-        self.assertTrue(elec_trade.quantity_pre_loss > 0)
-        self.assertTrue(elec_trade.quantity_post_loss > 0)
-        self.assertTrue(elec_trade.price > 0)
-        self.assertEqual(elec_trade.source, self.block_agent_cons.guid)
-        self.assertFalse(elec_trade.by_external)
-        self.assertEqual(elec_trade.market, Market.LOCAL)
-        self.assertEqual(elec_trade.period, SOME_DATETIME)
-
-    def test_make_trades_given_low_clearing_price_producer(self):
-        """Test basic functionality of BlockAgent's make_trades_given_clearing_price method."""
-        clearing_prices = {Resource.ELECTRICITY: 0.01, Resource.HEATING: np.nan}
-        trades, md = self.block_agent_prod.make_trades_given_clearing_price(SOME_DATETIME, clearing_prices, [])
-        self.assertEqual(1, len(trades))
-        elec_trades = [x for x in trades if x.resource == Resource.ELECTRICITY]
-        heat_trades = [x for x in trades if x.resource == Resource.HEATING]
-        self.assertEqual(1, len(elec_trades))
-        self.assertEqual(0, len(heat_trades))
-        elec_trade = elec_trades[0]
-        self.assertEqual(elec_trade.resource, Resource.ELECTRICITY)
-        self.assertEqual(elec_trade.action, Action.SELL)
-        self.assertTrue(elec_trade.quantity_pre_loss > 0)
-        self.assertTrue(elec_trade.quantity_post_loss > 0)
-        self.assertTrue(elec_trade.price >= MIN_NORDPOOL_PRICE)
-        self.assertEqual(elec_trade.source, self.block_agent_prod.guid)
-        self.assertFalse(elec_trade.by_external)
-        self.assertEqual(elec_trade.market, Market.EXTERNAL)  # Very low local price, so should sell to external
-        self.assertEqual(elec_trade.period, SOME_DATETIME)
-
-    def test_make_trades_given_high_clearing_price_producer(self):
-        """Test basic functionality of BlockAgent's make_trades_given_clearing_price method."""
-        clearing_prices = {Resource.ELECTRICITY: 100.0, Resource.HEATING: np.nan}
-        trades, md = self.block_agent_prod.make_trades_given_clearing_price(SOME_DATETIME, clearing_prices, [])
-        self.assertEqual(1, len(trades))
-        elec_trades = [x for x in trades if x.resource == Resource.ELECTRICITY]
-        heat_trades = [x for x in trades if x.resource == Resource.HEATING]
-        self.assertEqual(1, len(elec_trades))
-        self.assertEqual(0, len(heat_trades))
-        elec_trade = elec_trades[0]
-        self.assertEqual(elec_trade.resource, Resource.ELECTRICITY)
-        self.assertEqual(elec_trade.action, Action.SELL)
-        self.assertTrue(elec_trade.quantity_pre_loss > 0)
-        self.assertTrue(elec_trade.quantity_post_loss > 0)
-        self.assertAlmostEqual(elec_trade.price, clearing_prices[Resource.ELECTRICITY])
-        self.assertEqual(elec_trade.source, self.block_agent_prod.guid)
-        self.assertFalse(elec_trade.by_external)
-        self.assertEqual(elec_trade.market, Market.LOCAL)  # Very low local price, so should sell to external
-        self.assertEqual(elec_trade.period, SOME_DATETIME)
-
-    def test_make_trades_with_0(self):
-        """Test that when the net consumption is 0, BlockAgent's make_trades_given_clearing_price method returns an
-        empty list."""
-        clearing_prices = {Resource.ELECTRICITY: 1.0, Resource.HEATING: np.nan}
-        trades, md = self.block_agent_zeros.make_trades_given_clearing_price(SOME_DATETIME, clearing_prices, [])
-        self.assertEqual(0, len(trades))
-
-
-class TestBlockAgentHeatPump(TestCase):
-    # Verify instantiation
-    # Digital twin
-    rng = np.random.default_rng(0)  # set random seed
-    elec_values = rng.uniform(0, 100.0, len(DATETIME_ARRAY))
-    heat_values = rng.uniform(0, 100.0, len(DATETIME_ARRAY))
-    block_digital_twin = StaticDigitalTwin(1000.0, electricity_usage=pd.Series(elec_values, index=DATETIME_ARRAY),
-                                           space_heating_usage=pd.Series(heat_values, index=DATETIME_ARRAY))
-    # Create agent with 2 heat pumps, default COP
-    block_agent_2_pumps_default_cop = BlockAgent(True, heat_pricing=heat_pricing,
-                                                 electricity_pricing=electricity_pricing,
-                                                 digital_twin=block_digital_twin, can_sell_heat_to_external=False,
-                                                 heat_pump_max_input=30, heat_pump_max_output=100)
-    # Create agent with 3 pumps, COP = 4.3
-    block_agent_3_pumps_custom_cop = BlockAgent(True, heat_pricing=heat_pricing,
-                                                electricity_pricing=electricity_pricing,
-                                                digital_twin=block_digital_twin, can_sell_heat_to_external=False,
-                                                heat_pump_max_input=45, heat_pump_max_output=145, coeff_of_perf=4.3)
-
-    def test_construct_workloads_df(self):
-        """Test that when a BlockAgent doesn't have any heat pumps, the workloads data frame is still created as
-        expected, with just one row, corresponding to not running any heat pump."""
-        with_0_pumps = Workloads(None, False, 55)
-        self.assertEqual(1, with_0_pumps.get_lookup_table().shape[0])
-        self.assertEqual(0, with_0_pumps.get_lookup_table()[0, 0])
-
-    def test_workloads_data(self):
-        """Assert that when a different COP is specified, this is reflected in the workloads_data"""
-        workloads_data_low_cop = self.block_agent_3_pumps_custom_cop.workloads_high_heat.get_lookup_table()
-        workloads_data_high_cop = self.block_agent_2_pumps_default_cop.workloads_high_heat.get_lookup_table()
-        for i in np.arange(1, 10):
-            lower_output = workloads_data_low_cop[i, 2]
-            higher_output = workloads_data_high_cop[i, 2]
-            self.assertTrue(lower_output < higher_output)
-
-    def test_optimal_workload(self):
-        """Test calculation of optimal workload"""
-
-        optimal_workload = self.block_agent_2_pumps_default_cop.calculate_optimal_workload(-10, 60, 2, 2, 0, 2.5)
-        self.assertEqual(6, optimal_workload[0])  # 10 if agent is allowed to sell heat
-
-    def test_bid_with_heat_pump(self):
-        """Test that bidding works as intended in a block agent which has some heat pumps."""
-        bids = self.block_agent_2_pumps_default_cop.make_bids(SOME_DATETIME, {})
-        self.assertEqual(2, len(bids))
-        heat_bid = [x for x in bids if x.resource == Resource.HEATING][0]
-        self.assertEqual(Action.BUY, heat_bid.action)
-
-    def test_trade_with_heat_pump(self):
-        """Test that constructing of trades works as intended in a block agent which has some heat pumps."""
-        clearing_prices = {Resource.ELECTRICITY: 1.0, Resource.HEATING: 1.5}
-        trades, md = self.block_agent_2_pumps_default_cop.make_trades_given_clearing_price(SOME_DATETIME,
-                                                                                           clearing_prices, [])
-        self.assertEqual(2, len(trades))
-        heat_trade = [x for x in trades if x.resource == Resource.HEATING]
-        self.assertEqual(1, len(heat_trade))

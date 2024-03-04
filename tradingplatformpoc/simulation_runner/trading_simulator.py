@@ -84,7 +84,7 @@ class TradingSimulator:
             nordpool_data=electricity_price_series_from_db())
 
         self.trading_periods = get_periods_from_db().sort_values()
-        self.trading_periods = self.trading_periods.take(list(range(100)) + list(range(4008, 4101)))  # FIXME: Remove
+        self.trading_periods = self.trading_periods.take(list(range(72)) + list(range(4008, 4080)))  # FIXME: Remove
         self.trading_horizon = self.config_data['AreaInfo']['TradingHorizon']
 
     def initialize_agents(self) -> Tuple[List[IAgent], Dict[Resource, GridAgent]]:
@@ -131,7 +131,10 @@ class TradingSimulator:
                                can_sell_heat_to_external=LEC_CAN_SELL_HEAT_TO_EXTERNAL,
                                heat_pump_max_input=agent["HeatPumpMaxInput"],
                                heat_pump_max_output=agent["HeatPumpMaxOutput"],
-                               coeff_of_perf=area_info["COPHeatPumps"], battery=storage_digital_twin, guid=agent_name))
+                               booster_pump_max_input=agent["BoosterPumpMaxInput"],
+                               booster_pump_max_output=agent["BoosterPumpMaxOutput"],
+                               battery=storage_digital_twin,
+                               guid=agent_name))
 
             elif agent_type == "GroceryStoreAgent":
                 pv_prod_series = calculate_solar_prod(inputs_df['irradiation'],
@@ -151,7 +154,9 @@ class TradingSimulator:
                                can_sell_heat_to_external=LEC_CAN_SELL_HEAT_TO_EXTERNAL,
                                heat_pump_max_input=agent["HeatPumpMaxInput"],
                                heat_pump_max_output=agent["HeatPumpMaxOutput"],
-                               coeff_of_perf=area_info["COPHeatPumps"], guid=agent_name))
+                               booster_pump_max_input=agent["BoosterPumpMaxInput"],
+                               booster_pump_max_output=agent["BoosterPumpMaxOutput"],
+                               guid=agent_name))
             elif agent_type == "GridAgent":
                 if Resource[agent["Resource"]] == Resource.ELECTRICITY:
                     grid_agent = GridAgent(self.local_market_enabled, self.electricity_pricing,
