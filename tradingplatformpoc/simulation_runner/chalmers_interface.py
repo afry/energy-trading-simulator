@@ -96,6 +96,12 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
                                                          booster_heatpump_max_power=booster_max_power,
                                                          booster_heatpump_max_heat=booster_max_heat,
                                                          build_area=gross_floor_area,
+                                                         SOCTES0=[1.0] * n_agents,  # TODO
+                                                         TTES0=[1.0] * n_agents,  # TODO
+                                                         thermalstorage_capacity=[1.0] * n_agents,  # TODO
+                                                         thermalstorage_max_temp=[1.0] * n_agents,  # TODO
+                                                         thermalstorage_min_temp=[1.0] * n_agents,  # TODO
+                                                         thermalstorage_volume=[1.0] * n_agents,  # TODO
                                                          elec_consumption=elec_demand_df,
                                                          hot_water_heatdem=high_heat_demand_df,
                                                          space_heating_heatdem=low_heat_demand_df,
@@ -107,9 +113,6 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
                                                          max_heat_transfer_between_agents=area_info['InterAgentHeatTransferCapacity'],
                                                          max_heat_transfer_to_external=grid_agents[Resource.HEATING].max_transfer_per_hour,
                                                          chiller_COP=area_info['COPCompChiller'],
-                                                         thermalstorage_capacity=0,  # TODO - if this should even be included?
-                                                         thermalstorage_charge_rate=1.0,  # TODO
-                                                         thermalstorage_efficiency=1.0,  # TODO
                                                          trading_horizon=trading_horizon
                                                          )
 
