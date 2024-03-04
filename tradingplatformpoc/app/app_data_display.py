@@ -106,7 +106,7 @@ def aggregated_net_elec_import_results_df_split_on_period(job_id: str, period: t
                        list(range(start, end + 1, 1))]
   
     period_df = elec_trades_by_external_for_periods_to_df(job_id, selected_period)
-    if period_df:
+    if period_df is not None:
         return avg_weekday_electricity(period_df)
     return None
 

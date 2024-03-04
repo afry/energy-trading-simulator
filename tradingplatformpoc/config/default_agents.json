@@ -8,6 +8,8 @@
 		"FractionSchool": 0.0,
 		"HeatPumpMaxInput": 45,
 		"HeatPumpMaxOutput": 145,
+		"BoosterPumpMaxInput": 25,
+		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100
 	},
 	{
@@ -19,6 +21,8 @@
 		"FractionSchool": 0.0,
 		"HeatPumpMaxInput": 45,
 		"HeatPumpMaxOutput": 145,
+		"BoosterPumpMaxInput": 25,
+		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100
 	},
 	{
@@ -30,6 +34,8 @@
 		"FractionSchool": 0.0,
 		"HeatPumpMaxInput": 45,
 		"HeatPumpMaxOutput": 145,
+		"BoosterPumpMaxInput": 25,
+		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100
 	},
 	{
@@ -41,6 +47,8 @@
 		"FractionSchool": 0.0,
 		"HeatPumpMaxInput": 45,
 		"HeatPumpMaxOutput": 145,
+		"BoosterPumpMaxInput": 25,
+		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100
 	},
 	{
@@ -52,6 +60,8 @@
 		"FractionSchool": 0.0,
 		"HeatPumpMaxInput": 45,
 		"HeatPumpMaxOutput": 145,
+		"BoosterPumpMaxInput": 25,
+		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100
 	},
 	{
@@ -63,6 +73,8 @@
 		"FractionSchool": 0.0,
 		"HeatPumpMaxInput": 45,
 		"HeatPumpMaxOutput": 145,
+		"BoosterPumpMaxInput": 25,
+		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100
 	},
 	{
@@ -74,6 +86,8 @@
 		"FractionSchool": 0.0,
 		"HeatPumpMaxInput": 45,
 		"HeatPumpMaxOutput": 145,
+		"BoosterPumpMaxInput": 25,
+		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100
 	},
 	{
@@ -85,6 +99,8 @@
 		"FractionSchool": 0.0,
 		"HeatPumpMaxInput": 45,
 		"HeatPumpMaxOutput": 145,
+		"BoosterPumpMaxInput": 25,
+		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100
 	},
 	{
@@ -96,6 +112,8 @@
 		"FractionSchool": 0.0,
 		"HeatPumpMaxInput": 45,
 		"HeatPumpMaxOutput": 145,
+		"BoosterPumpMaxInput": 25,
+		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100
 	},
 	{
@@ -107,6 +125,8 @@
 		"FractionSchool": 0.0,
 		"HeatPumpMaxInput": 45,
 		"HeatPumpMaxOutput": 145,
+		"BoosterPumpMaxInput": 25,
+		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100
 	},
 	{
@@ -118,6 +138,8 @@
 		"FractionSchool": 0.0,
 		"HeatPumpMaxInput": 45,
 		"HeatPumpMaxOutput": 145,
+		"BoosterPumpMaxInput": 25,
+		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100
 	},
 	{
@@ -129,6 +151,8 @@
 		"FractionSchool": 0.0,
 		"HeatPumpMaxInput": 45,
 		"HeatPumpMaxOutput": 145,
+		"BoosterPumpMaxInput": 25,
+		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100
 	},
 	{
@@ -140,6 +164,8 @@
 		"FractionSchool": 0.0,
 		"HeatPumpMaxInput": 45,
 		"HeatPumpMaxOutput": 145,
+		"BoosterPumpMaxInput": 25,
+		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100
 	},
 	{
@@ -151,6 +177,8 @@
 		"FractionSchool": 0.0,
 		"HeatPumpMaxInput": 45,
 		"HeatPumpMaxOutput": 145,
+		"BoosterPumpMaxInput": 25,
+		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100
 	},
 	{
@@ -162,6 +190,8 @@
 		"FractionSchool": 0.0,
 		"HeatPumpMaxInput": 45,
 		"HeatPumpMaxOutput": 145,
+		"BoosterPumpMaxInput": 25,
+		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100
 	},
 	{
@@ -173,6 +203,8 @@
 		"FractionSchool": 0.0,
 		"HeatPumpMaxInput": 45,
 		"HeatPumpMaxOutput": 145,
+		"BoosterPumpMaxInput": 25,
+		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100
 	},
 	{
@@ -184,6 +216,8 @@
 		"FractionSchool": 0.0,
 		"HeatPumpMaxInput": 45,
 		"HeatPumpMaxOutput": 145,
+		"BoosterPumpMaxInput": 25,
+		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100
 	},
 	{
@@ -195,6 +229,8 @@
 		"FractionSchool": 0.0,
 		"HeatPumpMaxInput": 45,
 		"HeatPumpMaxOutput": 145,
+		"BoosterPumpMaxInput": 25,
+		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100
 	},
 	{
@@ -206,6 +242,8 @@
 		"FractionSchool": 0.0,
 		"HeatPumpMaxInput": 45,
 		"HeatPumpMaxOutput": 145,
+		"BoosterPumpMaxInput": 25,
+		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100
 	},
 	{
@@ -217,6 +255,8 @@
 		"FractionSchool": 0.0,
 		"HeatPumpMaxInput": 45,
 		"HeatPumpMaxOutput": 145,
+		"BoosterPumpMaxInput": 25,
+		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100
 	},
 	{
@@ -228,6 +268,8 @@
 		"FractionSchool": 0.0,
 		"HeatPumpMaxInput": 0.0,
 		"HeatPumpMaxOutput": 0.0,
+		"BoosterPumpMaxInput": 0.0,
+		"BoosterPumpMaxOutput": 0.0,
 		"BatteryCapacity": 0.0
 	},
 	{
@@ -238,7 +280,9 @@
 		"GrossFloorArea": 6000,
 		"SellExcessHeat": true,
 		"HeatPumpMaxInput": 15,
-		"HeatPumpMaxOutput": 48
+		"HeatPumpMaxOutput": 48,
+		"BoosterPumpMaxInput": 2.5,
+		"BoosterPumpMaxOutput": 10
 	},
 	{
 		"Type": "BlockAgent",
@@ -249,6 +293,8 @@
 		"FractionSchool": 1.0,
 		"HeatPumpMaxInput": 15,
 		"HeatPumpMaxOutput": 48,
+		"BoosterPumpMaxInput": 2.5,
+		"BoosterPumpMaxOutput": 10,
 		"BatteryCapacity": 0
 	},
 	{

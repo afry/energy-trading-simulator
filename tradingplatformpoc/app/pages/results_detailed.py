@@ -76,7 +76,7 @@ if len(ids) > 0:
                                                value=('Jan', 'Mar'))
 
                 time_period_elec_bought = aggregated_net_elec_import_results_df_split_on_period(job_id, time_period)
-                if time_period_elec_bought:
+                if time_period_elec_bought is not None:
                     st.caption("Hold *Shift* and click on multiple days in the legend to highlight them in the graph.")
                     st.altair_chart(construct_avg_day_elec_chart(time_period_elec_bought, time_period),
                                     use_container_width=True, theme=None)

@@ -65,6 +65,8 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
     battery_capacities = [agent.battery.capacity_kwh for agent in block_agents]
     heatpump_max_power = [agent.heat_pump_max_input for agent in block_agents]
     heatpump_max_heat = [agent.heat_pump_max_output for agent in block_agents]
+    booster_max_power = [agent.booster_pump_max_input for agent in block_agents]
+    booster_max_heat = [agent.booster_pump_max_output for agent in block_agents]
     gross_floor_area = [agent.digital_twin.gross_floor_area for agent in block_agents]
 
     retail_prices: pd.Series = elec_pricing.get_exact_retail_prices(start_datetime, trading_horizon, True)
@@ -90,9 +92,9 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
                                                          heatpump_COP=[area_info['COPHeatPumps']] * n_agents,
                                                          heatpump_max_power=heatpump_max_power,
                                                          heatpump_max_heat=heatpump_max_heat,
-                                                         booster_heatpump_COP=[area_info['COPHeatPumps']] * n_agents,  # TODO: Separate heat pumps here?
-                                                         booster_heatpump_max_power=heatpump_max_power,  # TODO: Separate heat pumps here?
-                                                         booster_heatpump_max_heat=heatpump_max_heat,  # TODO: Separate heat pumps here?
+                                                         booster_heatpump_COP=[area_info['COPBoosterPumps']] * n_agents,
+                                                         booster_heatpump_max_power=booster_max_power,
+                                                         booster_heatpump_max_heat=booster_max_heat,
                                                          build_area=gross_floor_area,
                                                          elec_consumption=elec_demand_df,
                                                          hot_water_heatdem=high_heat_demand_df,
