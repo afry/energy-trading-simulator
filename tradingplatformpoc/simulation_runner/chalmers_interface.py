@@ -76,9 +76,6 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
     elec_wholesale_prices = wholesale_prices.reset_index(drop=True)
     heat_retail_price = heat_pricing.get_estimated_retail_price(start_datetime, True)
 
-    # Question-marks:
-    # energy_shallow_cap, energy_deep_cap - capacity of thermal energy storage [kWh] - specify? calculate from sqm?
-
     n_agents = len(block_agents)
     optimized_model, results = CEMS_function.solve_model(solver=solver,
                                                          summer_mode=should_use_summer_mode(start_datetime),
@@ -278,6 +275,7 @@ def add_external_trade(trade_list: List[Trade], bought_from_external_name: str, 
                        resource: Resource):
     external_quantity = pyo.value(get_variable_value_or_else(optimized_model, sold_to_external_name, hour)
                                   - get_variable_value_or_else(optimized_model, bought_from_external_name, hour))
+    # TODO: Add tax and grid fee?
     if external_quantity > VERY_SMALL_NUMBER:
         wholesale_prices = getattr(optimized_model, wholesale_price_name)
         price = get_value_from_param(wholesale_prices, hour)
