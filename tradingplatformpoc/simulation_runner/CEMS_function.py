@@ -15,7 +15,7 @@ def solve_model(solver: OptSolver, summer_mode: bool, n_agents: int, external_el
                 battery_capacity: List[float], battery_charge_rate: List[float], battery_discharge_rate: List[float],
                 SOCBES0: List[float], heatpump_COP: List[float], heatpump_max_power: List[float], heatpump_max_heat: List[float],
                 booster_heatpump_COP: List[float], booster_heatpump_max_power: List[float], booster_heatpump_max_heat: List[float],
-                build_area: List[float], SOCTES0: List[float], TTES0: List[float], thermalstorage_capacity: List[float],
+                build_area: List[float], SOCTES0: List[float], TTES0: List[float],
                 thermalstorage_max_temp: List[float], thermalstorage_min_temp: List[float], thermalstorage_volume: List[float],
                 elec_consumption: pd.DataFrame, hot_water_heatdem: pd.DataFrame, space_heating_heatdem: pd.DataFrame,
                 cold_consumption: pd.DataFrame, pv_production: pd.DataFrame, battery_efficiency: float = 0.95,
@@ -104,7 +104,6 @@ def solve_model(solver: OptSolver, summer_mode: bool, n_agents: int, external_el
     model.efft = pyo.Param(model.I, initialize=thermalstorage_efficiency)
     model.SOCTES0 = pyo.Param(model.I, initialize=SOCTES0)
     model.TTES0 = pyo.Param(model.I, initialize=TTES0)
-    model.Emax_TES = pyo.Param(model.I, initialize=thermalstorage_capacity)
     model.Tmax_TES = pyo.Param(model.I, initialize=thermalstorage_max_temp)
     model.Tmin_TES = pyo.Param(model.I, initialize=thermalstorage_min_temp)
     model.Vol_TES = pyo.Param(model.I, initialize=thermalstorage_volume)
@@ -200,6 +199,8 @@ def add_obj_and_constraints(model: pyo.ConcreteModel, summer_mode: bool):
     model.con14 = pyo.Constraint(model.I, model.T, rule=con_rul14)
     model.con15 = pyo.Constraint(model.I, rule=con_rul15)
     model.con15_1 = pyo.Constraint(model.I, model.T, rule=con_rul15_1)
+    model.con15_2 = pyo.Constraint(model.I, model.T, rule=con_rul15_2)
+    model.con15_3 = pyo.Constraint(model.I, model.T, rule=con_rul15_3)
     model.con16 = pyo.Constraint(model.T, rule=con_rul16)
 
 
@@ -413,25 +414,32 @@ def con_rul11_4(model, i, t):
 # Thermal energy storage model (eqs. 32 to 25 of the report)
 # Maximum/minimum temperature limitations of hot water inside TES
 def con_rul12(model, i, t):
-    return model.TTES[i, t] <= model.Tmax_TES[i]
+    return model.HTESdis[i, t] <= (model.Vol_TES[i] * 4182 * 998 * model.Tmax_TES[i] / (1000 * 3600))
 
 
 def con_rul13(model, i, t):
-    return model.TTES[i, t] >= model.Tmin_TES[i]
+    return model.HTEScha[i, t] <= (model.Vol_TES[i] * 4182 * 998 * model.Tmax_TES[i] / (1000 * 3600))
 
 
 # State of charge modelling
 def con_rul14(model, i, t):
-    if model.Emax_TES[i] == 0:
+    if model.Vol_TES[i] == 0:
         # No storage capacity, then we need to ensure that charge and discharge are 0 as well.
-        return model.HTESdis[i, t] + model.HTEScha[i, t] == model.Emax_TES[i]
+        return model.HTESdis[i, t] + model.HTEScha[i, t] == model.Vol_TES[i]
     # We assume that model.efft cannot be 0
     if t == 0:
-        return model.SOCTES[i, 0] == model.SOCTES0[i] + model.HTEScha[i, 0] * model.efft[i] / model.Emax_TES[i] - \
-               model.HTESdis[i, 0] / (model.Emax_TES[i] * model.efft[i])
+        return model.SOCTES[i, 0] == model.SOCTES0[i] + model.HTEScha[i, 0] * model.efft[i] / (model.Vol_TES[i] * 4182 *
+                                                                                               998 * model.Tmax_TES[i] /
+                                                                                               (1000 * 3600)) - \
+               model.HTESdis[i, 0] / ((model.Vol_TES[i] * 4182 * 998 * model.Tmax_TES[i] /
+                                       (1000 * 3600)) * model.efft[i])
     else:
-        return model.SOCTES[i, t] == model.SOCTES[i, t - 1] + model.HTEScha[i, t] * model.efft[i] / model.Emax_TES[i] \
-               - model.HTESdis[i, t] / (model.Emax_TES[i] * model.efft[i])
+        return model.SOCTES[i, t] == model.SOCTES[i, t - 1] + model.HTEScha[i, t] * model.efft[i] / (model.Vol_TES[i] *
+                                                                                                     4182 * 998 *
+                                                                                                     model.Tmax_TES[i] /
+                                                                                                     (1000 * 3600)) \
+               - model.HTESdis[i, t] / ((model.Vol_TES[i] * 4182 * 998 * model.Tmax_TES[i] /
+                                         (1000 * 3600)) * model.efft[i])
 
 
 def con_rul15(model, i):
@@ -450,6 +458,14 @@ def con_rul15_1(model, i, t):
     else:
         return model.TTES[i, t] == model.TTES[i, t - 1] - ((1000 * model.HTESdis[i, t] * 3600 / model.efft[i])/(model.Vol_TES[i] * 4182 * 998))\
                + ((1000 * model.HTEScha[i, t] * 3600 * model.efft[i])/(model.Vol_TES[i] * 4182 * 998))
+
+
+def con_rul15_2(model, i, t):
+    return model.TTES[i, t] <= model.Tmax_TES[i]
+
+
+def con_rul15_3(model, i, t):
+    return model.TTES[i, t] >= model.Tmin_TES[i]
 
 
 # Compression chiller model (eqs. 29 to 31 of the report)

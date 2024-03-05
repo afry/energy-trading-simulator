@@ -98,7 +98,6 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
                                                          build_area=gross_floor_area,
                                                          SOCTES0=[1.0] * n_agents,  # TODO
                                                          TTES0=[1.0] * n_agents,  # TODO
-                                                         thermalstorage_capacity=[1.0] * n_agents,  # TODO
                                                          thermalstorage_max_temp=[1.0] * n_agents,  # TODO
                                                          thermalstorage_min_temp=[1.0] * n_agents,  # TODO
                                                          thermalstorage_volume=[1.0] * n_agents,  # TODO
