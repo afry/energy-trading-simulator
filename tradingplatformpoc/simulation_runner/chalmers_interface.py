@@ -63,6 +63,7 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
         build_supply_and_demand_dfs(block_agents, start_datetime, trading_horizon)
 
     battery_capacities = [agent.battery.capacity_kwh for agent in block_agents]
+    acc_tank_volumes = [agent.acc_tank_volume for agent in block_agents]
     heatpump_max_power = [agent.heat_pump_max_input for agent in block_agents]
     heatpump_max_heat = [agent.heat_pump_max_output for agent in block_agents]
     booster_max_power = [agent.booster_pump_max_input for agent in block_agents]
@@ -96,12 +97,12 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
                                                          booster_heatpump_max_power=booster_max_power,
                                                          booster_heatpump_max_heat=booster_max_heat,
                                                          build_area=gross_floor_area,
-                                                         SOCTES0=[1.0] * n_agents,  # TODO
-                                                         TTES0=[1.0] * n_agents,  # TODO
-                                                         thermalstorage_capacity=[1.0] * n_agents,  # TODO
-                                                         thermalstorage_max_temp=[1.0] * n_agents,  # TODO
-                                                         thermalstorage_min_temp=[1.0] * n_agents,  # TODO
-                                                         thermalstorage_volume=[1.0] * n_agents,  # TODO
+                                                         SOCTES0=[area_info['BatteryEndChargeLevel']] * n_agents,  # TODO ?
+                                                         TTES0=[60.0] * n_agents,  # TODO ?
+                                                         thermalstorage_capacity=[10000.0] * n_agents,  # TODO
+                                                         thermalstorage_max_temp=[65] * n_agents,  # TODO
+                                                         thermalstorage_min_temp=[45] * n_agents,  # TODO
+                                                         thermalstorage_volume=acc_tank_volumes,  # TODO
                                                          elec_consumption=elec_demand_df,
                                                          hot_water_heatdem=high_heat_demand_df,
                                                          space_heating_heatdem=low_heat_demand_df,

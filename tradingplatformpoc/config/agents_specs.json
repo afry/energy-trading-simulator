@@ -73,6 +73,14 @@
             "default_value": 0.0,
             "help": "A number specifying the battery storage capacity, in kWh",
             "type": "float"
+        },
+        "AccumulatorTankVolume": {
+            "display": "Accumulator tank volume (m³)",
+            "min_value": 0.0,
+            "step": 0.5,
+            "default_value": 0.0,
+            "help": "A number specifying the volume of the agent's accumulator tank (slingtank), in cubic meters",
+            "type": "float"
         }
     },
     "GridAgent": {

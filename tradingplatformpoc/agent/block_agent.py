@@ -25,10 +25,12 @@ class BlockAgent(IAgent):
     heat_pump_max_output: float
     booster_pump_max_input: float
     booster_pump_max_output: float
+    acc_tank_volume: float
 
     def __init__(self, local_market_enabled: bool, heat_pricing: HeatingPrice, electricity_pricing: ElectricityPrice,
                  digital_twin: StaticDigitalTwin, can_sell_heat_to_external: bool, heat_pump_max_input: float = 0,
                  heat_pump_max_output: float = 0, booster_pump_max_input: float = 0, booster_pump_max_output: float = 0,
+                 acc_tank_volume: float = 0,
                  battery: Optional[Battery] = None, guid="BlockAgent"):
         super().__init__(guid, local_market_enabled)
         self.heat_pricing = heat_pricing
@@ -38,6 +40,7 @@ class BlockAgent(IAgent):
         self.heat_pump_max_output = heat_pump_max_output
         self.booster_pump_max_input = booster_pump_max_input
         self.booster_pump_max_output = booster_pump_max_output
+        self.acc_tank_volume = acc_tank_volume
         self.can_sell_heat_to_external = can_sell_heat_to_external
         self.battery = Battery(0, 0, 0, 0) if battery is None else battery
 

@@ -10,7 +10,8 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
-		"BatteryCapacity": 100
+		"BatteryCapacity": 100,
+		"AccumulatorTankVolume": 1.5
 	},
 	{
 		"Type": "BlockAgent",
@@ -23,7 +24,8 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
-		"BatteryCapacity": 100
+		"BatteryCapacity": 100,
+		"AccumulatorTankVolume": 1.5
 	},
 	{
 		"Type": "BlockAgent",
@@ -36,7 +38,8 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
-		"BatteryCapacity": 100
+		"BatteryCapacity": 100,
+		"AccumulatorTankVolume": 1.5
 	},
 	{
 		"Type": "BlockAgent",
@@ -49,7 +52,8 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
-		"BatteryCapacity": 100
+		"BatteryCapacity": 100,
+		"AccumulatorTankVolume": 1.5
 	},
 	{
 		"Type": "BlockAgent",
@@ -62,7 +66,8 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
-		"BatteryCapacity": 100
+		"BatteryCapacity": 100,
+		"AccumulatorTankVolume": 1.5
 	},
 	{
 		"Type": "BlockAgent",
@@ -75,7 +80,8 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
-		"BatteryCapacity": 100
+		"BatteryCapacity": 100,
+		"AccumulatorTankVolume": 1.5
 	},
 	{
 		"Type": "BlockAgent",
@@ -88,7 +94,8 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
-		"BatteryCapacity": 100
+		"BatteryCapacity": 100,
+		"AccumulatorTankVolume": 1.5
 	},
 	{
 		"Type": "BlockAgent",
@@ -101,7 +108,8 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
-		"BatteryCapacity": 100
+		"BatteryCapacity": 100,
+		"AccumulatorTankVolume": 1.5
 	},
 	{
 		"Type": "BlockAgent",
@@ -114,7 +122,8 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
-		"BatteryCapacity": 100
+		"BatteryCapacity": 100,
+		"AccumulatorTankVolume": 1.5
 	},
 	{
 		"Type": "BlockAgent",
@@ -127,7 +136,8 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
-		"BatteryCapacity": 100
+		"BatteryCapacity": 100,
+		"AccumulatorTankVolume": 1.5
 	},
 	{
 		"Type": "BlockAgent",
@@ -140,7 +150,8 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
-		"BatteryCapacity": 100
+		"BatteryCapacity": 100,
+		"AccumulatorTankVolume": 1.5
 	},
 	{
 		"Type": "BlockAgent",
@@ -153,7 +164,8 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
-		"BatteryCapacity": 100
+		"BatteryCapacity": 100,
+		"AccumulatorTankVolume": 1.5
 	},
 	{
 		"Type": "BlockAgent",
@@ -166,7 +178,8 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
-		"BatteryCapacity": 100
+		"BatteryCapacity": 100,
+		"AccumulatorTankVolume": 1.5
 	},
 	{
 		"Type": "BlockAgent",
@@ -179,7 +192,8 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
-		"BatteryCapacity": 100
+		"BatteryCapacity": 100,
+		"AccumulatorTankVolume": 1.5
 	},
 	{
 		"Type": "BlockAgent",
@@ -192,7 +206,8 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
-		"BatteryCapacity": 100
+		"BatteryCapacity": 100,
+		"AccumulatorTankVolume": 1.5
 	},
 	{
 		"Type": "BlockAgent",
@@ -205,7 +220,8 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
-		"BatteryCapacity": 100
+		"BatteryCapacity": 100,
+		"AccumulatorTankVolume": 1.5
 	},
 	{
 		"Type": "BlockAgent",
@@ -218,7 +234,8 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
-		"BatteryCapacity": 100
+		"BatteryCapacity": 100,
+		"AccumulatorTankVolume": 1.5
 	},
 	{
 		"Type": "BlockAgent",
@@ -231,7 +248,8 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
-		"BatteryCapacity": 100
+		"BatteryCapacity": 100,
+		"AccumulatorTankVolume": 1.5
 	},
 	{
 		"Type": "BlockAgent",
@@ -244,7 +262,8 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
-		"BatteryCapacity": 100
+		"BatteryCapacity": 100,
+		"AccumulatorTankVolume": 1.5
 	},
 	{
 		"Type": "BlockAgent",
@@ -257,7 +276,8 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
-		"BatteryCapacity": 100
+		"BatteryCapacity": 100,
+		"AccumulatorTankVolume": 1.5
 	},
 	{
 		"Type": "BlockAgent",
@@ -270,7 +290,8 @@
 		"HeatPumpMaxOutput": 0.0,
 		"BoosterPumpMaxInput": 0.0,
 		"BoosterPumpMaxOutput": 0.0,
-		"BatteryCapacity": 0.0
+		"BatteryCapacity": 0.0,
+		"AccumulatorTankVolume": 0.0
 	},
 	{
 		"Type": "GroceryStoreAgent",
@@ -282,7 +303,8 @@
 		"HeatPumpMaxInput": 15,
 		"HeatPumpMaxOutput": 48,
 		"BoosterPumpMaxInput": 2.5,
-		"BoosterPumpMaxOutput": 10
+		"BoosterPumpMaxOutput": 10,
+		"AccumulatorTankVolume": 0.0
 	},
 	{
 		"Type": "BlockAgent",
@@ -295,7 +317,8 @@
 		"HeatPumpMaxOutput": 48,
 		"BoosterPumpMaxInput": 2.5,
 		"BoosterPumpMaxOutput": 10,
-		"BatteryCapacity": 0
+		"BatteryCapacity": 0,
+		"AccumulatorTankVolume": 0.0
 	},
 	{
 		"Type": "GridAgent",
