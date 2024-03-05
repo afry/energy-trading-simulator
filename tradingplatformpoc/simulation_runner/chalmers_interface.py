@@ -99,7 +99,6 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
                                                          build_area=gross_floor_area,
                                                          SOCTES0=[area_info['BatteryEndChargeLevel']] * n_agents,  # TODO ?
                                                          TTES0=[60.0] * n_agents,  # TODO ?
-                                                         thermalstorage_capacity=[10000.0] * n_agents,  # TODO
                                                          thermalstorage_max_temp=[65] * n_agents,  # TODO
                                                          thermalstorage_min_temp=[45] * n_agents,  # TODO
                                                          thermalstorage_volume=acc_tank_volumes,  # TODO
