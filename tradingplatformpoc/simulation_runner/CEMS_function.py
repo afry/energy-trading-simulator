@@ -16,7 +16,7 @@ def solve_model(solver: OptSolver, summer_mode: bool, n_agents: int, external_el
                 SOCBES0: List[float], heatpump_COP: List[float], heatpump_max_power: List[float], heatpump_max_heat: List[float],
                 booster_heatpump_COP: List[float], booster_heatpump_max_power: List[float], booster_heatpump_max_heat: List[float],
                 build_area: List[float], SOCTES0: List[float], TTES0: List[float], thermalstorage_capacity: List[float],
-                thermalstorage_max_temp: [float], thermalstorage_min_temp: [float], thermalstorage_volume: [float],
+                thermalstorage_max_temp: List[float], thermalstorage_min_temp: List[float], thermalstorage_volume: List[float],
                 elec_consumption: pd.DataFrame, hot_water_heatdem: pd.DataFrame, space_heating_heatdem: pd.DataFrame,
                 cold_consumption: pd.DataFrame, pv_production: pd.DataFrame, battery_efficiency: float = 0.95,
                 max_elec_transfer_between_agents: float = 500, max_elec_transfer_to_external: float = 1000,
