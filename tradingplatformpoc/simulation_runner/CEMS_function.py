@@ -15,12 +15,14 @@ def solve_model(solver: OptSolver, summer_mode: bool, n_agents: int, external_el
                 battery_capacity: List[float], battery_charge_rate: List[float], battery_discharge_rate: List[float],
                 SOCBES0: List[float], heatpump_COP: List[float], heatpump_max_power: List[float], heatpump_max_heat: List[float],
                 booster_heatpump_COP: List[float], booster_heatpump_max_power: List[float], booster_heatpump_max_heat: List[float],
-                build_area: List[float], elec_consumption: pd.DataFrame, hot_water_heatdem: pd.DataFrame, space_heating_heatdem: pd.DataFrame,
+                build_area: List[float], SOCTES0: List[float], TTES0: List[float], thermalstorage_capacity: List[float],
+                thermalstorage_max_temp: List[float], thermalstorage_min_temp: List[float], thermalstorage_volume: List[float],
+                elec_consumption: pd.DataFrame, hot_water_heatdem: pd.DataFrame, space_heating_heatdem: pd.DataFrame,
                 cold_consumption: pd.DataFrame, pv_production: pd.DataFrame, battery_efficiency: float = 0.95,
                 max_elec_transfer_between_agents: float = 500, max_elec_transfer_to_external: float = 1000,
                 max_heat_transfer_between_agents: float = 500, max_heat_transfer_to_external: float = 1000,
-                chiller_COP: float = 1.5, thermalstorage_capacity: float = 200, thermalstorage_charge_rate: float = 25,
-                thermalstorage_efficiency: float = 0.98, trading_horizon: int = 24) \
+                chiller_COP: float = 1.5, thermalstorage_efficiency: float = 0.98,
+                trading_horizon: int = 24) \
         -> Tuple[pyo.ConcreteModel, SolverResults]:
     """
     This function should be exposed to AFRY's trading simulator in some way.
@@ -82,12 +84,12 @@ def solve_model(solver: OptSolver, summer_mode: bool, n_agents: int, external_el
     model.Pmax_BES_Cha = pyo.Param(model.I, initialize=battery_charge_rate)
     model.Pmax_BES_Dis = pyo.Param(model.I, initialize=battery_discharge_rate)
     # Building inertia as thermal energy storage
-    model.Energy_shallow_cap = pyo.Param(model.I, initialize=lambda model, i: 0.046 * build_area[i])
-    model.Energy_deep_cap = pyo.Param(model.I, initialize=lambda model, i: 0.291 * build_area[i])
-    model.Heat_rate_shallow = pyo.Param(model.I, initialize=lambda model, i: 0.023 * build_area[i])
-    model.Kval = pyo.Param(model.I, initialize=lambda model, i: 0.03 * build_area[i])
-    model.Kloss_shallow = pyo.Param(model.I, initialize=lambda model, i: 0.9913)
-    model.Kloss_deep = pyo.Param(model.I, initialize=lambda model, i: 0.9963)
+    model.Energy_shallow_cap = pyo.Param(model.I, initialize=lambda m, i: 0.046 * build_area[i])
+    model.Energy_deep_cap = pyo.Param(model.I, initialize=lambda m, i: 0.291 * build_area[i])
+    model.Heat_rate_shallow = pyo.Param(model.I, initialize=lambda m, i: 0.023 * build_area[i])
+    model.Kval = pyo.Param(model.I, initialize=lambda m, i: 0.03 * build_area[i])
+    model.Kloss_shallow = pyo.Param(initialize=0.9913)
+    model.Kloss_deep = pyo.Param(initialize=0.9963)
     # Heat pump data
     model.COPhp = pyo.Param(model.I, initialize=heatpump_COP)
     model.Phpmax = pyo.Param(model.I, initialize=heatpump_max_power)
@@ -99,10 +101,13 @@ def solve_model(solver: OptSolver, summer_mode: bool, n_agents: int, external_el
     # Chiller data
     model.COPcc = pyo.Param(initialize=chiller_COP)
     # Thermal energy storage data
-    model.efft = pyo.Param(initialize=thermalstorage_efficiency)
-    model.Emax_TES = pyo.Param(initialize=thermalstorage_capacity)
-    model.Hmax_TES = pyo.Param(initialize=thermalstorage_charge_rate)
-
+    model.efft = pyo.Param(model.I, initialize=thermalstorage_efficiency)
+    model.SOCTES0 = pyo.Param(model.I, initialize=SOCTES0)
+    model.TTES0 = pyo.Param(model.I, initialize=TTES0)
+    model.Emax_TES = pyo.Param(model.I, initialize=thermalstorage_capacity)
+    model.Tmax_TES = pyo.Param(model.I, initialize=thermalstorage_max_temp)
+    model.Tmin_TES = pyo.Param(model.I, initialize=thermalstorage_min_temp)
+    model.Vol_TES = pyo.Param(model.I, initialize=thermalstorage_volume)
     # Variable
     model.Pbuy_market = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
     model.Psell_market = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
@@ -120,9 +125,11 @@ def solve_model(solver: OptSolver, summer_mode: bool, n_agents: int, external_el
                            initialize=lambda m, i, t: SOCBES0[i])
     model.Hhp = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
     model.Php = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
-    model.Hcha = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
-    model.Hdis = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
-    model.SOCTES = pyo.Var(model.T, bounds=(0, 1), within=pyo.NonNegativeReals, initialize=1)
+    model.HTEScha = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
+    model.HTESdis = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
+    model.TTES = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
+    model.SOCTES = pyo.Var(model.I, model.T, bounds=(0, 1), within=pyo.NonNegativeReals,
+                           initialize=lambda m, i, t: SOCTES0[i])
     model.Ccc = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
     model.Hcc = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
     model.Pcc = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
@@ -161,6 +168,7 @@ def add_obj_and_constraints(model: pyo.ConcreteModel, summer_mode: bool):
         model.con2_2_1 = pyo.Constraint(model.I, model.T, rule=con_rul2_2_1)
         model.con5_1_1 = pyo.Constraint(model.I, model.T, rule=con_rul5_1_1)
         model.con5_2 = pyo.Constraint(model.I, model.T, rule=con_rul5_2)
+    model.con5_2_3 = pyo.Constraint(model.I, model.T, rule=con_rul5_2_3)
     model.con5_3 = pyo.Constraint(model.I, model.T, rule=con_rul5_3)
     model.con5_4 = pyo.Constraint(model.I, model.T, rule=con_rul5_4)
     model.con5_5 = pyo.Constraint(model.I, model.T, rule=con_rul5_5)
@@ -187,11 +195,11 @@ def add_obj_and_constraints(model: pyo.ConcreteModel, summer_mode: bool):
         model.con17_1 = pyo.Constraint(model.T, rule=con_rul17_1)
     else:
         model.con17_2 = pyo.Constraint(model.T, rule=con_rul17_2)
-    model.con12 = pyo.Constraint(model.T, rule=con_rul12)
-    model.con13 = pyo.Constraint(model.T, rule=con_rul13)
-    model.con14 = pyo.Constraint(model.T, rule=con_rul14)
-    model.con15 = pyo.Constraint(rule=con_rul15)
-    model.con15_1 = pyo.Constraint(model.T, rule=con_rul15_1)
+    model.con12 = pyo.Constraint(model.I, model.T, rule=con_rul12)
+    model.con13 = pyo.Constraint(model.I, model.T, rule=con_rul13)
+    model.con14 = pyo.Constraint(model.I, model.T, rule=con_rul14)
+    model.con15 = pyo.Constraint(model.I, rule=con_rul15)
+    model.con15_1 = pyo.Constraint(model.I, model.T, rule=con_rul15_1)
     model.con16 = pyo.Constraint(model.T, rule=con_rul16)
 
 
@@ -256,20 +264,24 @@ def con_rul5_1_2(model, i, t):
 def con_rul5_2(model, i, t):
     # Only used in winter mode
     return model.Hbuy_grid[i, t] + model.Hhp[i, t] + model.Hdis_shallow[i, t] == \
-           model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] + model.Hhw[i, t] + model.Hsh[i, t]
+           model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] + model.Hsh[i, t] + model.HTEScha[i, t]
 
 
 def con_rul5_2_1(model, i, t):
     # Only used in summer mode
     return model.Hbuy_grid[i, t] + model.Hhp[i, t] + model.Hdis_shallow[i, t] == \
-        model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] + PERC_OF_HT_COVERABLE_BY_LT * model.Hhw[i, t] + \
+        model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] + PERC_OF_HT_COVERABLE_BY_LT * model.HTEScha[i, t] + \
         model.Hsh[i, t]
 
 
 # (eq. 5 and 6 of the report)
 def con_rul5_2_2(model, i, t):
     # Only used in summer mode
-    return model.HhpB[i, t] == (1 - PERC_OF_HT_COVERABLE_BY_LT) * model.Hhw[i, t]
+    return model.HhpB[i, t] == (1 - PERC_OF_HT_COVERABLE_BY_LT) * model.HTEScha[i, t]
+
+
+def con_rul5_2_3(model, i, t):
+    return model.HTESdis[i, t] == model.Hhw[i, t]
 
 
 # (eqs. 22 to 28 of the report)
@@ -308,14 +320,14 @@ def con_rul5_8(model, i, t):
     if t == 0:
         return model.Loss_shallow[i, 0] == 0
     else:
-        return model.Loss_shallow[i, t] == model.Energy_shallow[i, t - 1] * (1 - model.Kloss_shallow[i])
+        return model.Loss_shallow[i, t] == model.Energy_shallow[i, t - 1] * (1 - model.Kloss_shallow)
 
 
 def con_rul5_9(model, i, t):
     if t == 0:
         return model.Loss_deep[i, 0] == 0
     else:
-        return model.Loss_deep[i, t] == model.Energy_deep[i, t - 1] * (1 - model.Kloss_deep[i])
+        return model.Loss_deep[i, t] == model.Energy_deep[i, t - 1] * (1 - model.Kloss_deep)
 
 
 def con_rul5_10(model, i, t):
@@ -334,7 +346,7 @@ def con_rul6_1(model, t):
 
 def con_rul6_2(model, t):
     return sum(model.Hsell_grid[i, t] for i in model.I) + model.Hbuy_market[t] + \
-        model.Hdis[t] + model.Hcc[t] == sum(model.Hbuy_grid[i, t] for i in model.I) + model.Hcha[t]
+        model.Hcc[t] == sum(model.Hbuy_grid[i, t] for i in model.I)
 
 
 def con_rul6_3(model, t):
@@ -399,37 +411,45 @@ def con_rul11_4(model, i, t):
 
 
 # Thermal energy storage model (eqs. 32 to 25 of the report)
-# Maximum charging/discharging heat power limitations
-def con_rul12(model, t):
-    return model.Hdis[t] <= model.Hmax_TES
+# Maximum/minimum temperature limitations of hot water inside TES
+def con_rul12(model, i, t):
+    return model.TTES[i, t] <= model.Tmax_TES[i]
 
 
-def con_rul13(model, t):
-    return model.Hcha[t] <= model.Hmax_TES
+def con_rul13(model, i, t):
+    return model.TTES[i, t] >= model.Tmin_TES[i]
 
 
 # State of charge modelling
-def con_rul14(model, t):
-    if model.Emax_TES == 0:
+def con_rul14(model, i, t):
+    if model.Emax_TES[i] == 0:
         # No storage capacity, then we need to ensure that charge and discharge are 0 as well.
-        return model.Hdis[t] + model.Hcha[t] == model.Emax_TES
+        return model.HTESdis[i, t] + model.HTEScha[i, t] == model.Emax_TES[i]
     # We assume that model.efft cannot be 0
     if t == 0:
-        discharge = model.Hdis[0] / (model.Emax_TES * model.efft)
-        charge = model.Hcha[0] * model.efft / model.Emax_TES
-        return model.SOCTES[0] == 1 + charge - discharge
+        return model.SOCTES[i, 0] == model.SOCTES0[i] + model.HTEScha[i, 0] * model.efft[i] / model.Emax_TES[i] - \
+               model.HTESdis[i, 0] / (model.Emax_TES[i] * model.efft[i])
     else:
-        discharge = model.Hdis[t] / (model.Emax_TES * model.efft)
-        charge = model.Hcha[t] * model.efft / model.Emax_TES
-        return model.SOCTES[t] == model.SOCTES[t - 1] + charge - discharge
+        return model.SOCTES[i, t] == model.SOCTES[i, t - 1] + model.HTEScha[i, t] * model.efft[i] / model.Emax_TES[i] \
+               - model.HTESdis[i, t] / (model.Emax_TES[i] * model.efft[i])
 
 
-def con_rul15(model):
-    return model.SOCTES[len(model.T)-1] == 1
+def con_rul15(model, i):
+    return model.SOCTES[i, len(model.T)-1] == model.SOCTES0[i]
 
 
-def con_rul15_1(model, t):
-    return model.Hdis[t] / model.Hmax_TES + model.Hcha[t] / model.Hmax_TES <= 1
+def con_rul15_1(model, i, t):
+    # We assume that model.efft cannot be 0
+    # make sure that the HTESdis and HTEScha are in kW. If it is in Watte,
+    # 1000 should be removed from the following formulation
+    # Specific heat of Water is 4182 J/(kg C)
+    # Density of water is 998 kg/m3
+    if t == 0:
+        return model.TTES[i, 0] == model.TTES0[i] - ((1000 * model.HTESdis[i, 0] * 3600 / model.efft[i])/(model.Vol_TES[i] * 4182 * 998))\
+               + ((1000 * model.HTEScha[i, 0] * 3600 * model.efft[i])/(model.Vol_TES[i] * 4182 * 998))
+    else:
+        return model.TTES[i, t] == model.TTES[i, t - 1] - ((1000 * model.HTESdis[i, t] * 3600 / model.efft[i])/(model.Vol_TES[i] * 4182 * 998))\
+               + ((1000 * model.HTEScha[i, t] * 3600 * model.efft[i])/(model.Vol_TES[i] * 4182 * 998))
 
 
 # Compression chiller model (eqs. 29 to 31 of the report)
