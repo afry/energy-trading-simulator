@@ -21,7 +21,7 @@ def solve_model(solver: OptSolver, summer_mode: bool, n_agents: int, external_el
                 cold_consumption: pd.DataFrame, pv_production: pd.DataFrame, battery_efficiency: float = 0.95,
                 max_elec_transfer_between_agents: float = 500, max_elec_transfer_to_external: float = 1000,
                 max_heat_transfer_between_agents: float = 500, max_heat_transfer_to_external: float = 1000,
-                chiller_COP: float = 1.5, thermalstorage_efficiency: float = 0.98,
+                chiller_COP: float = 1.5, thermalstorage_efficiency: float = 0.98, Heat_trans_loss: float = 0.05,
                 trading_horizon: int = 24) \
         -> Tuple[pyo.ConcreteModel, SolverResults]:
     """
@@ -107,6 +107,8 @@ def solve_model(solver: OptSolver, summer_mode: bool, n_agents: int, external_el
     model.Tmax_TES = pyo.Param(model.I, initialize=thermalstorage_max_temp)
     model.Tmin_TES = pyo.Param(model.I, initialize=thermalstorage_min_temp)
     model.Vol_TES = pyo.Param(model.I, initialize=thermalstorage_volume)
+    # Local heat network efficiency
+    model.Heat_trans_loss = pyo.Param(initialize=Heat_trans_loss)
     # Variable
     model.Pbuy_market = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
     model.Psell_market = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
@@ -346,8 +348,9 @@ def con_rul6_1(model, t):
 
 
 def con_rul6_2(model, t):
-    return sum(model.Hsell_grid[i, t] for i in model.I) + model.Hbuy_market[t] + \
-        model.Hcc[t] == sum(model.Hbuy_grid[i, t] for i in model.I)
+    return sum(model.Hsell_grid[i, t]*(1-model.Heat_trans_loss) for i in model.I) + \
+           model.Hbuy_market[t]*(1-model.Heat_trans_loss) + model.Hcc[t]*(1-model.Heat_trans_loss)\
+           == sum(model.Hbuy_grid[i, t] for i in model.I)
 
 
 def con_rul6_3(model, t):

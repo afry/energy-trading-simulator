@@ -97,10 +97,10 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
                                                          booster_heatpump_max_heat=booster_max_heat,
                                                          build_area=gross_floor_area,
                                                          SOCTES0=[1.0] * n_agents,  # TODO
-                                                         TTES0=[1.0] * n_agents,  # TODO
-                                                         thermalstorage_max_temp=[1.0] * n_agents,  # TODO
-                                                         thermalstorage_min_temp=[1.0] * n_agents,  # TODO
-                                                         thermalstorage_volume=[1.0] * n_agents,  # TODO
+                                                         TTES0=[60] * n_agents,  # TODO
+                                                         thermalstorage_max_temp=[65] * n_agents,  # TODO
+                                                         thermalstorage_min_temp=[45] * n_agents,  # TODO
+                                                         thermalstorage_volume=[2.0] * n_agents,  # TODO
                                                          elec_consumption=elec_demand_df,
                                                          hot_water_heatdem=high_heat_demand_df,
                                                          space_heating_heatdem=low_heat_demand_df,
@@ -112,6 +112,7 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
                                                          max_heat_transfer_between_agents=area_info['InterAgentHeatTransferCapacity'],
                                                          max_heat_transfer_to_external=grid_agents[Resource.HEATING].max_transfer_per_hour,
                                                          chiller_COP=area_info['COPCompChiller'],
+                                                         Heat_trans_loss=area_info['HeatTransferLoss'],
                                                          trading_horizon=trading_horizon
                                                          )
 
