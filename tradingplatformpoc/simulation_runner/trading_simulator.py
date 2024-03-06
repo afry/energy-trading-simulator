@@ -212,7 +212,6 @@ class TradingSimulator:
             electricity_price_list_batch: List[dict] = []
 
             # ------- NEW --------
-            logger.info('Starting new bit')
             for horizon_start in thsps_in_this_batch:
                 logger.info("Simulating {:%Y-%m-%d}".format(horizon_start))
                 # if horizon_start.day == horizon_start.hour == 1:
@@ -229,7 +228,6 @@ class TradingSimulator:
                 add_all_to_nested_dict(battery_levels_dict, chalmers_outputs.battery_storage_levels)
                 add_all_to_nested_dict(hp_high_prod, chalmers_outputs.hp_high_prod)
                 add_all_to_nested_dict(hp_low_prod, chalmers_outputs.hp_low_prod)
-            logger.info('End new bit')
 
             # # ------- OLD --------
             # for period in trading_periods_in_this_batch:
