@@ -112,6 +112,7 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
                                                          max_heat_transfer_between_agents=area_info['InterAgentHeatTransferCapacity'],
                                                          max_heat_transfer_to_external=grid_agents[Resource.HEATING].max_transfer_per_hour,
                                                          chiller_COP=area_info['COPCompChiller'],
+                                                         Heat_trans_loss=area_info['HeatTransferLoss'],
                                                          trading_horizon=trading_horizon
                                                          )
 
