@@ -63,6 +63,7 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
         build_supply_and_demand_dfs(block_agents, start_datetime, trading_horizon)
 
     battery_capacities = [agent.battery.capacity_kwh for agent in block_agents]
+    acc_tank_volumes = [agent.acc_tank_volume for agent in block_agents]
     heatpump_max_power = [agent.heat_pump_max_input for agent in block_agents]
     heatpump_max_heat = [agent.heat_pump_max_output for agent in block_agents]
     booster_max_power = [agent.booster_pump_max_input for agent in block_agents]
@@ -75,9 +76,6 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
     elec_wholesale_prices = wholesale_prices.reset_index(drop=True)
     heat_retail_price = heat_pricing.get_estimated_retail_price(start_datetime, True)
 
-    # Question-marks:
-    # energy_shallow_cap, energy_deep_cap - capacity of thermal energy storage [kWh] - specify? calculate from sqm?
-
     n_agents = len(block_agents)
     optimized_model, results = CEMS_function.solve_model(solver=solver,
                                                          summer_mode=should_use_summer_mode(start_datetime),
@@ -88,7 +86,7 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
                                                          battery_capacity=battery_capacities,
                                                          battery_charge_rate=[area_info['BatteryChargeRate']] * n_agents,
                                                          battery_discharge_rate=[area_info['BatteryDischargeRate']] * n_agents,
-                                                         SOCBES0=[area_info['BatteryEndChargeLevel']] * n_agents,
+                                                         SOCBES0=[area_info['StorageEndChargeLevel']] * n_agents,
                                                          heatpump_COP=[area_info['COPHeatPumps']] * n_agents,
                                                          heatpump_max_power=heatpump_max_power,
                                                          heatpump_max_heat=heatpump_max_heat,
@@ -96,11 +94,11 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
                                                          booster_heatpump_max_power=booster_max_power,
                                                          booster_heatpump_max_heat=booster_max_heat,
                                                          build_area=gross_floor_area,
-                                                         SOCTES0=[1.0] * n_agents,  # TODO
-                                                         TTES0=[60] * n_agents,  # TODO
-                                                         thermalstorage_max_temp=[65] * n_agents,  # TODO
-                                                         thermalstorage_min_temp=[45] * n_agents,  # TODO
-                                                         thermalstorage_volume=[4.0] * n_agents,  # TODO
+                                                         SOCTES0=[area_info['StorageEndChargeLevel']] * n_agents,
+                                                         TTES0=[60.0] * n_agents,  # TODO ?
+                                                         thermalstorage_max_temp=[65] * n_agents,  # TODO ?
+                                                         thermalstorage_min_temp=[45] * n_agents,  # TODO ?
+                                                         thermalstorage_volume=acc_tank_volumes,
                                                          elec_consumption=elec_demand_df,
                                                          hot_water_heatdem=high_heat_demand_df,
                                                          space_heating_heatdem=low_heat_demand_df,
@@ -278,6 +276,7 @@ def add_external_trade(trade_list: List[Trade], bought_from_external_name: str, 
                        resource: Resource):
     external_quantity = pyo.value(get_variable_value_or_else(optimized_model, sold_to_external_name, hour)
                                   - get_variable_value_or_else(optimized_model, bought_from_external_name, hour))
+    # TODO: Add tax and grid fee?
     if external_quantity > VERY_SMALL_NUMBER:
         wholesale_prices = getattr(optimized_model, wholesale_price_name)
         price = get_value_from_param(wholesale_prices, hour)

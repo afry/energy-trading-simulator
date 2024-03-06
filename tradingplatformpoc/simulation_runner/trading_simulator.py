@@ -84,7 +84,7 @@ class TradingSimulator:
             nordpool_data=electricity_price_series_from_db())
 
         self.trading_periods = get_periods_from_db().sort_values()
-        self.trading_periods = self.trading_periods.take(list(range(72)) + list(range(4008, 4080)))  # FIXME: Remove
+        self.trading_periods = self.trading_periods.take(list(range(48)) + list(range(4008, 4056)))  # FIXME: Remove
         self.trading_horizon = self.config_data['AreaInfo']['TradingHorizon']
 
     def initialize_agents(self) -> Tuple[List[IAgent], Dict[Resource, GridAgent]]:
@@ -133,6 +133,7 @@ class TradingSimulator:
                                heat_pump_max_output=agent["HeatPumpMaxOutput"],
                                booster_pump_max_input=agent["BoosterPumpMaxInput"],
                                booster_pump_max_output=agent["BoosterPumpMaxOutput"],
+                               acc_tank_volume=agent["AccumulatorTankVolume"],
                                battery=storage_digital_twin,
                                guid=agent_name))
 
@@ -156,6 +157,7 @@ class TradingSimulator:
                                heat_pump_max_output=agent["HeatPumpMaxOutput"],
                                booster_pump_max_input=agent["BoosterPumpMaxInput"],
                                booster_pump_max_output=agent["BoosterPumpMaxOutput"],
+                               acc_tank_volume=agent["AccumulatorTankVolume"],
                                guid=agent_name))
             elif agent_type == "GridAgent":
                 if Resource[agent["Resource"]] == Resource.ELECTRICITY:
