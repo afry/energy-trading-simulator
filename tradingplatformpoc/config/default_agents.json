@@ -11,7 +11,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 2
+		"AccumulatorTankVolume": 4
 	},
 	{
 		"Type": "BlockAgent",
@@ -25,7 +25,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 2
+		"AccumulatorTankVolume": 4
 	},
 	{
 		"Type": "BlockAgent",
@@ -39,7 +39,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 2
+		"AccumulatorTankVolume": 4
 	},
 	{
 		"Type": "BlockAgent",
@@ -53,7 +53,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 2
+		"AccumulatorTankVolume": 4
 	},
 	{
 		"Type": "BlockAgent",
@@ -67,7 +67,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 2
+		"AccumulatorTankVolume": 4
 	},
 	{
 		"Type": "BlockAgent",
@@ -81,7 +81,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 2
+		"AccumulatorTankVolume": 4
 	},
 	{
 		"Type": "BlockAgent",
@@ -95,7 +95,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 2
+		"AccumulatorTankVolume": 4
 	},
 	{
 		"Type": "BlockAgent",
@@ -109,7 +109,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 2
+		"AccumulatorTankVolume": 4
 	},
 	{
 		"Type": "BlockAgent",
@@ -123,7 +123,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 2
+		"AccumulatorTankVolume": 4
 	},
 	{
 		"Type": "BlockAgent",
@@ -137,7 +137,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 2
+		"AccumulatorTankVolume": 4
 	},
 	{
 		"Type": "BlockAgent",
@@ -151,7 +151,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 2
+		"AccumulatorTankVolume": 4
 	},
 	{
 		"Type": "BlockAgent",
@@ -165,7 +165,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 2
+		"AccumulatorTankVolume": 4
 	},
 	{
 		"Type": "BlockAgent",
@@ -179,7 +179,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 2
+		"AccumulatorTankVolume": 4
 	},
 	{
 		"Type": "BlockAgent",
@@ -193,7 +193,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 2
+		"AccumulatorTankVolume": 4
 	},
 	{
 		"Type": "BlockAgent",
@@ -207,7 +207,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 2
+		"AccumulatorTankVolume": 4
 	},
 	{
 		"Type": "BlockAgent",
@@ -221,7 +221,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 2
+		"AccumulatorTankVolume": 4
 	},
 	{
 		"Type": "BlockAgent",
@@ -235,7 +235,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 2
+		"AccumulatorTankVolume": 4
 	},
 	{
 		"Type": "BlockAgent",
@@ -249,7 +249,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 2
+		"AccumulatorTankVolume": 4
 	},
 	{
 		"Type": "BlockAgent",
@@ -263,7 +263,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 2
+		"AccumulatorTankVolume": 4
 	},
 	{
 		"Type": "BlockAgent",
@@ -277,7 +277,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 2
+		"AccumulatorTankVolume": 4
 	},
 	{
 		"Type": "BlockAgent",
