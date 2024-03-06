@@ -75,7 +75,7 @@
             "type": "float"
         },
         "AccumulatorTankVolume": {
-            "display": "Accumulator tank volume (m³)",
+            "display": "Accumulator tank volume (cu m)",
             "min_value": 0.0,
             "step": 0.5,
             "default_value": 0.0,
