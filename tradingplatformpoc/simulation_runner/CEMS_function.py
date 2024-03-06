@@ -3,6 +3,7 @@ from typing import List, Tuple
 import pandas as pd
 
 import pyomo.environ as pyo
+from pyomo.core import Constraint
 from pyomo.opt import OptSolver, SolverResults
 
 # This share of high-temp heat need can be covered by low-temp heat (source: BDAB). The rest needs to be covered by
@@ -47,16 +48,22 @@ def solve_model(solver: OptSolver, summer_mode: bool, n_agents: int, external_el
     assert len(external_elec_sell_price) >= trading_horizon
     assert battery_efficiency >= 0  # Otherwise we'll get division by zero
     assert thermalstorage_efficiency >= 0  # Otherwise we'll get division by zero
-    if summer_mode:
-        # (1 - PERC_OF_HT_COVERABLE_BY_LT) of the high-temp-heat-demand needs to be covered by the booster heat pump.
-        # If the high-temp-heat-demand is higher than this, we won't be able to find a solution (the
-        # TerminationCondition will be 'infeasible'). Easier to raise this error straight away, so that the user knows
-        # specifically what went wrong.
-        max_hot_water_generated = [mhp / (1 - PERC_OF_HT_COVERABLE_BY_LT) for mhp in booster_heatpump_max_heat]
-        too_big_hot_water_demand = hot_water_heatdem.gt(max_hot_water_generated, axis=0).any(axis=1)
-        if too_big_hot_water_demand.any():
-            problematic_agent_indices = [i for i, x in enumerate(too_big_hot_water_demand.tolist()) if x]
-            raise RuntimeError('Unfillable hot water demand for agent indices: {}'.format(problematic_agent_indices))
+
+    # Energy per degree C in each agent's tank
+    # Specific heat of Water is 4182 J/(kg C)
+    # Density of water is 998 kg/m3
+    # This assumes that HTESdis and HTEScha are in kW. If they are in watt,
+    # 1000 should be removed from the following formulation:
+    kwh_per_deg = [v * 4182 * 998 / 3600000 for v in thermalstorage_volume]
+
+    # All hot water is covered by discharging the accumulator tank. So hot water demand cannot be greater than the
+    # maximum discharge capability, or we won't be able to find a solution (the TerminationCondition will be
+    # 'infeasible'). Easier to raise this error straight away, so that the user knows specifically what went wrong.
+    max_tank_discharge = [x * y for x, y in zip(kwh_per_deg, thermalstorage_max_temp)]
+    too_big_hot_water_demand = hot_water_heatdem.gt(max_tank_discharge, axis=0).any(axis=1)
+    if too_big_hot_water_demand.any():
+        problematic_agent_indices = [i for i, x in enumerate(too_big_hot_water_demand.tolist()) if x]
+        raise RuntimeError('Unfillable hot water demand for agent indices: {}'.format(problematic_agent_indices))
 
     model = pyo.ConcreteModel()
     # Sets
@@ -106,7 +113,7 @@ def solve_model(solver: OptSolver, summer_mode: bool, n_agents: int, external_el
     model.TTES0 = pyo.Param(model.I, initialize=TTES0)
     model.Tmax_TES = pyo.Param(model.I, initialize=thermalstorage_max_temp)
     model.Tmin_TES = pyo.Param(model.I, initialize=thermalstorage_min_temp)
-    model.Vol_TES = pyo.Param(model.I, initialize=thermalstorage_volume)
+    model.kwh_per_deg = pyo.Param(model.I, initialize=kwh_per_deg)
     # Local heat network efficiency
     model.Heat_trans_loss = pyo.Param(initialize=Heat_trans_loss)
     # Variable
@@ -119,7 +126,7 @@ def solve_model(solver: OptSolver, summer_mode: bool, n_agents: int, external_el
     model.U_power_buy_sell_grid = pyo.Var(model.I, model.T, within=pyo.Binary, initialize=0)
     model.Hbuy_grid = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
     model.Hsell_grid = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
-    model.U_heat_buy_sell_grid = pyo.Var(model.I, model.T, within=pyo.Binary, initialize=0)
+#    model.U_heat_buy_sell_grid = pyo.Var(model.I, model.T, within=pyo.Binary, initialize=0)
     model.Pcha = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
     model.Pdis = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
     model.SOCBES = pyo.Var(model.I, model.T, bounds=(0, 1), within=pyo.NonNegativeReals,
@@ -128,7 +135,8 @@ def solve_model(solver: OptSolver, summer_mode: bool, n_agents: int, external_el
     model.Php = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
     model.HTEScha = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
     model.HTESdis = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
-    model.TTES = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
+    model.TTES = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals,
+                         initialize=lambda m, i, t: TTES0[i])
     model.SOCTES = pyo.Var(model.I, model.T, bounds=(0, 1), within=pyo.NonNegativeReals,
                            initialize=lambda m, i, t: SOCTES0[i])
     model.Ccc = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
@@ -222,7 +230,7 @@ def con_rul1_1(model, i, t):
 
 
 def con_rul1_2(model, i, t):
-    return model.Hbuy_grid[i, t] <= model.Hmax_grid * model.U_heat_buy_sell_grid[i, t]
+    return model.Hbuy_grid[i, t] <= model.Hmax_grid # * model.U_heat_buy_sell_grid[i, t]
 
 
 def con_rul2_1(model, i, t):
@@ -237,7 +245,7 @@ def con_rul2_2_1(model, i, t):
 
 def con_rul2_2_2(model, i, t):
     # Only used in summer mode
-    return model.Hsell_grid[i, t] <= model.Hmax_grid * (1 - model.U_heat_buy_sell_grid[i, t])
+    return model.Hsell_grid[i, t] <= model.Hmax_grid  # * (1 - model.U_heat_buy_sell_grid[i, t])
 
 
 # Buying and selling power from the market cannot happen at the same time
@@ -417,32 +425,26 @@ def con_rul11_4(model, i, t):
 # Thermal energy storage model (eqs. 32 to 25 of the report)
 # Maximum/minimum temperature limitations of hot water inside TES
 def con_rul12(model, i, t):
-    return model.HTESdis[i, t] <= (model.Vol_TES[i] * 4182 * 998 * model.Tmax_TES[i] / (1000 * 3600))
+    return model.HTESdis[i, t] <= model.kwh_per_deg[i] * model.Tmax_TES[i]
 
 
 def con_rul13(model, i, t):
-    return model.HTEScha[i, t] <= (model.Vol_TES[i] * 4182 * 998 * model.Tmax_TES[i] / (1000 * 3600))
+    return model.HTEScha[i, t] <= model.kwh_per_deg[i] * model.Tmax_TES[i]
 
 
 # State of charge modelling
 def con_rul14(model, i, t):
-    if model.Vol_TES[i] == 0:
+    if model.kwh_per_deg[i] == 0:
         # No storage capacity, then we need to ensure that charge and discharge are 0 as well.
-        return model.HTESdis[i, t] + model.HTEScha[i, t] == model.Vol_TES[i]
-    # We assume that model.efft cannot be 0
+        return model.HTESdis[i, t] + model.HTEScha[i, t] == model.kwh_per_deg[i]
+    # We assume that model.efft and model.Tmax_TES cannot be 0
+    charge = model.HTEScha[i, t] * model.efft[i] / (model.kwh_per_deg[i] * model.Tmax_TES[i])
+    discharge = model.HTESdis[i, t] / ((model.kwh_per_deg[i] * model.Tmax_TES[i]) * model.efft[i])
+    charge_change = charge - discharge
     if t == 0:
-        return model.SOCTES[i, 0] == model.SOCTES0[i] + model.HTEScha[i, 0] * model.efft[i] / (model.Vol_TES[i] * 4182 *
-                                                                                               998 * model.Tmax_TES[i] /
-                                                                                               (1000 * 3600)) - \
-               model.HTESdis[i, 0] / ((model.Vol_TES[i] * 4182 * 998 * model.Tmax_TES[i] /
-                                       (1000 * 3600)) * model.efft[i])
+        return model.SOCTES[i, 0] == model.SOCTES0[i] + charge_change
     else:
-        return model.SOCTES[i, t] == model.SOCTES[i, t - 1] + model.HTEScha[i, t] * model.efft[i] / (model.Vol_TES[i] *
-                                                                                                     4182 * 998 *
-                                                                                                     model.Tmax_TES[i] /
-                                                                                                     (1000 * 3600)) \
-               - model.HTESdis[i, t] / ((model.Vol_TES[i] * 4182 * 998 * model.Tmax_TES[i] /
-                                         (1000 * 3600)) * model.efft[i])
+        return model.SOCTES[i, t] == model.SOCTES[i, t - 1] + charge_change
 
 
 def con_rul15(model, i):
@@ -450,17 +452,18 @@ def con_rul15(model, i):
 
 
 def con_rul15_1(model, i, t):
+    if model.kwh_per_deg[i] == 0:
+        # No storage capacity - then charge and discharge should be 0, but that is covered in con_rul14, so we can just
+        # skip this constraint.
+        return Constraint.Skip
     # We assume that model.efft cannot be 0
-    # make sure that the HTESdis and HTEScha are in kW. If it is in Watte,
-    # 1000 should be removed from the following formulation
-    # Specific heat of Water is 4182 J/(kg C)
-    # Density of water is 998 kg/m3
+    temp_increase = (model.HTEScha[i, t] * model.efft[i]) / model.kwh_per_deg[i]  # Degrees C per hour
+    temp_decrease = (model.HTESdis[i, t] / model.efft[i]) / model.kwh_per_deg[i]  # Degrees C per hour
+    temp_change = temp_increase - temp_decrease
     if t == 0:
-        return model.TTES[i, 0] == model.TTES0[i] - ((1000 * model.HTESdis[i, 0] * 3600 / model.efft[i])/(model.Vol_TES[i] * 4182 * 998))\
-               + ((1000 * model.HTEScha[i, 0] * 3600 * model.efft[i])/(model.Vol_TES[i] * 4182 * 998))
+        return model.TTES[i, 0] == model.TTES0[i] + temp_change
     else:
-        return model.TTES[i, t] == model.TTES[i, t - 1] - ((1000 * model.HTESdis[i, t] * 3600 / model.efft[i])/(model.Vol_TES[i] * 4182 * 998))\
-               + ((1000 * model.HTEScha[i, t] * 3600 * model.efft[i])/(model.Vol_TES[i] * 4182 * 998))
+        return model.TTES[i, t] == model.TTES[i, t - 1] + temp_change
 
 
 def con_rul15_2(model, i, t):

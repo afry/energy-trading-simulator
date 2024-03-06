@@ -100,7 +100,7 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
                                                          TTES0=[60] * n_agents,  # TODO
                                                          thermalstorage_max_temp=[65] * n_agents,  # TODO
                                                          thermalstorage_min_temp=[45] * n_agents,  # TODO
-                                                         thermalstorage_volume=[2.0] * n_agents,  # TODO
+                                                         thermalstorage_volume=[4.0] * n_agents,  # TODO
                                                          elec_consumption=elec_demand_df,
                                                          hot_water_heatdem=high_heat_demand_df,
                                                          space_heating_heatdem=low_heat_demand_df,
