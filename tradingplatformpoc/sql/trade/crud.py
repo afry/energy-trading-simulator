@@ -191,7 +191,7 @@ def db_to_viewable_trade_df_by_agent(job_id: str, agent_guid: str,
                                              'quantity_post_loss': trade.quantity_post_loss, 'price': trade.price,
                                              'tax_paid': trade.tax_paid, 'grid_fee_paid': trade.grid_fee_paid} for
                                             trade in trades], index='period')
-            return df.sort_index()
+            return df.sort_values(by=['period', 'resource'])
         else:
             return pd.DataFrame(columns=['period', 'action', 'resource', 'market', 'quantity_pre_loss',
                                          'quantity_post_loss', 'price', 'tax_paid', 'grid_fee_paid'])
