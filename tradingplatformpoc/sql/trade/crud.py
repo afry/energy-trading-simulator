@@ -30,7 +30,7 @@ def heat_trades_from_db_for_periods(trading_periods, job_id: str,
                                       .where((TableTrade.job_id == job_id)
                                              & (TableTrade.period >= trading_periods.min())
                                              & (TableTrade.period <= trading_periods.max())
-                                             & (TableTrade.resource == 'HEATING'))
+                                             & (TableTrade.resource == Resource.HIGH_TEMP_HEAT.name))
                                       .order_by(TableTrade.period)).all()
 
         return dict((period, list(vals)) for period, vals in
