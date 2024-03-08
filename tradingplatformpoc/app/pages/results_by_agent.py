@@ -4,15 +4,16 @@ import streamlit as st
 
 from tradingplatformpoc.app import footer
 from tradingplatformpoc.app.app_charts import construct_agent_with_heat_pump_chart, \
-    construct_traded_amount_by_agent_chart
-from tradingplatformpoc.app.app_data_display import build_heat_pump_levels_df, \
-    get_savings_vs_only_external_buy, reconstruct_static_digital_twin
+    construct_traded_amount_by_agent_chart, construct_storage_level_chart
+from tradingplatformpoc.app.app_data_display import build_heat_pump_levels_df, reconstruct_static_digital_twin
 from tradingplatformpoc.app.app_functions import IdPair, download_df_as_csv_button, make_room_for_menu_in_sidebar
+from tradingplatformpoc.market.trade import TradeMetadataKey
 from tradingplatformpoc.sql.agent.crud import get_agent_config, get_agent_type
 from tradingplatformpoc.sql.bid.crud import db_to_viewable_bid_df_for_agent
 from tradingplatformpoc.sql.config.crud import get_all_agents_in_config, get_all_finished_job_config_id_pairs_in_db, \
     read_config
 from tradingplatformpoc.sql.extra_cost.crud import db_to_viewable_extra_costs_df_by_agent
+from tradingplatformpoc.sql.level.crud import db_to_viewable_level_df_by_agent
 from tradingplatformpoc.sql.trade.crud import db_to_viewable_trade_df_by_agent
 
 TABLE_HEIGHT: int = 300
@@ -30,16 +31,6 @@ if len(ids) > 0:
     agent_chosen_guid = st.sidebar.selectbox('Choose agent:', agent_names)
     agent_type = get_agent_type(agent_specs[agent_chosen_guid])
     st.write("Showing results for: " + agent_chosen_guid)
-
-    with st.expander('Bids'):
-        bids_df = db_to_viewable_bid_df_for_agent(job_id=chosen_id_to_view.job_id,
-                                                  agent_guid=agent_chosen_guid)
-        if bids_df.empty:
-            st.dataframe(bids_df, hide_index=True)
-        else:
-            st.dataframe(bids_df.replace(float('inf'), 'inf'), height=TABLE_HEIGHT)
-            download_df_as_csv_button(bids_df, "all_bids_for_agent_" + agent_chosen_guid,
-                                      include_index=True)
 
     with st.expander('Trades'):
         trades_df = db_to_viewable_trade_df_by_agent(job_id=chosen_id_to_view.job_id,
@@ -67,43 +58,15 @@ if len(ids) > 0:
             download_df_as_csv_button(extra_costs_df, "extra_costs_for_agent_" + agent_chosen_guid,
                                       include_index=True)
 
-    # TODO: uncomment when we've fixed saving storage level for block agents
-    # if agent_type == 'BlockAgent':
-    #     storage_levels_df = db_to_viewable_level_df_by_agent(job_id=chosen_id_to_view.job_id,
-    #                                                          agent_guid=agent_chosen_guid,
-    #                                                          level_type=TradeMetadataKey.STORAGE_LEVEL.name)
-    #     if not storage_levels_df.empty:
-    #         with st.expander('Charging level over time for ' + agent_chosen_guid + ':'):
-    #             storage_chart = construct_storage_level_chart(storage_levels_df)
-    #             st.altair_chart(storage_chart, use_container_width=True, theme=None)
-    
-    # Exclude GridAgent
-    if agent_type != 'GridAgent':
+    if agent_type == 'BlockAgent':
+        storage_levels_df = db_to_viewable_level_df_by_agent(job_id=chosen_id_to_view.job_id,
+                                                             agent_guid=agent_chosen_guid,
+                                                             level_type=TradeMetadataKey.BATTERY_LEVEL.name)
+        if not storage_levels_df.empty:
+            with st.expander('Charging level over time for ' + agent_chosen_guid + ':'):
+                storage_chart = construct_storage_level_chart(storage_levels_df)
+                st.altair_chart(storage_chart, use_container_width=True, theme=None)
 
-        total_saved, extra_costs_for_bad_bids = get_savings_vs_only_external_buy(
-            job_id=chosen_id_to_view.job_id,
-            agent_guid=agent_chosen_guid)
-
-        st.metric(
-            label="Savings from using the local market before taking penalties into account.",
-            value="{:,.2f} SEK".format(total_saved),
-            help="Amount saved for agent {} by using local market, ".format(agent_chosen_guid)
-            + r"as opposed to only using the external grid. "
-            r"The value is the sum of savings on buy trades where the buyer pays for "
-            r"the quantity before losses:"
-            r"$\sum \limits_{\text{buy}}$ quantity $ \cdot$ (retail price $-$ price)"
-            r" and savings on sell trades, where the seller is payed for the quantity after losses: "
-            r"$\sum \limits_\text{sell}$ (quantity $-$ loss) $\cdot$ (price $-$ wholesale price)"
-            r" minus heat cost corrections.")
-
-        st.metric(
-            label="Total penalties accrued for bid inaccuracies.",
-            value="{:,.2f} SEK".format(extra_costs_for_bad_bids),
-            help=r"Agent {} was penalized with a total of {:,.2f} SEK due to inaccurate projections. This brought "
-                 r"total savings after penalties to {:,.2f} SEK.".format(agent_chosen_guid, extra_costs_for_bad_bids,
-                                                                         total_saved - extra_costs_for_bad_bids))
-
-    if agent_type == "BlockAgent":
         with st.expander('Energy production/consumption'):
             agent_config = get_agent_config(agent_specs[agent_chosen_guid])
             st.caption("Click on a variable to highlight it.")
