@@ -22,7 +22,7 @@ from tradingplatformpoc.price.heating_price import HeatingPrice
 from tradingplatformpoc.simulation_runner import CEMS_function
 from tradingplatformpoc.trading_platform_utils import add_to_nested_dict
 
-VERY_SMALL_NUMBER = 0.00000000001  # to avoid trades with quantity 1e-16, for example
+VERY_SMALL_NUMBER = 0.000001  # to avoid trades with quantity 1e-7, for example
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +63,8 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
         build_supply_and_demand_dfs(block_agents, start_datetime, trading_horizon)
 
     battery_capacities = [agent.battery.capacity_kwh for agent in block_agents]
+    battery_max_charge = [agent.battery.charge_limit_kwh for agent in block_agents]
+    battery_max_discharge = [agent.battery.discharge_limit_kwh for agent in block_agents]
     acc_tank_volumes = [agent.acc_tank_volume for agent in block_agents]
     heatpump_max_power = [agent.heat_pump_max_input for agent in block_agents]
     heatpump_max_heat = [agent.heat_pump_max_output for agent in block_agents]
@@ -84,8 +86,8 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
                                                          external_elec_sell_price=elec_wholesale_prices,
                                                          external_heat_buy_price=heat_retail_price,
                                                          battery_capacity=battery_capacities,
-                                                         battery_charge_rate=[area_info['BatteryChargeRate']] * n_agents,
-                                                         battery_discharge_rate=[area_info['BatteryDischargeRate']] * n_agents,
+                                                         battery_charge_rate=battery_max_charge,
+                                                         battery_discharge_rate=battery_max_discharge,
                                                          SOCBES0=[area_info['StorageEndChargeLevel']] * n_agents,
                                                          heatpump_COP=[area_info['COPHeatPumps']] * n_agents,
                                                          heatpump_max_power=heatpump_max_power,
