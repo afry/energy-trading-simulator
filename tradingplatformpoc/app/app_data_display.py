@@ -1,7 +1,7 @@
 
 import datetime
 from time import strptime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 
@@ -17,17 +17,13 @@ from tradingplatformpoc.generate_data.mock_data_utils import get_cooling_cons_ke
 from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.market.trade import TradeMetadataKey
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
-from tradingplatformpoc.sql.electricity_price.crud import db_to_electricity_price_dict
-from tradingplatformpoc.sql.extra_cost.crud import db_to_aggregated_extra_costs_by_agent
-from tradingplatformpoc.sql.heating_price.crud import db_to_heating_price_dict
 from tradingplatformpoc.sql.input_data.crud import get_periods_from_db, read_input_column_df_from_db, \
     read_inputs_df_for_agent_creation
 from tradingplatformpoc.sql.input_electricity_price.crud import electricity_price_series_from_db
 from tradingplatformpoc.sql.level.crud import db_to_viewable_level_df_by_agent
 from tradingplatformpoc.sql.mock_data.crud import db_to_mock_data_df, get_mock_data_agent_pairs_in_db
 from tradingplatformpoc.sql.results.models import ResultsKey
-from tradingplatformpoc.sql.trade.crud import db_to_trades_by_agent_and_resource_action, \
-    elec_trades_by_external_for_periods_to_df, get_total_import_export
+from tradingplatformpoc.sql.trade.crud import elec_trades_by_external_for_periods_to_df, get_total_import_export
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod
 
 

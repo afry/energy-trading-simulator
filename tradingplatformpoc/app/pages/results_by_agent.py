@@ -4,12 +4,11 @@ import streamlit as st
 
 from tradingplatformpoc.app import footer
 from tradingplatformpoc.app.app_charts import construct_agent_with_heat_pump_chart, \
-    construct_traded_amount_by_agent_chart, construct_storage_level_chart
+    construct_storage_level_chart, construct_traded_amount_by_agent_chart
 from tradingplatformpoc.app.app_data_display import build_heat_pump_levels_df, reconstruct_static_digital_twin
 from tradingplatformpoc.app.app_functions import IdPair, download_df_as_csv_button, make_room_for_menu_in_sidebar
 from tradingplatformpoc.market.trade import TradeMetadataKey
 from tradingplatformpoc.sql.agent.crud import get_agent_config, get_agent_type
-from tradingplatformpoc.sql.bid.crud import db_to_viewable_bid_df_for_agent
 from tradingplatformpoc.sql.config.crud import get_all_agents_in_config, get_all_finished_job_config_id_pairs_in_db, \
     read_config
 from tradingplatformpoc.sql.extra_cost.crud import db_to_viewable_extra_costs_df_by_agent
@@ -38,7 +37,8 @@ if len(ids) > 0:
         if trades_df.empty:
             st.dataframe(trades_df, hide_index=True)
         else:
-            st.dataframe(trades_df.replace(float('inf'), 'inf'), height=TABLE_HEIGHT)
+            height = TABLE_HEIGHT if len(trades_df.index) > 7 else None
+            st.dataframe(trades_df.replace(float('inf'), 'inf'), height=height)
             download_df_as_csv_button(trades_df, "all_trades_for_agent_" + agent_chosen_guid,
                                       include_index=True)
             trades_chart = construct_traded_amount_by_agent_chart(agent_chosen_guid, trades_df)
@@ -54,11 +54,12 @@ if len(ids) > 0:
         if extra_costs_df.empty:
             st.dataframe(extra_costs_df, hide_index=True)
         else:
-            st.dataframe(extra_costs_df.replace(float('inf'), 'inf'), height=TABLE_HEIGHT)
+            height = TABLE_HEIGHT if len(extra_costs_df.index) > 7 else None
+            st.dataframe(extra_costs_df.replace(float('inf'), 'inf'), height=height)
             download_df_as_csv_button(extra_costs_df, "extra_costs_for_agent_" + agent_chosen_guid,
                                       include_index=True)
 
-    if agent_type == 'BlockAgent':
+    if agent_type == 'BlockAgent':  # TODO: Can we exclude this if the agent doesn't have a battery?
         storage_levels_df = db_to_viewable_level_df_by_agent(job_id=chosen_id_to_view.job_id,
                                                              agent_guid=agent_chosen_guid,
                                                              level_type=TradeMetadataKey.BATTERY_LEVEL.name)
