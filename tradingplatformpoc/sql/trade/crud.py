@@ -30,7 +30,7 @@ def heat_trades_from_db_for_periods(trading_periods, job_id: str,
                                       .where((TableTrade.job_id == job_id)
                                              & (TableTrade.period >= trading_periods.min())
                                              & (TableTrade.period <= trading_periods.max())
-                                             & (TableTrade.resource == 'HEATING'))
+                                             & (TableTrade.resource == Resource.HIGH_TEMP_HEAT.name))
                                       .order_by(TableTrade.period)).all()
 
         return dict((period, list(vals)) for period, vals in
@@ -185,16 +185,13 @@ def db_to_viewable_trade_df_by_agent(job_id: str, agent_guid: str,
         trades = db.query(TableTrade).filter(TableTrade.source == agent_guid, TableTrade.job_id == job_id).all()
 
         if len(trades) > 0:
-            return pd.DataFrame.from_records([{'period': trade.period,
-                                               'action': trade.action.name,
-                                               'resource': trade.resource.name,
-                                               'market': trade.market.name,
-                                               'quantity_pre_loss': trade.quantity_pre_loss,
-                                               'quantity_post_loss': trade.quantity_post_loss,
-                                               'price': trade.price,
-                                               'tax_paid': trade.tax_paid,
-                                               'grid_fee_paid': trade.grid_fee_paid
-                                               } for trade in trades], index='period')
+            df = pd.DataFrame.from_records([{'period': trade.period, 'action': trade.action.name,
+                                             'resource': trade.resource.name, 'market': trade.market.name,
+                                             'quantity_pre_loss': trade.quantity_pre_loss,
+                                             'quantity_post_loss': trade.quantity_post_loss, 'price': trade.price,
+                                             'tax_paid': trade.tax_paid, 'grid_fee_paid': trade.grid_fee_paid} for
+                                            trade in trades], index='period')
+            return df.sort_values(by=['period', 'resource'])
         else:
             return pd.DataFrame(columns=['period', 'action', 'resource', 'market', 'quantity_pre_loss',
                                          'quantity_post_loss', 'price', 'tax_paid', 'grid_fee_paid'])

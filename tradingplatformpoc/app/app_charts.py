@@ -99,14 +99,14 @@ def construct_traded_amount_by_agent_chart(agent_chosen_guid: str,
 
     domain = []
     range_color = []
-    plot_lst: List[dict] = [{'title': 'Amount of electricity bought', 'color_num': 0,
-                            'resource': Resource.ELECTRICITY, 'action': Action.BUY},
-                            {'title': 'Amount of electricity sold', 'color_num': 1,
-                            'resource': Resource.ELECTRICITY, 'action': Action.SELL},
-                            {'title': 'Amount of heating bought', 'color_num': 2,
-                            'resource': Resource.HEATING, 'action': Action.BUY},
-                            {'title': 'Amount of heating sold', 'color_num': 3,
-                            'resource': Resource.HEATING, 'action': Action.SELL}]
+    plot_lst: List[dict] = []
+    col_counter = 0
+    for resource in [Resource.ELECTRICITY, Resource.HIGH_TEMP_HEAT, Resource.LOW_TEMP_HEAT, Resource.COOLING]:
+        plot_lst.append({'title': 'Amount of {} bought'.format(resource.get_display_name()),
+                         'color_num': col_counter, 'resource': resource, 'action': Action.BUY})
+        plot_lst.append({'title': 'Amount of {} sold'.format(resource.get_display_name()),
+                         'color_num': col_counter + 1, 'resource': resource, 'action': Action.SELL})
+        col_counter = col_counter + 2
 
     for elem in plot_lst:
         mask = (agent_trade_df.resource.values == elem['resource'].name) \
@@ -128,7 +128,7 @@ def construct_traded_amount_by_agent_chart(agent_chosen_guid: str,
                                           'variable': elem['title']})))
 
     return altair_line_chart(df, domain, range_color, [], "Energy [kWh]",
-                             'Electricity and Heating Amounts Traded for ' + agent_chosen_guid)
+                             'Energy traded for ' + agent_chosen_guid)
 
 
 def construct_price_chart(prices_df: pd.DataFrame, resource: Resource) -> alt.Chart:

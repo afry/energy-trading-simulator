@@ -288,20 +288,22 @@ def add_external_trade(trade_list: List[Trade], bought_from_external_name: str, 
                        resource: Resource, resource_price_data: IPrice):
     external_quantity = pyo.value(get_variable_value_or_else(optimized_model, sold_to_external_name, hour)
                                   - get_variable_value_or_else(optimized_model, bought_from_external_name, hour))
-    # TODO: Add tax and grid fee?
+    period = start_datetime + datetime.timedelta(hours=hour)
     if external_quantity > VERY_SMALL_NUMBER:
         wholesale_prices = getattr(optimized_model, wholesale_price_name)
         price = get_value_from_param(wholesale_prices, hour)
-        trade_list.append(Trade(period=start_datetime + datetime.timedelta(hours=hour),
+        trade_list.append(Trade(period=period,
                                 action=Action.BUY, resource=resource, quantity=external_quantity,
                                 price=price, source=grid_agent_guid, by_external=True, market=Market.LOCAL))
     elif external_quantity < -VERY_SMALL_NUMBER:
         retail_prices = getattr(optimized_model, retail_price_name)
         price = get_value_from_param(retail_prices, hour)
-        trade_list.append(Trade(period=start_datetime + datetime.timedelta(hours=hour),
+        trade_list.append(Trade(period=period,
                                 action=Action.SELL, resource=resource, quantity=-external_quantity,
                                 price=price, source=grid_agent_guid, by_external=True, market=Market.LOCAL,
                                 tax_paid=resource_price_data.tax))
+        if isinstance(resource_price_data, HeatingPrice):
+            resource_price_data.add_external_heating_sell(period, -external_quantity)
 
 
 def get_value_from_param(maybe_indexed_param: Union[IndexedParam, ScalarParam], index: int) -> float:
