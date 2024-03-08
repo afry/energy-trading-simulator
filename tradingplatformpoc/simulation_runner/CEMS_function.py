@@ -22,7 +22,7 @@ def solve_model(solver: OptSolver, summer_mode: bool, n_agents: int, external_el
                 cold_consumption: pd.DataFrame, pv_production: pd.DataFrame, battery_efficiency: float = 0.95,
                 max_elec_transfer_between_agents: float = 500, max_elec_transfer_to_external: float = 1000,
                 max_heat_transfer_between_agents: float = 500, max_heat_transfer_to_external: float = 1000,
-                chiller_COP: float = 1.5, thermalstorage_efficiency: float = 0.98, Heat_trans_loss: float = 0.05,
+                chiller_COP: float = 1.5, thermalstorage_efficiency: float = 0.98, heat_trans_loss: float = 0.05,
                 trading_horizon: int = 24) \
         -> Tuple[pyo.ConcreteModel, SolverResults]:
     """
@@ -46,8 +46,9 @@ def solve_model(solver: OptSolver, summer_mode: bool, n_agents: int, external_el
     assert len(cold_consumption.columns) >= trading_horizon
     assert len(external_elec_buy_price) >= trading_horizon
     assert len(external_elec_sell_price) >= trading_horizon
-    assert battery_efficiency >= 0  # Otherwise we'll get division by zero
-    assert thermalstorage_efficiency >= 0  # Otherwise we'll get division by zero
+    assert battery_efficiency > 0  # Otherwise we'll get division by zero
+    assert thermalstorage_efficiency > 0  # Otherwise we'll get division by zero
+    assert heat_trans_loss > 0  # Otherwise we may get simultaneous buying and selling of heat
 
     # Energy per degree C in each agent's tank
     # Specific heat of Water is 4182 J/(kg C)
@@ -115,7 +116,7 @@ def solve_model(solver: OptSolver, summer_mode: bool, n_agents: int, external_el
     model.Tmin_TES = pyo.Param(model.I, initialize=thermalstorage_min_temp)
     model.kwh_per_deg = pyo.Param(model.I, initialize=kwh_per_deg)
     # Local heat network efficiency
-    model.Heat_trans_loss = pyo.Param(initialize=Heat_trans_loss)
+    model.Heat_trans_loss = pyo.Param(initialize=heat_trans_loss)
     # Variable
     model.Pbuy_market = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
     model.Psell_market = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
@@ -396,6 +397,9 @@ def con_rul10(model, i):
 
 
 def con_rul10_1(model, i, t):
+    if (model.Pmax_BES_Dis[i] == 0) or (model.Pmax_BES_Cha[i] == 0):
+        # Can't charge/discharge
+        return model.Pcha[i, t] + model.Pdis[i, t] <= 0
     return model.Pdis[i, t] / model.Pmax_BES_Dis[i] + model.Pcha[i, t] / model.Pmax_BES_Cha[i] <= 1
 
 
