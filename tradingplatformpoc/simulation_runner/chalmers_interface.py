@@ -19,6 +19,7 @@ from tradingplatformpoc.market.bid import Action, Resource
 from tradingplatformpoc.market.trade import Market, Trade
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
+from tradingplatformpoc.price.iprice import IPrice
 from tradingplatformpoc.simulation_runner import CEMS_function
 from tradingplatformpoc.trading_platform_utils import add_to_nested_dict
 
@@ -126,7 +127,9 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
     heat_grid_agent_guid = grid_agents[Resource.HIGH_TEMP_HEAT].guid if Resource.HIGH_TEMP_HEAT in grid_agents.keys() \
         else grid_agents[Resource.HEATING].guid
     return extract_outputs(optimized_model, results, start_datetime,
-                           elec_grid_agent_guid, heat_grid_agent_guid, agent_guids)
+                           elec_grid_agent_guid, heat_grid_agent_guid,
+                           elec_pricing, heat_pricing,
+                           agent_guids)
 
 
 def should_use_summer_mode(start_datetime: datetime.datetime) -> bool:
@@ -139,9 +142,13 @@ def extract_outputs(optimized_model: pyo.ConcreteModel,
                     start_datetime: datetime.datetime,
                     elec_grid_agent_guid: str,
                     heat_grid_agent_guid: str,
+                    electricity_price_data: ElectricityPrice,
+                    heating_price_data: HeatingPrice,
                     agent_guids: List[str]) -> ChalmersOutputs:
-    elec_trades = get_power_transfers(optimized_model, start_datetime, elec_grid_agent_guid, agent_guids)
-    heat_trades = get_heat_transfers(optimized_model, start_datetime, heat_grid_agent_guid, agent_guids)
+    elec_trades = get_power_transfers(optimized_model, start_datetime, elec_grid_agent_guid, agent_guids,
+                                      electricity_price_data)
+    heat_trades = get_heat_transfers(optimized_model, start_datetime, heat_grid_agent_guid, agent_guids,
+                                     heating_price_data)
     battery_storage_levels = get_value_per_agent(optimized_model, start_datetime, 'SOCBES', agent_guids)
     if should_use_summer_mode(start_datetime):
         hp_low_prod = get_value_per_agent(optimized_model, start_datetime, 'Hhp', agent_guids)
@@ -211,7 +218,7 @@ def add_usage_to_supply_list(agent_list: List[float], usage_of_resource: float):
 
 
 def get_power_transfers(optimized_model: pyo.ConcreteModel, start_datetime: datetime.datetime, grid_agent_guid: str,
-                        agent_guids: List[str]) -> List[Trade]:
+                        agent_guids: List[str], resource_price_data: ElectricityPrice) -> List[Trade]:
     # For example: Pbuy_market is how much the LEC bought from the external grid operator
     inter_agent_trades = get_agent_transfers(optimized_model, start_datetime,
                                              sold_internal_name='Psell_grid', bought_internal_name='Pbuy_grid',
@@ -220,12 +227,13 @@ def get_power_transfers(optimized_model: pyo.ConcreteModel, start_datetime: date
                                              sold_to_external_name='Psell_market',
                                              bought_from_external_name='Pbuy_market',
                                              retail_price_name='price_buy', wholesale_price_name='price_sell',
-                                             resource=Resource.ELECTRICITY, grid_agent_guid=grid_agent_guid)
+                                             resource=Resource.ELECTRICITY, grid_agent_guid=grid_agent_guid,
+                                             resource_price_data=resource_price_data)
     return inter_agent_trades + external_trades
 
 
 def get_heat_transfers(optimized_model: pyo.ConcreteModel, start_datetime: datetime.datetime, grid_agent_guid: str,
-                       agent_guids: List[str]) -> List[Trade]:
+                       agent_guids: List[str], resource_price_data: HeatingPrice) -> List[Trade]:
     resource = Resource.LOW_TEMP_HEAT if should_use_summer_mode(start_datetime) else Resource.HIGH_TEMP_HEAT
     inter_agent_trades = get_agent_transfers(optimized_model, start_datetime,
                                              sold_internal_name='Hsell_grid', bought_internal_name='Hbuy_grid',
@@ -233,18 +241,20 @@ def get_heat_transfers(optimized_model: pyo.ConcreteModel, start_datetime: datet
     external_trades = get_external_transfers(optimized_model, start_datetime,
                                              sold_to_external_name='NA', bought_from_external_name='Hbuy_market',
                                              retail_price_name='Hprice_energy', wholesale_price_name='NA',
-                                             resource=Resource.HIGH_TEMP_HEAT, grid_agent_guid=grid_agent_guid)
+                                             resource=Resource.HIGH_TEMP_HEAT, grid_agent_guid=grid_agent_guid,
+                                             resource_price_data=resource_price_data)
     return inter_agent_trades + external_trades
 
 
 def get_external_transfers(optimized_model: pyo.ConcreteModel, start_datetime: datetime.datetime,
                            sold_to_external_name: str, bought_from_external_name: str,
                            retail_price_name: str, wholesale_price_name: str,
-                           resource: Resource, grid_agent_guid: str) -> List[Trade]:
+                           resource: Resource, grid_agent_guid: str, resource_price_data: IPrice) -> List[Trade]:
     transfers: List[Trade] = []
     for hour in optimized_model.T:
         add_external_trade(transfers, bought_from_external_name, hour, optimized_model, sold_to_external_name,
-                           retail_price_name, wholesale_price_name, start_datetime, grid_agent_guid, resource)
+                           retail_price_name, wholesale_price_name, start_datetime, grid_agent_guid, resource,
+                           resource_price_data)
     return transfers
 
 
@@ -275,7 +285,7 @@ def add_agent_trade(trade_list: List[Trade], bought_internal_name: str, sold_int
 def add_external_trade(trade_list: List[Trade], bought_from_external_name: str, hour: int,
                        optimized_model: pyo.ConcreteModel, sold_to_external_name: str, retail_price_name: str,
                        wholesale_price_name: str, start_datetime: datetime.datetime, grid_agent_guid: str,
-                       resource: Resource):
+                       resource: Resource, resource_price_data: IPrice):
     external_quantity = pyo.value(get_variable_value_or_else(optimized_model, sold_to_external_name, hour)
                                   - get_variable_value_or_else(optimized_model, bought_from_external_name, hour))
     # TODO: Add tax and grid fee?
@@ -290,7 +300,8 @@ def add_external_trade(trade_list: List[Trade], bought_from_external_name: str, 
         price = get_value_from_param(retail_prices, hour)
         trade_list.append(Trade(period=start_datetime + datetime.timedelta(hours=hour),
                                 action=Action.SELL, resource=resource, quantity=-external_quantity,
-                                price=price, source=grid_agent_guid, by_external=True, market=Market.LOCAL))
+                                price=price, source=grid_agent_guid, by_external=True, market=Market.LOCAL,
+                                tax_paid=resource_price_data.tax))
 
 
 def get_value_from_param(maybe_indexed_param: Union[IndexedParam, ScalarParam], index: int) -> float:

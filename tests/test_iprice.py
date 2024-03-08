@@ -131,3 +131,7 @@ class TestIPrice(TestCase):
         ds.add_external_heating_sell(datetime(2019, 3, 2, 3, tzinfo=timezone.utc), 50)
         self.assertAlmostEqual(26.230860554970143,
                                ds.get_exact_retail_price(datetime(2019, 3, 2, 3), include_tax=True))
+
+    def test_heating_tax(self):
+        """Test that unless anything else is specified, the tax is 0."""
+        self.assertEqual(0, heat_pricing.tax)
