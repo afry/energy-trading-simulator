@@ -288,7 +288,6 @@ def add_external_trade(trade_list: List[Trade], bought_from_external_name: str, 
                        resource: Resource, resource_price_data: IPrice):
     external_quantity = pyo.value(get_variable_value_or_else(optimized_model, sold_to_external_name, hour)
                                   - get_variable_value_or_else(optimized_model, bought_from_external_name, hour))
-    # TODO: Add tax and grid fee?
     period = start_datetime + datetime.timedelta(hours=hour)
     if external_quantity > VERY_SMALL_NUMBER:
         wholesale_prices = getattr(optimized_model, wholesale_price_name)
