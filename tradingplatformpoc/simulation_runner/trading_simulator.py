@@ -103,6 +103,9 @@ class TradingSimulator:
             agent_type = agent["Type"]
             agent_name = agent['Name']
 
+            # Note - when making changes to StaticDigitalTwin creation here, you may also need to change the
+            # "reconstruct_static_digital_twin"-related methods in app_data_display.py
+
             if agent_type == "BlockAgent":
                 agent_id = self.agent_specs[agent['Name']]
                 elec_cons_series = blocks_mock_data.get(get_elec_cons_key(agent_id))

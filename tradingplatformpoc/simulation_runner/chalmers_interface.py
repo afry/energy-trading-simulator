@@ -24,6 +24,7 @@ from tradingplatformpoc.simulation_runner import CEMS_function
 from tradingplatformpoc.trading_platform_utils import add_to_nested_dict
 
 VERY_SMALL_NUMBER = 0.000001  # to avoid trades with quantity 1e-7, for example
+DECIMALS_TO_ROUND_TO = 6  # To avoid saving for example storage levels of -1e-8
 
 logger = logging.getLogger(__name__)
 
@@ -347,5 +348,5 @@ def get_value_per_agent(optimized_model: pyo.ConcreteModel, start_datetime: date
         for i_agent in optimized_model.I:
             quantity = pyo.value(getattr(optimized_model, variable_name)[i_agent, hour])
             period = start_datetime + datetime.timedelta(hours=hour)
-            add_to_nested_dict(dict_to_add_to, agent_guids[i_agent], period, quantity)
+            add_to_nested_dict(dict_to_add_to, agent_guids[i_agent], period, round(quantity, DECIMALS_TO_ROUND_TO))
     return dict_to_add_to
