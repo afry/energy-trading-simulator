@@ -43,9 +43,8 @@ def altair_area_chart(df: pd.DataFrame, domain: List[str], range_color: List[str
         .mark_area(interpolate='step-after')
 
 
-def construct_static_digital_twin_chart(digital_twin: StaticDigitalTwin, agent_chosen_guid: str,
-                                        should_add_hp_to_legend: bool = False) -> \
-        alt.Chart:
+def construct_agent_energy_chart(digital_twin: StaticDigitalTwin, agent_chosen_guid: str,
+                                 heat_pump_df: pd.DataFrame) -> alt.Chart:
     """
     Constructs a multi-line chart from a StaticDigitalTwin, containing all data held therein.
     """
@@ -55,21 +54,26 @@ def construct_static_digital_twin_chart(digital_twin: StaticDigitalTwin, agent_c
     domain: List[str] = []
     range_color: List[str] = []
     df = add_to_df_and_lists(df, digital_twin.electricity_production, domain, range_color,
-                             app_constants.ELEC_PROD, app_constants.ALTAIR_BASE_COLORS[0])
+                             "Electricity production", app_constants.ALTAIR_BASE_COLORS[0])
     df = add_to_df_and_lists(df, digital_twin.electricity_usage, domain, range_color,
-                             app_constants.ELEC_CONS, app_constants.ALTAIR_BASE_COLORS[1])
-    df = add_to_df_and_lists(df, digital_twin.total_heating_production, domain, range_color,
-                             app_constants.HEAT_PROD, app_constants.ALTAIR_BASE_COLORS[2])
-    # TODO: Replace with low-temp and high-temp heat separated
-    df = add_to_df_and_lists(df, digital_twin.total_heating_usage, domain, range_color,
-                             app_constants.HEAT_CONS, app_constants.ALTAIR_BASE_COLORS[3])
+                             "Electricity consumption", app_constants.ALTAIR_BASE_COLORS[1])
+    df = add_to_df_and_lists(df, digital_twin.hot_water_production, domain, range_color,
+                             "High heat production", app_constants.ALTAIR_BASE_COLORS[2])
+    df = add_to_df_and_lists(df, digital_twin.hot_water_usage, domain, range_color,
+                             "High heat consumption", app_constants.ALTAIR_BASE_COLORS[3])
+    df = add_to_df_and_lists(df, digital_twin.space_heating_production, domain, range_color,
+                             "Low heat production", app_constants.ALTAIR_BASE_COLORS[4])
+    df = add_to_df_and_lists(df, digital_twin.space_heating_usage, domain, range_color,
+                             "Low heat consumption", app_constants.ALTAIR_BASE_COLORS[5])
     df = add_to_df_and_lists(df, digital_twin.cooling_usage, domain, range_color,
-                             app_constants.COOL_CONS, app_constants.ALTAIR_BASE_COLORS[4])
+                             "Cooling consumption", app_constants.ALTAIR_BASE_COLORS[6])
     df = add_to_df_and_lists(df, digital_twin.cooling_production, domain, range_color,
-                             app_constants.COOL_PROD, app_constants.ALTAIR_BASE_COLORS[5])
-    if should_add_hp_to_legend:
-        domain.append('Heat pump workload')
-        range_color.append(app_constants.HEAT_PUMP_CHART_COLOR)
+                             "Cooling production", app_constants.ALTAIR_BASE_COLORS[7])
+    if len(heat_pump_df.index) > 0:
+        df = add_to_df_and_lists(df, heat_pump_df['level_high'], domain, range_color,
+                                 "HP high heat production", app_constants.ALTAIR_BASE_COLORS[8])
+        df = add_to_df_and_lists(df, heat_pump_df['level_low'], domain, range_color,
+                                 "HP low heat production", app_constants.ALTAIR_BASE_COLORS[9])
     return altair_line_chart(df, domain, range_color, [], "Energy [kWh]",
                              "Energy production/consumption for " + agent_chosen_guid)
 
@@ -137,31 +141,6 @@ def construct_price_chart(prices_df: pd.DataFrame, resource: Resource) -> alt.Ch
     range_color = ['blue', 'green', 'red']
     range_dash = [[0, 0], [2, 4], [2, 4]]
     return altair_line_chart(data_to_use, domain, range_color, range_dash, "Price [SEK]", "Price over Time")
-
-
-def construct_agent_with_heat_pump_chart(agent_chosen_guid: str, digital_twin: StaticDigitalTwin,
-                                         heat_pump_df: pd.DataFrame) -> alt.Chart:
-    """
-    Constructs a multi-line chart with energy production/consumption levels, with any heat pump workload data in the
-    background. If there is no heat_pump_data, will just return construct_static_digital_twin_chart(digital_twin).
-    """
-
-    if heat_pump_df.empty:
-        return construct_static_digital_twin_chart(digital_twin, agent_chosen_guid, False)
-
-    heat_pump_area = construct_heat_pump_chart(heat_pump_df.reset_index())
-    energy_multiline = construct_static_digital_twin_chart(digital_twin, agent_chosen_guid, True)
-    return alt.layer(energy_multiline, heat_pump_area).resolve_scale(
-        y='independent', color='independent', stroke="independent", strokeDash='independent',
-        shape='independent', opacity='independent', fill='independent', strokeWidth='independent')
-
-
-def construct_heat_pump_chart(heat_pump_df: pd.DataFrame) -> alt.Chart:
-    heat_pump_df['variable'] = 'Heat pump workload'
-    heat_pump_df = heat_pump_df.rename(columns={'level': 'value'})
-    domain = list(pd.unique(heat_pump_df['variable']))
-    range_color = [app_constants.HEAT_PUMP_CHART_COLOR]
-    return altair_area_chart(heat_pump_df, domain, range_color, "", "")
 
 
 def construct_storage_level_chart(storage_levels_df: pd.DataFrame) -> alt.Chart:

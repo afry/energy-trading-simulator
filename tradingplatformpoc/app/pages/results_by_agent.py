@@ -3,9 +3,9 @@ from st_pages import add_indentation, show_pages_from_config
 import streamlit as st
 
 from tradingplatformpoc.app import footer
-from tradingplatformpoc.app.app_charts import construct_agent_with_heat_pump_chart, \
+from tradingplatformpoc.app.app_charts import construct_agent_energy_chart, \
     construct_storage_level_chart, construct_traded_amount_by_agent_chart
-from tradingplatformpoc.app.app_data_display import build_heat_pump_levels_df, reconstruct_static_digital_twin
+from tradingplatformpoc.app.app_data_display import build_heat_pump_prod_df, reconstruct_static_digital_twin
 from tradingplatformpoc.app.app_functions import IdPair, download_df_as_csv_button, make_room_for_menu_in_sidebar
 from tradingplatformpoc.market.trade import TradeMetadataKey
 from tradingplatformpoc.sql.agent.crud import get_agent_config, get_agent_type
@@ -59,7 +59,8 @@ if len(ids) > 0:
             download_df_as_csv_button(extra_costs_df, "extra_costs_for_agent_" + agent_chosen_guid,
                                       include_index=True)
 
-    if agent_type == 'BlockAgent':  # TODO: Can we exclude this if the agent doesn't have a battery?
+    if agent_type == 'BlockAgent':
+        # TODO: Exclude this if the agent doesn't have a battery?
         storage_levels_df = db_to_viewable_level_df_by_agent(job_id=chosen_id_to_view.job_id,
                                                              agent_guid=agent_chosen_guid,
                                                              level_type=TradeMetadataKey.BATTERY_LEVEL.name)
@@ -68,24 +69,27 @@ if len(ids) > 0:
                 storage_chart = construct_storage_level_chart(storage_levels_df)
                 st.altair_chart(storage_chart, use_container_width=True, theme=None)
 
+        # TODO: Make this work for GroceryStoreAgent - reconstruct_static_digital_twin errors
         with st.expander('Energy production/consumption'):
             agent_config = get_agent_config(agent_specs[agent_chosen_guid])
             st.caption("Click on a variable to highlight it.")
-            if agent_type == 'BlockAgent':
-                heat_pump_levels_df = build_heat_pump_levels_df(agent_chosen_guid, chosen_id_to_view.job_id,
-                                                                agent_config)
-                config = read_config(chosen_id_to_view.config_id)
-                block_digital_twin = reconstruct_static_digital_twin(
-                    agent_specs[agent_chosen_guid], config['MockDataConstants'],
-                    agent_config['PVArea'], config['AreaInfo']['PVEfficiency'], agent_config['GrossFloorArea'])
-                static_digital_twin_chart = construct_agent_with_heat_pump_chart(
-                    agent_chosen_guid, block_digital_twin, heat_pump_levels_df)
-                st.caption("Heat consumption here refers to the block agent's heat demand, and does not consider "
-                           "the source of the heat. To investigate the effects of running heat pumps, this graph "
-                           "should be studied together with the graph displaying resources bought and sold further "
-                           "up the page under the *Trades*-expander.")
 
-            st.altair_chart(static_digital_twin_chart, use_container_width=True, theme=None)
+            heat_pump_prod_df = build_heat_pump_prod_df(chosen_id_to_view.job_id, agent_chosen_guid, agent_config)
+            config = read_config(chosen_id_to_view.config_id)
+            block_digital_twin = reconstruct_static_digital_twin(
+                agent_specs[agent_chosen_guid], config['MockDataConstants'],
+                agent_config['PVArea'], config['AreaInfo']['PVEfficiency'], agent_config['GrossFloorArea'])
+            agent_energy_prod_cons_chart = construct_agent_energy_chart(
+                block_digital_twin, agent_chosen_guid, heat_pump_prod_df)
+            st.caption("Heat consumption here refers to the block agent's heat demand, and does not consider "
+                       "the source of the heat. To investigate the effects of running heat pumps, this graph "
+                       "should be studied together with the graph displaying resources bought and sold further "
+                       "up the page under the *Trades*-expander.")
+            st.caption("'HP high heat production' represents the production of 'normal' heat pumps in winter mode, "
+                       "and 'booster' heat pumps in summer mode. 'HP low heat production' represents the production"
+                       " of 'normal' heat pumps in summer mode, and is always 0 in winter mode.")
+
+            st.altair_chart(agent_energy_prod_cons_chart, use_container_width=True, theme=None)
 
 else:
     st.markdown('No results to view yet, set up a configuration in '
