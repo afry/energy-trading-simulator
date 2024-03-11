@@ -63,7 +63,7 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
         low_heat_demand_df, low_heat_supply_df, cooling_demand_df, cooling_supply_df = \
         build_supply_and_demand_dfs(block_agents, start_datetime, trading_horizon)
 
-    battery_capacities = [agent.battery.capacity_kwh for agent in block_agents]
+    battery_capacities = [agent.battery.max_capacity_kwh for agent in block_agents]
     battery_max_charge = [agent.battery.charge_limit_kwh for agent in block_agents]
     battery_max_discharge = [agent.battery.discharge_limit_kwh for agent in block_agents]
     acc_tank_volumes = [agent.acc_tank_volume for agent in block_agents]
