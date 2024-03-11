@@ -3,7 +3,7 @@ from st_pages import add_indentation, show_pages_from_config
 import streamlit as st
 
 from tradingplatformpoc.app import footer
-from tradingplatformpoc.app.app_charts import construct_static_digital_twin_chart, \
+from tradingplatformpoc.app.app_charts import construct_agent_energy_chart, \
     construct_storage_level_chart, construct_traded_amount_by_agent_chart
 from tradingplatformpoc.app.app_data_display import build_heat_pump_prod_df, reconstruct_static_digital_twin
 from tradingplatformpoc.app.app_functions import IdPair, download_df_as_csv_button, make_room_for_menu_in_sidebar
@@ -77,14 +77,17 @@ if len(ids) > 0:
                 block_digital_twin = reconstruct_static_digital_twin(
                     agent_specs[agent_chosen_guid], config['MockDataConstants'],
                     agent_config['PVArea'], config['AreaInfo']['PVEfficiency'], agent_config['GrossFloorArea'])
-                static_digital_twin_chart = construct_static_digital_twin_chart(block_digital_twin, agent_chosen_guid,
-                                                                                heat_pump_prod_df)
+                agent_energy_prod_cons_chart = construct_agent_energy_chart(
+                    block_digital_twin, agent_chosen_guid, heat_pump_prod_df)
                 st.caption("Heat consumption here refers to the block agent's heat demand, and does not consider "
                            "the source of the heat. To investigate the effects of running heat pumps, this graph "
                            "should be studied together with the graph displaying resources bought and sold further "
                            "up the page under the *Trades*-expander.")
+                st.caption("'HP high heat production' represents the production of 'normal' heat pumps in winter mode, "
+                           "and 'booster' heat pumps in summer mode. 'HP low heat production' represents the production"
+                           " of 'normal' heat pumps in summer mode, and is always 0 in winter mode.")
 
-            st.altair_chart(static_digital_twin_chart, use_container_width=True, theme=None)
+            st.altair_chart(agent_energy_prod_cons_chart, use_container_width=True, theme=None)
 
 else:
     st.markdown('No results to view yet, set up a configuration in '

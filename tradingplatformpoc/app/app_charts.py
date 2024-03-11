@@ -43,8 +43,8 @@ def altair_area_chart(df: pd.DataFrame, domain: List[str], range_color: List[str
         .mark_area(interpolate='step-after')
 
 
-def construct_static_digital_twin_chart(digital_twin: StaticDigitalTwin, agent_chosen_guid: str,
-                                        heat_pump_df: pd.DataFrame) -> alt.Chart:
+def construct_agent_energy_chart(digital_twin: StaticDigitalTwin, agent_chosen_guid: str,
+                                 heat_pump_df: pd.DataFrame) -> alt.Chart:
     """
     Constructs a multi-line chart from a StaticDigitalTwin, containing all data held therein.
     """
