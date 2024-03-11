@@ -14,12 +14,15 @@ PERC_OF_HT_COVERABLE_BY_LT = 0.6
 def solve_model(solver: OptSolver, summer_mode: bool, n_agents: int, external_elec_buy_price: pd.Series,
                 external_elec_sell_price: pd.Series, external_heat_buy_price: float,
                 battery_capacity: List[float], battery_charge_rate: List[float], battery_discharge_rate: List[float],
-                SOCBES0: List[float], heatpump_COP: List[float], heatpump_max_power: List[float], heatpump_max_heat: List[float],
-                booster_heatpump_COP: List[float], booster_heatpump_max_power: List[float], booster_heatpump_max_heat: List[float],
+                SOCBES0: List[float], heatpump_COP: List[float], heatpump_max_power: List[float],
+                heatpump_max_heat: List[float], booster_heatpump_COP: List[float],
+                booster_heatpump_max_power: List[float], booster_heatpump_max_heat: List[float],
                 build_area: List[float], SOCTES0: List[float], TTES0: List[float],
-                thermalstorage_max_temp: List[float], thermalstorage_min_temp: List[float], thermalstorage_volume: List[float],
+                thermalstorage_max_temp: List[float], thermalstorage_min_temp: List[float],
+                thermalstorage_volume: List[float],
                 elec_consumption: pd.DataFrame, hot_water_heatdem: pd.DataFrame, space_heating_heatdem: pd.DataFrame,
-                cold_consumption: pd.DataFrame, pv_production: pd.DataFrame, battery_efficiency: float = 0.95,
+                cold_consumption: pd.DataFrame, pv_production: pd.DataFrame, excess_heat: pd.DataFrame,
+                battery_efficiency: float = 0.95,
                 max_elec_transfer_between_agents: float = 500, max_elec_transfer_to_external: float = 1000,
                 max_heat_transfer_between_agents: float = 500, max_heat_transfer_to_external: float = 1000,
                 chiller_COP: float = 1.5, thermalstorage_efficiency: float = 0.98, heat_trans_loss: float = 0.05,
@@ -40,10 +43,14 @@ def solve_model(solver: OptSolver, summer_mode: bool, n_agents: int, external_el
     assert len(hot_water_heatdem.index) == n_agents
     assert len(space_heating_heatdem.index) == n_agents
     assert len(cold_consumption.index) == n_agents
+    assert len(pv_production.index) == n_agents
+    assert len(excess_heat.index) == n_agents
     assert len(elec_consumption.columns) >= trading_horizon
     assert len(hot_water_heatdem.columns) >= trading_horizon
     assert len(space_heating_heatdem.columns) >= trading_horizon
     assert len(cold_consumption.columns) >= trading_horizon
+    assert len(pv_production.columns) >= trading_horizon
+    assert len(excess_heat.columns) >= trading_horizon
     assert len(external_elec_buy_price) >= trading_horizon
     assert len(external_elec_sell_price) >= trading_horizon
     assert battery_efficiency > 0  # Otherwise we'll get division by zero
@@ -84,7 +91,9 @@ def solve_model(solver: OptSolver, summer_mode: bool, n_agents: int, external_el
     model.Hhw = pyo.Param(model.I, model.T, initialize=lambda m, i, t: hot_water_heatdem.iloc[i, t])
     model.Hsh = pyo.Param(model.I, model.T, initialize=lambda m, i, t: space_heating_heatdem.iloc[i, t])
     model.Cld = pyo.Param(model.I, model.T, initialize=lambda m, i, t: cold_consumption.iloc[i, t])
+    # Supply data of agents
     model.Ppv = pyo.Param(model.I, model.T, initialize=lambda m, i, t: pv_production.iloc[i, t])
+    model.Hsh_excess = pyo.Param(model.I, model.T, initialize=lambda m, i, t: excess_heat.iloc[i, t])
     # BES data
     model.effe = pyo.Param(initialize=battery_efficiency)
     model.SOCBES0 = pyo.Param(model.I, initialize=SOCBES0)
@@ -281,7 +290,7 @@ def con_rul5_2(model, i, t):
 
 def con_rul5_2_1(model, i, t):
     # Only used in summer mode
-    return model.Hbuy_grid[i, t] + model.Hhp[i, t] + model.Hdis_shallow[i, t] == \
+    return model.Hbuy_grid[i, t] + model.Hhp[i, t] + model.Hdis_shallow[i, t] + model.Hsh_excess[i, t] == \
         model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] + PERC_OF_HT_COVERABLE_BY_LT * model.HTEScha[i, t] + \
         model.Hsh[i, t]
 

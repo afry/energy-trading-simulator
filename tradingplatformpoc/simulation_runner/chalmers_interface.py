@@ -108,6 +108,7 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
                                                          space_heating_heatdem=low_heat_demand_df,
                                                          cold_consumption=cooling_demand_df,
                                                          pv_production=elec_supply_df,
+                                                         excess_heat=low_heat_supply_df,
                                                          battery_efficiency=area_info['BatteryEfficiency'],
                                                          max_elec_transfer_between_agents=area_info['InterAgentElectricityTransferCapacity'],
                                                          max_elec_transfer_to_external=grid_agents[Resource.ELECTRICITY].max_transfer_per_hour,
