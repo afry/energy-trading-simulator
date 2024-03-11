@@ -3,9 +3,9 @@ from st_pages import add_indentation, show_pages_from_config
 import streamlit as st
 
 from tradingplatformpoc.app import footer
-from tradingplatformpoc.app.app_charts import construct_agent_with_heat_pump_chart, \
+from tradingplatformpoc.app.app_charts import construct_static_digital_twin_chart, \
     construct_storage_level_chart, construct_traded_amount_by_agent_chart
-from tradingplatformpoc.app.app_data_display import build_heat_pump_levels_df, reconstruct_static_digital_twin
+from tradingplatformpoc.app.app_data_display import build_heat_pump_prod_df, reconstruct_static_digital_twin
 from tradingplatformpoc.app.app_functions import IdPair, download_df_as_csv_button, make_room_for_menu_in_sidebar
 from tradingplatformpoc.market.trade import TradeMetadataKey
 from tradingplatformpoc.sql.agent.crud import get_agent_config, get_agent_type
@@ -72,14 +72,13 @@ if len(ids) > 0:
             agent_config = get_agent_config(agent_specs[agent_chosen_guid])
             st.caption("Click on a variable to highlight it.")
             if agent_type == 'BlockAgent':
-                heat_pump_levels_df = build_heat_pump_levels_df(agent_chosen_guid, chosen_id_to_view.job_id,
-                                                                agent_config)
+                heat_pump_prod_df = build_heat_pump_prod_df(chosen_id_to_view.job_id, agent_chosen_guid, agent_config)
                 config = read_config(chosen_id_to_view.config_id)
                 block_digital_twin = reconstruct_static_digital_twin(
                     agent_specs[agent_chosen_guid], config['MockDataConstants'],
                     agent_config['PVArea'], config['AreaInfo']['PVEfficiency'], agent_config['GrossFloorArea'])
-                static_digital_twin_chart = construct_agent_with_heat_pump_chart(
-                    agent_chosen_guid, block_digital_twin, heat_pump_levels_df)
+                static_digital_twin_chart = construct_static_digital_twin_chart(block_digital_twin, agent_chosen_guid,
+                                                                                heat_pump_prod_df)
                 st.caption("Heat consumption here refers to the block agent's heat demand, and does not consider "
                            "the source of the heat. To investigate the effects of running heat pumps, this graph "
                            "should be studied together with the graph displaying resources bought and sold further "

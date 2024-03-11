@@ -188,12 +188,14 @@ def results_by_agent_as_df_with_highlight(df: pd.DataFrame, agent_chosen_guid: s
     return formatted_df
 
 
-def build_heat_pump_levels_df(job_id: str, agent_chosen_guid: str, agent_config: dict) -> pd.DataFrame:
+def build_heat_pump_prod_df(job_id: str, agent_chosen_guid: str, agent_config: dict) -> pd.DataFrame:
     if agent_config['HeatPumpMaxOutput'] > 0:
-        return db_to_viewable_level_df_by_agent(
-            job_id=job_id,
-            agent_guid=agent_chosen_guid,
-            level_type=TradeMetadataKey.HEAT_PUMP_WORKLOAD.name)
+        high_heat_prod = db_to_viewable_level_df_by_agent(job_id=job_id, agent_guid=agent_chosen_guid,
+                                                          level_type=TradeMetadataKey.HP_HIGH_HEAT_PROD.name)
+        low_heat_prod = db_to_viewable_level_df_by_agent(job_id=job_id, agent_guid=agent_chosen_guid,
+                                                         level_type=TradeMetadataKey.HP_LOW_HEAT_PROD.name)
+        return pd.merge(high_heat_prod, low_heat_prod, left_index=True, right_index=True, how='outer',
+                        suffixes=('_high', '_low')).fillna(0)
     else:
         return pd.DataFrame()
 
