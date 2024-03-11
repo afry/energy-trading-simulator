@@ -41,21 +41,49 @@ def get_price_df_when_local_price_inbetween(prices_df: pd.DataFrame, resource: R
     return elec_prices.loc[local_price_between_external]
 
 
-def reconstruct_static_digital_twin(agent_id: str, mock_data_constants: Dict[str, Any],
-                                    pv_area: float, pv_efficiency: float, gross_floor_area: float) -> StaticDigitalTwin:
-    mock_data_id = list(get_mock_data_agent_pairs_in_db([agent_id], mock_data_constants).keys())[0]
+def reconstruct_static_digital_twin(agent_id: str, config: Dict[str, Any], agent_config: Dict[str, Any],
+                                    agent_type: str) -> StaticDigitalTwin:
+    if agent_type == 'GroceryStoreAgent':
+        return reconstruct_grocery_store_static_digital_twin(agent_config)
+    elif agent_type == 'BlockAgent':
+        return reconstruct_block_agent_static_digital_twin(agent_id, config, agent_config)
+    raise NotImplementedError('Method not implemented for agent type ' + agent_type)
+
+
+def reconstruct_block_agent_static_digital_twin(agent_id: str, config: Dict[str, Any], agent_config: Dict[str, Any]) \
+        -> StaticDigitalTwin:
+    mock_data_id = list(get_mock_data_agent_pairs_in_db([agent_id], config['MockDataConstants']).keys())[0]
     block_mock_data = db_to_mock_data_df(mock_data_id).to_pandas().set_index('datetime')
 
     inputs_df = read_inputs_df_for_agent_creation()
-    pv_prod_series = calculate_solar_prod(inputs_df['irradiation'], pv_area, pv_efficiency)
+    pv_prod_series = calculate_solar_prod(inputs_df['irradiation'], agent_config['PVArea'],
+                                          config['AreaInfo']['PVEfficiency'])
     elec_cons_series = block_mock_data[get_elec_cons_key(agent_id)]
     space_heat_cons_series = block_mock_data[get_space_heat_cons_key(agent_id)]
     hot_tap_water_cons_series = block_mock_data[get_hot_tap_water_cons_key(agent_id)]
     cooling_cons_series = block_mock_data[get_cooling_cons_key(agent_id)]
 
-    return StaticDigitalTwin(gross_floor_area=gross_floor_area, electricity_usage=elec_cons_series,
-                             space_heating_usage=space_heat_cons_series, hot_water_usage=hot_tap_water_cons_series,
-                             cooling_usage=cooling_cons_series, electricity_production=pv_prod_series)
+    return StaticDigitalTwin(gross_floor_area=agent_config['GrossFloorArea'],
+                             electricity_usage=elec_cons_series,
+                             space_heating_usage=space_heat_cons_series,
+                             hot_water_usage=hot_tap_water_cons_series,
+                             cooling_usage=cooling_cons_series,
+                             electricity_production=pv_prod_series)
+
+
+def reconstruct_grocery_store_static_digital_twin(agent_config: Dict[str, Any]) \
+        -> StaticDigitalTwin:
+    inputs_df = read_inputs_df_for_agent_creation()
+    pv_prod_series = calculate_solar_prod(inputs_df['irradiation'], agent_config['PVArea'],
+                                          agent_config['PVEfficiency'])
+    space_heat_prod = inputs_df['coop_space_heating_produced'] if agent_config['SellExcessHeat'] else None
+
+    return StaticDigitalTwin(gross_floor_area=agent_config['GrossFloorArea'],
+                             electricity_usage=inputs_df['coop_electricity_consumed'],
+                             space_heating_usage=inputs_df['coop_space_heating_consumed'],
+                             hot_water_usage=inputs_df['coop_hot_tap_water_consumed'],
+                             electricity_production=pv_prod_series,
+                             space_heating_production=space_heat_prod)
 
 
 # maybe we should move this to simulation_runner/trading_simulator
