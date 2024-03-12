@@ -38,16 +38,20 @@ Here we keep methods that do either
 
 class ChalmersOutputs:
     trades: List[Trade]
-    battery_storage_levels: Dict[str, Dict[datetime.datetime, float]]  # (agent_guid, (period, storage_level))
+    # (agent_guid, (period, level))
+    battery_storage_levels: Dict[str, Dict[datetime.datetime, float]]
+    acc_tank_levels: Dict[str, Dict[datetime.datetime, float]]
     hp_high_prod: Dict[str, Dict[datetime.datetime, float]]
     hp_low_prod: Dict[str, Dict[datetime.datetime, float]]
 
     def __init__(self, trades: List[Trade],
                  battery_storage_levels: Dict[str, Dict[datetime.datetime, float]],
+                 acc_tank_levels: Dict[str, Dict[datetime.datetime, float]],
                  hp_high_prod: Dict[str, Dict[datetime.datetime, float]],
                  hp_low_prod: Dict[str, Dict[datetime.datetime, float]]):
         self.trades = trades
         self.battery_storage_levels = battery_storage_levels
+        self.acc_tank_levels = acc_tank_levels
         self.hp_high_prod = hp_high_prod
         self.hp_low_prod = hp_low_prod
 
@@ -154,6 +158,8 @@ def extract_outputs(optimized_model: pyo.ConcreteModel,
                                      heating_price_data)
     battery_storage_levels = get_value_per_agent(optimized_model, start_datetime, 'SOCBES', agent_guids,
                                                  lambda i: optimized_model.Emax_BES[i] > 0)
+    acc_tank_levels = get_value_per_agent(optimized_model, start_datetime, 'SOCTES', agent_guids,
+                                          lambda i: optimized_model.kwh_per_deg[i] > 0)
     if should_use_summer_mode(start_datetime):
         hp_low_prod = get_value_per_agent(optimized_model, start_datetime, 'Hhp', agent_guids,
                                           lambda i: optimized_model.Phpmax[i] > 0)
@@ -163,7 +169,8 @@ def extract_outputs(optimized_model: pyo.ConcreteModel,
         hp_high_prod = get_value_per_agent(optimized_model, start_datetime, 'Hhp', agent_guids,
                                            lambda i: optimized_model.Phpmax[i] > 0)
         hp_low_prod = {}
-    return ChalmersOutputs(elec_trades + heat_trades, battery_storage_levels, hp_high_prod, hp_low_prod)
+    return ChalmersOutputs(elec_trades + heat_trades, battery_storage_levels, acc_tank_levels,
+                           hp_high_prod, hp_low_prod)
 
 
 def build_supply_and_demand_dfs(agents: List[BlockAgent], start_datetime: datetime.datetime, trading_horizon: int) -> \
