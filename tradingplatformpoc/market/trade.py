@@ -17,7 +17,9 @@ class TradeMetadataKey(Enum):
     ACC_TANK_LEVEL = 4
     HP_HIGH_HEAT_PROD = 5
     HP_LOW_HEAT_PROD = 6
-    CM_PROD = 6  # Cooling machine
+    CM_PROD = 7  # Cooling machine
+    SHALLOW_STORAGE = 8
+    DEEP_STORAGE = 9
 
 
 class Trade:

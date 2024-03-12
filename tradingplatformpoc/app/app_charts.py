@@ -1,4 +1,4 @@
-from typing import List
+from typing import Dict, List
 
 import altair as alt
 
@@ -7,6 +7,7 @@ import pandas as pd
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.market.bid import Action, Resource
+from tradingplatformpoc.market.trade import TradeMetadataKey
 
 
 def altair_base_chart(df: pd.DataFrame, domain: List[str], range_color: List[str],
@@ -143,20 +144,26 @@ def construct_price_chart(prices_df: pd.DataFrame, resource: Resource) -> alt.Ch
     return altair_line_chart(data_to_use, domain, range_color, range_dash, "Price [SEK]", "Price over Time")
 
 
-def construct_storage_level_chart(storage_levels_df: pd.DataFrame) -> alt.Chart:
+def construct_storage_level_chart(storage_level_dfs: Dict[TradeMetadataKey, pd.DataFrame]) -> alt.Chart:
     df = pd.DataFrame()
     domain = []
     range_color = []
 
-    for (col_name, title, i_color) in zip(['level_battery', 'level_acc_tank'],
-                                          ['Battery charging level', 'Accumulator tank charging level'],
-                                          [0, 1]):
-        if col_name in storage_levels_df.columns:
-            df = pd.concat((df, pd.DataFrame({'period': storage_levels_df[col_name].index,
-                                              'value': storage_levels_df[col_name],
-                                              'variable': title})))
-            domain.append(title)
-            range_color.append(app_constants.ALTAIR_BASE_COLORS[i_color])
+    titles = {TradeMetadataKey.BATTERY_LEVEL: 'Battery charging level',
+              TradeMetadataKey.SHALLOW_STORAGE: 'BITES shallow storage',
+              TradeMetadataKey.DEEP_STORAGE: 'BITES deep storage',
+              TradeMetadataKey.ACC_TANK_LEVEL: 'Accumulator tank charging level'}
+    colors = {TradeMetadataKey.BATTERY_LEVEL: app_constants.ALTAIR_BASE_COLORS[0],
+              TradeMetadataKey.SHALLOW_STORAGE: app_constants.ALTAIR_BASE_COLORS[1],
+              TradeMetadataKey.DEEP_STORAGE: app_constants.ALTAIR_BASE_COLORS[2],
+              TradeMetadataKey.ACC_TANK_LEVEL: app_constants.ALTAIR_BASE_COLORS[3]}
+
+    for (tmk, sub_df) in storage_level_dfs.items():
+        df = pd.concat((df, pd.DataFrame({'period': sub_df['level'].index,
+                                          'value': sub_df['level'],
+                                          'variable': titles[tmk]})))
+        domain.append(titles[tmk])
+        range_color.append(colors[tmk])
 
     chart = altair_line_chart(df, domain, range_color, [], "% of capacity used",
                               "Charging level")

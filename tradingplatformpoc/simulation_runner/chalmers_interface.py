@@ -40,18 +40,21 @@ class ChalmersOutputs:
     trades: List[Trade]
     # (agent_guid, (period, level))
     battery_storage_levels: Dict[str, Dict[datetime.datetime, float]]
-    acc_tank_levels: Dict[str, Dict[datetime.datetime, float]]
+    shallow_storage: Dict[str, Dict[datetime.datetime, float]]
+    deep_storage: Dict[str, Dict[datetime.datetime, float]]
     hp_high_prod: Dict[str, Dict[datetime.datetime, float]]
     hp_low_prod: Dict[str, Dict[datetime.datetime, float]]
 
     def __init__(self, trades: List[Trade],
                  battery_storage_levels: Dict[str, Dict[datetime.datetime, float]],
-                 acc_tank_levels: Dict[str, Dict[datetime.datetime, float]],
+                 shallow_storage: Dict[str, Dict[datetime.datetime, float]],
+                 deep_storage: Dict[str, Dict[datetime.datetime, float]],
                  hp_high_prod: Dict[str, Dict[datetime.datetime, float]],
                  hp_low_prod: Dict[str, Dict[datetime.datetime, float]]):
         self.trades = trades
         self.battery_storage_levels = battery_storage_levels
-        self.acc_tank_levels = acc_tank_levels
+        self.shallow_storage = shallow_storage
+        self.deep_storage = deep_storage
         self.hp_high_prod = hp_high_prod
         self.hp_low_prod = hp_low_prod
 
@@ -158,8 +161,12 @@ def extract_outputs(optimized_model: pyo.ConcreteModel,
                                      heating_price_data)
     battery_storage_levels = get_value_per_agent(optimized_model, start_datetime, 'SOCBES', agent_guids,
                                                  lambda i: optimized_model.Emax_BES[i] > 0)
-    acc_tank_levels = get_value_per_agent(optimized_model, start_datetime, 'SOCTES', agent_guids,
-                                          lambda i: optimized_model.kwh_per_deg[i] > 0)
+    shallow_storage = get_value_per_agent(optimized_model, start_datetime, 'Energy_shallow', agent_guids,
+                                          lambda i: optimized_model.Energy_shallow_cap[i] > 0,
+                                          lambda i: optimized_model.Energy_shallow_cap[i])
+    deep_storage = get_value_per_agent(optimized_model, start_datetime, 'Energy_deep', agent_guids,
+                                       lambda i: optimized_model.Energy_deep_cap[i] > 0,
+                                       lambda i: optimized_model.Energy_deep_cap[i])
     if should_use_summer_mode(start_datetime):
         hp_low_prod = get_value_per_agent(optimized_model, start_datetime, 'Hhp', agent_guids,
                                           lambda i: optimized_model.Phpmax[i] > 0)
@@ -169,7 +176,7 @@ def extract_outputs(optimized_model: pyo.ConcreteModel,
         hp_high_prod = get_value_per_agent(optimized_model, start_datetime, 'Hhp', agent_guids,
                                            lambda i: optimized_model.Phpmax[i] > 0)
         hp_low_prod = {}
-    return ChalmersOutputs(elec_trades + heat_trades, battery_storage_levels, acc_tank_levels,
+    return ChalmersOutputs(elec_trades + heat_trades, battery_storage_levels, shallow_storage, deep_storage,
                            hp_high_prod, hp_low_prod)
 
 
@@ -351,13 +358,17 @@ def add_value_per_agent_to_dict(optimized_model: pyo.ConcreteModel, start_dateti
 
 
 def get_value_per_agent(optimized_model: pyo.ConcreteModel, start_datetime: datetime.datetime,
-                        variable_name: str, agent_guids: List[str], should_add_for_agent: Callable[[int], bool]) \
+                        variable_name: str, agent_guids: List[str],
+                        should_add_for_agent: Callable[[int], bool],
+                        divide_by: Callable[[int], float] = lambda i: 1.0) \
         -> Dict[str, Dict[datetime.datetime, Any]]:
     """
     Example variable names: "Hhp" for heat pump production, "SOCBES" for state of charge of battery storage.
     Returns a nested dict where agent GUID is the first key, the period the second.
     Will only add values for which "should_add_for_agent(agent_index)" is True. This can be used to ensure that battery
     charge state is only added for agents that actually have a battery.
+    If "divide_by" is specified, all quantities will be divided by "divide_by(agent_index)". Can be used to translate
+    energy quantities to % of max, for example.
     """
     dict_to_add_to: Dict[str, Dict[datetime.datetime, Any]] = {}
     for hour in optimized_model.T:
@@ -365,5 +376,6 @@ def get_value_per_agent(optimized_model: pyo.ConcreteModel, start_datetime: date
         for i_agent in optimized_model.I:
             if should_add_for_agent(i_agent):
                 quantity = pyo.value(getattr(optimized_model, variable_name)[i_agent, hour])
-                add_to_nested_dict(dict_to_add_to, agent_guids[i_agent], period, round(quantity, DECIMALS_TO_ROUND_TO))
+                value = round(quantity / divide_by(i_agent), DECIMALS_TO_ROUND_TO)
+                add_to_nested_dict(dict_to_add_to, agent_guids[i_agent], period, value)
     return dict_to_add_to
