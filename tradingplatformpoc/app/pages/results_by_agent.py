@@ -5,16 +5,14 @@ import streamlit as st
 from tradingplatformpoc.app import footer
 from tradingplatformpoc.app.app_charts import construct_agent_energy_chart, \
     construct_storage_level_chart, construct_traded_amount_by_agent_chart
-from tradingplatformpoc.app.app_data_display import build_heat_pump_prod_df, reconstruct_static_digital_twin, \
-    build_storage_df
+from tradingplatformpoc.app.app_data_display import build_heat_pump_prod_df, build_storage_df, \
+    reconstruct_static_digital_twin
 from tradingplatformpoc.app.app_functions import IdPair, calculate_table_height, download_df_as_csv_button, \
     make_room_for_menu_in_sidebar
-from tradingplatformpoc.market.trade import TradeMetadataKey
 from tradingplatformpoc.sql.agent.crud import get_agent_config, get_agent_type
 from tradingplatformpoc.sql.config.crud import get_all_agents_in_config, get_all_finished_job_config_id_pairs_in_db, \
     read_config
 from tradingplatformpoc.sql.extra_cost.crud import db_to_viewable_extra_costs_df_by_agent
-from tradingplatformpoc.sql.level.crud import db_to_viewable_level_df_by_agent
 from tradingplatformpoc.sql.trade.crud import db_to_viewable_trade_df_by_agent
 
 TABLE_HEIGHT: int = 300
