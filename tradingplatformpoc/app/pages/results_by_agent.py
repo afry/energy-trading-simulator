@@ -60,7 +60,6 @@ if len(ids) > 0:
                                       include_index=True)
 
     if agent_type != 'GridAgent':
-        # TODO: Exclude this if the agent doesn't have a battery?
         storage_levels_df = db_to_viewable_level_df_by_agent(job_id=chosen_id_to_view.job_id,
                                                              agent_guid=agent_chosen_guid,
                                                              level_type=TradeMetadataKey.BATTERY_LEVEL.name)
