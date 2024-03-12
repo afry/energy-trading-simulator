@@ -64,7 +64,7 @@ if len(ids) > 0:
                                                              agent_guid=agent_chosen_guid,
                                                              level_type=TradeMetadataKey.BATTERY_LEVEL.name)
         if not storage_levels_df.empty:
-            with st.expander('Charging level over time for ' + agent_chosen_guid + ':'):
+            with st.expander('Battery charging level over time for ' + agent_chosen_guid + ':'):
                 storage_chart = construct_storage_level_chart(storage_levels_df)
                 st.altair_chart(storage_chart, use_container_width=True, theme=None)
 
