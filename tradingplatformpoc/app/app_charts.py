@@ -144,13 +144,21 @@ def construct_price_chart(prices_df: pd.DataFrame, resource: Resource) -> alt.Ch
 
 
 def construct_storage_level_chart(storage_levels_df: pd.DataFrame) -> alt.Chart:
-    storage_levels_df = storage_levels_df.reset_index()
-    storage_levels_df['variable'] = 'Charging level'
-    storage_levels_df = storage_levels_df.rename(columns={'level': 'value'})
-    domain = list(pd.unique(storage_levels_df['variable']))
-    range_color = [app_constants.BATTERY_CHART_COLOR]
-    range_dash = [[0, 0]]
-    chart = altair_line_chart(storage_levels_df, domain, range_color, range_dash, "% of capacity used",
+    df = pd.DataFrame()
+    domain = []
+    range_color = []
+
+    for (col_name, title, i_color) in zip(['level_battery', 'level_acc_tank'],
+                                          ['Battery charging level', 'Accumulator tank charging level'],
+                                          [0, 1]):
+        if col_name in storage_levels_df.columns:
+            df = pd.concat((df, pd.DataFrame({'period': storage_levels_df[col_name].index,
+                                              'value': storage_levels_df[col_name],
+                                              'variable': title})))
+            domain.append(title)
+            range_color.append(app_constants.ALTAIR_BASE_COLORS[i_color])
+
+    chart = altair_line_chart(df, domain, range_color, [], "% of capacity used",
                               "Charging level")
     chart.encoding.y.axis = alt.Axis(format='%')
     chart.encoding.tooltip[2].format = '.2%'

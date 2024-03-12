@@ -233,6 +233,25 @@ def build_heat_pump_prod_df(job_id: str, agent_chosen_guid: str, agent_config: d
         return pd.DataFrame()
 
 
+def build_storage_df(job_id: str, agent_chosen_guid: str) -> pd.DataFrame:
+    """
+    Combines battery and accumulator tank storage.
+    """
+    battery_df = db_to_viewable_level_df_by_agent(job_id=job_id,
+                                                  agent_guid=agent_chosen_guid,
+                                                  level_type=TradeMetadataKey.BATTERY_LEVEL.name)
+    battery_df = battery_df.rename({'level': 'level_battery'}, axis=1)
+    acc_tank_df = db_to_viewable_level_df_by_agent(job_id=job_id,
+                                                   agent_guid=agent_chosen_guid,
+                                                   level_type=TradeMetadataKey.ACC_TANK_LEVEL.name)
+    acc_tank_df = acc_tank_df.rename({'level': 'level_acc_tank'}, axis=1)
+    if battery_df.empty:
+        return acc_tank_df
+    if acc_tank_df.empty:
+        return battery_df
+    return pd.merge(battery_df, acc_tank_df, left_index=True, right_index=True, how='outer').fillna(0)
+
+
 def combine_trades_dfs(agg_buy_trades: Optional[pd.DataFrame], agg_sell_trades: Optional[pd.DataFrame]) \
         -> Optional[pd.DataFrame]:
     """Aims to merge two pd.DataFrames, if they are present."""

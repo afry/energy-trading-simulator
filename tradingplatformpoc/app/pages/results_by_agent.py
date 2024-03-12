@@ -5,7 +5,8 @@ import streamlit as st
 from tradingplatformpoc.app import footer
 from tradingplatformpoc.app.app_charts import construct_agent_energy_chart, \
     construct_storage_level_chart, construct_traded_amount_by_agent_chart
-from tradingplatformpoc.app.app_data_display import build_heat_pump_prod_df, reconstruct_static_digital_twin
+from tradingplatformpoc.app.app_data_display import build_heat_pump_prod_df, reconstruct_static_digital_twin, \
+    build_storage_df
 from tradingplatformpoc.app.app_functions import IdPair, calculate_table_height, download_df_as_csv_button, \
     make_room_for_menu_in_sidebar
 from tradingplatformpoc.market.trade import TradeMetadataKey
@@ -61,11 +62,9 @@ if len(ids) > 0:
                                       include_index=True)
 
     if agent_type != 'GridAgent':
-        storage_levels_df = db_to_viewable_level_df_by_agent(job_id=chosen_id_to_view.job_id,
-                                                             agent_guid=agent_chosen_guid,
-                                                             level_type=TradeMetadataKey.BATTERY_LEVEL.name)
+        storage_levels_df = build_storage_df(job_id=chosen_id_to_view.job_id, agent_chosen_guid=agent_chosen_guid)
         if not storage_levels_df.empty:
-            with st.expander('Battery charging level over time for ' + agent_chosen_guid + ':'):
+            with st.expander('Storage levels over time for ' + agent_chosen_guid + ':'):
                 storage_chart = construct_storage_level_chart(storage_levels_df)
                 st.altair_chart(storage_chart, use_container_width=True, theme=None)
 
