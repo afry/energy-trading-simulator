@@ -1,6 +1,6 @@
 import datetime
 import logging
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Callable, Dict, List, Tuple, Union
 
 import numpy as np
 
@@ -151,13 +151,17 @@ def extract_outputs(optimized_model: pyo.ConcreteModel,
                                       electricity_price_data)
     heat_trades = get_heat_transfers(optimized_model, start_datetime, heat_grid_agent_guid, agent_guids,
                                      heating_price_data)
-    battery_storage_levels = get_value_per_agent(optimized_model, start_datetime, 'SOCBES', agent_guids)
+    battery_storage_levels = get_value_per_agent(optimized_model, start_datetime, 'SOCBES', agent_guids,
+                                                 lambda i: optimized_model.Emax_BES[i] > 0)
     if should_use_summer_mode(start_datetime):
-        hp_low_prod = get_value_per_agent(optimized_model, start_datetime, 'Hhp', agent_guids)
-        hp_high_prod = get_value_per_agent(optimized_model, start_datetime, 'HhpB', agent_guids)
+        hp_low_prod = get_value_per_agent(optimized_model, start_datetime, 'Hhp', agent_guids,
+                                          lambda i: optimized_model.Phpmax[i] > 0)
+        hp_high_prod = get_value_per_agent(optimized_model, start_datetime, 'HhpB', agent_guids,
+                                           lambda i: optimized_model.PhpBmax[i] > 0)
     else:
-        hp_high_prod = get_value_per_agent(optimized_model, start_datetime, 'Hhp', agent_guids)
-        hp_low_prod = {}  # Will this work? Do we need to insert 0s?
+        hp_high_prod = get_value_per_agent(optimized_model, start_datetime, 'Hhp', agent_guids,
+                                           lambda i: optimized_model.Phpmax[i] > 0)
+        hp_low_prod = {}
     return ChalmersOutputs(elec_trades + heat_trades, battery_storage_levels, hp_high_prod, hp_low_prod)
 
 
@@ -339,15 +343,19 @@ def add_value_per_agent_to_dict(optimized_model: pyo.ConcreteModel, start_dateti
 
 
 def get_value_per_agent(optimized_model: pyo.ConcreteModel, start_datetime: datetime.datetime,
-                        variable_name: str, agent_guids: List[str]) -> Dict[str, Dict[datetime.datetime, Any]]:
+                        variable_name: str, agent_guids: List[str], should_add_for_agent: Callable[[int], bool]) \
+        -> Dict[str, Dict[datetime.datetime, Any]]:
     """
     Example variable names: "Hhp" for heat pump production, "SOCBES" for state of charge of battery storage.
     Returns a nested dict where agent GUID is the first key, the period the second.
+    Will only add values for which "should_add_for_agent(agent_index)" is True. This can be used to ensure that battery
+    charge state is only added for agents that actually have a battery.
     """
     dict_to_add_to: Dict[str, Dict[datetime.datetime, Any]] = {}
     for hour in optimized_model.T:
+        period = start_datetime + datetime.timedelta(hours=hour)
         for i_agent in optimized_model.I:
-            quantity = pyo.value(getattr(optimized_model, variable_name)[i_agent, hour])
-            period = start_datetime + datetime.timedelta(hours=hour)
-            add_to_nested_dict(dict_to_add_to, agent_guids[i_agent], period, round(quantity, DECIMALS_TO_ROUND_TO))
+            if should_add_for_agent(i_agent):
+                quantity = pyo.value(getattr(optimized_model, variable_name)[i_agent, hour])
+                add_to_nested_dict(dict_to_add_to, agent_guids[i_agent], period, round(quantity, DECIMALS_TO_ROUND_TO))
     return dict_to_add_to

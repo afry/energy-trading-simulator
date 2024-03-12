@@ -150,8 +150,11 @@ def construct_storage_level_chart(storage_levels_df: pd.DataFrame) -> alt.Chart:
     domain = list(pd.unique(storage_levels_df['variable']))
     range_color = [app_constants.BATTERY_CHART_COLOR]
     range_dash = [[0, 0]]
-    return altair_line_chart(storage_levels_df, domain, range_color, range_dash,
-                             "Capacity [kWh]", "Charging level")
+    chart = altair_line_chart(storage_levels_df, domain, range_color, range_dash, "% of capacity used",
+                              "Charging level")
+    chart.encoding.y.axis = alt.Axis(format='%')
+    chart.encoding.tooltip[2].format = '.2%'
+    return chart
 
     
 def construct_avg_day_elec_chart(elec_use_df: pd.DataFrame, period: tuple) -> alt.Chart:
