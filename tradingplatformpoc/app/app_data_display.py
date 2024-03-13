@@ -233,11 +233,28 @@ def build_heat_pump_prod_df(job_id: str, agent_chosen_guid: str, agent_config: d
         return pd.DataFrame()
 
 
+def get_bites_dfs(job_id: str, agent_chosen_guid: str) -> Dict[TradeMetadataKey, pd.DataFrame]:
+    """Constructs a dict, with a dataframe for each type of BITES-related field."""
+    keys = [TradeMetadataKey.SHALLOW_STORAGE_ABS,
+            TradeMetadataKey.DEEP_STORAGE_ABS,
+            TradeMetadataKey.SHALLOW_CHARGE,
+            TradeMetadataKey.SHALLOW_DISCHARGE,
+            TradeMetadataKey.FLOW_SHALLOW_TO_DEEP,
+            TradeMetadataKey.SHALLOW_LOSS,
+            TradeMetadataKey.DEEP_LOSS]
+    return get_dfs_by_tmk(agent_chosen_guid, job_id, keys)
+
+
 def get_storage_dfs(job_id: str, agent_chosen_guid: str) -> Dict[TradeMetadataKey, pd.DataFrame]:
-    """
-    """
+    """Constructs a dict, with a dataframe for each type of storage."""
+    keys = [TradeMetadataKey.BATTERY_LEVEL, TradeMetadataKey.SHALLOW_STORAGE_REL, TradeMetadataKey.DEEP_STORAGE_REL]
+    return get_dfs_by_tmk(agent_chosen_guid, job_id, keys)
+
+
+def get_dfs_by_tmk(agent_chosen_guid, job_id, keys):
+    """Constructs a dict, with a dataframe for each TradeMetadataKey."""
     my_dict: Dict[TradeMetadataKey, pd.DataFrame] = {}
-    for tmk in [TradeMetadataKey.BATTERY_LEVEL, TradeMetadataKey.SHALLOW_STORAGE, TradeMetadataKey.DEEP_STORAGE]:
+    for tmk in keys:
         df = db_to_viewable_level_df_by_agent(job_id=job_id, agent_guid=agent_chosen_guid, level_type=tmk.name)
         if not df.empty:
             my_dict[tmk] = df

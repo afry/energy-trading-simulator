@@ -149,13 +149,13 @@ def construct_storage_level_chart(storage_level_dfs: Dict[TradeMetadataKey, pd.D
     domain = []
     range_color = []
 
-    titles = {TradeMetadataKey.BATTERY_LEVEL: 'Battery charging level',
-              TradeMetadataKey.SHALLOW_STORAGE: 'BITES shallow storage',
-              TradeMetadataKey.DEEP_STORAGE: 'BITES deep storage',
+    titles = {TradeMetadataKey.SHALLOW_STORAGE_REL: 'BITES shallow storage',
+              TradeMetadataKey.DEEP_STORAGE_REL: 'BITES deep storage',
+              TradeMetadataKey.BATTERY_LEVEL: 'Battery charging level',
               TradeMetadataKey.ACC_TANK_LEVEL: 'Accumulator tank charging level'}
     colors = {TradeMetadataKey.BATTERY_LEVEL: app_constants.ALTAIR_BASE_COLORS[0],
-              TradeMetadataKey.SHALLOW_STORAGE: app_constants.ALTAIR_BASE_COLORS[1],
-              TradeMetadataKey.DEEP_STORAGE: app_constants.ALTAIR_BASE_COLORS[2],
+              TradeMetadataKey.SHALLOW_STORAGE_REL: app_constants.ALTAIR_BASE_COLORS[1],
+              TradeMetadataKey.DEEP_STORAGE_REL: app_constants.ALTAIR_BASE_COLORS[2],
               TradeMetadataKey.ACC_TANK_LEVEL: app_constants.ALTAIR_BASE_COLORS[3]}
 
     for (tmk, sub_df) in storage_level_dfs.items():
@@ -169,6 +169,38 @@ def construct_storage_level_chart(storage_level_dfs: Dict[TradeMetadataKey, pd.D
                               "Charging level")
     chart.encoding.y.axis = alt.Axis(format='%')
     chart.encoding.tooltip[2].format = '.2%'
+    return chart
+
+
+def construct_bites_chart(bites_dfs: Dict[TradeMetadataKey, pd.DataFrame]) -> alt.Chart:
+    df = pd.DataFrame()
+    domain = []
+    range_color = []
+
+    titles = {TradeMetadataKey.SHALLOW_STORAGE_ABS: 'Shallow storage',
+              TradeMetadataKey.DEEP_STORAGE_ABS: 'Deep storage',
+              TradeMetadataKey.SHALLOW_CHARGE: 'Shallow charge',
+              TradeMetadataKey.SHALLOW_DISCHARGE: 'Shallow discharge',
+              TradeMetadataKey.FLOW_SHALLOW_TO_DEEP: 'Flow shallow -> deep',
+              TradeMetadataKey.SHALLOW_LOSS: 'Shallow storage loss',
+              TradeMetadataKey.DEEP_LOSS: 'Deep storage loss'}
+    colors = {TradeMetadataKey.SHALLOW_STORAGE_ABS: app_constants.ALTAIR_BASE_COLORS[0],
+              TradeMetadataKey.DEEP_STORAGE_ABS: app_constants.ALTAIR_BASE_COLORS[1],
+              TradeMetadataKey.SHALLOW_CHARGE: app_constants.ALTAIR_BASE_COLORS[2],
+              TradeMetadataKey.SHALLOW_DISCHARGE: app_constants.ALTAIR_BASE_COLORS[3],
+              TradeMetadataKey.FLOW_SHALLOW_TO_DEEP: app_constants.ALTAIR_BASE_COLORS[4],
+              TradeMetadataKey.SHALLOW_LOSS: app_constants.ALTAIR_BASE_COLORS[5],
+              TradeMetadataKey.DEEP_LOSS: app_constants.ALTAIR_BASE_COLORS[6]}
+
+    for (tmk, sub_df) in bites_dfs.items():
+        df = pd.concat((df, pd.DataFrame({'period': sub_df['level'].index,
+                                          'value': sub_df['level'],
+                                          'variable': titles[tmk]})))
+        domain.append(titles[tmk])
+        range_color.append(colors[tmk])
+
+    chart = altair_line_chart(df, domain, range_color, [], "Heating [kWh]",
+                              "Building inertia as thermal energy storage")
     return chart
 
     

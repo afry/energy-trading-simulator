@@ -40,21 +40,42 @@ class ChalmersOutputs:
     trades: List[Trade]
     # (agent_guid, (period, level))
     battery_storage_levels: Dict[str, Dict[datetime.datetime, float]]
-    shallow_storage: Dict[str, Dict[datetime.datetime, float]]
-    deep_storage: Dict[str, Dict[datetime.datetime, float]]
+    shallow_storage_rel: Dict[str, Dict[datetime.datetime, float]]
+    deep_storage_rel: Dict[str, Dict[datetime.datetime, float]]
+    shallow_storage_abs: Dict[str, Dict[datetime.datetime, float]]
+    deep_storage_abs: Dict[str, Dict[datetime.datetime, float]]
+    shallow_loss: Dict[str, Dict[datetime.datetime, float]]
+    deep_loss: Dict[str, Dict[datetime.datetime, float]]
+    shallow_charge: Dict[str, Dict[datetime.datetime, float]]
+    shallow_discharge: Dict[str, Dict[datetime.datetime, float]]
+    bites_flow: Dict[str, Dict[datetime.datetime, float]]
     hp_high_prod: Dict[str, Dict[datetime.datetime, float]]
     hp_low_prod: Dict[str, Dict[datetime.datetime, float]]
 
     def __init__(self, trades: List[Trade],
                  battery_storage_levels: Dict[str, Dict[datetime.datetime, float]],
-                 shallow_storage: Dict[str, Dict[datetime.datetime, float]],
-                 deep_storage: Dict[str, Dict[datetime.datetime, float]],
+                 shallow_storage_rel: Dict[str, Dict[datetime.datetime, float]],
+                 deep_storage_rel: Dict[str, Dict[datetime.datetime, float]],
+                 shallow_storage_abs: Dict[str, Dict[datetime.datetime, float]],
+                 deep_storage_abs: Dict[str, Dict[datetime.datetime, float]],
+                 shallow_loss: Dict[str, Dict[datetime.datetime, float]],
+                 deep_loss: Dict[str, Dict[datetime.datetime, float]],
+                 shallow_charge: Dict[str, Dict[datetime.datetime, float]],
+                 shallow_discharge: Dict[str, Dict[datetime.datetime, float]],
+                 bites_flow: Dict[str, Dict[datetime.datetime, float]],
                  hp_high_prod: Dict[str, Dict[datetime.datetime, float]],
                  hp_low_prod: Dict[str, Dict[datetime.datetime, float]]):
         self.trades = trades
         self.battery_storage_levels = battery_storage_levels
-        self.shallow_storage = shallow_storage
-        self.deep_storage = deep_storage
+        self.shallow_storage_rel = shallow_storage_rel
+        self.deep_storage_rel = deep_storage_rel
+        self.shallow_storage_abs = shallow_storage_abs
+        self.deep_storage_abs = deep_storage_abs
+        self.shallow_loss = shallow_loss
+        self.deep_loss = deep_loss
+        self.shallow_charge = shallow_charge
+        self.shallow_discharge = shallow_discharge
+        self.bites_flow = bites_flow
         self.hp_high_prod = hp_high_prod
         self.hp_low_prod = hp_low_prod
 
@@ -161,12 +182,26 @@ def extract_outputs(optimized_model: pyo.ConcreteModel,
                                      heating_price_data)
     battery_storage_levels = get_value_per_agent(optimized_model, start_datetime, 'SOCBES', agent_guids,
                                                  lambda i: optimized_model.Emax_BES[i] > 0)
-    shallow_storage = get_value_per_agent(optimized_model, start_datetime, 'Energy_shallow', agent_guids,
-                                          lambda i: optimized_model.Energy_shallow_cap[i] > 0,
-                                          lambda i: optimized_model.Energy_shallow_cap[i])
-    deep_storage = get_value_per_agent(optimized_model, start_datetime, 'Energy_deep', agent_guids,
-                                       lambda i: optimized_model.Energy_deep_cap[i] > 0,
-                                       lambda i: optimized_model.Energy_deep_cap[i])
+    shallow_storage_rel = get_value_per_agent(optimized_model, start_datetime, 'Energy_shallow', agent_guids,
+                                              lambda i: optimized_model.Energy_shallow_cap[i] > 0,
+                                              lambda i: optimized_model.Energy_shallow_cap[i])
+    deep_storage_rel = get_value_per_agent(optimized_model, start_datetime, 'Energy_deep', agent_guids,
+                                           lambda i: optimized_model.Energy_deep_cap[i] > 0,
+                                           lambda i: optimized_model.Energy_deep_cap[i])
+    shallow_storage_abs = get_value_per_agent(optimized_model, start_datetime, 'Energy_shallow', agent_guids,
+                                              lambda i: optimized_model.Energy_shallow_cap[i] > 0)
+    deep_storage_abs = get_value_per_agent(optimized_model, start_datetime, 'Energy_deep', agent_guids,
+                                           lambda i: optimized_model.Energy_deep_cap[i] > 0)
+    shallow_loss = get_value_per_agent(optimized_model, start_datetime, 'Loss_shallow', agent_guids,
+                                       lambda i: optimized_model.Energy_shallow_cap[i] > 0)
+    deep_loss = get_value_per_agent(optimized_model, start_datetime, 'Loss_deep', agent_guids,
+                                    lambda i: optimized_model.Energy_deep_cap[i] > 0)
+    shallow_charge = get_value_per_agent(optimized_model, start_datetime, 'Hcha_shallow', agent_guids,
+                                         lambda i: optimized_model.Energy_shallow_cap[i] > 0)
+    shallow_discharge = get_value_per_agent(optimized_model, start_datetime, 'Hdis_shallow', agent_guids,
+                                            lambda i: optimized_model.Energy_shallow_cap[i] > 0)
+    bites_flow = get_value_per_agent(optimized_model, start_datetime, 'Flow', agent_guids,
+                                     lambda i: optimized_model.Energy_deep_cap[i] > 0)
     if should_use_summer_mode(start_datetime):
         hp_low_prod = get_value_per_agent(optimized_model, start_datetime, 'Hhp', agent_guids,
                                           lambda i: optimized_model.Phpmax[i] > 0)
@@ -176,8 +211,19 @@ def extract_outputs(optimized_model: pyo.ConcreteModel,
         hp_high_prod = get_value_per_agent(optimized_model, start_datetime, 'Hhp', agent_guids,
                                            lambda i: optimized_model.Phpmax[i] > 0)
         hp_low_prod = {}
-    return ChalmersOutputs(elec_trades + heat_trades, battery_storage_levels, shallow_storage, deep_storage,
-                           hp_high_prod, hp_low_prod)
+    return ChalmersOutputs(elec_trades + heat_trades,
+                           battery_storage_levels,
+                           shallow_storage_rel,
+                           deep_storage_rel,
+                           shallow_storage_abs,
+                           deep_storage_abs,
+                           shallow_loss,
+                           deep_loss,
+                           shallow_charge,
+                           shallow_discharge,
+                           bites_flow,
+                           hp_high_prod,
+                           hp_low_prod)
 
 
 def build_supply_and_demand_dfs(agents: List[BlockAgent], start_datetime: datetime.datetime, trading_horizon: int) -> \

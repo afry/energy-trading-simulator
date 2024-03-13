@@ -13,13 +13,20 @@ class TradeMetadataKey(Enum):
     STORAGE_LEVEL = 0
     HEAT_PUMP_WORKLOAD = 1
     BATTERY_LEVEL = 2
-    BITES_LEVEL = 3  # Building inertia thermal energy storage
-    ACC_TANK_LEVEL = 4
-    HP_HIGH_HEAT_PROD = 5
-    HP_LOW_HEAT_PROD = 6
-    CM_PROD = 7  # Cooling machine
-    SHALLOW_STORAGE = 8
-    DEEP_STORAGE = 9
+    ACC_TANK_LEVEL = 3
+    HP_HIGH_HEAT_PROD = 4
+    HP_LOW_HEAT_PROD = 5
+    CM_PROD = 6  # Cooling machine
+    # Building inertia as thermal energy storage things:
+    SHALLOW_STORAGE_REL = 7
+    DEEP_STORAGE_REL = 8
+    SHALLOW_STORAGE_ABS = 9
+    DEEP_STORAGE_ABS = 10
+    SHALLOW_CHARGE = 11
+    SHALLOW_DISCHARGE = 12
+    FLOW_SHALLOW_TO_DEEP = 13
+    SHALLOW_LOSS = 14
+    DEEP_LOSS = 15
 
 
 class Trade:
