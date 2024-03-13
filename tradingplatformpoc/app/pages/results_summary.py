@@ -16,8 +16,8 @@ add_indentation()
 list_of_dicts = get_all_results()
 if len(list_of_dicts):
     df_to_display = build_leaderboard_df(list_of_dicts)
-
-    st.dataframe(df_to_display)
+    n_rows = len(df_to_display.index)
+    st.dataframe(df_to_display, height=(n_rows + 1) * 35 + 15)
 else:
     st.markdown('No results to display. Set up a configuration in '
                 '**Setup configuration** and run it in **Run simulation**.')

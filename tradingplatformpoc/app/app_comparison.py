@@ -72,7 +72,7 @@ def import_export_calculations(ids: ComparisonIds) -> alt.Chart:
                                                freq="1h", tz='utc')
                 subset = subset.reindex(datetime_range).fillna(0)
                 subset = subset.reset_index().rename(columns={'index': 'period'})
-                variable = var_names[(action, resource)] + ' - ' + ids.get_config_id(job_id)
+                variable = title + ' - ' + ids.get_config_id(job_id)
                 subset['variable'] = variable
                 subset = subset.rename(columns={'quantity_post_loss': 'value'})
 

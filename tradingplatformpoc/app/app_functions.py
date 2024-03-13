@@ -37,7 +37,7 @@ def set_max_width(width: str):
     """, unsafe_allow_html=True, )
 
 
-def calculate_table_height(n_rows: int, max_height: int = 300) -> Optional[int]:
+def calculate_max_table_height(n_rows: int, max_height: int = 300) -> Optional[int]:
     """
     Ensures that table height is capped at max_height. The returned value is to be passed to `st.table` or
     `st.dataframe` as the "height" argument.
