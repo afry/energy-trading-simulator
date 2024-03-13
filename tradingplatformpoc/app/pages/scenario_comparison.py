@@ -67,22 +67,25 @@ if len(job_id_per_config_id) >= 2:
                 st.markdown("There is no relevant agent in the second configuration")
             else:
                 if agent_1_type != "GridAgent":
-                    # TODO: Only create these charts if they contain anything?
-
                     # Make a heat pump workload comparison graph
                     heat_pump_comparison_chart = construct_level_comparison_chart(
                         comparison_ids, [chosen_agent_name_to_view_1, chosen_agent_name_to_view_2],
-                        TradeMetadataKey.HP_HIGH_HEAT_PROD, "Output", "HP high-heat output comparison")
-                    st.caption("Click on a variable in the legend to highlight it in the graph.")
-                    st.altair_chart(heat_pump_comparison_chart, use_container_width=True, theme=None)
+                        TradeMetadataKey.HP_HIGH_HEAT_PROD, "Output", "Heat pump high-temp heat output comparison")
+                    if heat_pump_comparison_chart is None:
+                        st.caption("No heat pumps for either of these agents.")
+                    else:
+                        st.caption("Click on a variable in the legend to highlight it in the graph.")
+                        st.altair_chart(heat_pump_comparison_chart, use_container_width=True, theme=None)
 
-                    # make a battery storage level comparison graph
+                    # Make a battery storage level comparison graph
                     battery_comparison_chart = construct_level_comparison_chart(
                         comparison_ids, [chosen_agent_name_to_view_1, chosen_agent_name_to_view_2],
                         TradeMetadataKey.BATTERY_LEVEL, "Capacity [%]", "Charging level comparison")
-                    st.caption("Click on a variable in the legend to highlight "
-                               "it in the graph.")
-                    st.altair_chart(battery_comparison_chart, use_container_width=True, theme=None)
+                    if battery_comparison_chart is None:
+                        st.caption("No batteries for either of these agents.")
+                    else:
+                        st.caption("Click on a variable in the legend to highlight it in the graph.")
+                        st.altair_chart(battery_comparison_chart, use_container_width=True, theme=None)
 
 else:
     st.markdown('Too few scenarios to compare, set up a configuration in '

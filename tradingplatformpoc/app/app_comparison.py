@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import altair as alt
 
@@ -50,10 +50,8 @@ def import_export_calculations(ids: ComparisonIds) -> alt.Chart:
         (Action.SELL, Resource.HIGH_TEMP_HEAT): "High-temp heat, imported",
         (Action.SELL, Resource.ELECTRICITY): "Electricity, imported",
         (Action.BUY, Resource.ELECTRICITY): "Electricity, exported"}
-    
-    colors: List[str] = [""] * (len(var_names) * 2)
-    colors[::2] = app_constants.ALTAIR_BASE_COLORS[:len(var_names)]
-    colors[1::2] = app_constants.ALTAIR_DARK_COLORS[:len(var_names)]
+
+    colors: List[str] = app_constants.ALTAIR_BASE_COLORS[:(len(var_names) * 2)]
 
     # Process data to be of a form that fits the altair chart
     domain: List[str] = []
@@ -111,7 +109,7 @@ def show_key_figs_for_one(pre_calculated_results: Dict[str, Any]):
 
 def construct_level_comparison_chart(ids: ComparisonIds, agent_names: List[str],
                                      level_type: TradeMetadataKey, var_title_str: str, title_str: str,
-                                     num_letters: int = 7) -> alt.Chart:
+                                     num_letters: int = 7) -> Optional[alt.Chart]:
     level_dfs = []
     for comp_id, agent_name in zip(ids.id_pairs, agent_names):
         agent_var = agent_name[:num_letters] + '...' + agent_name[-num_letters:] \
@@ -123,7 +121,8 @@ def construct_level_comparison_chart(ids: ComparisonIds, agent_names: List[str],
             .assign(variable=agent_var + ' - ' + comp_id.config_id))
 
     combined_level_df = pd.concat(level_dfs, axis=0, join="outer").reset_index()
-
+    if combined_level_df.empty:
+        return None
     combined_level_df = combined_level_df.rename(columns={'level': 'value'})
     domain = list(pd.unique(combined_level_df['variable']))
     range_color = app_constants.ALTAIR_BASE_COLORS[:len(domain)]
