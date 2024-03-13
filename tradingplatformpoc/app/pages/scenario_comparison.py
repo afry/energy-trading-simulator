@@ -5,8 +5,8 @@ from st_pages import add_indentation, show_pages_from_config
 import streamlit as st
 
 from tradingplatformpoc.app import footer
-from tradingplatformpoc.app.app_comparison import ComparisonIds, construct_comparison_price_chart, \
-    construct_level_comparison_chart, import_export_calculations, show_key_figures
+from tradingplatformpoc.app.app_comparison import ComparisonIds, construct_level_comparison_chart, \
+    import_export_calculations, show_key_figures
 from tradingplatformpoc.market.trade import TradeMetadataKey
 from tradingplatformpoc.sql.agent.crud import get_agent_type
 from tradingplatformpoc.sql.config.crud import get_all_agents_in_config, get_all_finished_job_config_id_pairs_in_db
@@ -42,14 +42,6 @@ if len(job_id_per_config_id) >= 2:
             imp_exp_chart = import_export_calculations(comparison_ids)
             st.caption("Hold *Shift* and click on multiple variables in the legend to highlight them in the graph.")
             st.altair_chart(imp_exp_chart, use_container_width=True, theme=None)
-        
-        # Price graph
-        logger.info("Constructing price graph")
-        with st.spinner("Constructing price graph"):
-            price_chart = construct_comparison_price_chart(comparison_ids)
-            st.caption("Click on a variable in the legend to highlight "
-                       "it in the graph.")
-            st.altair_chart(price_chart, use_container_width=True, theme=None)
 
         # Agent comparison
         st.subheader("Agent comparison graphs")
@@ -74,23 +66,23 @@ if len(job_id_per_config_id) >= 2:
             if not agent_2_names:
                 st.markdown("There is no relevant agent in the second configuration")
             else:
-                if agent_1_type == "BlockAgent":
+                if agent_1_type != "GridAgent":
+                    # TODO: Only create these charts if they contain anything?
+
                     # Make a heat pump workload comparison graph
                     heat_pump_comparison_chart = construct_level_comparison_chart(
                         comparison_ids, [chosen_agent_name_to_view_1, chosen_agent_name_to_view_2],
-                        TradeMetadataKey.HEAT_PUMP_WORKLOAD, "Workload", "Heat pump workload comparison")
-                    st.caption("Click on a variable in the legend to highlight "
-                               "it in the graph.")
+                        TradeMetadataKey.HP_HIGH_HEAT_PROD, "Output", "HP high-heat output comparison")
+                    st.caption("Click on a variable in the legend to highlight it in the graph.")
                     st.altair_chart(heat_pump_comparison_chart, use_container_width=True, theme=None)
 
-                    # TODO: When we've fixed saving storage level for block agent
-                    # # make a battery storage level comparison graph
-                    # battery_comparison_chart = construct_level_comparison_chart(
-                    #     comparison_ids, [chosen_agent_name_to_view_1, chosen_agent_name_to_view_2],
-                    #     TradeMetadataKey.STORAGE_LEVEL, "Capacity [kWh]", "Charging level comparison")
-                    # st.caption("Click on a variable in the legend to highlight "
-                    #            "it in the graph.")
-                    # st.altair_chart(battery_comparison_chart, use_container_width=True, theme=None)
+                    # make a battery storage level comparison graph
+                    battery_comparison_chart = construct_level_comparison_chart(
+                        comparison_ids, [chosen_agent_name_to_view_1, chosen_agent_name_to_view_2],
+                        TradeMetadataKey.BATTERY_LEVEL, "Capacity [%]", "Charging level comparison")
+                    st.caption("Click on a variable in the legend to highlight "
+                               "it in the graph.")
+                    st.altair_chart(battery_comparison_chart, use_container_width=True, theme=None)
 
 else:
     st.markdown('Too few scenarios to compare, set up a configuration in '
