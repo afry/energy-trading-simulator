@@ -3,17 +3,16 @@ from st_pages import add_indentation, show_pages_from_config
 import streamlit as st
 
 from tradingplatformpoc.app import footer
-from tradingplatformpoc.app.app_charts import construct_agent_energy_chart, \
+from tradingplatformpoc.app.app_charts import construct_agent_energy_chart, construct_bites_chart, \
     construct_storage_level_chart, construct_traded_amount_by_agent_chart
-from tradingplatformpoc.app.app_data_display import build_heat_pump_prod_df, reconstruct_static_digital_twin
+from tradingplatformpoc.app.app_data_display import build_heat_pump_prod_df, get_bites_dfs, get_storage_dfs, \
+    reconstruct_static_digital_twin
 from tradingplatformpoc.app.app_functions import IdPair, calculate_table_height, download_df_as_csv_button, \
     make_room_for_menu_in_sidebar
-from tradingplatformpoc.market.trade import TradeMetadataKey
 from tradingplatformpoc.sql.agent.crud import get_agent_config, get_agent_type
 from tradingplatformpoc.sql.config.crud import get_all_agents_in_config, get_all_finished_job_config_id_pairs_in_db, \
     read_config
 from tradingplatformpoc.sql.extra_cost.crud import db_to_viewable_extra_costs_df_by_agent
-from tradingplatformpoc.sql.level.crud import db_to_viewable_level_df_by_agent
 from tradingplatformpoc.sql.trade.crud import db_to_viewable_trade_df_by_agent
 
 TABLE_HEIGHT: int = 300
@@ -61,13 +60,17 @@ if len(ids) > 0:
                                       include_index=True)
 
     if agent_type != 'GridAgent':
-        storage_levels_df = db_to_viewable_level_df_by_agent(job_id=chosen_id_to_view.job_id,
-                                                             agent_guid=agent_chosen_guid,
-                                                             level_type=TradeMetadataKey.BATTERY_LEVEL.name)
-        if not storage_levels_df.empty:
-            with st.expander('Battery charging level over time for ' + agent_chosen_guid + ':'):
-                storage_chart = construct_storage_level_chart(storage_levels_df)
+        storage_level_dfs = get_storage_dfs(job_id=chosen_id_to_view.job_id, agent_chosen_guid=agent_chosen_guid)
+        if len(storage_level_dfs) > 0:
+            with st.expander('Storage levels over time for ' + agent_chosen_guid + ':'):
+                storage_chart = construct_storage_level_chart(storage_level_dfs)
                 st.altair_chart(storage_chart, use_container_width=True, theme=None)
+
+        bites_dfs = get_bites_dfs(job_id=chosen_id_to_view.job_id, agent_chosen_guid=agent_chosen_guid)
+        if len(bites_dfs) > 0:
+            with st.expander('Building inertia thermal energy storage over time for ' + agent_chosen_guid + ':'):
+                bites_chart = construct_bites_chart(bites_dfs)
+                st.altair_chart(bites_chart, use_container_width=True, theme=None)
 
         with st.expander('Energy production/consumption'):
             agent_config = get_agent_config(agent_specs[agent_chosen_guid])

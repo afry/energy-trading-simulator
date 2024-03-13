@@ -38,16 +38,44 @@ Here we keep methods that do either
 
 class ChalmersOutputs:
     trades: List[Trade]
-    battery_storage_levels: Dict[str, Dict[datetime.datetime, float]]  # (agent_guid, (period, storage_level))
+    # (agent_guid, (period, level))
+    battery_storage_levels: Dict[str, Dict[datetime.datetime, float]]
+    shallow_storage_rel: Dict[str, Dict[datetime.datetime, float]]
+    deep_storage_rel: Dict[str, Dict[datetime.datetime, float]]
+    shallow_storage_abs: Dict[str, Dict[datetime.datetime, float]]
+    deep_storage_abs: Dict[str, Dict[datetime.datetime, float]]
+    shallow_loss: Dict[str, Dict[datetime.datetime, float]]
+    deep_loss: Dict[str, Dict[datetime.datetime, float]]
+    shallow_charge: Dict[str, Dict[datetime.datetime, float]]
+    shallow_discharge: Dict[str, Dict[datetime.datetime, float]]
+    bites_flow: Dict[str, Dict[datetime.datetime, float]]
     hp_high_prod: Dict[str, Dict[datetime.datetime, float]]
     hp_low_prod: Dict[str, Dict[datetime.datetime, float]]
 
     def __init__(self, trades: List[Trade],
                  battery_storage_levels: Dict[str, Dict[datetime.datetime, float]],
+                 shallow_storage_rel: Dict[str, Dict[datetime.datetime, float]],
+                 deep_storage_rel: Dict[str, Dict[datetime.datetime, float]],
+                 shallow_storage_abs: Dict[str, Dict[datetime.datetime, float]],
+                 deep_storage_abs: Dict[str, Dict[datetime.datetime, float]],
+                 shallow_loss: Dict[str, Dict[datetime.datetime, float]],
+                 deep_loss: Dict[str, Dict[datetime.datetime, float]],
+                 shallow_charge: Dict[str, Dict[datetime.datetime, float]],
+                 shallow_discharge: Dict[str, Dict[datetime.datetime, float]],
+                 bites_flow: Dict[str, Dict[datetime.datetime, float]],
                  hp_high_prod: Dict[str, Dict[datetime.datetime, float]],
                  hp_low_prod: Dict[str, Dict[datetime.datetime, float]]):
         self.trades = trades
         self.battery_storage_levels = battery_storage_levels
+        self.shallow_storage_rel = shallow_storage_rel
+        self.deep_storage_rel = deep_storage_rel
+        self.shallow_storage_abs = shallow_storage_abs
+        self.deep_storage_abs = deep_storage_abs
+        self.shallow_loss = shallow_loss
+        self.deep_loss = deep_loss
+        self.shallow_charge = shallow_charge
+        self.shallow_discharge = shallow_discharge
+        self.bites_flow = bites_flow
         self.hp_high_prod = hp_high_prod
         self.hp_low_prod = hp_low_prod
 
@@ -81,43 +109,44 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
     heat_retail_price = heat_pricing.get_estimated_retail_price(start_datetime, True)
 
     n_agents = len(block_agents)
-    optimized_model, results = CEMS_function.solve_model(solver=solver,
-                                                         summer_mode=should_use_summer_mode(start_datetime),
-                                                         n_agents=n_agents,
-                                                         external_elec_buy_price=elec_retail_prices,
-                                                         external_elec_sell_price=elec_wholesale_prices,
-                                                         external_heat_buy_price=heat_retail_price,
-                                                         battery_capacity=battery_capacities,
-                                                         battery_charge_rate=battery_max_charge,
-                                                         battery_discharge_rate=battery_max_discharge,
-                                                         SOCBES0=[area_info['StorageEndChargeLevel']] * n_agents,
-                                                         heatpump_COP=[area_info['COPHeatPumps']] * n_agents,
-                                                         heatpump_max_power=heatpump_max_power,
-                                                         heatpump_max_heat=heatpump_max_heat,
-                                                         booster_heatpump_COP=[area_info['COPBoosterPumps']] * n_agents,
-                                                         booster_heatpump_max_power=booster_max_power,
-                                                         booster_heatpump_max_heat=booster_max_heat,
-                                                         build_area=gross_floor_area,
-                                                         SOCTES0=[area_info['StorageEndChargeLevel']] * n_agents,
-                                                         TTES0=[60.0] * n_agents,  # TODO ?
-                                                         thermalstorage_max_temp=[65] * n_agents,  # TODO ?
-                                                         thermalstorage_min_temp=[45] * n_agents,  # TODO ?
-                                                         thermalstorage_volume=acc_tank_volumes,
-                                                         elec_consumption=elec_demand_df,
-                                                         hot_water_heatdem=high_heat_demand_df,
-                                                         space_heating_heatdem=low_heat_demand_df,
-                                                         cold_consumption=cooling_demand_df,
-                                                         pv_production=elec_supply_df,
-                                                         excess_heat=low_heat_supply_df,
-                                                         battery_efficiency=area_info['BatteryEfficiency'],
-                                                         max_elec_transfer_between_agents=area_info['InterAgentElectricityTransferCapacity'],
-                                                         max_elec_transfer_to_external=grid_agents[Resource.ELECTRICITY].max_transfer_per_hour,
-                                                         max_heat_transfer_between_agents=area_info['InterAgentHeatTransferCapacity'],
-                                                         max_heat_transfer_to_external=grid_agents[Resource.HEATING].max_transfer_per_hour,
-                                                         chiller_COP=area_info['COPCompChiller'],
-                                                         heat_trans_loss=area_info['HeatTransferLoss'],
-                                                         trading_horizon=trading_horizon
-                                                         )
+    optimized_model, results = CEMS_function.solve_model(
+        solver=solver,
+        summer_mode=should_use_summer_mode(start_datetime),
+        n_agents=n_agents,
+        external_elec_buy_price=elec_retail_prices,
+        external_elec_sell_price=elec_wholesale_prices,
+        external_heat_buy_price=heat_retail_price,
+        battery_capacity=battery_capacities,
+        battery_charge_rate=battery_max_charge,
+        battery_discharge_rate=battery_max_discharge,
+        SOCBES0=[area_info['StorageEndChargeLevel']] * n_agents,
+        heatpump_COP=[area_info['COPHeatPumps']] * n_agents,
+        heatpump_max_power=heatpump_max_power,
+        heatpump_max_heat=heatpump_max_heat,
+        booster_heatpump_COP=[area_info['COPBoosterPumps']] * n_agents,
+        booster_heatpump_max_power=booster_max_power,
+        booster_heatpump_max_heat=booster_max_heat,
+        build_area=gross_floor_area,
+        SOCTES0=[area_info['StorageEndChargeLevel']] * n_agents,
+        TTES0=[60.0] * n_agents,  # TODO ?
+        thermalstorage_max_temp=[65] * n_agents,  # TODO ?
+        thermalstorage_min_temp=[45] * n_agents,  # TODO ?
+        thermalstorage_volume=acc_tank_volumes,
+        elec_consumption=elec_demand_df,
+        hot_water_heatdem=high_heat_demand_df,
+        space_heating_heatdem=low_heat_demand_df,
+        cold_consumption=cooling_demand_df,
+        pv_production=elec_supply_df,
+        excess_heat=low_heat_supply_df,
+        battery_efficiency=area_info['BatteryEfficiency'],
+        max_elec_transfer_between_agents=area_info['InterAgentElectricityTransferCapacity'],
+        max_elec_transfer_to_external=grid_agents[Resource.ELECTRICITY].max_transfer_per_hour,
+        max_heat_transfer_between_agents=area_info['InterAgentHeatTransferCapacity'],
+        max_heat_transfer_to_external=grid_agents[Resource.HEATING].max_transfer_per_hour,
+        chiller_COP=area_info['COPCompChiller'],
+        heat_trans_loss=area_info['HeatTransferLoss'],
+        trading_horizon=trading_horizon
+    )
 
     if results.solver.termination_condition != TerminationCondition.optimal:
         # Raise error here?
@@ -153,6 +182,26 @@ def extract_outputs(optimized_model: pyo.ConcreteModel,
                                      heating_price_data)
     battery_storage_levels = get_value_per_agent(optimized_model, start_datetime, 'SOCBES', agent_guids,
                                                  lambda i: optimized_model.Emax_BES[i] > 0)
+    shallow_storage_rel = get_value_per_agent(optimized_model, start_datetime, 'Energy_shallow', agent_guids,
+                                              lambda i: optimized_model.Energy_shallow_cap[i] > 0,
+                                              lambda i: optimized_model.Energy_shallow_cap[i])
+    deep_storage_rel = get_value_per_agent(optimized_model, start_datetime, 'Energy_deep', agent_guids,
+                                           lambda i: optimized_model.Energy_deep_cap[i] > 0,
+                                           lambda i: optimized_model.Energy_deep_cap[i])
+    shallow_storage_abs = get_value_per_agent(optimized_model, start_datetime, 'Energy_shallow', agent_guids,
+                                              lambda i: optimized_model.Energy_shallow_cap[i] > 0)
+    deep_storage_abs = get_value_per_agent(optimized_model, start_datetime, 'Energy_deep', agent_guids,
+                                           lambda i: optimized_model.Energy_deep_cap[i] > 0)
+    shallow_loss = get_value_per_agent(optimized_model, start_datetime, 'Loss_shallow', agent_guids,
+                                       lambda i: optimized_model.Energy_shallow_cap[i] > 0)
+    deep_loss = get_value_per_agent(optimized_model, start_datetime, 'Loss_deep', agent_guids,
+                                    lambda i: optimized_model.Energy_deep_cap[i] > 0)
+    shallow_charge = get_value_per_agent(optimized_model, start_datetime, 'Hcha_shallow', agent_guids,
+                                         lambda i: optimized_model.Energy_shallow_cap[i] > 0)
+    shallow_discharge = get_value_per_agent(optimized_model, start_datetime, 'Hdis_shallow', agent_guids,
+                                            lambda i: optimized_model.Energy_shallow_cap[i] > 0)
+    bites_flow = get_value_per_agent(optimized_model, start_datetime, 'Flow', agent_guids,
+                                     lambda i: optimized_model.Energy_deep_cap[i] > 0)
     if should_use_summer_mode(start_datetime):
         hp_low_prod = get_value_per_agent(optimized_model, start_datetime, 'Hhp', agent_guids,
                                           lambda i: optimized_model.Phpmax[i] > 0)
@@ -162,7 +211,19 @@ def extract_outputs(optimized_model: pyo.ConcreteModel,
         hp_high_prod = get_value_per_agent(optimized_model, start_datetime, 'Hhp', agent_guids,
                                            lambda i: optimized_model.Phpmax[i] > 0)
         hp_low_prod = {}
-    return ChalmersOutputs(elec_trades + heat_trades, battery_storage_levels, hp_high_prod, hp_low_prod)
+    return ChalmersOutputs(elec_trades + heat_trades,
+                           battery_storage_levels,
+                           shallow_storage_rel,
+                           deep_storage_rel,
+                           shallow_storage_abs,
+                           deep_storage_abs,
+                           shallow_loss,
+                           deep_loss,
+                           shallow_charge,
+                           shallow_discharge,
+                           bites_flow,
+                           hp_high_prod,
+                           hp_low_prod)
 
 
 def build_supply_and_demand_dfs(agents: List[BlockAgent], start_datetime: datetime.datetime, trading_horizon: int) -> \
@@ -343,13 +404,17 @@ def add_value_per_agent_to_dict(optimized_model: pyo.ConcreteModel, start_dateti
 
 
 def get_value_per_agent(optimized_model: pyo.ConcreteModel, start_datetime: datetime.datetime,
-                        variable_name: str, agent_guids: List[str], should_add_for_agent: Callable[[int], bool]) \
+                        variable_name: str, agent_guids: List[str],
+                        should_add_for_agent: Callable[[int], bool],
+                        divide_by: Callable[[int], float] = lambda i: 1.0) \
         -> Dict[str, Dict[datetime.datetime, Any]]:
     """
     Example variable names: "Hhp" for heat pump production, "SOCBES" for state of charge of battery storage.
     Returns a nested dict where agent GUID is the first key, the period the second.
     Will only add values for which "should_add_for_agent(agent_index)" is True. This can be used to ensure that battery
     charge state is only added for agents that actually have a battery.
+    If "divide_by" is specified, all quantities will be divided by "divide_by(agent_index)". Can be used to translate
+    energy quantities to % of max, for example.
     """
     dict_to_add_to: Dict[str, Dict[datetime.datetime, Any]] = {}
     for hour in optimized_model.T:
@@ -357,5 +422,6 @@ def get_value_per_agent(optimized_model: pyo.ConcreteModel, start_datetime: date
         for i_agent in optimized_model.I:
             if should_add_for_agent(i_agent):
                 quantity = pyo.value(getattr(optimized_model, variable_name)[i_agent, hour])
-                add_to_nested_dict(dict_to_add_to, agent_guids[i_agent], period, round(quantity, DECIMALS_TO_ROUND_TO))
+                value = round(quantity / divide_by(i_agent), DECIMALS_TO_ROUND_TO)
+                add_to_nested_dict(dict_to_add_to, agent_guids[i_agent], period, value)
     return dict_to_add_to
