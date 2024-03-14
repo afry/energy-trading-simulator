@@ -11,6 +11,7 @@ import pyomo.environ as pyo
 from pyomo.opt import OptSolver
 
 from tradingplatformpoc.market.trade import Resource
+from tradingplatformpoc.price.heating_price import HeatingPrice
 from tradingplatformpoc.settings import settings
 
 ALL_IMPLEMENTED_RESOURCES = [Resource.ELECTRICITY, Resource.HEATING]
@@ -119,3 +120,19 @@ def get_glpk_solver() -> OptSolver:
     else:
         logger.info('Not a linux system, using GLPK_PATH')
         return pyo.SolverFactory('glpk', executable=settings.GLPK_PATH)
+
+
+def get_external_heating_prices(heat_pricing: HeatingPrice, job_id: str,
+                                trading_periods: Collection[datetime]) -> List[Dict[str, Any]]:
+    heating_price_by_ym_list: List[Dict[str, Any]] = []
+    for (year, month) in set([(dt.year, dt.month) for dt in trading_periods]):
+        first_day_of_month = datetime(year, month, 1)  # Which day it is doesn't matter
+        heating_price_by_ym_list.append({
+            'job_id': job_id,
+            'year': year,
+            'month': month,
+            'exact_retail_price': heat_pricing.get_exact_retail_price(first_day_of_month, include_tax=True),
+            'exact_wholesale_price': heat_pricing.get_exact_wholesale_price(first_day_of_month),
+            'estimated_retail_price': heat_pricing.get_estimated_retail_price(first_day_of_month, include_tax=True),
+            'estimated_wholesale_price': heat_pricing.get_estimated_wholesale_price(first_day_of_month)})
+    return heating_price_by_ym_list

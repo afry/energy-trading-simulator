@@ -10,7 +10,7 @@ from tradingplatformpoc.data.preprocessing import read_and_process_input_data
 from tradingplatformpoc.generate_data.mock_data_utils import get_elec_cons_key, \
     get_hot_tap_water_cons_key, get_space_heat_cons_key
 from tradingplatformpoc.price.heating_price import HeatingPrice
-from tradingplatformpoc.simulation_runner.simulation_utils import get_external_heating_prices
+from tradingplatformpoc.trading_platform_utils import get_external_heating_prices
 from tradingplatformpoc.simulation_runner.trading_simulator import TradingSimulator
 from tradingplatformpoc.sql.job.models import uuid_as_str_generator
 

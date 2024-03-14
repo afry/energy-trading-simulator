@@ -24,7 +24,6 @@ from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
 from tradingplatformpoc.simulation_runner.chalmers_interface import optimize
 from tradingplatformpoc.simulation_runner.results_calculator import calculate_results_and_save
-from tradingplatformpoc.simulation_runner.simulation_utils import get_external_heating_prices
 from tradingplatformpoc.sql.config.crud import get_all_agents_in_config, read_config
 from tradingplatformpoc.sql.electricity_price.models import ElectricityPrice as TableElectricityPrice
 from tradingplatformpoc.sql.extra_cost.crud import extra_costs_to_db_dict
@@ -38,8 +37,8 @@ from tradingplatformpoc.sql.level.crud import levels_to_db_dict
 from tradingplatformpoc.sql.level.models import Level as TableLevel
 from tradingplatformpoc.sql.trade.crud import trades_to_db_dict
 from tradingplatformpoc.sql.trade.models import Trade as TableTrade
-from tradingplatformpoc.trading_platform_utils import add_all_to_nested_dict, calculate_solar_prod, get_glpk_solver
-
+from tradingplatformpoc.trading_platform_utils import add_all_to_nested_dict, calculate_solar_prod, get_glpk_solver, \
+    get_external_heating_prices
 
 logger = logging.getLogger(__name__)
 
