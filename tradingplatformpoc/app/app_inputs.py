@@ -126,11 +126,11 @@ def add_params_to_form(form, param_spec_dict: dict, info_type: str):
     """Populate parameter forms. Will use radio buttons for booleans, number inputs for all others."""
     current_config = st.session_state.config_data
     for key, val in param_spec_dict[info_type].items():
-        params = {k: v for k, v in val.items() if k not in ['display', 'default']}
+        kwargs = {k: v for k, v in val.items() if k not in ['display', 'default']}
         if isinstance(val['default'], bool):
             st.session_state.config_data[info_type][key] = form.radio(
                 label=val['display'], options=BOOL_OPTIONS, index=BOOL_OPTIONS.index(current_config[info_type][key]),
-                **params)
+                **kwargs)
         else:
             st.session_state.config_data[info_type][key] = form.number_input(
-                val['display'], value=current_config[info_type][key], **params)
+                val['display'], value=current_config[info_type][key], **kwargs)

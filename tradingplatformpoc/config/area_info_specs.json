@@ -2,7 +2,8 @@
     "LocalMarketEnabled": {
         "display": "Local market for energy trades",
         "default": true,
-        "help": "If a local market for trading of energy should be used in simulation."
+        "help": "If a local market for trading of energy should be used in simulation.",
+        "disabled": true
     },
     "AllowDistrictHeating": {
         "display": "Allow district heating",
@@ -15,8 +16,7 @@
         "min_value": 1,
         "max_value": 48,
         "default": 24,
-        "help": "How many trading periods (hours) in advance each energy trading process is performed over.",
-        "disabled": true
+        "help": "How many trading periods (hours) in advance each energy trading process is performed over."
     },
     "HeatTransferLoss": {
         "display": "Heat transfer loss:",
@@ -46,27 +46,6 @@
         "format": "%.3f",
         "default": 0.148,
         "help": "The electricity grid fee in SEK/kWh, for trades not inside the local market. The price at which electricity can be imported into the microgrid will be set to the Nordpool spot price, plus the electricity tax, plus this number. In reality it is quite complicated to calculate, since it depends on the average effect used for the three months with highest consumption over the year, but here we approximate it with a flat SEK/kWh rate. For Varberg Energi in 2023 this approximation is roughly equal to 0.148, but here it can be set to any (non-negative) number"
-    },
-    "ElectricityTaxInternal": {
-        "display": "Electricity tax (internal):",
-        "min_value": 0.0,
-        "format": "%.3f",
-        "default": 0.0,
-        "help": "The electricity tax in SEK/kWh, paid on internal trades in the local market. Should be between 0 and the 'external'/'normal' tax"
-    },
-    "ElectricityGridFeeInternal": {
-        "display": "Electricity grid fee (internal):",
-        "min_value": 0.0,
-        "format": "%.3f",
-        "default": 0.0,
-        "help": "The grid fee, in SEK/kWh, paid on internal trades in the local market. Should be between 0 and the 'external'/'normal' grid fee"
-    },
-    "ExternalHeatingWholesalePriceFraction": {
-        "display": "External heating wholesale price fraction:",
-        "min_value": 0.0,
-        "max_value": 1.0,
-        "default": 0.5,
-        "help": "The price at which the microgrid can export heat to the external grid, will be set to the import (retail) price, multiplied by this factor. Should be less than 1. In reality, the external grid may not want to buy any heat from the microgrid at all - this can be achieved by setting this number to 0."
     },
     "BatteryChargeRate": {
         "display": "Battery charge rate",
@@ -109,8 +88,8 @@
         "display": "Heat pump COP",
         "min_value": 2.0,
         "step": 0.1,
-        "help": "The relative Coefficient of Performance of heat pumps for BlockAgents in the microgrid. The default is 4.6, which is the tabulated value for a medium sized 'Thermia Mega 2020' running on 3600 RPM, with a forward temperature of 35 degrees and a brine fluid temperature of 0 degrees Celsius",
-        "default": 4.6
+        "help": "The relative Coefficient of Performance of heat pumps for BlockAgents in the microgrid",
+        "default": 3.5
     },
     "COPBoosterPumps": {
         "display": "Booster heat pump COP",
@@ -119,28 +98,50 @@
         "help": "The relative Coefficient of Performance of \"booster heat pumps\" for BlockAgents in the microgrid. These pumps are used to raise the temperature of low-tempered heat (~40-45 degrees C) to 60-65 degrees C, so that it can cover hot water demand.",
         "default": 4.0
     },
-    "COPCompChiller": {
-        "display": "Compressor chiller COP",
-        "min_value": 1.0,
-        "step": 0.1,
-        "help": "The relative Coefficient of Performance of any compressor chillers in the microgrid.",
-        "default": 4.0,
-        "disabled": true
-    },
     "InterAgentElectricityTransferCapacity": {
         "display": "Maximum electricity transfer capacity in microgrid [kW]",
         "min_value": 0,
         "step": 10,
         "help": "The maximum amount of electricity an agent can buy/sell from/to the local energy community, in a single trading period (i.e. an hour). For the external transfer capacity, see the external grid agent",
-        "default": 5000,
-        "disabled": true
+        "default": 5000
     },
     "InterAgentHeatTransferCapacity": {
         "display": "Maximum heating transfer capacity in microgrid [kW]",
         "min_value": 0,
         "step": 10,
         "help": "The maximum amount of heat an agent can buy/sell from/to the local energy community, in a single trading period (i.e. an hour). For the external transfer capacity, see the external grid agent",
-        "default": 500,
+        "default": 500
+    },
+    "COPCompChiller": {
+        "display": "Compressor chiller COP",
+        "min_value": 1.0,
+        "step": 0.1,
+        "help": "The relative Coefficient of Performance of any compressor chillers in the microgrid. Not yet implemented!",
+        "default": 4.0,
+        "disabled": true
+    },
+    "ElectricityTaxInternal": {
+        "display": "Electricity tax (internal):",
+        "min_value": 0.0,
+        "format": "%.3f",
+        "default": 0.0,
+        "help": "The electricity tax in SEK/kWh, paid on internal trades in the local market. Should be between 0 and the 'external'/'normal' tax. Not yet implemented!",
+        "disabled": true
+    },
+    "ElectricityGridFeeInternal": {
+        "display": "Electricity grid fee (internal):",
+        "min_value": 0.0,
+        "format": "%.3f",
+        "default": 0.0,
+        "help": "The grid fee, in SEK/kWh, paid on internal trades in the local market. Should be between 0 and the 'external'/'normal' grid fee. Not yet implemented!",
+        "disabled": true
+    },
+    "ExternalHeatingWholesalePriceFraction": {
+        "display": "External heating wholesale price fraction:",
+        "min_value": 0.0,
+        "max_value": 1.0,
+        "default": 0.0,
+        "help": "The price at which the microgrid can export heat to the external grid, will be set to the import (retail) price, multiplied by this factor. Should be less than 1. In reality, the external grid may not want to buy any heat from the microgrid at all - this can be achieved by setting this number to 0.",
         "disabled": true
     },
     "CO2PenalizationRate": {
