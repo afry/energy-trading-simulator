@@ -1,5 +1,5 @@
 from contextlib import _GeneratorContextManager
-from typing import Any, Callable, Dict, List
+from typing import Callable
 
 import pandas as pd
 
@@ -8,21 +8,7 @@ from sqlalchemy import select
 from sqlmodel import Session
 
 from tradingplatformpoc.connection import session_scope
-from tradingplatformpoc.market.bid import NetBidWithAcceptanceStatus
 from tradingplatformpoc.sql.bid.models import Bid as TableBid
-
-
-def bids_to_db_dict(list_of_bid_lists: List[List[NetBidWithAcceptanceStatus]], job_id: str) -> List[Dict[str, Any]]:
-    return [{'job_id': job_id,
-             'period': bid.period,
-             'source': bid.source,
-             'by_external': bid.by_external,
-             'action': bid.action,
-             'resource': bid.resource,
-             'quantity': bid.quantity,
-             'price': bid.price,
-             'accepted_quantity': bid.accepted_quantity}
-            for bid_list in list_of_bid_lists for bid in bid_list]
 
 
 def db_to_bid_df(job_id: str,

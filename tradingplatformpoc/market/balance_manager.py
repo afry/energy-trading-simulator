@@ -2,9 +2,8 @@ from typing import Collection, List, Union
 
 import pandas as pd
 
-from tradingplatformpoc.market.bid import Action
 from tradingplatformpoc.market.extra_cost import ExtraCost, ExtraCostType
-from tradingplatformpoc.market.trade import Market, Trade
+from tradingplatformpoc.market.trade import Action, Market, Trade
 from tradingplatformpoc.sql.trade.crud import heat_trades_from_db_for_periods
 
 

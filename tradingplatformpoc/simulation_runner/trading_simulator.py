@@ -18,9 +18,8 @@ from tradingplatformpoc.generate_data.generate_mock_data import get_generated_mo
 from tradingplatformpoc.generate_data.mock_data_utils import get_cooling_cons_key, get_elec_cons_key, \
     get_hot_tap_water_cons_key, get_space_heat_cons_key
 from tradingplatformpoc.market.balance_manager import correct_for_exact_heating_price
-from tradingplatformpoc.market.bid import Resource
 from tradingplatformpoc.market.extra_cost import ExtraCost
-from tradingplatformpoc.market.trade import Trade, TradeMetadataKey
+from tradingplatformpoc.market.trade import Resource, Trade, TradeMetadataKey
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
 from tradingplatformpoc.simulation_runner.chalmers_interface import optimize

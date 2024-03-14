@@ -9,7 +9,7 @@ from tests import utility_test_objects
 
 from tradingplatformpoc.agent.block_agent import BlockAgent
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
-from tradingplatformpoc.market.bid import Resource
+from tradingplatformpoc.market.trade import Resource
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
 from tradingplatformpoc.trading_platform_utils import hourly_datetime_array_between

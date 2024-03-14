@@ -9,8 +9,7 @@ import streamlit as st
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.app.app_charts import altair_line_chart
 from tradingplatformpoc.app.app_functions import IdPair
-from tradingplatformpoc.market.bid import Action, Resource
-from tradingplatformpoc.market.trade import TradeMetadataKey
+from tradingplatformpoc.market.trade import Action, Resource, TradeMetadataKey
 from tradingplatformpoc.sql.level.crud import db_to_viewable_level_df_by_agent
 from tradingplatformpoc.sql.results.models import ResultsKey
 from tradingplatformpoc.sql.trade.crud import get_external_trades_df

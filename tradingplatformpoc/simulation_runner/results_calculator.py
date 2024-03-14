@@ -7,7 +7,7 @@ import pandas as pd
 from tradingplatformpoc.agent.block_agent import BlockAgent
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
-from tradingplatformpoc.market.bid import Action, Resource
+from tradingplatformpoc.market.trade import Action, Resource
 from tradingplatformpoc.sql.extra_cost.crud import db_to_extra_cost_df
 from tradingplatformpoc.sql.input_data.crud import read_input_column_df_from_db
 from tradingplatformpoc.sql.results.crud import save_results

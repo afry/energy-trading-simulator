@@ -11,7 +11,7 @@ from sqlmodel import Session
 
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.connection import session_scope
-from tradingplatformpoc.market.bid import Resource
+from tradingplatformpoc.market.trade import Resource
 from tradingplatformpoc.sql.clearing_price.models import ClearingPrice as TableClearingPrice
 
 

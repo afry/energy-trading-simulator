@@ -10,7 +10,7 @@ import pandas as pd
 import pyomo.environ as pyo
 from pyomo.opt import OptSolver
 
-from tradingplatformpoc.market.bid import Resource
+from tradingplatformpoc.market.trade import Resource
 from tradingplatformpoc.settings import settings
 
 ALL_IMPLEMENTED_RESOURCES = [Resource.ELECTRICITY, Resource.HEATING]

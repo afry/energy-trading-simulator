@@ -5,7 +5,7 @@ from unittest import TestCase, mock
 
 from dotenv import load_dotenv
 
-from tradingplatformpoc.market.bid import Action
+from tradingplatformpoc.market.trade import Action
 from tradingplatformpoc.sql.job.crud import create_job_if_new_config
 from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES
 

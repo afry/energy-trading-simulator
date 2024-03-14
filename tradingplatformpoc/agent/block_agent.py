@@ -5,7 +5,7 @@ from typing import Optional
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.digitaltwin.battery import Battery
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
-from tradingplatformpoc.market.bid import Resource
+from tradingplatformpoc.market.trade import Resource
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
 

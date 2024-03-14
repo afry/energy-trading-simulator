@@ -3,7 +3,7 @@ import logging
 from typing import Union
 
 from tradingplatformpoc.agent.iagent import IAgent
-from tradingplatformpoc.market.bid import Resource
+from tradingplatformpoc.market.trade import Resource
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
 

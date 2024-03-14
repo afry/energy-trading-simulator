@@ -1,7 +1,7 @@
 import datetime
 from enum import Enum
 
-from tradingplatformpoc.market.bid import Resource
+from tradingplatformpoc.market.trade import Resource
 
 
 class ExtraCostType(Enum):

@@ -6,8 +6,7 @@ import pandas as pd
 
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
-from tradingplatformpoc.market.bid import Action, Resource
-from tradingplatformpoc.market.trade import TradeMetadataKey
+from tradingplatformpoc.market.trade import Action, Resource, TradeMetadataKey
 
 
 def altair_base_chart(df: pd.DataFrame, domain: List[str], range_color: List[str],

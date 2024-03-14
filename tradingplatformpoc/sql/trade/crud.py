@@ -11,8 +11,7 @@ from sqlalchemy import func, select
 from sqlmodel import Session
 
 from tradingplatformpoc.connection import session_scope
-from tradingplatformpoc.market.bid import Action, Resource
-from tradingplatformpoc.market.trade import Market, Trade
+from tradingplatformpoc.market.trade import Action, Market, Resource, Trade
 from tradingplatformpoc.sql.trade.models import Trade as TableTrade
 
 

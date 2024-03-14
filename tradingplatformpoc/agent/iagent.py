@@ -2,7 +2,7 @@ import datetime
 from abc import ABC, abstractmethod
 from typing import Dict
 
-from tradingplatformpoc.market.bid import Resource
+from tradingplatformpoc.market.trade import Resource
 
 
 class IAgent(ABC):

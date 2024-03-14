@@ -14,8 +14,7 @@ from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.generate_data.mock_data_utils import get_cooling_cons_key, get_elec_cons_key, \
     get_hot_tap_water_cons_key, get_space_heat_cons_key
-from tradingplatformpoc.market.bid import Action, Resource
-from tradingplatformpoc.market.trade import TradeMetadataKey
+from tradingplatformpoc.market.trade import Action, Resource, TradeMetadataKey
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.sql.input_data.crud import get_periods_from_db, read_input_column_df_from_db, \
     read_inputs_df_for_agent_creation

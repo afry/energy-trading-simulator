@@ -6,7 +6,7 @@ from sqlalchemy import Column, DateTime, Enum, Integer
 
 from sqlmodel import Field, SQLModel
 
-from tradingplatformpoc.market.bid import Action, Resource
+from tradingplatformpoc.market.trade import Action, Resource
 
 
 class Bid(SQLModel, table=True):

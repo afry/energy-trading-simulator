@@ -8,7 +8,7 @@ from tradingplatformpoc.app import footer
 from tradingplatformpoc.app.app_charts import construct_avg_day_elec_chart, construct_price_chart
 from tradingplatformpoc.app.app_data_display import aggregated_net_elec_import_results_df_split_on_period, \
     combine_trades_dfs, construct_combined_price_df, values_by_resource_to_mwh
-from tradingplatformpoc.market.bid import Action, Resource
+from tradingplatformpoc.market.trade import Action, Resource
 from tradingplatformpoc.sql.config.crud import get_all_finished_job_config_id_pairs_in_db, read_config
 from tradingplatformpoc.sql.results.crud import get_results_for_job
 from tradingplatformpoc.sql.results.models import ResultsKey

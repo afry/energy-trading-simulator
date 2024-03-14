@@ -8,8 +8,7 @@ import pandas as pd
 import pytz
 
 from tradingplatformpoc.market.balance_manager import correct_for_exact_heating_price
-from tradingplatformpoc.market.bid import Action, Resource
-from tradingplatformpoc.market.trade import Market, Trade
+from tradingplatformpoc.market.trade import Action, Market, Resource, Trade
 
 
 class TestBalanceManager(TestCase):
