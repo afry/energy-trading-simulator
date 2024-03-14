@@ -3,7 +3,7 @@ from typing import Optional
 
 import pandas as pd
 
-from tradingplatformpoc.market.bid import Resource
+from tradingplatformpoc.market.trade import Resource
 
 logger = logging.getLogger(__name__)
 

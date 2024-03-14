@@ -4,8 +4,7 @@ from typing import Union
 
 import pandas as pd
 
-from tradingplatformpoc.market.bid import Resource
-from tradingplatformpoc.market.trade import Market
+from tradingplatformpoc.market.trade import Market, Resource
 from tradingplatformpoc.price.iprice import IPrice
 from tradingplatformpoc.trading_platform_utils import minus_n_hours
 

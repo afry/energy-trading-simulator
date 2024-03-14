@@ -2,7 +2,7 @@
 import datetime
 from abc import ABC, abstractmethod
 
-from tradingplatformpoc.market.bid import Resource
+from tradingplatformpoc.market.trade import Resource
 
 
 class IPrice(ABC):

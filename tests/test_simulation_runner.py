@@ -9,14 +9,10 @@ from tradingplatformpoc.config.access_config import read_config
 from tradingplatformpoc.data.preprocessing import read_and_process_input_data
 from tradingplatformpoc.generate_data.mock_data_utils import get_elec_cons_key, \
     get_hot_tap_water_cons_key, get_space_heat_cons_key
-from tradingplatformpoc.market.bid import Action, Resource
-from tradingplatformpoc.market.trade import Market, Trade
 from tradingplatformpoc.price.heating_price import HeatingPrice
-from tradingplatformpoc.simulation_runner.simulation_utils import construct_df_from_datetime_dict, \
-    get_external_heating_prices, get_quantity_heating_sold_by_external_grid
 from tradingplatformpoc.simulation_runner.trading_simulator import TradingSimulator
 from tradingplatformpoc.sql.job.models import uuid_as_str_generator
-from tradingplatformpoc.trading_platform_utils import hourly_datetime_array_between
+from tradingplatformpoc.trading_platform_utils import get_external_heating_prices
 
 
 class Test(TestCase):
@@ -58,10 +54,6 @@ class Test(TestCase):
                 simulator.initialize_data()
                 simulator.initialize_agents()
 
-    def test_get_quantity_heating_sold_by_external_grid(self):
-        """Test that get_quantity_heating_sold_by_external_grid doesn't break when there are no external trades."""
-        self.assertEqual(0, get_quantity_heating_sold_by_external_grid([]))
-
     def test_get_external_heating_prices_from_empty_data_store(self):
         """
         When trying to calculate external heating prices using an empty DataStore, NaNs should be returned for exact
@@ -80,14 +72,3 @@ class Test(TestCase):
         self.assertTrue(np.isnan(entry.exact_wholesale_price))
         self.assertFalse(np.isnan(entry.estimated_retail_price))
         self.assertFalse(np.isnan(entry.estimated_wholesale_price))
-
-    def test_construct_df_from_datetime_dict(self):
-        """
-        Test construct_df_from_datetime_dict method, by creating a Dict[datetime, Trade]
-        """
-        dts = hourly_datetime_array_between(datetime.datetime(2019, 1, 1), datetime.datetime(2020, 1, 1))
-        dt_dict = {dt: [Trade(dt, Action.BUY, Resource.ELECTRICITY, i, i, 'Agent' + str(i), False, Market.LOCAL)
-                        for i in range(1, 6)]
-                   for dt in dts}
-        my_df = construct_df_from_datetime_dict(dt_dict)
-        self.assertEqual(8761 * 5, len(my_df.index))

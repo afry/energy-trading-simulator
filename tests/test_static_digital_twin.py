@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
-from tradingplatformpoc.market.bid import Resource
+from tradingplatformpoc.market.trade import Resource
 from tradingplatformpoc.trading_platform_utils import hourly_datetime_array_between
 
 FEB_1ST_1AM = datetime(2019, 2, 1, 1, 0, 0)

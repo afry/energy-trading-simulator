@@ -15,8 +15,7 @@ from tradingplatformpoc import constants
 from tradingplatformpoc.agent.block_agent import BlockAgent
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
-from tradingplatformpoc.market.bid import Action, Resource
-from tradingplatformpoc.market.trade import Market, Trade
+from tradingplatformpoc.market.trade import Action, Market, Resource, Trade
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
 from tradingplatformpoc.price.iprice import IPrice

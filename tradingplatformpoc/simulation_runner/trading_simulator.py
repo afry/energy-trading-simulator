@@ -18,16 +18,11 @@ from tradingplatformpoc.generate_data.generate_mock_data import get_generated_mo
 from tradingplatformpoc.generate_data.mock_data_utils import get_cooling_cons_key, get_elec_cons_key, \
     get_hot_tap_water_cons_key, get_space_heat_cons_key
 from tradingplatformpoc.market.balance_manager import correct_for_exact_heating_price
-from tradingplatformpoc.market.bid import NetBidWithAcceptanceStatus, Resource
-from tradingplatformpoc.market.extra_cost import ExtraCost
-from tradingplatformpoc.market.trade import Trade, TradeMetadataKey
+from tradingplatformpoc.market.trade import Resource, Trade, TradeMetadataKey
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
 from tradingplatformpoc.simulation_runner.chalmers_interface import optimize
 from tradingplatformpoc.simulation_runner.results_calculator import calculate_results_and_save
-from tradingplatformpoc.simulation_runner.simulation_utils import get_external_heating_prices
-from tradingplatformpoc.sql.bid.crud import bids_to_db_dict
-from tradingplatformpoc.sql.bid.models import Bid as TableBid
 from tradingplatformpoc.sql.config.crud import get_all_agents_in_config, read_config
 from tradingplatformpoc.sql.electricity_price.models import ElectricityPrice as TableElectricityPrice
 from tradingplatformpoc.sql.extra_cost.crud import extra_costs_to_db_dict
@@ -35,14 +30,13 @@ from tradingplatformpoc.sql.extra_cost.models import ExtraCost as TableExtraCost
 from tradingplatformpoc.sql.heating_price.models import HeatingPrice as TableHeatingPrice
 from tradingplatformpoc.sql.input_data.crud import get_periods_from_db, read_inputs_df_for_agent_creation
 from tradingplatformpoc.sql.input_electricity_price.crud import electricity_price_series_from_db
-from tradingplatformpoc.sql.job.crud import delete_job, get_config_id_for_job_id, \
-    update_job_with_time
+from tradingplatformpoc.sql.job.crud import delete_job, get_config_id_for_job_id, update_job_with_time
 from tradingplatformpoc.sql.level.crud import levels_to_db_dict
 from tradingplatformpoc.sql.level.models import Level as TableLevel
 from tradingplatformpoc.sql.trade.crud import trades_to_db_dict
 from tradingplatformpoc.sql.trade.models import Trade as TableTrade
-from tradingplatformpoc.trading_platform_utils import add_all_to_nested_dict, calculate_solar_prod, get_glpk_solver
-
+from tradingplatformpoc.trading_platform_utils import add_all_to_nested_dict, calculate_solar_prod, \
+    get_external_heating_prices, get_glpk_solver
 
 logger = logging.getLogger(__name__)
 
@@ -187,7 +181,6 @@ class TradingSimulator:
 
         logger.info("Starting trading simulations")
 
-        # clearing_prices_historical: Dict[datetime.datetime, Dict[Resource, float]] = {}
         battery_levels_dict: Dict[str, Dict[datetime.datetime, float]] = {}
         shallow_storage_rel_dict: Dict[str, Dict[datetime.datetime, float]] = {}
         deep_storage_rel_dict: Dict[str, Dict[datetime.datetime, float]] = {}
@@ -218,9 +211,7 @@ class TradingSimulator:
             trading_horizon_start_points = self.trading_periods[::self.trading_horizon]
             thsps_in_this_batch = trading_horizon_start_points[
                 batch_number * new_batch_size:min((batch_number + 1) * new_batch_size, number_of_trading_horizons)]
-            all_bids_list_batch: List[List[NetBidWithAcceptanceStatus]] = []
             all_trades_list_batch: List[List[Trade]] = []
-            all_extra_costs_batch: List[ExtraCost] = []
             electricity_price_list_batch: List[dict] = []
 
             # ------- NEW --------
@@ -250,19 +241,12 @@ class TradingSimulator:
                 add_all_to_nested_dict(hp_high_prod, chalmers_outputs.hp_high_prod)
                 add_all_to_nested_dict(hp_low_prod, chalmers_outputs.hp_low_prod)
 
-            logger.info('Saving bids to db...')
-            bid_dict = bids_to_db_dict(all_bids_list_batch, self.job_id)
-            bulk_insert(TableBid, bid_dict)
             logger.info('Saving trades to db...')
             trade_dict = trades_to_db_dict(all_trades_list_batch, self.job_id)
             bulk_insert(TableTrade, trade_dict)
-            logger.info('Saving extra costs to db...')
-            extra_cost_dict = extra_costs_to_db_dict(all_extra_costs_batch, self.job_id)
-            bulk_insert(TableExtraCost, extra_cost_dict)
             logger.info('Saving electricity price to db...')
             bulk_insert(TableElectricityPrice, electricity_price_list_batch)
 
-        # clearing_prices_dicts = clearing_prices_to_db_dict(clearing_prices_historical, self.job_id)
         battery_level_dicts = levels_to_db_dict(battery_levels_dict, TradeMetadataKey.BATTERY_LEVEL.name, self.job_id)
         shallow_storage_rel_dicts = levels_to_db_dict(shallow_storage_rel_dict,
                                                       TradeMetadataKey.SHALLOW_STORAGE_REL.name, self.job_id)
@@ -280,7 +264,6 @@ class TradingSimulator:
         bites_flow_dicts = levels_to_db_dict(bites_flow_dict, TradeMetadataKey.FLOW_SHALLOW_TO_DEEP.name, self.job_id)
         hp_high_prod_dicts = levels_to_db_dict(hp_high_prod, TradeMetadataKey.HP_HIGH_HEAT_PROD.name, self.job_id)
         hp_low_prod_dicts = levels_to_db_dict(hp_low_prod, TradeMetadataKey.HP_LOW_HEAT_PROD.name, self.job_id)
-        # bulk_insert(TableClearingPrice, clearing_prices_dicts)
         bulk_insert(TableLevel, battery_level_dicts)
         bulk_insert(TableLevel, shallow_storage_rel_dicts)
         bulk_insert(TableLevel, deep_storage_rel_dicts)
