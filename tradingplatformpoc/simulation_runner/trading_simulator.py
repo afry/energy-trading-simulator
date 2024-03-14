@@ -18,7 +18,6 @@ from tradingplatformpoc.generate_data.generate_mock_data import get_generated_mo
 from tradingplatformpoc.generate_data.mock_data_utils import get_cooling_cons_key, get_elec_cons_key, \
     get_hot_tap_water_cons_key, get_space_heat_cons_key
 from tradingplatformpoc.market.balance_manager import correct_for_exact_heating_price
-from tradingplatformpoc.market.extra_cost import ExtraCost
 from tradingplatformpoc.market.trade import Resource, Trade, TradeMetadataKey
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
@@ -31,8 +30,7 @@ from tradingplatformpoc.sql.extra_cost.models import ExtraCost as TableExtraCost
 from tradingplatformpoc.sql.heating_price.models import HeatingPrice as TableHeatingPrice
 from tradingplatformpoc.sql.input_data.crud import get_periods_from_db, read_inputs_df_for_agent_creation
 from tradingplatformpoc.sql.input_electricity_price.crud import electricity_price_series_from_db
-from tradingplatformpoc.sql.job.crud import delete_job, get_config_id_for_job_id, \
-    update_job_with_time
+from tradingplatformpoc.sql.job.crud import delete_job, get_config_id_for_job_id, update_job_with_time
 from tradingplatformpoc.sql.level.crud import levels_to_db_dict
 from tradingplatformpoc.sql.level.models import Level as TableLevel
 from tradingplatformpoc.sql.trade.crud import trades_to_db_dict
@@ -214,7 +212,6 @@ class TradingSimulator:
             thsps_in_this_batch = trading_horizon_start_points[
                 batch_number * new_batch_size:min((batch_number + 1) * new_batch_size, number_of_trading_horizons)]
             all_trades_list_batch: List[List[Trade]] = []
-            all_extra_costs_batch: List[ExtraCost] = []
             electricity_price_list_batch: List[dict] = []
 
             # ------- NEW --------
@@ -247,9 +244,6 @@ class TradingSimulator:
             logger.info('Saving trades to db...')
             trade_dict = trades_to_db_dict(all_trades_list_batch, self.job_id)
             bulk_insert(TableTrade, trade_dict)
-            logger.info('Saving extra costs to db...')
-            extra_cost_dict = extra_costs_to_db_dict(all_extra_costs_batch, self.job_id)
-            bulk_insert(TableExtraCost, extra_cost_dict)
             logger.info('Saving electricity price to db...')
             bulk_insert(TableElectricityPrice, electricity_price_list_batch)
 
