@@ -7,8 +7,7 @@ from sqlalchemy.orm import column_property, declared_attr
 
 from sqlmodel import Field, SQLModel
 
-from tradingplatformpoc.market.bid import Action, Resource
-from tradingplatformpoc.market.trade import Market
+from tradingplatformpoc.market.trade import Action, Market, Resource
 
 
 class Trade(SQLModel, table=True):

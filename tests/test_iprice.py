@@ -35,13 +35,17 @@ electricity_pricing: ElectricityPrice = ElectricityPrice(
     nordpool_data=external_price_data)
 
 
-# TODO: Rename
-class TestDataStore(TestCase):
+class TestIPrice(TestCase):
 
     def test_get_nordpool_price_for_period(self):
         """Test that what we put into data_store is the same as we get out"""
-        self.assertEqual(CONSTANT_NORDPOOL_PRICE,
-                         electricity_pricing.get_nordpool_price_for_period(FEB_1_1_AM))
+        self.assertEqual(CONSTANT_NORDPOOL_PRICE, electricity_pricing.get_nordpool_price_for_periods(FEB_1_1_AM))
+
+    def test_get_nordpool_price_for_periods(self):
+        """Test that what we put into data_store is the same as we get out, when doing multiple periods at a time."""
+        prices = electricity_pricing.get_nordpool_price_for_periods(FEB_1_1_AM, 24)
+        for price in prices:
+            self.assertEqual(CONSTANT_NORDPOOL_PRICE, price)
 
     def test_estimated_retail_price_greater_than_wholesale_price(self):
         """Test that the retail price is always greater than the wholesale price, even without including taxes"""
@@ -71,10 +75,6 @@ class TestDataStore(TestCase):
         price_for_normal_ds = electricity_pricing.get_estimated_retail_price(FEB_1_1_AM, include_tax=True)
         self.assertAlmostEqual(1.09, price_for_normal_ds)
         self.assertAlmostEqual(2.6, electricity_pricing_2.get_estimated_retail_price(FEB_1_1_AM, include_tax=True))
-
-    # def test_get_estimated_price_for_non_implemented_resource(self):
-    #     with self.assertRaises(RuntimeError):
-    #         pricing[Resource.COOLING].get_estimated_retail_price(FEB_1_1_AM, include_tax=False)
 
     def test_read_electricitymap_csv(self):
         """Test that the CSV file with ElectricityMap carbon intensity data reads correctly."""
@@ -131,3 +131,7 @@ class TestDataStore(TestCase):
         ds.add_external_heating_sell(datetime(2019, 3, 2, 3, tzinfo=timezone.utc), 50)
         self.assertAlmostEqual(26.230860554970143,
                                ds.get_exact_retail_price(datetime(2019, 3, 2, 3), include_tax=True))
+
+    def test_heating_tax(self):
+        """Test that unless anything else is specified, the tax is 0."""
+        self.assertEqual(0, heat_pricing.tax)

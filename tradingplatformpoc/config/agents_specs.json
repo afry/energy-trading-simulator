@@ -50,12 +50,36 @@
             "default_value": 0.0,
             "type": "float"
         },
+        "BoosterPumpMaxInput": {
+            "display": "Booster pump max input power (kW)",
+            "min_value": 0.0,
+            "step": 1.0,
+            "help": "Booster pumps allow the block agent to create high-temperature heating, which is needed to cover hot water demand, in scenarios where the local distribution network operates at a low temperature. This number indicates the maximum total power input, summed over all booster heat pumps at the agent's disposal",
+            "default_value": 0.0,
+            "type": "float"
+        },
+        "BoosterPumpMaxOutput": {
+            "display": "Booster pump max output power (kW)",
+            "min_value": 0.0,
+            "step": 1.0,
+            "help": "Booster pumps allow the block agent to create high-temperature heating, which is needed to cover hot water demand, in scenarios where the local distribution network operates at a low temperature. This number indicates the maximum total power output, summed over all booster heat pumps at the agent's disposal",
+            "default_value": 0.0,
+            "type": "float"
+        },
         "BatteryCapacity": {
             "display": "Battery capacity (kWh)",
             "min_value": 0.0,
             "step": 1.0,
             "default_value": 0.0,
             "help": "A number specifying the battery storage capacity, in kWh",
+            "type": "float"
+        },
+        "AccumulatorTankVolume": {
+            "display": "Accumulator tank volume (cu m)",
+            "min_value": 0.0,
+            "step": 0.5,
+            "default_value": 0.0,
+            "help": "A number specifying the volume of the agent's accumulator tank (slingtank), in cubic meters",
             "type": "float"
         }
     },
@@ -88,6 +112,12 @@
             "default_value": 0.165,
             "help": "A number from 0 to 1, specifying the efficiency of solar panels that the agent may have at its disposal. If missing, will default to the default PV efficiency specified in 'AreaInfo'",
             "type": "float"
+        },
+        "SellExcessHeat": {
+            "display": "Sell excess heat?",
+            "default_value": true,
+            "help": "Does the grocery store sell any excess low tempered heat from its cooling machines?",
+            "type": "bool"
         }
     }
 }

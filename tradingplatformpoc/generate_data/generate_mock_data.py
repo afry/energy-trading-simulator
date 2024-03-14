@@ -196,8 +196,8 @@ def simulate(mock_data_constants: Dict[str, Any], agent: dict, df_inputs: pl.Laz
         commercial_gross_floor_area = agent['GrossFloorArea'] * fraction_commercial
 
         electricity_consumption.append(simulate_area_electricity(
-            agent['GrossFloorArea'] * fraction_commercial, seed_commercial_electricity, df_inputs,
-            mock_data_constants['CommercialElecKwhPerYearM2'], mock_data_constants['CommercialElecRelativeErrorStdDev'],
+            commercial_gross_floor_area, seed_commercial_electricity, df_inputs,
+            mock_data_constants['CommercialElecKwhPerYearM2'], mock_data_constants['RelativeErrorStdDev'],
             get_commercial_electricity_consumption_hourly_factor, n_rows))
         
         commercial_space_heating_cons, commercial_hot_tap_water_cons = simulate_commercial_area_total_heating(
@@ -205,7 +205,11 @@ def simulate(mock_data_constants: Dict[str, Any], agent: dict, df_inputs: pl.Laz
         space_heating_consumption.append(commercial_space_heating_cons)
         hot_tap_water_consumption.append(commercial_hot_tap_water_cons)
 
-        commercial_cooling = simulate_commercial_area_cooling(commercial_gross_floor_area, df_inputs)
+        commercial_cooling = simulate_commercial_area_cooling(commercial_gross_floor_area, seed_commercial_electricity,
+                                                              df_inputs,
+                                                              mock_data_constants['CommercialCoolKwhPerYearM2'],
+                                                              mock_data_constants['RelativeErrorStdDev'],
+                                                              n_rows)
         cooling_consumption.append(commercial_cooling)
     
     # SCHOOL
@@ -215,7 +219,7 @@ def simulate(mock_data_constants: Dict[str, Any], agent: dict, df_inputs: pl.Laz
         electricity_consumption.append(
             simulate_area_electricity(
                 school_gross_floor_area_m2, seed_school_electricity, df_inputs,
-                mock_data_constants['SchoolElecKwhPerYearM2'], mock_data_constants['SchoolElecRelativeErrorStdDev'],
+                mock_data_constants['SchoolElecKwhPerYearM2'], mock_data_constants['RelativeErrorStdDev'],
                 get_school_heating_consumption_hourly_factor, n_rows))
 
         school_space_heating_cons, school_hot_tap_water_cons = simulate_school_area_heating(

@@ -144,40 +144,47 @@ def config_data_agent_screening(config_data: dict) -> Optional[str]:
 
 
 # -------------------------------------- Start diff display -----------------------------------
-def agent_diff(default: dict, new: dict) -> Tuple[List[str], List[str], Dict[str, dict]]:
+def agent_diff(old: dict, new: dict) -> Tuple[List[str], List[str], Dict[str, dict]]:
     """Returns agents removed, agents added and params changed for agents."""
-    agents_in_default = [agent['Name'] for agent in default['Agents']]
+    agents_in_old = [agent['Name'] for agent in old['Agents']]
     agents_in_new = [agent['Name'] for agent in new['Agents']]
 
-    agents_same = [x for x in agents_in_new if x in set(agents_in_default)]
-    agents_only_in_default = [x for x in agents_in_default if x not in set(agents_same)]
+    agents_same = [x for x in agents_in_new if x in set(agents_in_old)]
+    agents_only_in_old = [x for x in agents_in_old if x not in set(agents_same)]
     agents_only_in_new = [x for x in agents_in_new if x not in set(agents_same)]
 
     param_diff_dict = {}
     for agent_name in agents_same:
-        agent_default = [agent for agent in default['Agents'] if agent['Name'] == agent_name][0]
+        agent_old = [agent for agent in old['Agents'] if agent['Name'] == agent_name][0]
         agent_new = [agent for agent in new['Agents'] if agent['Name'] == agent_name][0]
-        diff = set(agent_default.items()) - set(agent_new.items())
-        if len(diff) > 0:
-            param_diff_dict[agent_name] = dict((key, {'default': agent_default[key],
-                                                      'new': agent_new[key]}) for key in dict(diff).keys())
+        diffs_for_agent = get_diffs_in_dict_with_same_keys(agent_old, agent_new)
+        if len(diffs_for_agent) > 0:
+            param_diff_dict[agent_name] = diffs_for_agent
 
-    return agents_only_in_default, agents_only_in_new, param_diff_dict
-
-
-def param_diff(default: dict, new: dict) -> Tuple[List[Tuple], List[Tuple]]:
-    """Returns lists of parameter key, pairs that differ from the default."""
-    changed_area_info_params = list(set(default['AreaInfo'].items()) - set(new['AreaInfo'].items()))
-    changed_mock_data_params = list(set(default['MockDataConstants'].items()) - set(new['MockDataConstants'].items()))
-    return changed_area_info_params, changed_mock_data_params
+    return agents_only_in_old, agents_only_in_new, param_diff_dict
 
 
-def display_diff_in_config(default: dict, new: dict) -> List[str]:
+def param_diff(old: dict, new: dict) -> Tuple[dict, dict]:
+    """Returns lists of parameter key, pairs that differ between the two inputs."""
+    area_info_diffs = get_diffs_in_dict_with_same_keys(old['AreaInfo'], new['AreaInfo'])
+    mdc_diffs = get_diffs_in_dict_with_same_keys(old['MockDataConstants'], new['MockDataConstants'])
+    return area_info_diffs, mdc_diffs
+
+
+def get_diffs_in_dict_with_same_keys(old_dict: dict, new_dict: dict) -> dict:
+    diff = set(old_dict.items()) - set(new_dict.items())
+    if len(diff) > 0:
+        return dict((key, {'old': old_dict[key],
+                           'new': new_dict[key]}) for key in dict(diff).keys())
+    return {}
+
+
+def display_diff_in_config(old: dict, new: dict) -> List[str]:
     """Outputs list of strings displaying changes made to the config."""
 
     str_to_disp = []
 
-    old_agents, new_agents, changes_to_agents = agent_diff(default.copy(), new.copy())
+    old_agents, new_agents, changes_to_agents = agent_diff(old.copy(), new.copy())
 
     if len(old_agents) > 0:
         str_to_disp.append('**Removed agents:** ')
@@ -186,25 +193,41 @@ def display_diff_in_config(default: dict, new: dict) -> List[str]:
         str_to_disp.append('**Added agents:** ')
         str_to_disp.append(', '.join(new_agents))
     if len(changes_to_agents.keys()) > 0:
-        str_to_disp.append('**Changes to default agents:**')
+        str_to_disp.append('**Changes to agents:**')
         for name, params in changes_to_agents.items():
             str_agent_change = name + ': ' + '*'
             for key, vals in params.items():
-                str_agent_change += (key + ': ' + str(vals['default']) + ' &rarr; '
-                                     + str(vals['new']) + ', ')
+                str_agent_change += diff_string(key, vals['old'], vals['new'])
             str_to_disp.append(str_agent_change[:-2] + '*')
 
-    changes_to_area_info_params, changes_to_mock_data_params = param_diff(default.copy(), new.copy())
+    changes_to_area_info_params, changes_to_mock_data_params = param_diff(old.copy(), new.copy())
 
     if len(changes_to_area_info_params) > 0:
         str_to_disp.append('**Changes to area info parameters:**')
-        for param in changes_to_area_info_params:
-            str_to_disp.append(param[0] + ': ' + str(param[1]))
+        str_area_info_change = ''
+        for key, vals in changes_to_area_info_params.items():
+            str_area_info_change += diff_string(key, vals['old'], vals['new'])
+        str_to_disp.append(str_area_info_change[:-2])  # To remove the final ', '
 
     if len(changes_to_mock_data_params) > 0:
         str_to_disp.append('**Changes to mock data parameters:**')
-        for param in changes_to_mock_data_params:
-            str_to_disp.append(param[0] + ': ' + str(param[1]))
+        str_mdc_change = ''
+        for key, vals in changes_to_mock_data_params.items():
+            str_mdc_change += diff_string(key, vals['old'], vals['new'])
+        str_to_disp.append(str_mdc_change[:-2])  # To remove the final ', '
 
     return str_to_disp
+
+
+def diff_string(key: str, old_val: float, new_val: float) -> str:
+    """
+    Will output for example:
+    GrossFloorArea: 11305 → 11315
+    """
+    return key + ': ' + str(round_if_float(old_val)) + ' &rarr; ' + str(round_if_float(new_val)) + ', '
+
+
+def round_if_float(value):
+    """Round floats, so that we avoid printing things like 0.0000000000001"""
+    return round(value, 5) if isinstance(value, float) else value
 # --------------------------------------- End diff display ------------------------------------

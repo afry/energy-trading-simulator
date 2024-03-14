@@ -6,6 +6,8 @@ from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.config.access_config import read_agent_defaults, read_agent_specs
 from tradingplatformpoc.trading_platform_utils import ALL_AGENT_TYPES, ALL_IMPLEMENTED_RESOURCES_STR, get_if_exists_else
 
+BOOL_OPTIONS = [True, False]
+
 
 def remove_agent(some_agent: Dict[str, Any]):
     if some_agent['Type'] == 'GridAgent':
@@ -95,14 +97,15 @@ def agent_inputs(agent, new: bool = False):
         # Use default value if no other value is specified
         value = get_if_exists_else(agent, key, val['default_value'])
 
+        if ("type", "bool") in val.items():
+            agent[key] = form.radio(val['display'], options=BOOL_OPTIONS, index=BOOL_OPTIONS.index(value), **params)
         if ("type", "float") in val.items():
             value = float(value)
+            agent[key] = form.number_input(val["display"], **params, value=value, key=key + agent['Name'])
         elif ("type", "int") in val.items():
             value = int(value)
+            agent[key] = form.number_input(val["display"], **params, value=value, key=key + agent['Name'])
 
-        agent[key] = form.number_input(val["display"], **params, value=value,
-                                       key=key + agent['Name'])
-        
     # Submit
     submit = form.form_submit_button('Save agent')
     if submit:
@@ -122,13 +125,12 @@ def get_agent(all_agents: Iterable[IAgent], agent_chosen_guid: str) -> IAgent:
 def add_params_to_form(form, param_spec_dict: dict, info_type: str):
     """Populate parameter forms. Will use radio buttons for booleans, number inputs for all others."""
     current_config = st.session_state.config_data
-    bool_options = [True, False]
     for key, val in param_spec_dict[info_type].items():
-        params = {k: v for k, v in val.items() if k not in ['display', 'default']}
+        kwargs = {k: v for k, v in val.items() if k not in ['display', 'default']}
         if isinstance(val['default'], bool):
             st.session_state.config_data[info_type][key] = form.radio(
-                label=val['display'], options=bool_options, index=bool_options.index(current_config[info_type][key]),
-                **params)
+                label=val['display'], options=BOOL_OPTIONS, index=BOOL_OPTIONS.index(current_config[info_type][key]),
+                **kwargs)
         else:
             st.session_state.config_data[info_type][key] = form.number_input(
-                val['display'], value=current_config[info_type][key], **params)
+                val['display'], value=current_config[info_type][key], **kwargs)

@@ -5,6 +5,8 @@ from sqlalchemy.dialects.postgresql import JSONB
 
 from sqlmodel import Field, SQLModel
 
+from tradingplatformpoc.market.trade import Resource
+
 
 class PreCalculatedResults(SQLModel, table=True):
     __tablename__ = 'results'
@@ -21,13 +23,36 @@ class PreCalculatedResults(SQLModel, table=True):
 
 
 class ResultsKey:
-    TAX_PAID = 'TAX_PAID'
-    GRID_FEES_PAID = 'GRID_FEES_PAID'
-    SUM_LEC_EXPENDITURE = 'SUM_LEC_EXPENDITURE'
-    SUM_NET_IMPORT_ELEC = 'SUM_NET_IMPORT_ELEC'
+    TAX_PAID = 'Tax paid [SEK]'
+    GRID_FEES_PAID = 'Grid fees paid [SEK]'
+    NET_ENERGY_SPEND = 'Net energy spend [SEK]'
+    SUM_IMPORT = '{} import [kWh]'
+    SUM_EXPORT = '{} export [kWh]'
+    SUM_NET_IMPORT = 'Net {} import [kWh]'
+    MONTHLY_SUM_IMPORT_ELEC = 'MONTHLY_SUM_IMPORT_ELEC'
+    MONTHLY_SUM_EXPORT_ELEC = 'MONTHLY_SUM_EXPORT_ELEC'
     MONTHLY_SUM_NET_IMPORT_ELEC = 'MONTHLY_SUM_NET_IMPORT_ELEC'
     MONTHLY_MAX_NET_IMPORT_ELEC = 'MONTHLY_MAX_NET_IMPORT_ELEC'
-    SUM_NET_IMPORT_HEAT = 'SUM_NET_IMPORT_HEAT'
+    MONTHLY_SUM_IMPORT_HEAT = 'MONTHLY_SUM_IMPORT_HEAT'
+    MONTHLY_SUM_EXPORT_HEAT = 'MONTHLY_SUM_EXPORT_HEAT'
     MONTHLY_SUM_NET_IMPORT_HEAT = 'MONTHLY_SUM_NET_IMPORT_HEAT'
     MONTHLY_MAX_NET_IMPORT_HEAT = 'MONTHLY_MAX_NET_IMPORT_HEAT'
-    LOCALLY_PRODUCED_RESOURCES = 'LOCALLY_PRODUCED_RESOURCES'
+    SUM_IMPORT_JAN_FEB = '{} import Jan-Feb [kWh]'
+    SUM_EXPORT_JAN_FEB = '{} export Jan-Feb [kWh]'
+    SUM_IMPORT_BELOW_1_C = '{} import when <1C [kWh]'
+    SUM_EXPORT_BELOW_1_C = '{} export when <1C [kWh]'
+    LOCALLY_PRODUCED_RESOURCES = 'Local prod. {} [kWh]'
+
+    @staticmethod
+    def format_results_key_name(results_key_name: str, resource: Resource) -> str:
+        """
+        For example, the following inputs:
+        results_key_name = '{} import when <1C [kWh]'
+        resource = Resource.HEATING
+        should lead to the following output:
+        'Heating import when <1C [kWh]'
+        """
+        new_name = results_key_name.format(resource.get_display_name())
+        # .capitalize() makes the first character upper-case, but all others lower-case. Here, we make the first
+        # character upper-case, but leave the others un-changed.
+        return new_name[0].upper() + new_name[1:]

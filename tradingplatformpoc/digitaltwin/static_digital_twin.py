@@ -3,7 +3,7 @@ from typing import Optional
 
 import pandas as pd
 
-from tradingplatformpoc.market.bid import Resource
+from tradingplatformpoc.market.trade import Resource
 
 logger = logging.getLogger(__name__)
 
@@ -29,11 +29,24 @@ class StaticDigitalTwin:
     i.e. are defined when initializing the digital twin, and never change after that.
     Not specifying a Series when initializing the class will make it assume it is 0.
     """
+    gross_floor_area: float
+    electricity_usage: pd.Series
+    space_heating_usage: pd.Series
+    hot_water_usage: pd.Series
+    cooling_usage: pd.Series
+    electricity_production: pd.Series
+    space_heating_production: pd.Series
+    hot_water_production: pd.Series
+    cooling_production: pd.Series
+    total_heating_usage: pd.Series
+    total_heating_production: pd.Series
 
-    def __init__(self, electricity_usage: pd.Series = None, space_heating_usage: pd.Series = None,
-                 hot_water_usage: pd.Series = None, cooling_usage: pd.Series = None,
-                 electricity_production: pd.Series = None, space_heating_production: pd.Series = None,
-                 hot_water_production: pd.Series = None, cooling_production: pd.Series = None):
+    def __init__(self, gross_floor_area: float, electricity_usage: pd.Series = None,
+                 space_heating_usage: pd.Series = None, hot_water_usage: pd.Series = None,
+                 cooling_usage: pd.Series = None, electricity_production: pd.Series = None,
+                 space_heating_production: pd.Series = None, hot_water_production: pd.Series = None,
+                 cooling_production: pd.Series = None):
+        self.gross_floor_area = gross_floor_area
         self.electricity_usage = electricity_usage
         self.space_heating_usage = space_heating_usage
         self.hot_water_usage = hot_water_usage

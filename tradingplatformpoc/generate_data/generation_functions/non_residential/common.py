@@ -28,18 +28,18 @@ def inv_logit(p):
 
 def probability_of_0_space_heating(temperature: float) -> float:
     # No observations of 0 energy where temperature is < 5.5. Therefore, to not get random 0s for much lower
-    # temperatures than this, we'll artificially set heating to be non-zero whenever temperature < 5.
-    # Also, no observations of >0 energy where temperature is > 18.7. Therefore we set heating to be 0 whenever
+    # temperatures than this, we'll artificially set heating to be non-zero whenever temperature < 5.5.
+    # Also, no observations of >0 energy where temperature is > 18.7. Therefore, we set heating to be 0 whenever
     # temperature >= 20.
-    if temperature < 5:
-        return 0
+    if temperature < 5.5:  # Changed from 5 since Andreas @ BDAB thought we had too many 0s during winter months
+        return 0.0
     elif temperature >= 20:
-        return 1
+        return 1.0
     else:
-        return 1 - inv_logit(BM_INTERCEPT
-                             + BM_TEMP_1 * min(max(temperature, 5.5), 8)
-                             + BM_TEMP_2 * min(max(temperature, 8), 12.5)
-                             + BM_TEMP_3 * max(temperature, 12.5))
+        return 1.0 - inv_logit(BM_INTERCEPT
+                               + BM_TEMP_1 * min(max(temperature, 5.5), 8)
+                               + BM_TEMP_2 * min(max(temperature, 8), 12.5)
+                               + BM_TEMP_3 * max(temperature, 12.5))
 
 
 def space_heating_given_more_than_0(temperature: float) -> float:
@@ -78,7 +78,7 @@ def simulate_hot_tap_water(school_gross_floor_area_m2: float, random_seed: int, 
     return scaled_series
 
 
-def simulate_space_heating(school_gross_floor_area_m2: float, random_seed: int,
+def simulate_space_heating(gross_floor_area_m2: float, random_seed: int,
                            lazy_inputs: pl.LazyFrame, space_heating_per_year_m2: float,
                            time_factor_function: Callable, n_rows: int) -> pl.LazyFrame:
     """
@@ -115,7 +115,7 @@ def simulate_space_heating(school_gross_floor_area_m2: float, random_seed: int,
 
     # Scale
     scaled_df = scale_energy_consumption(lf.select([pl.col('datetime'), pl.col('sim_energy_unscaled').alias('value')]),
-                                         school_gross_floor_area_m2,
+                                         gross_floor_area_m2,
                                          space_heating_per_year_m2, n_rows)
 
     return scaled_df

@@ -6,7 +6,7 @@ import numpy as np
 
 import pandas as pd
 
-from tradingplatformpoc.market.bid import Resource
+from tradingplatformpoc.market.trade import Resource
 from tradingplatformpoc.price.iprice import IPrice
 
 logger = logging.getLogger(__name__)
