@@ -1,5 +1,4 @@
 from tradingplatformpoc.sql.agent.models import Agent  # noqa: F401
-from tradingplatformpoc.sql.clearing_price.models import ClearingPrice  # noqa: F401
 from tradingplatformpoc.sql.config.models import Config  # noqa: F401
 from tradingplatformpoc.sql.electricity_price.models import ElectricityPrice  # noqa: F401
 from tradingplatformpoc.sql.extra_cost.models import ExtraCost  # noqa: F401

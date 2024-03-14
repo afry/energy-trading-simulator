@@ -183,7 +183,6 @@ class TradingSimulator:
 
         logger.info("Starting trading simulations")
 
-        # clearing_prices_historical: Dict[datetime.datetime, Dict[Resource, float]] = {}
         battery_levels_dict: Dict[str, Dict[datetime.datetime, float]] = {}
         shallow_storage_rel_dict: Dict[str, Dict[datetime.datetime, float]] = {}
         deep_storage_rel_dict: Dict[str, Dict[datetime.datetime, float]] = {}
@@ -254,7 +253,6 @@ class TradingSimulator:
             logger.info('Saving electricity price to db...')
             bulk_insert(TableElectricityPrice, electricity_price_list_batch)
 
-        # clearing_prices_dicts = clearing_prices_to_db_dict(clearing_prices_historical, self.job_id)
         battery_level_dicts = levels_to_db_dict(battery_levels_dict, TradeMetadataKey.BATTERY_LEVEL.name, self.job_id)
         shallow_storage_rel_dicts = levels_to_db_dict(shallow_storage_rel_dict,
                                                       TradeMetadataKey.SHALLOW_STORAGE_REL.name, self.job_id)
@@ -272,7 +270,6 @@ class TradingSimulator:
         bites_flow_dicts = levels_to_db_dict(bites_flow_dict, TradeMetadataKey.FLOW_SHALLOW_TO_DEEP.name, self.job_id)
         hp_high_prod_dicts = levels_to_db_dict(hp_high_prod, TradeMetadataKey.HP_HIGH_HEAT_PROD.name, self.job_id)
         hp_low_prod_dicts = levels_to_db_dict(hp_low_prod, TradeMetadataKey.HP_LOW_HEAT_PROD.name, self.job_id)
-        # bulk_insert(TableClearingPrice, clearing_prices_dicts)
         bulk_insert(TableLevel, battery_level_dicts)
         bulk_insert(TableLevel, shallow_storage_rel_dicts)
         bulk_insert(TableLevel, deep_storage_rel_dicts)

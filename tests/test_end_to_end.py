@@ -29,7 +29,6 @@ class TestEndToEnd(TestCase):
             from tradingplatformpoc.config.access_config import read_config
             from tradingplatformpoc.database import create_db_and_tables, drop_db_and_tables
             from tradingplatformpoc.simulation_runner.trading_simulator import TradingSimulator
-            from tradingplatformpoc.sql.clearing_price.crud import get_periods_from_clearing_prices
             from tradingplatformpoc.sql.config.crud import create_config_if_not_in_db
             from tradingplatformpoc.sql.extra_cost.crud import db_to_extra_cost_df
             from tradingplatformpoc.sql.job.crud import delete_job
@@ -47,7 +46,7 @@ class TestEndToEnd(TestCase):
             all_trades = db_to_trade_df(job_id)
             all_extra_costs = db_to_extra_cost_df(job_id)
 
-            for period in get_periods_from_clearing_prices(job_id):
+            for period in all_trades['period'].unique():
                 trades_for_period = all_trades.loc[all_trades.period == period]
                 extra_costs_for_period = all_extra_costs.loc[all_extra_costs.period == period]
                 for resource in ALL_IMPLEMENTED_RESOURCES:
