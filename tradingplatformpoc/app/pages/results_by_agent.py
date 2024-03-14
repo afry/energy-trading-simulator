@@ -7,7 +7,7 @@ from tradingplatformpoc.app.app_charts import construct_agent_energy_chart, cons
     construct_storage_level_chart, construct_traded_amount_by_agent_chart
 from tradingplatformpoc.app.app_data_display import build_heat_pump_prod_df, get_bites_dfs, get_storage_dfs, \
     reconstruct_static_digital_twin
-from tradingplatformpoc.app.app_functions import IdPair, calculate_table_height, download_df_as_csv_button, \
+from tradingplatformpoc.app.app_functions import IdPair, calculate_max_table_height, download_df_as_csv_button, \
     make_room_for_menu_in_sidebar
 from tradingplatformpoc.sql.agent.crud import get_agent_config, get_agent_type
 from tradingplatformpoc.sql.config.crud import get_all_agents_in_config, get_all_finished_job_config_id_pairs_in_db, \
@@ -37,7 +37,7 @@ if len(ids) > 0:
         if trades_df.empty:
             st.dataframe(trades_df, hide_index=True)
         else:
-            height = calculate_table_height(len(trades_df.index))
+            height = calculate_max_table_height(len(trades_df.index))
             st.dataframe(trades_df.replace(float('inf'), 'inf'), height=height)
             download_df_as_csv_button(trades_df, "all_trades_for_agent_" + agent_chosen_guid,
                                       include_index=True)
@@ -54,7 +54,7 @@ if len(ids) > 0:
         if extra_costs_df.empty:
             st.dataframe(extra_costs_df, hide_index=True)
         else:
-            height = calculate_table_height(len(extra_costs_df.index))
+            height = calculate_max_table_height(len(extra_costs_df.index))
             st.dataframe(extra_costs_df.replace(float('inf'), 'inf'), height=height)
             download_df_as_csv_button(extra_costs_df, "extra_costs_for_agent_" + agent_chosen_guid,
                                       include_index=True)
