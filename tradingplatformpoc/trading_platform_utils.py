@@ -1,4 +1,5 @@
 import logging
+import platform
 from datetime import datetime, timedelta
 from typing import Any, Collection, Dict, List
 
@@ -6,7 +7,12 @@ import numpy as np
 
 import pandas as pd
 
-from tradingplatformpoc.market.bid import Resource
+import pyomo.environ as pyo
+from pyomo.opt import OptSolver
+
+from tradingplatformpoc.market.trade import Resource
+from tradingplatformpoc.price.heating_price import HeatingPrice
+from tradingplatformpoc.settings import settings
 
 ALL_IMPLEMENTED_RESOURCES = [Resource.ELECTRICITY, Resource.HEATING]
 ALL_IMPLEMENTED_RESOURCES_STR = [res.name for res in ALL_IMPLEMENTED_RESOURCES]
@@ -57,7 +63,6 @@ def calculate_solar_prod(irradiation_data: pd.Series, pv_sqm: float, pv_efficien
     return irradiation_data * pv_sqm * pv_efficiency / 1000
 
 
-# TODO: move to simulation_runner_utils.py
 def flatten_collection(collection_of_lists: Collection[Collection[Any]]) -> List[Any]:
     return [bid for sublist in collection_of_lists for bid in sublist]
 
@@ -86,9 +91,48 @@ def get_if_exists_else(some_dict: Dict[str, Any], key: str, default_value: Any) 
     return some_dict[key] if key in some_dict else default_value
 
 
-# TODO: move to simulation_runner_utils.py
-def add_to_nested_dict(nested_dict: dict, key1, key2, value):
+def add_to_nested_dict(nested_dict: Dict[Any, dict], key1, key2, value):
+    """
+    Will add value to nested_dict, using key1 and then key2.
+    If nested_dict already has a value for these keys, it will be overwritten.
+    If nested_dict[key1] is empty, a new dict will be assigned to it, with the (key2: value) pair.
+    """
     if key1 in nested_dict:
         nested_dict[key1][key2] = value
     else:
         nested_dict[key1] = {key2: value}
+
+
+def add_all_to_nested_dict(nested_dict: Dict[Any, dict], other_nested_dict: Dict[Any, dict]):
+    """
+    Will add all data from other_nested_dict into nested_dict. If there are key pairs that exist in both, the values
+    in other_nested_dict will overwrite those in nested_dict.
+    """
+    for (k1, subdict) in other_nested_dict.items():
+        for (k2, v) in subdict.items():
+            add_to_nested_dict(nested_dict, k1, k2, v)
+
+
+def get_glpk_solver() -> OptSolver:
+    if platform.system() == 'Linux':
+        logger.info('Linux system')
+        return pyo.SolverFactory('glpk')
+    else:
+        logger.info('Not a linux system, using GLPK_PATH')
+        return pyo.SolverFactory('glpk', executable=settings.GLPK_PATH)
+
+
+def get_external_heating_prices(heat_pricing: HeatingPrice, job_id: str,
+                                trading_periods: Collection[datetime]) -> List[Dict[str, Any]]:
+    heating_price_by_ym_list: List[Dict[str, Any]] = []
+    for (year, month) in set([(dt.year, dt.month) for dt in trading_periods]):
+        first_day_of_month = datetime(year, month, 1)  # Which day it is doesn't matter
+        heating_price_by_ym_list.append({
+            'job_id': job_id,
+            'year': year,
+            'month': month,
+            'exact_retail_price': heat_pricing.get_exact_retail_price(first_day_of_month, include_tax=True),
+            'exact_wholesale_price': heat_pricing.get_exact_wholesale_price(first_day_of_month),
+            'estimated_retail_price': heat_pricing.get_estimated_retail_price(first_day_of_month, include_tax=True),
+            'estimated_wholesale_price': heat_pricing.get_estimated_wholesale_price(first_day_of_month)})
+    return heating_price_by_ym_list

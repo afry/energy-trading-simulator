@@ -5,7 +5,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 
 from sqlmodel import Field, SQLModel
 
-from tradingplatformpoc.market.bid import Resource
+from tradingplatformpoc.market.trade import Resource
 
 
 class PreCalculatedResults(SQLModel, table=True):

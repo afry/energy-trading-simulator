@@ -4,7 +4,7 @@ import numpy as np
 
 import pandas as pd
 
-from tradingplatformpoc.market.bid import Action, Resource
+from tradingplatformpoc.market.trade import Action, Resource
 
 PATH_TO_TRADES_CSV = "../results/trades.csv"
 

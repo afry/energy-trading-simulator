@@ -1,7 +1,7 @@
 
 import datetime
 from time import strptime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 
@@ -14,20 +14,15 @@ from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.generate_data.mock_data_utils import get_cooling_cons_key, get_elec_cons_key, \
     get_hot_tap_water_cons_key, get_space_heat_cons_key
-from tradingplatformpoc.market.bid import Action, Resource
-from tradingplatformpoc.market.trade import TradeMetadataKey
+from tradingplatformpoc.market.trade import Action, Resource, TradeMetadataKey
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
-from tradingplatformpoc.sql.electricity_price.crud import db_to_electricity_price_dict
-from tradingplatformpoc.sql.extra_cost.crud import db_to_aggregated_extra_costs_by_agent
-from tradingplatformpoc.sql.heating_price.crud import db_to_heating_price_dict
 from tradingplatformpoc.sql.input_data.crud import get_periods_from_db, read_input_column_df_from_db, \
     read_inputs_df_for_agent_creation
 from tradingplatformpoc.sql.input_electricity_price.crud import electricity_price_series_from_db
 from tradingplatformpoc.sql.level.crud import db_to_viewable_level_df_by_agent
 from tradingplatformpoc.sql.mock_data.crud import db_to_mock_data_df, get_mock_data_agent_pairs_in_db
 from tradingplatformpoc.sql.results.models import ResultsKey
-from tradingplatformpoc.sql.trade.crud import db_to_trades_by_agent_and_resource_action, \
-    elec_trades_by_external_for_periods_to_df, get_total_import_export
+from tradingplatformpoc.sql.trade.crud import elec_trades_by_external_for_periods_to_df, get_total_import_export
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod
 
 
@@ -45,27 +40,53 @@ def get_price_df_when_local_price_inbetween(prices_df: pd.DataFrame, resource: R
     return elec_prices.loc[local_price_between_external]
 
 
-def reconstruct_static_digital_twin(agent_id: str, mock_data_constants: Dict[str, Any],
-                                    pv_area: float, pv_efficiency: float) -> StaticDigitalTwin:
-    mock_data_id = list(get_mock_data_agent_pairs_in_db([agent_id], mock_data_constants).keys())[0]
+def reconstruct_static_digital_twin(agent_id: str, config: Dict[str, Any], agent_config: Dict[str, Any],
+                                    agent_type: str) -> StaticDigitalTwin:
+    if agent_type == 'GroceryStoreAgent':
+        return reconstruct_grocery_store_static_digital_twin(agent_config)
+    elif agent_type == 'BlockAgent':
+        return reconstruct_block_agent_static_digital_twin(agent_id, config, agent_config)
+    raise NotImplementedError('Method not implemented for agent type ' + agent_type)
+
+
+def reconstruct_block_agent_static_digital_twin(agent_id: str, config: Dict[str, Any], agent_config: Dict[str, Any]) \
+        -> StaticDigitalTwin:
+    mock_data_id = list(get_mock_data_agent_pairs_in_db([agent_id], config['MockDataConstants']).keys())[0]
     block_mock_data = db_to_mock_data_df(mock_data_id).to_pandas().set_index('datetime')
 
     inputs_df = read_inputs_df_for_agent_creation()
-    pv_prod_series = calculate_solar_prod(inputs_df['irradiation'], pv_area, pv_efficiency)
+    pv_prod_series = calculate_solar_prod(inputs_df['irradiation'], agent_config['PVArea'],
+                                          config['AreaInfo']['PVEfficiency'])
     elec_cons_series = block_mock_data[get_elec_cons_key(agent_id)]
     space_heat_cons_series = block_mock_data[get_space_heat_cons_key(agent_id)]
     hot_tap_water_cons_series = block_mock_data[get_hot_tap_water_cons_key(agent_id)]
     cooling_cons_series = block_mock_data[get_cooling_cons_key(agent_id)]
 
-    return StaticDigitalTwin(electricity_usage=elec_cons_series,
+    return StaticDigitalTwin(gross_floor_area=agent_config['GrossFloorArea'],
+                             electricity_usage=elec_cons_series,
                              space_heating_usage=space_heat_cons_series,
                              hot_water_usage=hot_tap_water_cons_series,
+                             cooling_usage=cooling_cons_series,
+                             electricity_production=pv_prod_series)
+
+
+def reconstruct_grocery_store_static_digital_twin(agent_config: Dict[str, Any]) \
+        -> StaticDigitalTwin:
+    inputs_df = read_inputs_df_for_agent_creation()
+    pv_prod_series = calculate_solar_prod(inputs_df['irradiation'], agent_config['PVArea'],
+                                          agent_config['PVEfficiency'])
+    space_heat_prod = inputs_df['coop_space_heating_produced'] if agent_config['SellExcessHeat'] else None
+
+    return StaticDigitalTwin(gross_floor_area=agent_config['GrossFloorArea'],
+                             electricity_usage=inputs_df['coop_electricity_consumed'],
+                             space_heating_usage=inputs_df['coop_space_heating_consumed'],
+                             hot_water_usage=inputs_df['coop_hot_tap_water_consumed'],
                              electricity_production=pv_prod_series,
-                             cooling_usage=cooling_cons_series)
+                             space_heating_production=space_heat_prod)
 
 
 # maybe we should move this to simulation_runner/trading_simulator
-def construct_combined_price_df(local_price_df: pd.DataFrame, config_data: dict) -> pd.DataFrame:
+def construct_combined_price_df(config_data: dict, local_price_df: Optional[pd.DataFrame] = None) -> pd.DataFrame:
 
     # TODO: Improve this
     elec_pricing: ElectricityPrice = ElectricityPrice(
@@ -92,7 +113,7 @@ def construct_combined_price_df(local_price_df: pd.DataFrame, config_data: dict)
     return pd.concat([local_price_df, retail_df, wholesale_df])
 
 
-def aggregated_net_elec_import_results_df_split_on_period(job_id: str, period: tuple) -> pd.DataFrame:
+def aggregated_net_elec_import_results_df_split_on_period(job_id: str, period: tuple) -> Optional[pd.DataFrame]:
     """
     Display total import and export for electricity, computed for specified time period.
     @param job_id: Which job to get trades for
@@ -108,7 +129,9 @@ def aggregated_net_elec_import_results_df_split_on_period(job_id: str, period: t
                        list(range(start, end + 1, 1))]
   
     period_df = elec_trades_by_external_for_periods_to_df(job_id, selected_period)
-    return avg_weekday_electricity(period_df)
+    if period_df is not None:
+        return avg_weekday_electricity(period_df)
+    return None
 
 
 def avg_weekday_electricity(df: pd.DataFrame) -> pd.DataFrame:
@@ -144,8 +167,13 @@ def aggregated_import_and_export_results_df_split_on_mask(job_id: str, periods: 
     return res_dict
 
 
-def values_to_mwh(str_float_dict: Dict[str, float]) -> Dict[str, str]:
-    return {k.lower().capitalize(): f'{v / 1000:.2f} MWh' for k, v in str_float_dict.items()}
+def values_by_resource_to_mwh(str_float_dict: Dict[str, float]) -> Dict[str, str]:
+    """
+    The input dict must fulfill:
+    Keys must be resource names (otherwise a RuntimeError will be raised)
+    Values should be energy amounts in kWh (since the value will be divided by 1000)
+    """
+    return {Resource.from_string(k).get_display_name(True): f'{v / 1000:.2f} MWh' for k, v in str_float_dict.items()}
 
 
 def aggregated_import_and_export_results_df_split_on_period(job_id: str) -> Dict[str, pd.DataFrame]:
@@ -187,58 +215,49 @@ def results_by_agent_as_df_with_highlight(df: pd.DataFrame, agent_chosen_guid: s
     return formatted_df
 
 
-def get_savings_vs_only_external_buy_heat(job_id: str, agent_guid: str) -> float:
-    buy_trades = db_to_trades_by_agent_and_resource_action(job_id, agent_guid, Resource.HEATING, Action.BUY)
-    retail_prices = db_to_heating_price_dict(job_id, "exact_retail_price")
-    return sum([trade.quantity_pre_loss * (retail_prices[(trade.year, trade.month)] - trade.price)
-                for trade in buy_trades])
-
-
-def get_savings_vs_only_external_sell_heat(job_id: str, agent_guid: str) -> float:
-    sell_trades = db_to_trades_by_agent_and_resource_action(job_id, agent_guid, Resource.HEATING, Action.SELL)
-    wholesale_prices = db_to_heating_price_dict(job_id, "exact_wholesale_price")
-    return sum([trade.quantity_post_loss * (trade.price - wholesale_prices[(trade.year, trade.month)])
-                for trade in sell_trades])
-
-
-def get_savings_vs_only_external_buy_elec(job_id: str, agent_guid: str) -> float:
-    buy_trades = db_to_trades_by_agent_and_resource_action(job_id, agent_guid, Resource.ELECTRICITY, Action.BUY)
-    retail_prices = db_to_electricity_price_dict(job_id, "retail_price")
-    return sum([trade.quantity_pre_loss * (retail_prices[trade.period] - trade.price)
-                for trade in buy_trades])
-
-
-def get_savings_vs_only_external_sell_elec(job_id: str, agent_guid: str) -> float:
-    sell_trades = db_to_trades_by_agent_and_resource_action(job_id, agent_guid, Resource.ELECTRICITY, Action.SELL)
-    wholesale_prices = db_to_electricity_price_dict(job_id, "wholesale_price")
-    return sum([trade.quantity_post_loss * (trade.price - wholesale_prices[trade.period])
-                for trade in sell_trades])
-
-
-def get_savings_vs_only_external_buy(job_id: str, agent_guid: str) -> Tuple[float, float]:
-
-    extra_costs_for_bad_bids, extra_costs_for_heat_cost_discr = \
-        db_to_aggregated_extra_costs_by_agent(job_id, agent_guid)
-    
-    # Saving by using local market, before taking penalties into account [SEK]
-    total_saved = get_savings_vs_only_external_buy_heat(job_id, agent_guid) \
-        + get_savings_vs_only_external_buy_elec(job_id, agent_guid) \
-        + get_savings_vs_only_external_sell_heat(job_id, agent_guid) \
-        + get_savings_vs_only_external_sell_elec(job_id, agent_guid) \
-        - extra_costs_for_heat_cost_discr
-    # TODO: This is bugged somehow.
-    #  Test running simulations with only 1 grocery store agent, then total_saved should be 0, but isn't
-    return total_saved, extra_costs_for_bad_bids
-
-
-def build_heat_pump_levels_df(job_id: str, agent_chosen_guid: str, agent_config: dict) -> pd.DataFrame:
+def build_heat_pump_prod_df(job_id: str, agent_chosen_guid: str, agent_config: dict) -> pd.DataFrame:
+    """
+    If agent_config['HeatPumpMaxOutput'] > 0, will return a DataFrame with a DatetimeIndex, and two numerical columns:
+    'level_high' and 'level_low'. These signify the heat pump production of high- and low-tempered heat respectively,
+    in kWh for a given hour (a.k.a. kW).
+    """
     if agent_config['HeatPumpMaxOutput'] > 0:
-        return db_to_viewable_level_df_by_agent(
-            job_id=job_id,
-            agent_guid=agent_chosen_guid,
-            level_type=TradeMetadataKey.HEAT_PUMP_WORKLOAD.name)
+        high_heat_prod = db_to_viewable_level_df_by_agent(job_id=job_id, agent_guid=agent_chosen_guid,
+                                                          level_type=TradeMetadataKey.HP_HIGH_HEAT_PROD.name)
+        low_heat_prod = db_to_viewable_level_df_by_agent(job_id=job_id, agent_guid=agent_chosen_guid,
+                                                         level_type=TradeMetadataKey.HP_LOW_HEAT_PROD.name)
+        return pd.merge(high_heat_prod, low_heat_prod, left_index=True, right_index=True, how='outer',
+                        suffixes=('_high', '_low')).fillna(0)
     else:
         return pd.DataFrame()
+
+
+def get_bites_dfs(job_id: str, agent_chosen_guid: str) -> Dict[TradeMetadataKey, pd.DataFrame]:
+    """Constructs a dict, with a dataframe for each type of BITES-related field."""
+    keys = [TradeMetadataKey.SHALLOW_STORAGE_ABS,
+            TradeMetadataKey.DEEP_STORAGE_ABS,
+            TradeMetadataKey.SHALLOW_CHARGE,
+            TradeMetadataKey.SHALLOW_DISCHARGE,
+            TradeMetadataKey.FLOW_SHALLOW_TO_DEEP,
+            TradeMetadataKey.SHALLOW_LOSS,
+            TradeMetadataKey.DEEP_LOSS]
+    return get_dfs_by_tmk(agent_chosen_guid, job_id, keys)
+
+
+def get_storage_dfs(job_id: str, agent_chosen_guid: str) -> Dict[TradeMetadataKey, pd.DataFrame]:
+    """Constructs a dict, with a dataframe for each type of storage."""
+    keys = [TradeMetadataKey.BATTERY_LEVEL, TradeMetadataKey.SHALLOW_STORAGE_REL, TradeMetadataKey.DEEP_STORAGE_REL]
+    return get_dfs_by_tmk(agent_chosen_guid, job_id, keys)
+
+
+def get_dfs_by_tmk(agent_chosen_guid, job_id, keys):
+    """Constructs a dict, with a dataframe for each TradeMetadataKey."""
+    my_dict: Dict[TradeMetadataKey, pd.DataFrame] = {}
+    for tmk in keys:
+        df = db_to_viewable_level_df_by_agent(job_id=job_id, agent_guid=agent_chosen_guid, level_type=tmk.name)
+        if not df.empty:
+            my_dict[tmk] = df
+    return my_dict
 
 
 def combine_trades_dfs(agg_buy_trades: Optional[pd.DataFrame], agg_sell_trades: Optional[pd.DataFrame]) \
@@ -266,12 +285,14 @@ def build_leaderboard_df(list_of_dicts: List[dict]) -> pd.DataFrame:
     wanted_columns = ['Description',
                       ResultsKey.NET_ENERGY_SPEND,
                       ResultsKey.format_results_key_name(ResultsKey.SUM_NET_IMPORT, Resource.ELECTRICITY),
-                      ResultsKey.format_results_key_name(ResultsKey.SUM_NET_IMPORT, Resource.HEATING),
+                      ResultsKey.format_results_key_name(ResultsKey.SUM_NET_IMPORT, Resource.HIGH_TEMP_HEAT),
                       ResultsKey.format_results_key_name(ResultsKey.LOCALLY_PRODUCED_RESOURCES, Resource.ELECTRICITY),
-                      ResultsKey.format_results_key_name(ResultsKey.LOCALLY_PRODUCED_RESOURCES, Resource.HEATING),
+                      ResultsKey.format_results_key_name(ResultsKey.LOCALLY_PRODUCED_RESOURCES,
+                                                         Resource.HIGH_TEMP_HEAT),
+                      ResultsKey.format_results_key_name(ResultsKey.LOCALLY_PRODUCED_RESOURCES, Resource.LOW_TEMP_HEAT),
                       ResultsKey.format_results_key_name(ResultsKey.LOCALLY_PRODUCED_RESOURCES, Resource.COOLING),
                       ResultsKey.TAX_PAID,
                       ResultsKey.GRID_FEES_PAID,
-                      ResultsKey.format_results_key_name(ResultsKey.SUM_IMPORT_BELOW_1_C, Resource.HEATING),
-                      ResultsKey.format_results_key_name(ResultsKey.SUM_IMPORT_JAN_FEB, Resource.HEATING)]
+                      ResultsKey.format_results_key_name(ResultsKey.SUM_IMPORT_BELOW_1_C, Resource.HIGH_TEMP_HEAT),
+                      ResultsKey.format_results_key_name(ResultsKey.SUM_IMPORT_JAN_FEB, Resource.HIGH_TEMP_HEAT)]
     return df_to_display[wanted_columns].round(decimals=0)

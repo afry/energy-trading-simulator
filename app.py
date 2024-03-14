@@ -1,4 +1,5 @@
 import os
+import platform
 from logging.handlers import TimedRotatingFileHandler
 
 from tradingplatformpoc.app import footer

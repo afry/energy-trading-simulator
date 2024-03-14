@@ -11,8 +11,7 @@ from sqlalchemy import func, select
 from sqlmodel import Session
 
 from tradingplatformpoc.connection import session_scope
-from tradingplatformpoc.market.bid import Action, Resource
-from tradingplatformpoc.market.trade import Market, Trade
+from tradingplatformpoc.market.trade import Action, Market, Resource, Trade
 from tradingplatformpoc.sql.trade.models import Trade as TableTrade
 
 
@@ -30,7 +29,7 @@ def heat_trades_from_db_for_periods(trading_periods, job_id: str,
                                       .where((TableTrade.job_id == job_id)
                                              & (TableTrade.period >= trading_periods.min())
                                              & (TableTrade.period <= trading_periods.max())
-                                             & (TableTrade.resource == 'HEATING'))
+                                             & (TableTrade.resource == Resource.HIGH_TEMP_HEAT.name))
                                       .order_by(TableTrade.period)).all()
 
         return dict((period, list(vals)) for period, vals in
@@ -39,7 +38,7 @@ def heat_trades_from_db_for_periods(trading_periods, job_id: str,
 
 def elec_trades_by_external_for_periods_to_df(job_id: str, trading_periods,
                                               session_generator: Callable[[], _GeneratorContextManager[Session]]
-                                              = session_scope) -> pd.DataFrame:
+                                              = session_scope) -> Optional[pd.DataFrame]:
     """Get the summed amount of electricity used each period for all agents combined.
     """
     with session_generator() as db:
@@ -61,6 +60,8 @@ def elec_trades_by_external_for_periods_to_df(job_id: str, trading_periods,
                                          'weekday': trade.period.strftime('%A'),
                                          'hour': trade.period.hour
                                          } for trade in trades])
+        if len(df.index) == 0:
+            return None
         df_export = df[df.action == Action.BUY].drop(columns=['action', 'total_quantity_post']).rename(
             columns={'total_quantity_pre': 'total_export_quantity'})  # GridAgent buys --> local grid exports
         df_import = df[df.action == Action.SELL].drop(columns=['action', 'total_quantity_pre']).rename(
@@ -183,16 +184,13 @@ def db_to_viewable_trade_df_by_agent(job_id: str, agent_guid: str,
         trades = db.query(TableTrade).filter(TableTrade.source == agent_guid, TableTrade.job_id == job_id).all()
 
         if len(trades) > 0:
-            return pd.DataFrame.from_records([{'period': trade.period,
-                                               'action': trade.action.name,
-                                               'resource': trade.resource.name,
-                                               'market': trade.market.name,
-                                               'quantity_pre_loss': trade.quantity_pre_loss,
-                                               'quantity_post_loss': trade.quantity_post_loss,
-                                               'price': trade.price,
-                                               'tax_paid': trade.tax_paid,
-                                               'grid_fee_paid': trade.grid_fee_paid
-                                               } for trade in trades], index='period')
+            df = pd.DataFrame.from_records([{'period': trade.period, 'action': trade.action.name,
+                                             'resource': trade.resource.name, 'market': trade.market.name,
+                                             'quantity_pre_loss': trade.quantity_pre_loss,
+                                             'quantity_post_loss': trade.quantity_post_loss, 'price': trade.price,
+                                             'tax_paid': trade.tax_paid, 'grid_fee_paid': trade.grid_fee_paid} for
+                                            trade in trades], index='period')
+            return df.sort_values(by=['period', 'resource'])
         else:
             return pd.DataFrame(columns=['period', 'action', 'resource', 'market', 'quantity_pre_loss',
                                          'quantity_post_loss', 'price', 'tax_paid', 'grid_fee_paid'])

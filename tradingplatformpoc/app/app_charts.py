@@ -1,4 +1,4 @@
-from typing import List
+from typing import Dict, List
 
 import altair as alt
 
@@ -6,7 +6,7 @@ import pandas as pd
 
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
-from tradingplatformpoc.market.bid import Action, Resource
+from tradingplatformpoc.market.trade import Action, Resource, TradeMetadataKey
 
 
 def altair_base_chart(df: pd.DataFrame, domain: List[str], range_color: List[str],
@@ -43,9 +43,8 @@ def altair_area_chart(df: pd.DataFrame, domain: List[str], range_color: List[str
         .mark_area(interpolate='step-after')
 
 
-def construct_static_digital_twin_chart(digital_twin: StaticDigitalTwin, agent_chosen_guid: str,
-                                        should_add_hp_to_legend: bool = False) -> \
-        alt.Chart:
+def construct_agent_energy_chart(digital_twin: StaticDigitalTwin, agent_chosen_guid: str,
+                                 heat_pump_df: pd.DataFrame) -> alt.Chart:
     """
     Constructs a multi-line chart from a StaticDigitalTwin, containing all data held therein.
     """
@@ -55,21 +54,26 @@ def construct_static_digital_twin_chart(digital_twin: StaticDigitalTwin, agent_c
     domain: List[str] = []
     range_color: List[str] = []
     df = add_to_df_and_lists(df, digital_twin.electricity_production, domain, range_color,
-                             app_constants.ELEC_PROD, app_constants.ALTAIR_BASE_COLORS[0])
+                             "Electricity production", app_constants.ALTAIR_BASE_COLORS[0])
     df = add_to_df_and_lists(df, digital_twin.electricity_usage, domain, range_color,
-                             app_constants.ELEC_CONS, app_constants.ALTAIR_BASE_COLORS[1])
-    df = add_to_df_and_lists(df, digital_twin.total_heating_production, domain, range_color,
-                             app_constants.HEAT_PROD, app_constants.ALTAIR_BASE_COLORS[2])
-    # TODO: Replace with low-temp and high-temp heat separated
-    df = add_to_df_and_lists(df, digital_twin.total_heating_usage, domain, range_color,
-                             app_constants.HEAT_CONS, app_constants.ALTAIR_BASE_COLORS[3])
+                             "Electricity consumption", app_constants.ALTAIR_BASE_COLORS[1])
+    df = add_to_df_and_lists(df, digital_twin.hot_water_production, domain, range_color,
+                             "High heat production", app_constants.ALTAIR_BASE_COLORS[2])
+    df = add_to_df_and_lists(df, digital_twin.hot_water_usage, domain, range_color,
+                             "High heat consumption", app_constants.ALTAIR_BASE_COLORS[3])
+    df = add_to_df_and_lists(df, digital_twin.space_heating_production, domain, range_color,
+                             "Low heat production", app_constants.ALTAIR_BASE_COLORS[4])
+    df = add_to_df_and_lists(df, digital_twin.space_heating_usage, domain, range_color,
+                             "Low heat consumption", app_constants.ALTAIR_BASE_COLORS[5])
     df = add_to_df_and_lists(df, digital_twin.cooling_usage, domain, range_color,
-                             app_constants.COOL_CONS, app_constants.ALTAIR_BASE_COLORS[4])
+                             "Cooling consumption", app_constants.ALTAIR_BASE_COLORS[6])
     df = add_to_df_and_lists(df, digital_twin.cooling_production, domain, range_color,
-                             app_constants.COOL_PROD, app_constants.ALTAIR_BASE_COLORS[5])
-    if should_add_hp_to_legend:
-        domain.append('Heat pump workload')
-        range_color.append(app_constants.HEAT_PUMP_CHART_COLOR)
+                             "Cooling production", app_constants.ALTAIR_BASE_COLORS[7])
+    if len(heat_pump_df.index) > 0:
+        df = add_to_df_and_lists(df, heat_pump_df['level_high'], domain, range_color,
+                                 "HP high heat production", app_constants.ALTAIR_BASE_COLORS[8])
+        df = add_to_df_and_lists(df, heat_pump_df['level_low'], domain, range_color,
+                                 "HP low heat production", app_constants.ALTAIR_BASE_COLORS[9])
     return altair_line_chart(df, domain, range_color, [], "Energy [kWh]",
                              "Energy production/consumption for " + agent_chosen_guid)
 
@@ -99,14 +103,14 @@ def construct_traded_amount_by_agent_chart(agent_chosen_guid: str,
 
     domain = []
     range_color = []
-    plot_lst: List[dict] = [{'title': 'Amount of electricity bought', 'color_num': 0,
-                            'resource': Resource.ELECTRICITY, 'action': Action.BUY},
-                            {'title': 'Amount of electricity sold', 'color_num': 1,
-                            'resource': Resource.ELECTRICITY, 'action': Action.SELL},
-                            {'title': 'Amount of heating bought', 'color_num': 2,
-                            'resource': Resource.HEATING, 'action': Action.BUY},
-                            {'title': 'Amount of heating sold', 'color_num': 3,
-                            'resource': Resource.HEATING, 'action': Action.SELL}]
+    plot_lst: List[dict] = []
+    col_counter = 0
+    for resource in [Resource.ELECTRICITY, Resource.HIGH_TEMP_HEAT, Resource.LOW_TEMP_HEAT, Resource.COOLING]:
+        plot_lst.append({'title': 'Amount of {} bought'.format(resource.get_display_name()),
+                         'color_num': col_counter, 'resource': resource, 'action': Action.BUY})
+        plot_lst.append({'title': 'Amount of {} sold'.format(resource.get_display_name()),
+                         'color_num': col_counter + 1, 'resource': resource, 'action': Action.SELL})
+        col_counter = col_counter + 2
 
     for elem in plot_lst:
         mask = (agent_trade_df.resource.values == elem['resource'].name) \
@@ -128,7 +132,7 @@ def construct_traded_amount_by_agent_chart(agent_chosen_guid: str,
                                           'variable': elem['title']})))
 
     return altair_line_chart(df, domain, range_color, [], "Energy [kWh]",
-                             'Electricity and Heating Amounts Traded for ' + agent_chosen_guid)
+                             'Energy traded for ' + agent_chosen_guid)
 
 
 def construct_price_chart(prices_df: pd.DataFrame, resource: Resource) -> alt.Chart:
@@ -139,40 +143,64 @@ def construct_price_chart(prices_df: pd.DataFrame, resource: Resource) -> alt.Ch
     return altair_line_chart(data_to_use, domain, range_color, range_dash, "Price [SEK]", "Price over Time")
 
 
-def construct_agent_with_heat_pump_chart(agent_chosen_guid: str, digital_twin: StaticDigitalTwin,
-                                         heat_pump_df: pd.DataFrame) -> alt.Chart:
-    """
-    Constructs a multi-line chart with energy production/consumption levels, with any heat pump workload data in the
-    background. If there is no heat_pump_data, will just return construct_static_digital_twin_chart(digital_twin).
-    """
+def construct_storage_level_chart(storage_level_dfs: Dict[TradeMetadataKey, pd.DataFrame]) -> alt.Chart:
+    df = pd.DataFrame()
+    domain = []
+    range_color = []
 
-    if heat_pump_df.empty:
-        return construct_static_digital_twin_chart(digital_twin, agent_chosen_guid, False)
+    titles = {TradeMetadataKey.SHALLOW_STORAGE_REL: 'BITES shallow storage',
+              TradeMetadataKey.DEEP_STORAGE_REL: 'BITES deep storage',
+              TradeMetadataKey.BATTERY_LEVEL: 'Battery charging level',
+              TradeMetadataKey.ACC_TANK_LEVEL: 'Accumulator tank charging level'}
+    colors = {TradeMetadataKey.BATTERY_LEVEL: app_constants.ALTAIR_BASE_COLORS[0],
+              TradeMetadataKey.SHALLOW_STORAGE_REL: app_constants.ALTAIR_BASE_COLORS[1],
+              TradeMetadataKey.DEEP_STORAGE_REL: app_constants.ALTAIR_BASE_COLORS[2],
+              TradeMetadataKey.ACC_TANK_LEVEL: app_constants.ALTAIR_BASE_COLORS[3]}
 
-    heat_pump_area = construct_heat_pump_chart(heat_pump_df.reset_index())
-    energy_multiline = construct_static_digital_twin_chart(digital_twin, agent_chosen_guid, True)
-    return alt.layer(energy_multiline, heat_pump_area).resolve_scale(
-        y='independent', color='independent', stroke="independent", strokeDash='independent',
-        shape='independent', opacity='independent', fill='independent', strokeWidth='independent')
+    for (tmk, sub_df) in storage_level_dfs.items():
+        df = pd.concat((df, pd.DataFrame({'period': sub_df['level'].index,
+                                          'value': sub_df['level'],
+                                          'variable': titles[tmk]})))
+        domain.append(titles[tmk])
+        range_color.append(colors[tmk])
+
+    chart = altair_line_chart(df, domain, range_color, [], "% of capacity used",
+                              "Charging level")
+    chart.encoding.y.axis = alt.Axis(format='%')
+    chart.encoding.tooltip[2].format = '.2%'
+    return chart
 
 
-def construct_heat_pump_chart(heat_pump_df: pd.DataFrame) -> alt.Chart:
-    heat_pump_df['variable'] = 'Heat pump workload'
-    heat_pump_df = heat_pump_df.rename(columns={'level': 'value'})
-    domain = list(pd.unique(heat_pump_df['variable']))
-    range_color = [app_constants.HEAT_PUMP_CHART_COLOR]
-    return altair_area_chart(heat_pump_df, domain, range_color, "", "")
+def construct_bites_chart(bites_dfs: Dict[TradeMetadataKey, pd.DataFrame]) -> alt.Chart:
+    df = pd.DataFrame()
+    domain = []
+    range_color = []
 
+    titles = {TradeMetadataKey.SHALLOW_STORAGE_ABS: 'Shallow storage',
+              TradeMetadataKey.DEEP_STORAGE_ABS: 'Deep storage',
+              TradeMetadataKey.SHALLOW_CHARGE: 'Shallow charge',
+              TradeMetadataKey.SHALLOW_DISCHARGE: 'Shallow discharge',
+              TradeMetadataKey.FLOW_SHALLOW_TO_DEEP: 'Flow shallow -> deep',
+              TradeMetadataKey.SHALLOW_LOSS: 'Shallow storage loss',
+              TradeMetadataKey.DEEP_LOSS: 'Deep storage loss'}
+    colors = {TradeMetadataKey.SHALLOW_STORAGE_ABS: app_constants.ALTAIR_BASE_COLORS[0],
+              TradeMetadataKey.DEEP_STORAGE_ABS: app_constants.ALTAIR_BASE_COLORS[1],
+              TradeMetadataKey.SHALLOW_CHARGE: app_constants.ALTAIR_BASE_COLORS[2],
+              TradeMetadataKey.SHALLOW_DISCHARGE: app_constants.ALTAIR_BASE_COLORS[3],
+              TradeMetadataKey.FLOW_SHALLOW_TO_DEEP: app_constants.ALTAIR_BASE_COLORS[4],
+              TradeMetadataKey.SHALLOW_LOSS: app_constants.ALTAIR_BASE_COLORS[5],
+              TradeMetadataKey.DEEP_LOSS: app_constants.ALTAIR_BASE_COLORS[6]}
 
-def construct_storage_level_chart(storage_levels_df: pd.DataFrame) -> alt.Chart:
-    storage_levels_df = storage_levels_df.reset_index()
-    storage_levels_df['variable'] = 'Charging level'
-    storage_levels_df = storage_levels_df.rename(columns={'level': 'value'})
-    domain = list(pd.unique(storage_levels_df['variable']))
-    range_color = [app_constants.BATTERY_CHART_COLOR]
-    range_dash = [[0, 0]]
-    return altair_line_chart(storage_levels_df, domain, range_color, range_dash,
-                             "Capacity [kWh]", "Charging level")
+    for (tmk, sub_df) in bites_dfs.items():
+        df = pd.concat((df, pd.DataFrame({'period': sub_df['level'].index,
+                                          'value': sub_df['level'],
+                                          'variable': titles[tmk]})))
+        domain.append(titles[tmk])
+        range_color.append(colors[tmk])
+
+    chart = altair_line_chart(df, domain, range_color, [], "Heating [kWh]",
+                              "Building inertia as thermal energy storage")
+    return chart
 
     
 def construct_avg_day_elec_chart(elec_use_df: pd.DataFrame, period: tuple) -> alt.Chart:

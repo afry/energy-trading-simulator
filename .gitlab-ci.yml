@@ -21,6 +21,8 @@ stages:
 python3.9:
   before_script:
     - python -V               # Print out python version for debugging
+    - apt-get update -qy
+    - apt-get install -y glpk-utils
     - pip install virtualenv
     - virtualenv venv
     - source venv/bin/activate

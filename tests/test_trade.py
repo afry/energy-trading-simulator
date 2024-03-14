@@ -1,8 +1,7 @@
 import datetime
 from unittest import TestCase
 
-from tradingplatformpoc.market.bid import Action, Resource
-from tradingplatformpoc.market.trade import Market, Trade
+from tradingplatformpoc.market.trade import Action, Market, Resource, Trade
 
 SOME_DATETIME = datetime.datetime(2019, 1, 2)
 

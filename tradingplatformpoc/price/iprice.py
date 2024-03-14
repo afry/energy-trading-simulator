@@ -2,15 +2,21 @@
 import datetime
 from abc import ABC, abstractmethod
 
-from tradingplatformpoc.market.bid import Resource
+from tradingplatformpoc.market.trade import Resource
 
 
 class IPrice(ABC):
     resource: Resource
     transfer_loss_per_side: float
+    wholesale_offset: float
+    tax: float  # SEK/kWh
+    grid_fee: float  # SEK/kWh
 
     def __init__(self, resource: Resource):
         self.resource = resource
+        self.wholesale_offset = 0
+        self.tax = 0
+        self.grid_fee = 0
 
     @abstractmethod
     def get_estimated_retail_price(self, period: datetime.datetime, include_tax: bool) -> float:

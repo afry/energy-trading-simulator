@@ -4,8 +4,7 @@ from typing import Union
 
 import pandas as pd
 
-from tradingplatformpoc.market.bid import Resource
-from tradingplatformpoc.market.trade import Market
+from tradingplatformpoc.market.trade import Market, Resource
 from tradingplatformpoc.price.iprice import IPrice
 from tradingplatformpoc.trading_platform_utils import minus_n_hours
 
@@ -15,9 +14,6 @@ logger = logging.getLogger(__name__)
 
 class ElectricityPrice(IPrice):
     nordpool_data: pd.Series
-    elec_wholesale_offset: float
-    elec_tax: float  # SEK/kWh
-    elec_grid_fee: float  # SEK/kWh
     elec_tax_internal: float  # SEK/kWh
     elec_grid_fee_internal: float  # SEK/kWh
 
@@ -25,9 +21,9 @@ class ElectricityPrice(IPrice):
                  elec_tax_internal: float, elec_grid_fee_internal: float, nordpool_data: pd.Series):
         super().__init__(Resource.ELECTRICITY)
         self.nordpool_data = nordpool_data
-        self.elec_wholesale_offset = elec_wholesale_offset
-        self.elec_tax = elec_tax
-        self.elec_grid_fee = elec_grid_fee
+        self.wholesale_offset = elec_wholesale_offset
+        self.tax = elec_tax
+        self.grid_fee = elec_grid_fee
         self.elec_tax_internal = elec_tax_internal
         self.elec_grid_fee_internal = elec_grid_fee_internal
     
@@ -94,13 +90,13 @@ class ElectricityPrice(IPrice):
         The external grid sells at the Nordpool spot price, plus the "grid fee".
         See also https://doc.afdrift.se/pages/viewpage.action?pageId=17072325
         """
-        return nordpool_price + self.elec_grid_fee
+        return nordpool_price + self.grid_fee
 
     def get_electricity_net_external_price(self, gross_price: Union[float, pd.Series]) -> Union[float, pd.Series]:
         """
         Net external price = gross external price (i.e. what the seller receives) + tax
         """
-        return gross_price + self.elec_tax
+        return gross_price + self.tax
 
     def get_electricity_net_internal_price(self, gross_price: Union[float, pd.Series]) -> Union[float, pd.Series]:
         """
@@ -128,7 +124,7 @@ class ElectricityPrice(IPrice):
         """
         Wholesale price = Nordpool spot price + self.elec_wholesale_offset
         """
-        return nordpool_price + self.elec_wholesale_offset
+        return nordpool_price + self.wholesale_offset
 
     def get_nordpool_price_for_periods(self, start_period: datetime.datetime, length: int = 1) \
             -> Union[float, pd.Series]:
@@ -153,7 +149,7 @@ class ElectricityPrice(IPrice):
         return self.nordpool_data.index.tolist()
 
     def get_tax(self, market: Market) -> float:
-        return self.elec_tax_internal if market == Market.LOCAL else self.elec_tax
+        return self.elec_tax_internal if market == Market.LOCAL else self.tax
 
     def get_grid_fee(self, market: Market) -> float:
-        return self.elec_grid_fee_internal if market == Market.LOCAL else self.elec_grid_fee
+        return self.elec_grid_fee_internal if market == Market.LOCAL else self.grid_fee

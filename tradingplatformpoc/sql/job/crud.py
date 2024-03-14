@@ -10,8 +10,6 @@ from sqlalchemy import delete, select
 from sqlmodel import Session
 
 from tradingplatformpoc.connection import session_scope
-from tradingplatformpoc.sql.bid.models import Bid as TableBid
-from tradingplatformpoc.sql.clearing_price.models import ClearingPrice
 from tradingplatformpoc.sql.electricity_price.models import ElectricityPrice as TableElectricityPrice
 from tradingplatformpoc.sql.extra_cost.models import ExtraCost as TableExtraCost
 from tradingplatformpoc.sql.heating_price.models import HeatingPrice as TableHeatingPrice
@@ -61,8 +59,6 @@ def delete_job(job_id: str,
         else:
             logger.info('Deleting job in database with ID {}, along with all related data'.format(job_id))
             # Delete job AND ALL RELATED DATA
-            db.execute(delete(TableBid).where(TableBid.job_id == job_id))
-            db.execute(delete(ClearingPrice).where(ClearingPrice.job_id == job_id))
             db.execute(delete(TableElectricityPrice).where(TableElectricityPrice.job_id == job_id))
             db.execute(delete(TableExtraCost).where(TableExtraCost.job_id == job_id))
             db.execute(delete(TableHeatingPrice).where(TableHeatingPrice.job_id == job_id))
@@ -72,6 +68,7 @@ def delete_job(job_id: str,
 
             db.delete(job)
             db.commit()
+            logger.info('Job {} deleted'.format(job_id))
 
 
 # TODO: If job for config exists show or delete and rerun

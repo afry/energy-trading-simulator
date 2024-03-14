@@ -1,4 +1,4 @@
-from tradingplatformpoc.market.bid import Resource
+from tradingplatformpoc.market.trade import Resource
 from tradingplatformpoc.price.iprice import IPrice
 
 

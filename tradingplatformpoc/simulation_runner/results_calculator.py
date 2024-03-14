@@ -7,7 +7,7 @@ import pandas as pd
 from tradingplatformpoc.agent.block_agent import BlockAgent
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
-from tradingplatformpoc.market.bid import Action, Resource
+from tradingplatformpoc.market.trade import Action, Resource
 from tradingplatformpoc.sql.extra_cost.crud import db_to_extra_cost_df
 from tradingplatformpoc.sql.input_data.crud import read_input_column_df_from_db
 from tradingplatformpoc.sql.results.crud import save_results
@@ -74,7 +74,8 @@ class AggregatedTrades:
         self.monthly_max_net_import = grouped_by_month.max().to_dict()
 
 
-def calculate_results_and_save(job_id: str, agents: List[IAgent], grid_agents: List[GridAgent]):
+def calculate_results_and_save(job_id: str, agents: List[IAgent], grid_agents: Dict[Resource, GridAgent],
+                               hp_high_heat_prod: float, hp_low_heat_prod: float):
     """
     Pre-calculates some results, so that they can be easily fetched later.
     """
@@ -82,25 +83,24 @@ def calculate_results_and_save(job_id: str, agents: List[IAgent], grid_agents: L
     result_dict: Dict[str, Any] = {}
     external_trades = get_external_trades_df([job_id])
 
-    extra_costs = db_to_extra_cost_df(job_id)
-    extra_costs = extra_costs[~extra_costs['agent'].isin([x.guid for x in grid_agents])]
+    extra_costs_sum = get_extra_costs_sum(grid_agents, job_id)
 
     temperature_df = read_input_column_df_from_db('temperature')
     periods_below_1_c = list(temperature_df[temperature_df['temperature'].values < 1.0].period)
 
     elec_trades = external_trades[(external_trades.resource == Resource.ELECTRICITY)].copy()
-    heat_trades = external_trades[(external_trades.resource == Resource.HEATING)].copy()
+    heat_trades = external_trades[(external_trades.resource == Resource.HIGH_TEMP_HEAT)].copy()
     agg_elec_trades = AggregatedTrades(elec_trades, periods_below_1_c)
     agg_heat_trades = AggregatedTrades(heat_trades, periods_below_1_c)
     result_dict[ResultsKey.NET_ENERGY_SPEND] = (agg_elec_trades.net_energy_spend
-                                                + extra_costs['cost'].sum()
+                                                + extra_costs_sum
                                                 + agg_heat_trades.net_energy_spend)
     result_dict[ResultsKey.SUM_NET_IMPORT] = {Resource.ELECTRICITY.name: agg_elec_trades.sum_net_import,
-                                              Resource.HEATING.name: agg_heat_trades.sum_net_import}
+                                              Resource.HIGH_TEMP_HEAT.name: agg_heat_trades.sum_net_import}
     result_dict[ResultsKey.SUM_IMPORT] = {Resource.ELECTRICITY.name: agg_elec_trades.sum_import,
-                                          Resource.HEATING.name: agg_heat_trades.sum_import}
+                                          Resource.HIGH_TEMP_HEAT.name: agg_heat_trades.sum_import}
     result_dict[ResultsKey.SUM_EXPORT] = {Resource.ELECTRICITY.name: agg_elec_trades.sum_export,
-                                          Resource.HEATING.name: agg_heat_trades.sum_export}
+                                          Resource.HIGH_TEMP_HEAT.name: agg_heat_trades.sum_export}
     result_dict[ResultsKey.MONTHLY_SUM_IMPORT_ELEC] = agg_elec_trades.monthly_sum_import
     result_dict[ResultsKey.MONTHLY_SUM_EXPORT_ELEC] = agg_elec_trades.monthly_sum_export
     result_dict[ResultsKey.MONTHLY_SUM_NET_IMPORT_ELEC] = agg_elec_trades.monthly_sum_net_import
@@ -111,15 +111,15 @@ def calculate_results_and_save(job_id: str, agents: List[IAgent], grid_agents: L
     result_dict[ResultsKey.MONTHLY_MAX_NET_IMPORT_HEAT] = agg_heat_trades.monthly_max_net_import
     # Aggregated import/export, split on period/temperature
     result_dict[ResultsKey.SUM_IMPORT_JAN_FEB] = {Resource.ELECTRICITY.name: agg_elec_trades.sum_import_jan_feb,
-                                                  Resource.HEATING.name: agg_heat_trades.sum_import_jan_feb}
+                                                  Resource.HIGH_TEMP_HEAT.name: agg_heat_trades.sum_import_jan_feb}
     result_dict[ResultsKey.SUM_EXPORT_JAN_FEB] = {Resource.ELECTRICITY.name: agg_elec_trades.sum_export_jan_feb,
-                                                  Resource.HEATING.name: agg_heat_trades.sum_export_jan_feb}
+                                                  Resource.HIGH_TEMP_HEAT.name: agg_heat_trades.sum_export_jan_feb}
     result_dict[ResultsKey.SUM_IMPORT_BELOW_1_C] = {Resource.ELECTRICITY.name: agg_elec_trades.sum_import_below_1_c,
-                                                    Resource.HEATING.name: agg_heat_trades.sum_import_below_1_c}
+                                                    Resource.HIGH_TEMP_HEAT.name: agg_heat_trades.sum_import_below_1_c}
     result_dict[ResultsKey.SUM_EXPORT_BELOW_1_C] = {Resource.ELECTRICITY.name: agg_elec_trades.sum_export_below_1_c,
-                                                    Resource.HEATING.name: agg_heat_trades.sum_export_below_1_c}
+                                                    Resource.HIGH_TEMP_HEAT.name: agg_heat_trades.sum_export_below_1_c}
     # Aggregated local production
-    local_prod_dict = aggregated_local_productions(agents, agg_heat_trades.sum_net_import)
+    local_prod_dict = aggregated_local_productions(agents, hp_high_heat_prod, hp_low_heat_prod)
     result_dict[ResultsKey.LOCALLY_PRODUCED_RESOURCES] = local_prod_dict
     # Taxes and grid fees
     result_dict[ResultsKey.TAX_PAID] = get_total_tax_paid(job_id=job_id)
@@ -128,30 +128,35 @@ def calculate_results_and_save(job_id: str, agents: List[IAgent], grid_agents: L
     save_results(PreCalculatedResults(job_id=job_id, result_dict=result_dict))
 
 
-def aggregated_local_productions(agents: List[IAgent], net_heat_import: float) -> Dict[str, float]:
+def get_extra_costs_sum(grid_agents: Dict[Resource, GridAgent], job_id: str) -> float:
+    extra_costs = db_to_extra_cost_df(job_id)
+    if len(extra_costs) > 0:
+        extra_costs = extra_costs[~extra_costs['agent'].isin([x.guid for x in grid_agents.values()])]
+        extra_costs_sum = extra_costs['cost'].sum()
+        return extra_costs_sum
+    return 0.0
+
+
+def aggregated_local_productions(agents: List[IAgent], hp_high_heat_prod: float, hp_low_heat_prod: float) \
+        -> Dict[str, float]:
     """
     Computing total amount of locally produced resources.
     @return Summed local production by resource name
     """
     production_electricity_lst = []
     production_cooling_lst = []
-    # TODO: When changing to Chalmers solver, we'll save the HP production levels for each trading period, and use that
-    #  here. But now, as we save heat pump workload, it is messy to calculate, so instead we look at the usage, and then
-    #  subtract the net import at the end.
-    usage_heating_lst = []
+    production_low_temp_heat_lst = []
     for agent in agents:
         if isinstance(agent, BlockAgent):
-            # TODO: Replace with low-temp and high-temp heat separated
-            if agent.digital_twin.total_heating_usage is not None:
-                usage_heating_lst.append(sum(agent.digital_twin.total_heating_usage.dropna()))  # Issue with NaNs
-            production_electricity_lst.append(sum(agent.digital_twin.electricity_production))
+            if agent.digital_twin.electricity_production is not None:
+                production_electricity_lst.append(sum(agent.digital_twin.electricity_production))
             if agent.digital_twin.cooling_production is not None:
                 production_cooling_lst.append(sum(agent.digital_twin.cooling_production))
+            if agent.digital_twin.space_heating_production is not None:
+                production_low_temp_heat_lst.append(sum(agent.digital_twin.space_heating_production))
 
-    production_electricity = sum(production_electricity_lst)
-    production_cooling = sum(production_cooling_lst)
-    production_heating = sum(usage_heating_lst) - net_heat_import
-
-    return {Resource.ELECTRICITY.name: production_electricity,
-            Resource.HEATING.name: production_heating,
-            Resource.COOLING.name: production_cooling}
+    return {Resource.ELECTRICITY.name: sum(production_electricity_lst),
+            Resource.HEATING.name: hp_high_heat_prod + hp_low_heat_prod,
+            Resource.HIGH_TEMP_HEAT.name: hp_high_heat_prod,
+            Resource.LOW_TEMP_HEAT.name: sum(production_low_temp_heat_lst) + hp_low_heat_prod,
+            Resource.COOLING.name: sum(production_cooling_lst)}
