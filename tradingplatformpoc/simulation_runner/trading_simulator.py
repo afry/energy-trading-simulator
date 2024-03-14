@@ -37,8 +37,8 @@ from tradingplatformpoc.sql.level.crud import levels_to_db_dict
 from tradingplatformpoc.sql.level.models import Level as TableLevel
 from tradingplatformpoc.sql.trade.crud import trades_to_db_dict
 from tradingplatformpoc.sql.trade.models import Trade as TableTrade
-from tradingplatformpoc.trading_platform_utils import add_all_to_nested_dict, calculate_solar_prod, get_glpk_solver, \
-    get_external_heating_prices
+from tradingplatformpoc.trading_platform_utils import add_all_to_nested_dict, calculate_solar_prod, \
+    get_external_heating_prices, get_glpk_solver
 
 logger = logging.getLogger(__name__)
 
