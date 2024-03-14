@@ -18,7 +18,7 @@ from tradingplatformpoc.generate_data.generate_mock_data import get_generated_mo
 from tradingplatformpoc.generate_data.mock_data_utils import get_cooling_cons_key, get_elec_cons_key, \
     get_hot_tap_water_cons_key, get_space_heat_cons_key
 from tradingplatformpoc.market.balance_manager import correct_for_exact_heating_price
-from tradingplatformpoc.market.bid import NetBidWithAcceptanceStatus, Resource
+from tradingplatformpoc.market.bid import Resource
 from tradingplatformpoc.market.extra_cost import ExtraCost
 from tradingplatformpoc.market.trade import Trade, TradeMetadataKey
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
@@ -26,8 +26,6 @@ from tradingplatformpoc.price.heating_price import HeatingPrice
 from tradingplatformpoc.simulation_runner.chalmers_interface import optimize
 from tradingplatformpoc.simulation_runner.results_calculator import calculate_results_and_save
 from tradingplatformpoc.simulation_runner.simulation_utils import get_external_heating_prices
-from tradingplatformpoc.sql.bid.crud import bids_to_db_dict
-from tradingplatformpoc.sql.bid.models import Bid as TableBid
 from tradingplatformpoc.sql.config.crud import get_all_agents_in_config, read_config
 from tradingplatformpoc.sql.electricity_price.models import ElectricityPrice as TableElectricityPrice
 from tradingplatformpoc.sql.extra_cost.crud import extra_costs_to_db_dict
@@ -218,7 +216,6 @@ class TradingSimulator:
             trading_horizon_start_points = self.trading_periods[::self.trading_horizon]
             thsps_in_this_batch = trading_horizon_start_points[
                 batch_number * new_batch_size:min((batch_number + 1) * new_batch_size, number_of_trading_horizons)]
-            all_bids_list_batch: List[List[NetBidWithAcceptanceStatus]] = []
             all_trades_list_batch: List[List[Trade]] = []
             all_extra_costs_batch: List[ExtraCost] = []
             electricity_price_list_batch: List[dict] = []
@@ -250,9 +247,6 @@ class TradingSimulator:
                 add_all_to_nested_dict(hp_high_prod, chalmers_outputs.hp_high_prod)
                 add_all_to_nested_dict(hp_low_prod, chalmers_outputs.hp_low_prod)
 
-            logger.info('Saving bids to db...')
-            bid_dict = bids_to_db_dict(all_bids_list_batch, self.job_id)
-            bulk_insert(TableBid, bid_dict)
             logger.info('Saving trades to db...')
             trade_dict = trades_to_db_dict(all_trades_list_batch, self.job_id)
             bulk_insert(TableTrade, trade_dict)
