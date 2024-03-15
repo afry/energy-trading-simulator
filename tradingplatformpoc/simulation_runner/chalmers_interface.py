@@ -141,7 +141,7 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
         max_elec_transfer_between_agents=area_info['InterAgentElectricityTransferCapacity'],
         max_elec_transfer_to_external=grid_agents[Resource.ELECTRICITY].max_transfer_per_hour,
         max_heat_transfer_between_agents=area_info['InterAgentHeatTransferCapacity'],
-        max_heat_transfer_to_external=grid_agents[Resource.HEATING].max_transfer_per_hour,
+        max_heat_transfer_to_external=grid_agents[Resource.HIGH_TEMP_HEAT].max_transfer_per_hour,
         chiller_COP=area_info['COPCompChiller'],
         heat_trans_loss=area_info['HeatTransferLoss'],
         trading_horizon=trading_horizon
@@ -154,8 +154,7 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
         log_infeasible_constraints(optimized_model)
 
     elec_grid_agent_guid = grid_agents[Resource.ELECTRICITY].guid
-    heat_grid_agent_guid = grid_agents[Resource.HIGH_TEMP_HEAT].guid if Resource.HIGH_TEMP_HEAT in grid_agents.keys() \
-        else grid_agents[Resource.HEATING].guid
+    heat_grid_agent_guid = grid_agents[Resource.HIGH_TEMP_HEAT].guid
     return extract_outputs(optimized_model, results, start_datetime,
                            elec_grid_agent_guid, heat_grid_agent_guid,
                            elec_pricing, heat_pricing,

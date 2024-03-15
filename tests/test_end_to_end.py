@@ -5,9 +5,8 @@ from unittest import TestCase, mock
 
 from dotenv import load_dotenv
 
-from tradingplatformpoc.market.trade import Action
+from tradingplatformpoc.market.trade import Action, Resource
 from tradingplatformpoc.sql.job.crud import create_job_if_new_config
-from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES
 
 dotenv_path = Path('.env')
 load_dotenv(dotenv_path=dotenv_path)
@@ -49,7 +48,7 @@ class TestEndToEnd(TestCase):
             for period in all_trades['period'].unique():
                 trades_for_period = all_trades.loc[all_trades.period == period]
                 extra_costs_for_period = all_extra_costs.loc[all_extra_costs.period == period]
-                for resource in ALL_IMPLEMENTED_RESOURCES:
+                for resource in Resource:
                     trades_for_period_and_resource = trades_for_period.loc[trades_for_period.resource == resource]
                     energy_bought_kwh = sum(trades_for_period_and_resource.loc[trades_for_period_and_resource.action
                                                                                == Action.BUY, 'quantity_pre_loss'])

@@ -119,7 +119,7 @@ class TestIPrice(TestCase):
         self.assertAlmostEqual(0.0, ds.calculate_consumption_this_month(2019, 4))
 
     def test_get_exact_retail_price_heating(self):
-        """Test basic functionality of get_exact_retail_price for HEATING"""
+        """Test basic functionality of get_exact_retail_price for HIGH_TEMP_HEAT"""
         ds = HeatingPrice(
             heating_wholesale_price_fraction=area_info['ExternalHeatingWholesalePriceFraction'],
             heat_transfer_loss=area_info["HeatTransferLoss"])

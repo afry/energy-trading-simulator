@@ -62,9 +62,6 @@ class StaticDigitalTwin:
     def get_production(self, period, resource: Resource) -> float:
         if resource == Resource.ELECTRICITY:
             return get_value_or_zero(period, self.electricity_production)
-        elif resource == Resource.HEATING:
-            return (get_value_or_zero(period, self.space_heating_production)
-                    + get_value_or_zero(period, self.hot_water_production))
         elif resource == Resource.COOLING:
             return get_value_or_zero(period, self.cooling_production)
         elif resource == Resource.LOW_TEMP_HEAT:
@@ -78,8 +75,6 @@ class StaticDigitalTwin:
     def get_consumption(self, period, resource: Resource) -> float:
         if resource == Resource.ELECTRICITY:
             return get_value_or_zero(period, self.electricity_usage)
-        elif resource == Resource.HEATING:
-            return get_value_or_zero(period, self.space_heating_usage) + get_value_or_zero(period, self.hot_water_usage)
         elif resource == Resource.COOLING:
             return get_value_or_zero(period, self.cooling_usage)
         elif resource == Resource.LOW_TEMP_HEAT:

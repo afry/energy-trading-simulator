@@ -48,9 +48,9 @@ class ResultsKey:
         """
         For example, the following inputs:
         results_key_name = '{} import when <1C [kWh]'
-        resource = Resource.HEATING
+        resource = Resource.HIGH_TEMP_HEAT
         should lead to the following output:
-        'Heating import when <1C [kWh]'
+        'High-temp heating import when <1C [kWh]'
         """
         new_name = results_key_name.format(resource.get_display_name())
         # .capitalize() makes the first character upper-case, but all others lower-case. Here, we make the first
