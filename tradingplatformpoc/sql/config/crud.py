@@ -43,9 +43,9 @@ def create_config_if_not_in_db(config: dict, config_id: str, description: str,
         logger.info('Configuration with ID {} created!'.format(db_config_id))
         return {'created': True, 'id': db_config_id, 'message': 'Config created with ID {}'.format(db_config_id)}
     else:
-        logger.warning('Configuration already exists in database with ID {}'.format(config_exists_id))
-        return {'created': False, 'id': config_exists_id,
-                'message': 'Configuration already exists in database with ID {}'.format(config_exists_id)}
+        message = 'Configuration already exists in database with ID {}'.format(config_exists_id)
+        logger.warning(message)
+        return {'created': False, 'id': config_exists_id, 'message': message}
 
 
 def create_config(config: ConfigCreate,
