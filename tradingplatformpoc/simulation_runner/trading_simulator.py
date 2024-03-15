@@ -78,7 +78,8 @@ class TradingSimulator:
             nordpool_data=electricity_price_series_from_db())
 
         self.trading_periods = get_periods_from_db().sort_values()
-        # self.trading_periods = self.trading_periods.take(list(range(48)) + list(range(5520, 5568)))  # FIXME: Remove
+        # FIXME: Remove
+        self.trading_periods = self.trading_periods.take(list(range(5520, 5568)) + list(range(5952, 6000)))
         self.trading_horizon = self.config_data['AreaInfo']['TradingHorizon']
 
     def initialize_agents(self) -> Tuple[List[IAgent], Dict[Resource, GridAgent]]:
