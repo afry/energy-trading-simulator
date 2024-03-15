@@ -79,7 +79,7 @@ class TradingSimulator:
 
         self.trading_periods = get_periods_from_db().sort_values()
         # FIXME: Remove
-        self.trading_periods = self.trading_periods.take(list(range(5520, 5568)) + list(range(5952, 6000)))
+        # self.trading_periods = self.trading_periods.take(list(range(5520, 5568)) + list(range(5952, 6000)))
         self.trading_horizon = self.config_data['AreaInfo']['TradingHorizon']
 
     def initialize_agents(self) -> Tuple[List[IAgent], Dict[Resource, GridAgent]]:
