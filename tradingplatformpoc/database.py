@@ -3,6 +3,7 @@ from contextlib import _GeneratorContextManager
 from typing import Callable, List
 
 from sqlalchemy import text
+
 from sqlalchemy_batch_inserts import enable_batch_inserting
 
 from sqlmodel import SQLModel, Session
