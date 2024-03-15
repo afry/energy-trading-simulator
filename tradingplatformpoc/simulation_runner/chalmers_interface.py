@@ -127,9 +127,7 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
         booster_heatpump_max_heat=booster_max_heat,
         build_area=gross_floor_area,
         SOCTES0=[area_info['StorageEndChargeLevel']] * n_agents,
-        TTES0=[60.0] * n_agents,  # TODO ?
         thermalstorage_max_temp=[65] * n_agents,  # TODO ?
-        thermalstorage_min_temp=[45] * n_agents,  # TODO ?
         thermalstorage_volume=acc_tank_volumes,
         elec_consumption=elec_demand_df,
         hot_water_heatdem=high_heat_demand_df,
