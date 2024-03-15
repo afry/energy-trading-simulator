@@ -14,8 +14,8 @@ from tradingplatformpoc.market.trade import Resource
 from tradingplatformpoc.price.heating_price import HeatingPrice
 from tradingplatformpoc.settings import settings
 
-ALL_IMPLEMENTED_RESOURCES = [Resource.ELECTRICITY, Resource.HEATING]
-ALL_IMPLEMENTED_RESOURCES_STR = [res.name for res in ALL_IMPLEMENTED_RESOURCES]
+ALLOWED_GRID_AGENT_RESOURCES = [Resource.ELECTRICITY, Resource.HIGH_TEMP_HEAT]
+ALLOWED_GRID_AGENT_RESOURCES_STR = [res.name for res in ALLOWED_GRID_AGENT_RESOURCES]
 ALL_AGENT_TYPES = ["BlockAgent", "GridAgent", "GroceryStoreAgent"]
 
 logger = logging.getLogger(__name__)

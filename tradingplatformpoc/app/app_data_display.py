@@ -152,7 +152,7 @@ def aggregated_import_and_export_results_df_split_on_mask(job_id: str, periods: 
     @return: Dict of dataframes displaying total import and export of resources split by the mask
     """
 
-    rows = [Resource.ELECTRICITY, Resource.HEATING]
+    rows = [Resource.ELECTRICITY, Resource.HIGH_TEMP_HEAT, Resource.LOW_TEMP_HEAT]
     cols = {'Imported': Action.SELL, 'Exported': Action.BUY}
 
     res_dict = {}

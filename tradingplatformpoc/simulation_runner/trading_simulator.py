@@ -78,7 +78,7 @@ class TradingSimulator:
             nordpool_data=electricity_price_series_from_db())
 
         self.trading_periods = get_periods_from_db().sort_values()
-        # self.trading_periods = self.trading_periods.take(list(range(48)) + list(range(4008, 4056)))  # FIXME: Remove
+        self.trading_periods = self.trading_periods.take(list(range(48)) + list(range(4008, 4056)))  # FIXME: Remove
         self.trading_horizon = self.config_data['AreaInfo']['TradingHorizon']
 
     def initialize_agents(self) -> Tuple[List[IAgent], Dict[Resource, GridAgent]]:
@@ -161,7 +161,7 @@ class TradingSimulator:
                     grid_agent = GridAgent(self.local_market_enabled, self.electricity_pricing,
                                            Resource[agent["Resource"]], can_buy=True,
                                            max_transfer_per_hour=agent["TransferRate"], guid=agent_name)
-                elif Resource[agent["Resource"]] == Resource.HEATING:
+                elif Resource[agent["Resource"]] == Resource.HIGH_TEMP_HEAT:
                     grid_agent = GridAgent(self.local_market_enabled, self.heat_pricing, Resource[agent["Resource"]],
                                            can_buy=LEC_CAN_SELL_HEAT_TO_EXTERNAL,
                                            max_transfer_per_hour=agent["TransferRate"], guid=agent_name)

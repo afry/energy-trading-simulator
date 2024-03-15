@@ -53,7 +53,7 @@ class HeatingPrice(IPrice):
     MARGINAL_PRICE_SUMMER: float = 0.3
 
     def __init__(self, heating_wholesale_price_fraction: float, heat_transfer_loss: float):
-        super().__init__(Resource.HEATING)
+        super().__init__(Resource.HIGH_TEMP_HEAT)
         self.all_external_heating_sells = pd.Series([], dtype=float, index=pd.to_datetime([], utc=True))
         self.heating_wholesale_price_fraction = heating_wholesale_price_fraction
         # Square root since it is added both to the BUY and the SELL side

@@ -2,7 +2,7 @@
 from typing import Dict, List, Optional, Tuple
 
 from tradingplatformpoc.config.access_config import read_agent_specs, read_param_specs
-from tradingplatformpoc.trading_platform_utils import ALL_IMPLEMENTED_RESOURCES_STR
+from tradingplatformpoc.trading_platform_utils import ALLOWED_GRID_AGENT_RESOURCES_STR
 
 
 def config_data_json_screening(config_data: dict) -> Optional[str]:
@@ -98,17 +98,17 @@ def config_data_agent_screening(config_data: dict) -> Optional[str]:
             if 'Resource' not in agent.keys():
                 return "No specified resource for agent {}.".format(agent['Name'])
 
-            if not agent['Resource'] in ALL_IMPLEMENTED_RESOURCES_STR:
+            if not agent['Resource'] in ALLOWED_GRID_AGENT_RESOURCES_STR:
                 return "Resource {} is not in available for agent {}.".format(agent['Resource'], agent['Name'])
         
     # Needs exactly two GridAgents, one for each resource
     if 'GridAgent' not in [agent['Type'] for agent in config_data['Agents']]:
         return 'No GridAgent provided!'
-    for resource in ALL_IMPLEMENTED_RESOURCES_STR:
+    for resource in ALLOWED_GRID_AGENT_RESOURCES_STR:
         if resource not in [agent['Resource'] for agent in config_data['Agents'] if agent['Type'] == 'GridAgent']:
             return 'No GridAgent with resource: {} provided!'.format(resource)
     if (len([agent['Resource'] for agent in config_data['Agents'] if agent['Type'] == 'GridAgent'])
-       > len(ALL_IMPLEMENTED_RESOURCES_STR)):
+       > len(ALLOWED_GRID_AGENT_RESOURCES_STR)):
         return 'Too many GridAgents provided, should be one for each resource!'
     # Needs at least one other agent
     if len([agent for agent in config_data['Agents'] if agent['Type'] != 'GridAgent']) == 0:

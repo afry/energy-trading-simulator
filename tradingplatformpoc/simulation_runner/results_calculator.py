@@ -156,7 +156,6 @@ def aggregated_local_productions(agents: List[IAgent], hp_high_heat_prod: float,
                 production_low_temp_heat_lst.append(sum(agent.digital_twin.space_heating_production))
 
     return {Resource.ELECTRICITY.name: sum(production_electricity_lst),
-            Resource.HEATING.name: hp_high_heat_prod + hp_low_heat_prod,
             Resource.HIGH_TEMP_HEAT.name: hp_high_heat_prod,
             Resource.LOW_TEMP_HEAT.name: sum(production_low_temp_heat_lst) + hp_low_heat_prod,
             Resource.COOLING.name: sum(production_cooling_lst)}

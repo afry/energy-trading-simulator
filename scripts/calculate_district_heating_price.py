@@ -56,10 +56,10 @@ def get_effect_fee(monthly_peak_day_avg_consumption_kw: float):
 
 trades = pd.read_csv(PATH_TO_TRADES_CSV, index_col=0)
 # all_heating_use = trades.loc[(trades.action == Action.SELL.name) &
-#                              (trades.resource == Resource.HEATING.name) &
+#                              (trades.resource == Resource.HIGH_TEMP_HEAT.name) &
 #                              trades.by_external].copy()
 all_heating_use = trades.loc[(trades.action == Action.BUY.name)
-                             & (trades.resource == Resource.HEATING.name)
+                             & (trades.resource == Resource.HIGH_TEMP_HEAT.name)
                              & (trades.agent == 'ResidentialBlockAgentBC1')].copy()
 all_heating_use.index = pd.to_datetime(all_heating_use.index)
 all_heating_use['month'] = all_heating_use.index.month
