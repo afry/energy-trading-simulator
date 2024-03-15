@@ -246,7 +246,10 @@ def get_bites_dfs(job_id: str, agent_chosen_guid: str) -> Dict[TradeMetadataKey,
 
 def get_storage_dfs(job_id: str, agent_chosen_guid: str) -> Dict[TradeMetadataKey, pd.DataFrame]:
     """Constructs a dict, with a dataframe for each type of storage."""
-    keys = [TradeMetadataKey.BATTERY_LEVEL, TradeMetadataKey.SHALLOW_STORAGE_REL, TradeMetadataKey.DEEP_STORAGE_REL]
+    keys = [TradeMetadataKey.BATTERY_LEVEL,
+            TradeMetadataKey.SHALLOW_STORAGE_REL,
+            TradeMetadataKey.DEEP_STORAGE_REL,
+            TradeMetadataKey.ACC_TANK_LEVEL]
     return get_dfs_by_tmk(agent_chosen_guid, job_id, keys)
 
 
