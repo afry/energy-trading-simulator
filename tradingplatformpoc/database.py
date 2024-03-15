@@ -2,6 +2,7 @@ import logging
 from contextlib import _GeneratorContextManager
 from typing import Callable, List
 
+from sqlalchemy import text
 from sqlalchemy_batch_inserts import enable_batch_inserting
 
 from sqlmodel import SQLModel, Session
@@ -18,6 +19,22 @@ logger = logging.getLogger(__name__)
 def create_db_and_tables():
     SQLModel.metadata.create_all(db_engine)
     logger.info('Creating db and tables')
+
+    # Grant privileges to afryx_admin - there is probably a better way to do this
+    with db_engine.connect() as connection:
+        connection.execute(text("GRANT ALL PRIVILEGES ON TABLE agent TO afryx_admin"))
+        connection.execute(text("GRANT ALL PRIVILEGES ON TABLE config TO afryx_admin"))
+        connection.execute(text("GRANT ALL PRIVILEGES ON TABLE electricity_price TO afryx_admin"))
+        connection.execute(text("GRANT ALL PRIVILEGES ON TABLE extra_cost TO afryx_admin"))
+        connection.execute(text("GRANT ALL PRIVILEGES ON TABLE heating_price TO afryx_admin"))
+        connection.execute(text("GRANT ALL PRIVILEGES ON TABLE input_data TO afryx_admin"))
+        connection.execute(text("GRANT ALL PRIVILEGES ON TABLE input_electricity_price TO afryx_admin"))
+        connection.execute(text("GRANT ALL PRIVILEGES ON TABLE job TO afryx_admin"))
+        connection.execute(text("GRANT ALL PRIVILEGES ON TABLE level TO afryx_admin"))
+        connection.execute(text("GRANT ALL PRIVILEGES ON TABLE mock_data TO afryx_admin"))
+        connection.execute(text("GRANT ALL PRIVILEGES ON TABLE results TO afryx_admin"))
+        connection.execute(text("GRANT ALL PRIVILEGES ON TABLE trade TO afryx_admin"))
+        connection.commit()
 
 
 def drop_db_and_tables():
