@@ -49,16 +49,14 @@ if len(job_id_per_config_id) >= 2:
         with first_col:
             agent_1_specs = get_all_agents_in_config(comparison_ids.id_pairs[0].config_id)
             agent_1_names = [name for name, uid in agent_1_specs.items()
-                             if get_agent_type(uid) == "BlockAgent"]
-            chosen_agent_name_to_view_1 = st.selectbox('Select an agent from the first configuration',
-                                                       agent_1_names)
+                             if get_agent_type(uid) == "BlockAgent" and 'PVPark' not in name]
+            chosen_agent_name_to_view_1 = st.selectbox('Select an agent from the first configuration', agent_1_names)
             agent_1_type = get_agent_type(agent_1_specs.get(chosen_agent_name_to_view_1))
         with second_col:
             agent_2_specs = get_all_agents_in_config(comparison_ids.id_pairs[1].config_id)
             agent_2_names = [name for name, uid in agent_2_specs.items()
-                             if get_agent_type(uid) == agent_1_type]
-            chosen_agent_name_to_view_2 = st.selectbox('Select an agent from the second configuration',
-                                                       agent_2_names)
+                             if get_agent_type(uid) == agent_1_type and 'PVPark' not in name]
+            chosen_agent_name_to_view_2 = st.selectbox('Select an agent from the second configuration', agent_2_names)
 
         logger.info(f"Creating a {agent_1_type} graph")
         with st.spinner(f"Creating a {agent_1_type} graph"):
@@ -80,12 +78,36 @@ if len(job_id_per_config_id) >= 2:
                     # Make a battery storage level comparison graph
                     battery_comparison_chart = construct_level_comparison_chart(
                         comparison_ids, [chosen_agent_name_to_view_1, chosen_agent_name_to_view_2],
-                        TradeMetadataKey.BATTERY_LEVEL, "Capacity [%]", "Charging level comparison")
+                        TradeMetadataKey.BATTERY_LEVEL, "Capacity [%]", "Battery charging level comparison")
                     if battery_comparison_chart is None:
                         st.caption("No batteries for either of these agents.")
                     else:
                         st.caption("Click on a variable in the legend to highlight it in the graph.")
                         st.altair_chart(battery_comparison_chart, use_container_width=True, theme=None)
+
+                    # Make an acc tank storage level comparison graph
+                    acc_tank_comparison_chart = construct_level_comparison_chart(
+                        comparison_ids, [chosen_agent_name_to_view_1, chosen_agent_name_to_view_2],
+                        TradeMetadataKey.ACC_TANK_LEVEL, "Capacity [%]", "Accumulator tank charging level comparison")
+                    if acc_tank_comparison_chart is None:
+                        st.caption("No accumulator tanks for either of these agents.")
+                    else:
+                        st.caption("Click on a variable in the legend to highlight it in the graph.")
+                        st.altair_chart(acc_tank_comparison_chart, use_container_width=True, theme=None)
+
+                    # Make BITES storage level comparison graphs
+                    shallow_comparison_chart = construct_level_comparison_chart(
+                        comparison_ids, [chosen_agent_name_to_view_1, chosen_agent_name_to_view_2],
+                        TradeMetadataKey.SHALLOW_STORAGE_REL, "Capacity [%]", "Shallow BITES level comparison")
+                    deep_comparison_chart = construct_level_comparison_chart(
+                        comparison_ids, [chosen_agent_name_to_view_1, chosen_agent_name_to_view_2],
+                        TradeMetadataKey.DEEP_STORAGE_REL, "Capacity [%]", "Deep BITES level comparison")
+                    if shallow_comparison_chart is None:
+                        st.caption("No building inertia thermal energy storage for either of these agents.")
+                    else:
+                        st.caption("Click on a variable in the legend to highlight it in the graph.")
+                        st.altair_chart(shallow_comparison_chart, use_container_width=True, theme=None)
+                        st.altair_chart(deep_comparison_chart, use_container_width=True, theme=None)
 
 else:
     st.markdown('Too few scenarios to compare, set up a configuration in '
