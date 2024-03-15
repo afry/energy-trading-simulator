@@ -94,6 +94,15 @@
         }
     },
     "GroceryStoreAgent": {
+        "GrossFloorArea": {
+            "display": "Gross floor area (sqm)",
+            "min_value": 0.0,
+            "step": 10.0,
+            "default_value": 1000.0,
+            "help": "Specified in square meters, used for calculating the energy demand",
+            "type": "float",
+            "disabled": true
+        },
         "PVArea": {
             "display": "PV area (sqm)",
             "min_value": 0.0,
@@ -118,6 +127,46 @@
             "default_value": true,
             "help": "Does the grocery store sell any excess low tempered heat from its cooling machines?",
             "type": "bool"
+        },
+        "HeatPumpMaxInput": {
+            "display": "Heat pump max input power (kW)",
+            "min_value": 0.0,
+            "step": 1.0,
+            "help": "Heat pumps allow the block agent to convert electricity into heating. This number indicates the maximum total power input, summed over all heat pumps at the agent's disposal",
+            "default_value": 0.0,
+            "type": "float"
+        },
+        "HeatPumpMaxOutput": {
+            "display": "Heat pump max output power (kW)",
+            "min_value": 0.0,
+            "step": 1.0,
+            "help": "Heat pumps allow the block agent to convert electricity into heating. This number indicates the maximum total power output, summed over all heat pumps at the agent's disposal",
+            "default_value": 0.0,
+            "type": "float"
+        },
+        "BoosterPumpMaxInput": {
+            "display": "Booster pump max input power (kW)",
+            "min_value": 0.0,
+            "step": 1.0,
+            "help": "Booster pumps allow the block agent to create high-temperature heating, which is needed to cover hot water demand, in scenarios where the local distribution network operates at a low temperature. This number indicates the maximum total power input, summed over all booster heat pumps at the agent's disposal",
+            "default_value": 0.0,
+            "type": "float"
+        },
+        "BoosterPumpMaxOutput": {
+            "display": "Booster pump max output power (kW)",
+            "min_value": 0.0,
+            "step": 1.0,
+            "help": "Booster pumps allow the block agent to create high-temperature heating, which is needed to cover hot water demand, in scenarios where the local distribution network operates at a low temperature. This number indicates the maximum total power output, summed over all booster heat pumps at the agent's disposal",
+            "default_value": 0.0,
+            "type": "float"
+        },
+        "AccumulatorTankVolume": {
+            "display": "Accumulator tank volume (cu m)",
+            "min_value": 0.0,
+            "step": 0.5,
+            "default_value": 0.0,
+            "help": "A number specifying the volume of the agent's accumulator tank (slingtank), in cubic meters",
+            "type": "float"
         }
     }
 }
