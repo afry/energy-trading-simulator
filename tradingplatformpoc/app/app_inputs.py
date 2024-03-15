@@ -4,7 +4,8 @@ import streamlit as st
 
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.config.access_config import read_agent_defaults, read_agent_specs
-from tradingplatformpoc.trading_platform_utils import ALL_AGENT_TYPES, ALL_IMPLEMENTED_RESOURCES_STR, get_if_exists_else
+from tradingplatformpoc.trading_platform_utils import ALLOWED_GRID_AGENT_RESOURCES_STR, ALL_AGENT_TYPES, \
+    get_if_exists_else
 
 BOOL_OPTIONS = [True, False]
 
@@ -80,9 +81,9 @@ def agent_inputs(agent, new: bool = False):
     
     # Resource
     if agent['Type'] == 'GridAgent':
-        agent['Resource'] = form.selectbox('Resource', options=ALL_IMPLEMENTED_RESOURCES_STR,
+        agent['Resource'] = form.selectbox('Resource', options=ALLOWED_GRID_AGENT_RESOURCES_STR,
                                            key='ResourceSelectBox' + agent['Name'],
-                                           index=ALL_IMPLEMENTED_RESOURCES_STR.index(agent['Resource']))
+                                           index=ALLOWED_GRID_AGENT_RESOURCES_STR.index(agent['Resource']))
 
     # Parameters
     agent_specs = read_agent_specs()

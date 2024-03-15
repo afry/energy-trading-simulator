@@ -201,6 +201,7 @@ if option_chosen == options[1]:
             st.stop()
         uploaded_config = fill_with_default_params(uploaded_config)
         uploaded_config = fill_agents_with_defaults(uploaded_config)
+        st.session_state.config_data = uploaded_config
         st.info("Using configuration from uploaded file.")
 
 with config_container:

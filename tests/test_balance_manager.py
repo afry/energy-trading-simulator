@@ -24,9 +24,12 @@ class TestBalanceManager(TestCase):
         est_retail_price = 0.5
         exact_retail_price = 0.75
         trades = [
-            Trade(self.some_datetime, Action.SELL, Resource.HEATING, 10, est_retail_price, "Grid", True, Market.LOCAL),
-            Trade(self.some_datetime, Action.BUY, Resource.HEATING, 6, est_retail_price, "Buyer1", False, Market.LOCAL),
-            Trade(self.some_datetime, Action.BUY, Resource.HEATING, 4, est_retail_price, "Buyer2", False, Market.LOCAL)]
+            Trade(self.some_datetime, Action.SELL, Resource.HIGH_TEMP_HEAT, 10, est_retail_price, "Grid", True,
+                  Market.LOCAL),
+            Trade(self.some_datetime, Action.BUY, Resource.HIGH_TEMP_HEAT, 6, est_retail_price, "Buyer1", False,
+                  Market.LOCAL),
+            Trade(self.some_datetime, Action.BUY, Resource.HIGH_TEMP_HEAT, 4, est_retail_price, "Buyer2", False,
+                  Market.LOCAL)]
 
         heating_prices = pd.DataFrame.from_records([{
             'year': self.some_datetime.year,
@@ -36,7 +39,7 @@ class TestBalanceManager(TestCase):
             'exact_retail_price': exact_retail_price,
             'exact_wholesale_price': np.nan}])
 
-        # TODO: Here we use trades, but what is really returned is List[RowProxy]. Fix this?
+        # Here we use trades, but what is really returned is List[RowProxy]. Fix this?
         with mock.patch('tradingplatformpoc.market.balance_manager.heat_trades_from_db_for_periods',
                         return_value={self.some_datetime: trades}):
             extra_costs = correct_for_exact_heating_price(
@@ -54,11 +57,11 @@ class TestBalanceManager(TestCase):
         est_wholesale_price = 0.5
         exact_wholesale_price = 0.25
         trades = [
-            Trade(self.some_datetime, Action.BUY, Resource.HEATING, 10, est_wholesale_price, "Grid", True,
+            Trade(self.some_datetime, Action.BUY, Resource.HIGH_TEMP_HEAT, 10, est_wholesale_price, "Grid", True,
                   Market.LOCAL),
-            Trade(self.some_datetime, Action.SELL, Resource.HEATING, 6, est_wholesale_price, "Seller1", False,
+            Trade(self.some_datetime, Action.SELL, Resource.HIGH_TEMP_HEAT, 6, est_wholesale_price, "Seller1", False,
                   Market.LOCAL),
-            Trade(self.some_datetime, Action.SELL, Resource.HEATING, 4, est_wholesale_price, "Seller2", False,
+            Trade(self.some_datetime, Action.SELL, Resource.HIGH_TEMP_HEAT, 4, est_wholesale_price, "Seller2", False,
                   Market.LOCAL)]
 
         heating_prices = pd.DataFrame.from_records([{
@@ -86,11 +89,11 @@ class TestBalanceManager(TestCase):
         est_retail_price = 0.5
         exact_retail_price = 0.25
         trades = [
-            Trade(self.some_datetime, Action.SELL, Resource.HEATING, 10, est_retail_price, "Grid", True,
+            Trade(self.some_datetime, Action.SELL, Resource.HIGH_TEMP_HEAT, 10, est_retail_price, "Grid", True,
                   Market.LOCAL),
-            Trade(self.some_datetime, Action.BUY, Resource.HEATING, 6, est_retail_price, "Buyer1", False,
+            Trade(self.some_datetime, Action.BUY, Resource.HIGH_TEMP_HEAT, 6, est_retail_price, "Buyer1", False,
                   Market.LOCAL),
-            Trade(self.some_datetime, Action.BUY, Resource.HEATING, 4, est_retail_price, "Buyer2", False,
+            Trade(self.some_datetime, Action.BUY, Resource.HIGH_TEMP_HEAT, 4, est_retail_price, "Buyer2", False,
                   Market.LOCAL)]
 
         heating_prices = pd.DataFrame.from_records([{
@@ -120,13 +123,13 @@ class TestBalanceManager(TestCase):
         est_retail_price = 0.5
         exact_retail_price = 0.75
         trades = [
-            Trade(self.some_datetime, Action.SELL, Resource.HEATING, 1000, est_retail_price, "Grid", True,
+            Trade(self.some_datetime, Action.SELL, Resource.HIGH_TEMP_HEAT, 1000, est_retail_price, "Grid", True,
                   Market.LOCAL),
-            Trade(self.some_datetime, Action.BUY, Resource.HEATING, 900, est_retail_price, "Buyer1", False,
+            Trade(self.some_datetime, Action.BUY, Resource.HIGH_TEMP_HEAT, 900, est_retail_price, "Buyer1", False,
                   Market.LOCAL),
-            Trade(self.some_datetime, Action.BUY, Resource.HEATING, 300, est_retail_price, "Buyer2", False,
+            Trade(self.some_datetime, Action.BUY, Resource.HIGH_TEMP_HEAT, 300, est_retail_price, "Buyer2", False,
                   Market.LOCAL),
-            Trade(self.some_datetime, Action.SELL, Resource.HEATING, 200, est_retail_price, "Seller", False,
+            Trade(self.some_datetime, Action.SELL, Resource.HIGH_TEMP_HEAT, 200, est_retail_price, "Seller", False,
                   Market.LOCAL)]
 
         heating_prices = pd.DataFrame.from_records([{
@@ -136,8 +139,8 @@ class TestBalanceManager(TestCase):
             'estimated_wholesale_price': np.nan,
             'exact_retail_price': exact_retail_price,
             'exact_wholesale_price': np.nan}])
-        
-        # TODO: Here we use trades, but what is really returned is List[RowProxy]. Fix this?
+
+        # Here we use trades, but what is really returned is List[RowProxy]. Fix this?
         with mock.patch('tradingplatformpoc.market.balance_manager.heat_trades_from_db_for_periods',
                         return_value={self.some_datetime: trades}):
             extra_costs = correct_for_exact_heating_price(

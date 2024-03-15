@@ -39,6 +39,7 @@ class ChalmersOutputs:
     trades: List[Trade]
     # (agent_guid, (period, level))
     battery_storage_levels: Dict[str, Dict[datetime.datetime, float]]
+    acc_tank_levels: Dict[str, Dict[datetime.datetime, float]]
     shallow_storage_rel: Dict[str, Dict[datetime.datetime, float]]
     deep_storage_rel: Dict[str, Dict[datetime.datetime, float]]
     shallow_storage_abs: Dict[str, Dict[datetime.datetime, float]]
@@ -53,6 +54,7 @@ class ChalmersOutputs:
 
     def __init__(self, trades: List[Trade],
                  battery_storage_levels: Dict[str, Dict[datetime.datetime, float]],
+                 acc_tank_levels: Dict[str, Dict[datetime.datetime, float]],
                  shallow_storage_rel: Dict[str, Dict[datetime.datetime, float]],
                  deep_storage_rel: Dict[str, Dict[datetime.datetime, float]],
                  shallow_storage_abs: Dict[str, Dict[datetime.datetime, float]],
@@ -66,6 +68,7 @@ class ChalmersOutputs:
                  hp_low_prod: Dict[str, Dict[datetime.datetime, float]]):
         self.trades = trades
         self.battery_storage_levels = battery_storage_levels
+        self.acc_tank_levels = acc_tank_levels
         self.shallow_storage_rel = shallow_storage_rel
         self.deep_storage_rel = deep_storage_rel
         self.shallow_storage_abs = shallow_storage_abs
@@ -127,9 +130,7 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
         booster_heatpump_max_heat=booster_max_heat,
         build_area=gross_floor_area,
         SOCTES0=[area_info['StorageEndChargeLevel']] * n_agents,
-        TTES0=[60.0] * n_agents,  # TODO ?
         thermalstorage_max_temp=[65] * n_agents,  # TODO ?
-        thermalstorage_min_temp=[45] * n_agents,  # TODO ?
         thermalstorage_volume=acc_tank_volumes,
         elec_consumption=elec_demand_df,
         hot_water_heatdem=high_heat_demand_df,
@@ -141,7 +142,7 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
         max_elec_transfer_between_agents=area_info['InterAgentElectricityTransferCapacity'],
         max_elec_transfer_to_external=grid_agents[Resource.ELECTRICITY].max_transfer_per_hour,
         max_heat_transfer_between_agents=area_info['InterAgentHeatTransferCapacity'],
-        max_heat_transfer_to_external=grid_agents[Resource.HEATING].max_transfer_per_hour,
+        max_heat_transfer_to_external=grid_agents[Resource.HIGH_TEMP_HEAT].max_transfer_per_hour,
         chiller_COP=area_info['COPCompChiller'],
         heat_trans_loss=area_info['HeatTransferLoss'],
         trading_horizon=trading_horizon
@@ -154,8 +155,7 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
         log_infeasible_constraints(optimized_model)
 
     elec_grid_agent_guid = grid_agents[Resource.ELECTRICITY].guid
-    heat_grid_agent_guid = grid_agents[Resource.HIGH_TEMP_HEAT].guid if Resource.HIGH_TEMP_HEAT in grid_agents.keys() \
-        else grid_agents[Resource.HEATING].guid
+    heat_grid_agent_guid = grid_agents[Resource.HIGH_TEMP_HEAT].guid
     return extract_outputs(optimized_model, results, start_datetime,
                            elec_grid_agent_guid, heat_grid_agent_guid,
                            elec_pricing, heat_pricing,
@@ -181,6 +181,8 @@ def extract_outputs(optimized_model: pyo.ConcreteModel,
                                      heating_price_data)
     battery_storage_levels = get_value_per_agent(optimized_model, start_datetime, 'SOCBES', agent_guids,
                                                  lambda i: optimized_model.Emax_BES[i] > 0)
+    acc_tank_levels = get_value_per_agent(optimized_model, start_datetime, 'SOCTES', agent_guids,
+                                          lambda i: optimized_model.kwh_per_deg[i] > 0)
     shallow_storage_rel = get_value_per_agent(optimized_model, start_datetime, 'Energy_shallow', agent_guids,
                                               lambda i: optimized_model.Energy_shallow_cap[i] > 0,
                                               lambda i: optimized_model.Energy_shallow_cap[i])
@@ -212,6 +214,7 @@ def extract_outputs(optimized_model: pyo.ConcreteModel,
         hp_low_prod = {}
     return ChalmersOutputs(elec_trades + heat_trades,
                            battery_storage_levels,
+                           acc_tank_levels,
                            shallow_storage_rel,
                            deep_storage_rel,
                            shallow_storage_abs,

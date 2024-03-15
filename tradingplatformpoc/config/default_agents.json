@@ -329,7 +329,7 @@
 	{
 		"Type": "GridAgent",
 		"Name": "HeatingGridAgent",
-		"Resource": "HEATING",
+		"Resource": "HIGH_TEMP_HEAT",
 		"TransferRate": 10000
 	}
 ]

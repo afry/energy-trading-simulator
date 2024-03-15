@@ -33,7 +33,7 @@ class TestAppFunctions(TestCase):
         mock_grid_el = {"Type": "GridAgent", "Name": "ElectricityGridAgent",
                         "Resource": "ELECTRICITY", "TransferRate": 5.0}
         mock_grid_he = {"Type": "GridAgent", "Name": "HeatingGridAgent",
-                        "Resource": "HEATING", "TransferRate": 5.0}
+                        "Resource": "HIGH_TEMP_HEAT", "TransferRate": 5.0}
         mock_pv = {"Type": "BlockAgent",
                    "Name": "PVParkAgent",
                    "GrossFloorArea": 0.0,
@@ -95,8 +95,8 @@ class TestAppFunctions(TestCase):
         self.assertEqual('No GridAgent provided!',
                          config_data_agent_screening({'Agents': [mock_pv]}))
 
-        # Missing GridAgent HEATING
-        self.assertEqual('No GridAgent with resource: HEATING provided!',
+        # Missing GridAgent HIGH_TEMP_HEAT
+        self.assertEqual('No GridAgent with resource: HIGH_TEMP_HEAT provided!',
                          config_data_agent_screening({'Agents': [mock_pv, mock_grid_el]}))
 
         # Missing GridAgent ELECTRICITY
