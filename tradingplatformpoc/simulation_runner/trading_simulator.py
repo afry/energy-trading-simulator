@@ -182,6 +182,7 @@ class TradingSimulator:
         logger.info("Starting trading simulations")
 
         battery_levels_dict: Dict[str, Dict[datetime.datetime, float]] = {}
+        acc_tank_levels_dict: Dict[str, Dict[datetime.datetime, float]] = {}
         shallow_storage_rel_dict: Dict[str, Dict[datetime.datetime, float]] = {}
         deep_storage_rel_dict: Dict[str, Dict[datetime.datetime, float]] = {}
         shallow_storage_abs_dict: Dict[str, Dict[datetime.datetime, float]] = {}
@@ -229,6 +230,7 @@ class TradingSimulator:
                                             horizon_start, self.electricity_pricing, self.heat_pricing)
                 all_trades_list_batch.append(chalmers_outputs.trades)
                 add_all_to_nested_dict(battery_levels_dict, chalmers_outputs.battery_storage_levels)
+                add_all_to_nested_dict(acc_tank_levels_dict, chalmers_outputs.acc_tank_levels)
                 add_all_to_nested_dict(shallow_storage_rel_dict, chalmers_outputs.shallow_storage_rel)
                 add_all_to_nested_dict(deep_storage_rel_dict, chalmers_outputs.deep_storage_rel)
                 add_all_to_nested_dict(shallow_storage_abs_dict, chalmers_outputs.shallow_storage_abs)
@@ -248,6 +250,8 @@ class TradingSimulator:
             bulk_insert(TableElectricityPrice, electricity_price_list_batch)
 
         battery_level_dicts = levels_to_db_dict(battery_levels_dict, TradeMetadataKey.BATTERY_LEVEL.name, self.job_id)
+        acc_tank_level_dicts = levels_to_db_dict(acc_tank_levels_dict, TradeMetadataKey.ACC_TANK_LEVEL.name,
+                                                 self.job_id)
         shallow_storage_rel_dicts = levels_to_db_dict(shallow_storage_rel_dict,
                                                       TradeMetadataKey.SHALLOW_STORAGE_REL.name, self.job_id)
         shallow_storage_abs_dicts = levels_to_db_dict(shallow_storage_abs_dict,
@@ -265,6 +269,7 @@ class TradingSimulator:
         hp_high_prod_dicts = levels_to_db_dict(hp_high_prod, TradeMetadataKey.HP_HIGH_HEAT_PROD.name, self.job_id)
         hp_low_prod_dicts = levels_to_db_dict(hp_low_prod, TradeMetadataKey.HP_LOW_HEAT_PROD.name, self.job_id)
         bulk_insert(TableLevel, battery_level_dicts)
+        bulk_insert(TableLevel, acc_tank_level_dicts)
         bulk_insert(TableLevel, shallow_storage_rel_dicts)
         bulk_insert(TableLevel, deep_storage_rel_dicts)
         bulk_insert(TableLevel, shallow_storage_abs_dicts)
