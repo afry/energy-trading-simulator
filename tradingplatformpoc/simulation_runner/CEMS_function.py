@@ -17,7 +17,7 @@ def solve_model(solver: OptSolver, summer_mode: bool, n_agents: int, external_el
                 heatpump_max_heat: List[float], booster_heatpump_COP: List[float],
                 booster_heatpump_max_power: List[float], booster_heatpump_max_heat: List[float],
                 build_area: List[float], SOCTES0: List[float], thermalstorage_max_temp: List[float],
-                thermalstorage_volume: List[float],
+                thermalstorage_volume: List[float], BITES_Eshallow0: List[float], BITES_Edeep0: List[float],
                 elec_consumption: pd.DataFrame, hot_water_heatdem: pd.DataFrame, space_heating_heatdem: pd.DataFrame,
                 cold_consumption: pd.DataFrame, pv_production: pd.DataFrame, excess_heat: pd.DataFrame,
                 battery_efficiency: float = 0.95,
@@ -99,6 +99,8 @@ def solve_model(solver: OptSolver, summer_mode: bool, n_agents: int, external_el
     model.Pmax_BES_Cha = pyo.Param(model.I, initialize=battery_charge_rate)
     model.Pmax_BES_Dis = pyo.Param(model.I, initialize=battery_discharge_rate)
     # Building inertia as thermal energy storage
+    model.BITES_Eshallow0 = pyo.Param(model.I, initialize=lambda m, i: BITES_Eshallow0[i])
+    model.BITES_Edeep0 = pyo.Param(model.I, initialize=lambda m, i: BITES_Edeep0[i])
     model.Energy_shallow_cap = pyo.Param(model.I, initialize=lambda m, i: 0.046 * build_area[i])
     model.Energy_deep_cap = pyo.Param(model.I, initialize=lambda m, i: 0.291 * build_area[i])
     model.Heat_rate_shallow = pyo.Param(model.I, initialize=lambda m, i: 0.023 * build_area[i])
@@ -190,6 +192,8 @@ def add_obj_and_constraints(model: pyo.ConcreteModel, summer_mode: bool):
     model.con_BITES_deep_loss = pyo.Constraint(model.I, model.T, rule=BITES_deep_loss)
     model.con_BITES_max_Hdis_shallow = pyo.Constraint(model.I, model.T, rule=BITES_max_Hdis_shallow)
     model.con_BITES_max_Hcha_shallow = pyo.Constraint(model.I, model.T, rule=BITES_max_Hcha_shallow)
+    model.con_BITES_max_Eshallow = pyo.Constraint(model.I, model.T, rule=BITES_max_Eshallow)
+    model.con_BITES_max_Edeep = pyo.Constraint(model.I, model.T, rule=BITES_max_Edeep)
     model.con_LEC_Pbalance = pyo.Constraint(model.T, rule=LEC_Pbalance)
     model.con_LEC_Hbalance = pyo.Constraint(model.T, rule=LEC_Hbalance)
     model.con_LEC_Cbalance = pyo.Constraint(model.T, rule=LEC_Cbalance)
@@ -297,7 +301,7 @@ def HTES_dis(model, i, t):
 # (eqs. 22 to 28 of the report)
 def BITES_Eshallow_balance(model, i, t):
     if t == 0:
-        return model.Energy_shallow[i, 0] == 0 + model.Hcha_shallow[i, 0] \
+        return model.Energy_shallow[i, 0] == model.BITES_Eshallow0[i] + model.Hcha_shallow[i, 0] \
             - model.Hdis_shallow[i, 0] - model.Flow[i, 0] - model.Loss_shallow[i, 0]
     else:
         return model.Energy_shallow[i, t] == model.Energy_shallow[i, t - 1] + model.Hcha_shallow[i, t] \
@@ -314,7 +318,7 @@ def BITES_shallow_cha(model, i, t):
 
 def BITES_Edeep_balance(model, i, t):
     if t == 0:
-        return model.Energy_deep[i, 0] == 0 + model.Flow[i, 0] - model.Loss_deep[i, 0]
+        return model.Energy_deep[i, 0] == model.BITES_Edeep0[i] + model.Flow[i, 0] - model.Loss_deep[i, 0]
     else:
         return model.Energy_deep[i, t] == model.Energy_deep[i, t - 1] + model.Flow[i, t] - model.Loss_deep[i, t]
 
@@ -324,6 +328,14 @@ def BITES_Eflow_between_storages(model, i, t):
         return model.Flow[i, t] == 0
     return model.Flow[i, t] == ((model.Energy_shallow[i, t] / model.Energy_shallow_cap[i])
                                 - (model.Energy_deep[i, t] / model.Energy_deep_cap[i])) * model.Kval[i]
+
+
+def BITES_max_Eshallow(model, i, t):
+    return model.Energy_shallow[i, t] <= model.Energy_shallow_cap[i]
+
+
+def BITES_max_Edeep(model, i, t):
+    return model.Energy_deep[i, t] <= model.Energy_deep_cap[i]
 
 
 def BITES_shallow_loss(model, i, t):

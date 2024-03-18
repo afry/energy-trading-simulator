@@ -132,6 +132,8 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
         SOCTES0=[area_info['StorageEndChargeLevel']] * n_agents,
         thermalstorage_max_temp=[65] * n_agents,  # TODO ?
         thermalstorage_volume=acc_tank_volumes,
+        BITES_Eshallow0=[0.0] * n_agents,  # TODO
+        BITES_Edeep0=[0.0] * n_agents,  # TODO
         elec_consumption=elec_demand_df,
         hot_water_heatdem=high_heat_demand_df,
         space_heating_heatdem=low_heat_demand_df,
