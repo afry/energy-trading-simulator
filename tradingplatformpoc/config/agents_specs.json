@@ -25,6 +25,14 @@
             "default_value": 0.0,
             "type": "float"
         },
+        "FractionOffice": {
+            "display": "Fraction office",
+            "min_value": 0.0,
+            "max_value": 1.0,
+            "help": "A number from 0 to 1, specifying how large a share of the area which should be treated as office buildings, as opposed to residential. Used for calculating the pattern and quantity of energy demand",
+            "default_value": 0.0,
+            "type": "float"
+        },
         "PVArea": {
             "display": "PV area (sqm)",
             "min_value": 0.0,

@@ -1,5 +1,5 @@
 import datetime
-from typing import Callable
+from typing import Any, Callable, Dict, Tuple
 
 import numpy as np
 
@@ -144,3 +144,58 @@ def simulate_area_electricity(gross_floor_area_m2: float, random_seed: int,
     lf = lf.select([pl.col('datetime'), pl.col('unscaled_values').alias('value')])
     scaled_series = scale_energy_consumption(lf, gross_floor_area_m2, kwh_elec_per_yr_per_m2, n_rows)
     return scaled_series
+
+
+def get_cooling_month_scaling_factor(month: int) -> float:
+    """Returns a dimensionless scaling factor. Values from BDAB. See https://doc.afdrift.se/x/cgLBAg"""
+    if month == 4:
+        return 0.142449331673908
+    elif month == 5:
+        return 2.19526298112194
+    elif month == 6:
+        return 7.16367834002871
+    elif month == 7:
+        return 18.4204412705042
+    elif month == 8:
+        return 16.4748764483724
+    elif month == 9:
+        return 1.58772770812892
+    return 0
+
+
+def simulate_heating(mock_data_constants: Dict[str, Any], gross_floor_area_m2: float, space_heat_constant_name: str,
+                     hot_water_constant_name: str, time_factor_function: Callable, random_seed: int,
+                     input_df: pl.LazyFrame, n_rows: int) -> Tuple[pl.LazyFrame, pl.LazyFrame]:
+    """
+    For more information, see https://doc.afdrift.se/display/RPJ/Commercial+areas and
+    https://doc.afdrift.se/display/RPJ/Coop+heating+energy+use+mock-up
+    @return Two pl.LazyFrames with datetimes and hourly heating load, in kWh. The first space heating, the second hot
+        tap water.
+    """
+    space_heating_per_year_m2 = mock_data_constants[space_heat_constant_name]
+    space_heating = simulate_space_heating(gross_floor_area_m2, random_seed, input_df,
+                                           space_heating_per_year_m2,
+                                           time_factor_function, n_rows)
+    hot_tap_water_per_year_m2 = mock_data_constants[hot_water_constant_name]
+    hot_tap_water_relative_error_std_dev = mock_data_constants['RelativeErrorStdDev']
+    hot_tap_water = simulate_hot_tap_water(gross_floor_area_m2, random_seed, input_df,
+                                           hot_tap_water_per_year_m2,
+                                           time_factor_function,
+                                           hot_tap_water_relative_error_std_dev,
+                                           n_rows)
+    return space_heating, hot_tap_water
+
+
+def simulate_cooling(commercial_gross_floor_area: float, kwh_cooling_per_yr_per_m2: float,
+                     rel_error_std_dev: float, time_factor_function: Callable,
+                     random_seed: int, input_df: pl.LazyFrame, n_rows: int) \
+        -> pl.LazyFrame:
+    rng = np.random.default_rng(random_seed)
+    lf = input_df.select(
+        [pl.col('datetime'), pl.col('datetime').apply(time_factor_function).alias('time_factors')])
+    lf = lf.with_column(pl.Series(name='relative_errors',
+                                  values=rng.normal(0, rel_error_std_dev, n_rows)))
+    lf = lf.with_column(
+        (pl.col('time_factors') * (1 + pl.col('relative_errors'))).alias('value')
+    )
+    return scale_energy_consumption(lf, commercial_gross_floor_area, kwh_cooling_per_yr_per_m2, n_rows)

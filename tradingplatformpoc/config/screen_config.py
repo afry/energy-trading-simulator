@@ -29,7 +29,7 @@ def config_data_keys_screening(config_data: dict) -> Optional[str]:
     unreq = [key for key in config_data.keys() if key not in ['Agents', 'AreaInfo', 'MockDataConstants']]
     if len(unreq) > 0:
         return 'Unrecognized key/keys: [\'{}\'] in uploaded config.'.format(', '.join(unreq))
-    
+
     if 'AreaInfo' in config_data:
         if not isinstance(config_data['AreaInfo'], dict):
             return '\'AreaInfo\'should be provided as a dict.'
@@ -37,7 +37,7 @@ def config_data_keys_screening(config_data: dict) -> Optional[str]:
     if 'MockDataConstants' in config_data:
         if not isinstance(config_data['MockDataConstants'], dict):
             return '\'MockDataConstants\' should be provided as a dict.'
-        
+
     # Make sure agents are provided as list
     if 'Agents' not in config_data:
         return 'No agents are provided!'
@@ -92,7 +92,7 @@ def config_data_agent_screening(config_data: dict) -> Optional[str]:
     for agent in config_data['Agents']:
         if agent['Type'] not in ['BlockAgent', 'GridAgent', 'GroceryStoreAgent']:
             return 'Agent {} provided with unrecognized \'Type\' {}.'.format(agent['Name'], agent['Type'])
-        
+
         # Check if resource is valid
         if agent['Type'] == 'GridAgent':
             if 'Resource' not in agent.keys():
@@ -100,7 +100,7 @@ def config_data_agent_screening(config_data: dict) -> Optional[str]:
 
             if not agent['Resource'] in ALLOWED_GRID_AGENT_RESOURCES_STR:
                 return "Resource {} is not in available for agent {}.".format(agent['Resource'], agent['Name'])
-        
+
     # Needs exactly two GridAgents, one for each resource
     if 'GridAgent' not in [agent['Type'] for agent in config_data['Agents']]:
         return 'No GridAgent provided!'
@@ -113,8 +113,7 @@ def config_data_agent_screening(config_data: dict) -> Optional[str]:
     # Needs at least one other agent
     if len([agent for agent in config_data['Agents'] if agent['Type'] != 'GridAgent']) == 0:
         return 'No non-GridAgents provided, needs at least one other agent!'
-    # TODO: Should we allow for having no BlockAgents?
-    
+
     # Check agents for correct keys and values in ranges
     agent_specs = read_agent_specs()
     for agent in config_data['Agents']:
@@ -124,20 +123,21 @@ def config_data_agent_screening(config_data: dict) -> Optional[str]:
             if key not in agent_specs[agent['Type']].keys():
                 return ("Specified {} not in available "
                         "input params for agent {} of type {}.".format(key, agent['Name'], agent['Type']))
-            
+
             if "min_value" in agent_specs[agent['Type']][key].keys():
                 if val < agent_specs[agent['Type']][key]["min_value"]:
                     return "Specified {}: {} < {}.".format(key, val, agent_specs[
                         agent['Type']][key]["min_value"])
-                
+
             if "max_value" in agent_specs[agent['Type']][key].keys():
                 if val > agent_specs[agent['Type']][key]["max_value"]:
                     return "Specified {}: {} > {}.".format(key, val, agent_specs[
                         agent['Type']][key]["max_value"])
-            
-        for key in [key for key, val in agent_specs[agent['Type']].items()]:
+
+        for key, val in agent_specs[agent['Type']].items():
             if key not in items.keys():
-                return "Missing parameter {} for agent {}.".format(key, agent['Name'])
+                if ('optional' not in val.keys()) or (not val['optional']):
+                    return "Missing parameter {} for agent {}.".format(key, agent['Name'])
 
     return None
 # ------------------------------------- End config screening ----------------------------------
