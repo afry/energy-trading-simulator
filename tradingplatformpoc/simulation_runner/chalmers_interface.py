@@ -83,7 +83,8 @@ class ChalmersOutputs:
 
 
 def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource, GridAgent], area_info: Dict[str, Any],
-             start_datetime: datetime.datetime, elec_pricing: ElectricityPrice, heat_pricing: HeatingPrice) \
+             start_datetime: datetime.datetime, elec_pricing: ElectricityPrice, heat_pricing: HeatingPrice,
+             shallow_storage_start_dict: Dict[str, float], deep_storage_start_dict: Dict[str, float]) \
         -> ChalmersOutputs:
     block_agents: List[BlockAgent] = [agent for agent in agents if isinstance(agent, BlockAgent)]
     agent_guids = [agent.guid for agent in agents]
@@ -103,6 +104,10 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
     booster_max_power = [agent.booster_pump_max_input for agent in block_agents]
     booster_max_heat = [agent.booster_pump_max_output for agent in block_agents]
     gross_floor_area = [agent.digital_twin.gross_floor_area for agent in block_agents]
+    shallow_storage_start = [(shallow_storage_start_dict[agent] if agent in shallow_storage_start_dict.keys() else 0.0)
+                             for agent in agent_guids]
+    deep_storage_start = [(deep_storage_start_dict[agent] if agent in shallow_storage_start_dict.keys() else 0.0)
+                          for agent in agent_guids]
 
     retail_prices: pd.Series = elec_pricing.get_exact_retail_prices(start_datetime, trading_horizon, True)
     wholesale_prices: pd.Series = elec_pricing.get_exact_wholesale_prices(start_datetime, trading_horizon)
@@ -132,8 +137,8 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
         SOCTES0=[area_info['StorageEndChargeLevel']] * n_agents,
         thermalstorage_max_temp=[65] * n_agents,  # TODO ?
         thermalstorage_volume=acc_tank_volumes,
-        BITES_Eshallow0=[0.0] * n_agents,  # TODO
-        BITES_Edeep0=[0.0] * n_agents,  # TODO
+        BITES_Eshallow0=shallow_storage_start,
+        BITES_Edeep0=deep_storage_start,
         elec_consumption=elec_demand_df,
         hot_water_heatdem=high_heat_demand_df,
         space_heating_heatdem=low_heat_demand_df,

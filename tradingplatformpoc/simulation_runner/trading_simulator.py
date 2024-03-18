@@ -36,7 +36,7 @@ from tradingplatformpoc.sql.level.models import Level as TableLevel
 from tradingplatformpoc.sql.trade.crud import trades_to_db_dict
 from tradingplatformpoc.sql.trade.models import Trade as TableTrade
 from tradingplatformpoc.trading_platform_utils import add_all_to_nested_dict, calculate_solar_prod, \
-    get_external_heating_prices, get_glpk_solver
+    get_external_heating_prices, get_final_storage_level, get_glpk_solver
 
 logger = logging.getLogger(__name__)
 
@@ -196,6 +196,9 @@ class TradingSimulator:
         hp_high_prod: Dict[str, Dict[datetime.datetime, float]] = {}
         hp_low_prod: Dict[str, Dict[datetime.datetime, float]] = {}
 
+        shallow_storage_end: Dict[str, float] = {}
+        deep_storage_end: Dict[str, float] = {}
+
         number_of_trading_horizons = int(len(self.trading_periods) // self.trading_horizon)
         logger.info('Will run {} trading horizons'.format(number_of_trading_horizons))
         new_batch_size = math.ceil(number_of_trading_horizons / number_of_batches)
@@ -228,8 +231,13 @@ class TradingSimulator:
                 #                                 self.config_data['AreaInfo'], horizon_start,
                 #                                 self.electricity_pricing, self.heat_pricing)
                 chalmers_outputs = optimize(self.solver, self.agents, self.grid_agents, self.config_data['AreaInfo'],
-                                            horizon_start, self.electricity_pricing, self.heat_pricing)
+                                            horizon_start, self.electricity_pricing, self.heat_pricing,
+                                            shallow_storage_end, deep_storage_end)
                 all_trades_list_batch.append(chalmers_outputs.trades)
+                shallow_storage_end = get_final_storage_level(
+                    self.trading_horizon, chalmers_outputs.shallow_storage_abs, horizon_start)
+                deep_storage_end = get_final_storage_level(
+                    self.trading_horizon, chalmers_outputs.deep_storage_abs, horizon_start)
                 add_all_to_nested_dict(battery_levels_dict, chalmers_outputs.battery_storage_levels)
                 add_all_to_nested_dict(acc_tank_levels_dict, chalmers_outputs.acc_tank_levels)
                 add_all_to_nested_dict(shallow_storage_rel_dict, chalmers_outputs.shallow_storage_rel)
