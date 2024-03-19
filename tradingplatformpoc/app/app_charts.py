@@ -21,7 +21,7 @@ def altair_base_chart(df: pd.DataFrame, domain: List[str], range_color: List[str
                opacity=alt.condition(selection, alt.value(0.8), alt.value(0.0)),
                tooltip=[alt.Tooltip(field='period', title='Period', type='temporal', format='%Y-%m-%d %H:%M'),
                         alt.Tooltip(field='variable', title='Variable'),
-                        alt.Tooltip(field='value', title='Value')]). \
+                        alt.Tooltip(field='value', title='Value', format='.5f')]). \
         add_selection(selection).interactive(bind_y=False)
     if legend:
         return chart.encode(color=alt.Color('variable', scale=alt.Scale(domain=domain, range=range_color)))
@@ -224,7 +224,7 @@ def construct_avg_day_elec_chart(elec_use_df: pd.DataFrame, period: tuple) -> al
 
     points = base.mark_point(filled=True, size=80).encode(
         x=alt.X('hour', axis=alt.Axis(title='Hour')),
-        y=alt.Y('mean_total_elec:Q', axis=alt.Axis(title=var_title_str), scale=alt.Scale(zero=False)),
+        y=alt.Y('mean_total_elec:Q', axis=alt.Axis(title=var_title_str, format='.2f'), scale=alt.Scale(zero=False)),
         color=alt.Color('weekday', scale=alt.Scale(domain=domain, range=range_color)),
         opacity=alt.condition(selection, alt.value(0.7), alt.value(0.0))
     )
