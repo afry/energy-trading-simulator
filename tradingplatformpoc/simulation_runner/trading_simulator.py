@@ -31,7 +31,7 @@ from tradingplatformpoc.sql.heating_price.models import HeatingPrice as TableHea
 from tradingplatformpoc.sql.input_data.crud import get_periods_from_db, read_inputs_df_for_agent_creation
 from tradingplatformpoc.sql.input_electricity_price.crud import electricity_price_series_from_db
 from tradingplatformpoc.sql.job.crud import delete_job, get_config_id_for_job_id, update_job_with_time
-from tradingplatformpoc.sql.level.crud import levels_to_db_dict
+from tradingplatformpoc.sql.level.crud import levels_to_db_dict, overall_levels_to_db_dict
 from tradingplatformpoc.sql.level.models import Level as TableLevel
 from tradingplatformpoc.sql.trade.crud import trades_to_db_dict
 from tradingplatformpoc.sql.trade.models import Trade as TableTrade
@@ -79,7 +79,9 @@ class TradingSimulator:
 
         self.trading_periods = get_periods_from_db().sort_values()
         # FIXME: Remove
-        self.trading_periods = self.trading_periods.take(list(range(5520, 5568)) + list(range(5952, 6000)))
+        self.trading_periods = self.trading_periods.take(list(range(4008, 4032))
+                                                         + list(range(5520, 5544))
+                                                         + list(range(5952, 5976)))
         self.trading_horizon = self.config_data['AreaInfo']['TradingHorizon']
 
     def initialize_agents(self) -> Tuple[List[IAgent], Dict[Resource, GridAgent]]:
@@ -195,6 +197,7 @@ class TradingSimulator:
         bites_flow_dict: Dict[str, Dict[datetime.datetime, float]] = {}
         hp_high_prod: Dict[str, Dict[datetime.datetime, float]] = {}
         hp_low_prod: Dict[str, Dict[datetime.datetime, float]] = {}
+        heat_dump: Dict[datetime.datetime, float] = {}
 
         shallow_storage_end: Dict[str, float] = {}
         deep_storage_end: Dict[str, float] = {}
@@ -251,6 +254,7 @@ class TradingSimulator:
                 add_all_to_nested_dict(bites_flow_dict, chalmers_outputs.bites_flow)
                 add_all_to_nested_dict(hp_high_prod, chalmers_outputs.hp_high_prod)
                 add_all_to_nested_dict(hp_low_prod, chalmers_outputs.hp_low_prod)
+                heat_dump.update(chalmers_outputs.heat_dump)
 
             logger.info('Saving trades to db...')
             trade_dict = trades_to_db_dict(all_trades_list_batch, self.job_id)
@@ -277,6 +281,7 @@ class TradingSimulator:
         bites_flow_dicts = levels_to_db_dict(bites_flow_dict, TradeMetadataKey.FLOW_SHALLOW_TO_DEEP.name, self.job_id)
         hp_high_prod_dicts = levels_to_db_dict(hp_high_prod, TradeMetadataKey.HP_HIGH_HEAT_PROD.name, self.job_id)
         hp_low_prod_dicts = levels_to_db_dict(hp_low_prod, TradeMetadataKey.HP_LOW_HEAT_PROD.name, self.job_id)
+        heat_dump_dicts = overall_levels_to_db_dict(heat_dump, TradeMetadataKey.HEAT_DUMP.name, self.job_id)
         bulk_insert(TableLevel, battery_level_dicts)
         bulk_insert(TableLevel, acc_tank_level_dicts)
         bulk_insert(TableLevel, shallow_storage_rel_dicts)
@@ -290,10 +295,12 @@ class TradingSimulator:
         bulk_insert(TableLevel, bites_flow_dicts)
         bulk_insert(TableLevel, hp_high_prod_dicts)
         bulk_insert(TableLevel, hp_low_prod_dicts)
+        bulk_insert(TableLevel, heat_dump_dicts)
 
         calculate_results_and_save(self.job_id, self.agents, self.grid_agents,
                                    hp_high_heat_prod=sum(sum(subdict.values()) for subdict in hp_high_prod.values()),
-                                   hp_low_heat_prod=sum(sum(subdict.values()) for subdict in hp_low_prod.values()))
+                                   hp_low_heat_prod=sum(sum(subdict.values()) for subdict in hp_low_prod.values()),
+                                   heat_dumped=sum(heat_dump.values()))
 
         logger.info("Finished simulating trades, beginning calculations on district heating price...")
 

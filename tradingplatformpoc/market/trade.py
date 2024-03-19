@@ -62,6 +62,8 @@ class TradeMetadataKey(Enum):
     SHALLOW_LOSS = 14
     DEEP_LOSS = 15
 
+    HEAT_DUMP = 16
+
 
 class Trade:
     """

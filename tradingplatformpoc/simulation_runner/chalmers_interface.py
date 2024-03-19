@@ -51,6 +51,8 @@ class ChalmersOutputs:
     bites_flow: Dict[str, Dict[datetime.datetime, float]]
     hp_high_prod: Dict[str, Dict[datetime.datetime, float]]
     hp_low_prod: Dict[str, Dict[datetime.datetime, float]]
+    # Data which isn't agent-individual: (period, level)
+    heat_dump: Dict[datetime.datetime, float]
 
     def __init__(self, trades: List[Trade],
                  battery_storage_levels: Dict[str, Dict[datetime.datetime, float]],
@@ -65,7 +67,8 @@ class ChalmersOutputs:
                  shallow_discharge: Dict[str, Dict[datetime.datetime, float]],
                  bites_flow: Dict[str, Dict[datetime.datetime, float]],
                  hp_high_prod: Dict[str, Dict[datetime.datetime, float]],
-                 hp_low_prod: Dict[str, Dict[datetime.datetime, float]]):
+                 hp_low_prod: Dict[str, Dict[datetime.datetime, float]],
+                 heat_dump: Dict[datetime.datetime, float]):
         self.trades = trades
         self.battery_storage_levels = battery_storage_levels
         self.acc_tank_levels = acc_tank_levels
@@ -80,6 +83,7 @@ class ChalmersOutputs:
         self.bites_flow = bites_flow
         self.hp_high_prod = hp_high_prod
         self.hp_low_prod = hp_low_prod
+        self.heat_dump = heat_dump
 
 
 def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource, GridAgent], area_info: Dict[str, Any],
@@ -219,6 +223,7 @@ def extract_outputs(optimized_model: pyo.ConcreteModel,
         hp_high_prod = get_value_per_agent(optimized_model, start_datetime, 'Hhp', agent_guids,
                                            lambda i: optimized_model.Phpmax[i] > 0)
         hp_low_prod = {}
+    heat_dump = get_value_per_period(optimized_model, start_datetime, 'heat_dump')
     return ChalmersOutputs(elec_trades + heat_trades,
                            battery_storage_levels,
                            acc_tank_levels,
@@ -232,7 +237,8 @@ def extract_outputs(optimized_model: pyo.ConcreteModel,
                            shallow_discharge,
                            bites_flow,
                            hp_high_prod,
-                           hp_low_prod)
+                           hp_low_prod,
+                           heat_dump)
 
 
 def build_supply_and_demand_dfs(agents: List[BlockAgent], start_datetime: datetime.datetime, trading_horizon: int) -> \
@@ -433,4 +439,17 @@ def get_value_per_agent(optimized_model: pyo.ConcreteModel, start_datetime: date
                 quantity = pyo.value(getattr(optimized_model, variable_name)[i_agent, hour])
                 value = round(quantity / divide_by(i_agent), DECIMALS_TO_ROUND_TO)
                 add_to_nested_dict(dict_to_add_to, agent_guids[i_agent], period, value)
+    return dict_to_add_to
+
+
+def get_value_per_period(optimized_model: pyo.ConcreteModel, start_datetime: datetime.datetime, variable_name: str) \
+        -> Dict[datetime.datetime, Any]:
+    """
+    Example variable names: "heat_dump" for heat reservoir.
+    """
+    dict_to_add_to: Dict[datetime.datetime, Any] = {}
+    for hour in optimized_model.T:
+        period = start_datetime + datetime.timedelta(hours=hour)
+        quantity = pyo.value(getattr(optimized_model, variable_name)[hour])
+        dict_to_add_to[period] = round(quantity, DECIMALS_TO_ROUND_TO)
     return dict_to_add_to
