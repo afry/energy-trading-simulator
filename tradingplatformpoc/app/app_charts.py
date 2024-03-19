@@ -140,8 +140,7 @@ def construct_price_chart(prices_df: pd.DataFrame, resource: Resource) -> alt.Ch
     data_to_use = prices_df.loc[prices_df['Resource'] == resource].drop('Resource', axis=1)
     domain = [app_constants.RETAIL_PRICE_STR, app_constants.WHOLESALE_PRICE_STR]
     range_color = ['green', 'red']
-    range_dash = [[0, 0], [0, 0]]
-    return altair_line_chart(data_to_use, domain, range_color, range_dash, "Price [SEK]", "Price over Time")
+    return altair_line_chart(data_to_use, domain, range_color, [], "Price [SEK]", "Price over Time")
 
 
 def construct_storage_level_chart(storage_level_dfs: Dict[TradeMetadataKey, pd.DataFrame]) -> alt.Chart:

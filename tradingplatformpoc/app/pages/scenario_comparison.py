@@ -43,7 +43,7 @@ if len(job_id_per_config_id) >= 2:
             st.caption("Hold *Shift* and click on multiple variables in the legend to highlight them in the graph.")
             st.altair_chart(imp_exp_chart, use_container_width=True, theme=None)
 
-        # Import export graph
+        # Heat dump graph
         logger.info("Constructing heat dump graph")
         with st.spinner("Constructing heat dump graph"):
             heat_dump_chart = construct_heat_dump_comparison_chart(comparison_ids)
