@@ -5,8 +5,8 @@ from st_pages import add_indentation, show_pages_from_config
 import streamlit as st
 
 from tradingplatformpoc.app import footer
-from tradingplatformpoc.app.app_comparison import ComparisonIds, construct_level_comparison_chart, \
-    import_export_calculations, show_key_figures
+from tradingplatformpoc.app.app_comparison import ComparisonIds, construct_heat_dump_comparison_chart, \
+    construct_level_comparison_chart, import_export_calculations, show_key_figures
 from tradingplatformpoc.market.trade import TradeMetadataKey
 from tradingplatformpoc.sql.agent.crud import get_agent_type
 from tradingplatformpoc.sql.config.crud import get_all_agents_in_config, get_all_finished_job_config_id_pairs_in_db
@@ -42,6 +42,12 @@ if len(job_id_per_config_id) >= 2:
             imp_exp_chart = import_export_calculations(comparison_ids)
             st.caption("Hold *Shift* and click on multiple variables in the legend to highlight them in the graph.")
             st.altair_chart(imp_exp_chart, use_container_width=True, theme=None)
+
+        # Import export graph
+        logger.info("Constructing heat dump graph")
+        with st.spinner("Constructing heat dump graph"):
+            heat_dump_chart = construct_heat_dump_comparison_chart(comparison_ids)
+            st.altair_chart(heat_dump_chart, use_container_width=True, theme=None)
 
         # Agent comparison
         st.subheader("Agent comparison graphs")
