@@ -1,8 +1,13 @@
+import datetime
 from typing import List, Union
 
 import pandas as pd
 
 import polars as pl
+
+import pytz
+
+SWEDEN_TIMEZONE = pytz.timezone("Europe/Stockholm")
 
 
 def scale_energy_consumption(unscaled_simulated_values_kwh: pl.LazyFrame, m2: float,
@@ -31,8 +36,8 @@ def add_datetime_value_frames(dfs: List[Union[pl.DataFrame, pl.LazyFrame]]) -> U
         return base_df
 
 
-def is_major_holiday_sweden(timestamp: pd.Timestamp) -> bool:
-    swedish_time = timestamp.tz_convert("Europe/Stockholm")
+def is_major_holiday_sweden(dt: datetime.datetime) -> bool:
+    swedish_time = dt.astimezone(SWEDEN_TIMEZONE)
     month_of_year = swedish_time.month
     day_of_month = swedish_time.day
     # Major holidays will naturally have a big impact on household electricity usage patterns, with people not working
@@ -47,8 +52,8 @@ def is_major_holiday_sweden(timestamp: pd.Timestamp) -> bool:
            ((month_of_year == 6) & (day_of_month == 6))
 
 
-def is_day_before_major_holiday_sweden(timestamp: pd.Timestamp) -> bool:
-    swedish_time = timestamp.tz_convert("Europe/Stockholm")
+def is_day_before_major_holiday_sweden(dt: datetime.datetime) -> bool:
+    swedish_time = dt.astimezone(SWEDEN_TIMEZONE)
     month_of_year = swedish_time.month
     day_of_month = swedish_time.day
     # Major holidays will naturally have a big impact on household electricity usage patterns, with people not working
@@ -75,8 +80,10 @@ def extract_datetime_features_from_inputs_df(df_inputs: pd.DataFrame) -> pl.Data
     df_inputs['day_of_week'] = df_inputs['datetime'].dt.dayofweek + 1
     df_inputs['day_of_month'] = df_inputs['datetime'].dt.day
     df_inputs['month_of_year'] = df_inputs['datetime'].dt.month
-    df_inputs['major_holiday'] = df_inputs['datetime'].apply(lambda dt: is_major_holiday_sweden(dt))
-    df_inputs['pre_major_holiday'] = df_inputs['datetime'].apply(lambda dt: is_day_before_major_holiday_sweden(dt))
+    df_inputs['major_holiday'] = df_inputs['datetime']. \
+        apply(lambda dt: is_major_holiday_sweden(dt.to_pydatetime()))
+    df_inputs['pre_major_holiday'] = df_inputs['datetime']. \
+        apply(lambda dt: is_day_before_major_holiday_sweden(dt.to_pydatetime()))
 
     return pl.from_pandas(df_inputs)
 

@@ -1,5 +1,5 @@
-
 import datetime
+import logging
 from time import strptime
 from typing import Any, Dict, List, Optional
 
@@ -24,6 +24,8 @@ from tradingplatformpoc.sql.mock_data.crud import db_to_mock_data_df, get_mock_d
 from tradingplatformpoc.sql.results.models import ResultsKey
 from tradingplatformpoc.sql.trade.crud import elec_trades_by_external_for_periods_to_df, get_total_import_export
 from tradingplatformpoc.trading_platform_utils import calculate_solar_prod
+
+logger = logging.getLogger(__name__)
 
 
 def get_price_df_when_local_price_inbetween(prices_df: pd.DataFrame, resource: Resource) -> pd.DataFrame:
@@ -297,5 +299,12 @@ def build_leaderboard_df(list_of_dicts: List[dict]) -> pd.DataFrame:
                       ResultsKey.TAX_PAID,
                       ResultsKey.GRID_FEES_PAID,
                       ResultsKey.format_results_key_name(ResultsKey.SUM_IMPORT_BELOW_1_C, Resource.HIGH_TEMP_HEAT),
-                      ResultsKey.format_results_key_name(ResultsKey.SUM_IMPORT_JAN_FEB, Resource.HIGH_TEMP_HEAT)]
+                      ResultsKey.format_results_key_name(ResultsKey.SUM_IMPORT_JAN_FEB, Resource.HIGH_TEMP_HEAT),
+                      ResultsKey.HEAT_DUMPED]
+
+    for wanted_column in wanted_columns:
+        if wanted_column not in df_to_display.columns:
+            # May happen for runs that were made using a previous app version, for example
+            logger.warning("Column '{}' not found in pre-calculated results".format(wanted_column))
+            df_to_display[wanted_column] = None
     return df_to_display[wanted_columns].round(decimals=0)

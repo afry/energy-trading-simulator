@@ -5,7 +5,8 @@ from st_pages import add_indentation, show_pages_from_config
 import streamlit as st
 
 from tradingplatformpoc.app import footer
-from tradingplatformpoc.app.app_charts import construct_avg_day_elec_chart, construct_price_chart
+from tradingplatformpoc.app.app_charts import construct_avg_day_elec_chart, construct_heat_dump_chart, \
+    construct_price_chart
 from tradingplatformpoc.app.app_data_display import aggregated_net_elec_import_results_df_split_on_period, \
     combine_trades_dfs, construct_combined_price_df, values_by_resource_to_mwh
 from tradingplatformpoc.market.trade import Action, Resource
@@ -62,8 +63,8 @@ if len(ids) > 0:
             # The above can be None if there were no trades for the resource
             agg_trades = combine_trades_dfs(agg_buy_trades, agg_sell_trades)
             if agg_trades is not None:
-                agg_trades = agg_trades.transpose().style.set_properties(**{'width': '400px'})
-                st.dataframe(agg_trades)
+                agg_trades = agg_trades.transpose()
+                st.dataframe(agg_trades.style.format(precision=2))
 
             st.caption("The quantities used for calculations are before losses for purchases but"
                        " after losses for sales.")
@@ -131,6 +132,10 @@ if len(ids) > 0:
         st.metric(label="High-tempered heating",
                   value="{:,.2f} MWh".format(res_dict[Resource.HIGH_TEMP_HEAT.name] / 1000),
                   help="Heating produced by heat pumps during winter, and booster heat pumps during summer.")
+
+    # Heat dump
+    heat_dump_chart = construct_heat_dump_chart(job_id)
+    st.altair_chart(heat_dump_chart, use_container_width=True, theme=None)
             
 else:
     st.markdown('No results to view yet, set up a configuration in '

@@ -2,8 +2,8 @@ from collections import Counter
 from datetime import datetime
 from unittest import TestCase
 
-from tradingplatformpoc.trading_platform_utils import add_all_to_nested_dict, flatten_collection, get_if_exists_else, \
-    get_intersection, minus_n_hours
+from tradingplatformpoc.trading_platform_utils import add_all_to_nested_dict, flatten_collection, \
+    get_final_storage_level, get_if_exists_else, get_intersection, minus_n_hours
 
 
 class Test(TestCase):
@@ -57,3 +57,30 @@ class Test(TestCase):
         self.assertEqual(4, len(dict1['b']))
         # Ensure that values from the second input are used:
         self.assertEqual(-1, dict1['a']['c'])
+
+    def test_get_final_storage_level(self):
+        """Test the get_final_storage_level function."""
+        # Define sample input data
+        storage_by_period_and_agent = {
+            "agent1": {
+                datetime(2024, 3, 1, 0, 0): 10.0,
+                datetime(2024, 3, 1, 1, 0): 20.0,
+                datetime(2024, 3, 1, 2, 0): 30.0
+            },
+            "agent2": {
+                datetime(2024, 3, 1, 0, 0): 15.0,
+                datetime(2024, 3, 1, 1, 0): 25.0,
+                datetime(2024, 3, 1, 2, 0): 35.0
+            }
+        }
+        horizon_start = datetime(2024, 3, 1, 0, 0)
+        expected_result = {
+            "agent1": 30.0,
+            "agent2": 35.0
+        }
+
+        # Call the method
+        result = get_final_storage_level(3, storage_by_period_and_agent, horizon_start)
+
+        # Check if the result matches the expected output
+        self.assertEqual(result, expected_result)

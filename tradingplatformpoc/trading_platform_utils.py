@@ -136,3 +136,11 @@ def get_external_heating_prices(heat_pricing: HeatingPrice, job_id: str,
             'estimated_retail_price': heat_pricing.get_estimated_retail_price(first_day_of_month, include_tax=True),
             'estimated_wholesale_price': heat_pricing.get_estimated_wholesale_price(first_day_of_month)})
     return heating_price_by_ym_list
+
+
+def get_final_storage_level(trading_horizon: int,
+                            storage_by_period_and_agent: Dict[str, Dict[datetime, float]],
+                            horizon_start: datetime) -> Dict[str, float]:
+    """For each agent, return the value for the final period in the input dict."""
+    return {agent: sub_dict[horizon_start + timedelta(hours=trading_horizon - 1)]
+            for agent, sub_dict in storage_by_period_and_agent.items()}

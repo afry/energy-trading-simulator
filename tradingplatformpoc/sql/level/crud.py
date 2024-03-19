@@ -10,6 +10,9 @@ from tradingplatformpoc.connection import session_scope
 from tradingplatformpoc.sql.level.models import Level
 
 
+NOT_AN_AGENT = ''
+
+
 def levels_to_db_dict(levels_dict: Dict[str, Dict[datetime.datetime, float]],
                       level_type: str, job_id: str) -> List[Dict[str, Any]]:
     return [{'period': period,
@@ -19,6 +22,17 @@ def levels_to_db_dict(levels_dict: Dict[str, Dict[datetime.datetime, float]],
              'level': level}
             for agent, some_dict in levels_dict.items()
             for period, level in some_dict.items()]
+
+
+def overall_levels_to_db_dict(levels_dict: Dict[datetime.datetime, float],
+                              level_type: str, job_id: str) -> List[Dict[str, Any]]:
+    """Mimics levels_to_db_dict, but for values that are not for individual agents."""
+    return [{'period': period,
+             'job_id': job_id,
+             'agent': NOT_AN_AGENT,  # Need to set this since the agent field is not nullable
+             'type': level_type,
+             'level': level}
+            for period, level in levels_dict.items()]
 
 
 def db_to_viewable_level_df_by_agent(job_id: str, agent_guid: str, level_type: str,
@@ -37,4 +51,22 @@ def db_to_viewable_level_df_by_agent(job_id: str, agent_guid: str, level_type: s
                                                'level': level.level
                                                } for level in levels], index='period')
         else:
-            return pd.DataFrame(columns=['period', 'type', 'level'])
+            return pd.DataFrame(columns=['period', 'level'])
+
+
+def db_to_viewable_level_df(job_id: str, level_type: str,
+                            session_generator: Callable[[], _GeneratorContextManager[Session]]
+                            = session_scope) -> pd.DataFrame:
+    """
+    Mimics db_to_viewable_level_df_by_agent, but for values that are not for individual agents.
+    """
+    with session_generator() as db:
+        levels = db.query(Level).filter(Level.job_id == job_id,
+                                        Level.type == level_type).all()
+
+        if len(levels) > 0:
+            return pd.DataFrame.from_records([{'period': level.period,
+                                               'level': level.level
+                                               } for level in levels], index='period')
+        else:
+            return pd.DataFrame(columns=['period', 'level'])

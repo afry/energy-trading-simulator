@@ -7,20 +7,21 @@ import pandas as pd
 from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.market.trade import Action, Resource, TradeMetadataKey
+from tradingplatformpoc.sql.level.crud import db_to_viewable_level_df
 
 
 def altair_base_chart(df: pd.DataFrame, domain: List[str], range_color: List[str],
-                      var_title_str: str, title_str: str, legend: bool) -> alt.Chart:
+                      y_label: str, title_str: str, legend: bool) -> alt.Chart:
     """Altair chart for one or more variables over period, without specified mark."""
     selection = alt.selection_multi(fields=['variable'], bind='legend')
     alt_title = alt.TitleParams(title_str, anchor='middle')
     chart = alt.Chart(df, title=alt_title). \
         encode(x=alt.X('period:T', axis=alt.Axis(title='Period (UTC)'), scale=alt.Scale(type="utc")),
-               y=alt.Y('value', axis=alt.Axis(title=var_title_str), stack=None),
+               y=alt.Y('value', axis=alt.Axis(title=y_label), stack=None),
                opacity=alt.condition(selection, alt.value(0.8), alt.value(0.0)),
                tooltip=[alt.Tooltip(field='period', title='Period', type='temporal', format='%Y-%m-%d %H:%M'),
                         alt.Tooltip(field='variable', title='Variable'),
-                        alt.Tooltip(field='value', title='Value')]). \
+                        alt.Tooltip(field='value', title='Value', format='.5f')]). \
         add_selection(selection).interactive(bind_y=False)
     if legend:
         return chart.encode(color=alt.Color('variable', scale=alt.Scale(domain=domain, range=range_color)))
@@ -29,17 +30,17 @@ def altair_base_chart(df: pd.DataFrame, domain: List[str], range_color: List[str
 
 
 def altair_line_chart(df: pd.DataFrame, domain: List[str], range_color: List[str],
-                      range_dash: List[List[int]], var_title_str: str, title_str: str,
+                      range_dash: List[List[int]], y_label: str, title_str: str,
                       legend: bool = True) -> alt.Chart:
     """Altair base chart with line mark."""
-    return altair_base_chart(df, domain, range_color, var_title_str, title_str, legend).encode(
+    return altair_base_chart(df, domain, range_color, y_label, title_str, legend).encode(
         strokeDash=alt.StrokeDash('variable', scale=alt.Scale(domain=domain, range=range_dash))).mark_line()
 
 
 def altair_area_chart(df: pd.DataFrame, domain: List[str], range_color: List[str],
-                      var_title_str: str, title_str: str, legend: bool = False) -> alt.Chart:
+                      y_label: str, title_str: str, legend: bool = False) -> alt.Chart:
     """Altair base chart with area mark."""
-    return altair_base_chart(df, domain, range_color, var_title_str, title_str, legend)\
+    return altair_base_chart(df, domain, range_color, y_label, title_str, legend)\
         .mark_area(interpolate='step-after')
 
 
@@ -137,10 +138,9 @@ def construct_traded_amount_by_agent_chart(agent_chosen_guid: str,
 
 def construct_price_chart(prices_df: pd.DataFrame, resource: Resource) -> alt.Chart:
     data_to_use = prices_df.loc[prices_df['Resource'] == resource].drop('Resource', axis=1)
-    domain = [app_constants.LOCAL_PRICE_STR, app_constants.RETAIL_PRICE_STR, app_constants.WHOLESALE_PRICE_STR]
-    range_color = ['blue', 'green', 'red']
-    range_dash = [[0, 0], [2, 4], [2, 4]]
-    return altair_line_chart(data_to_use, domain, range_color, range_dash, "Price [SEK]", "Price over Time")
+    domain = [app_constants.RETAIL_PRICE_STR, app_constants.WHOLESALE_PRICE_STR]
+    range_color = ['green', 'red']
+    return altair_line_chart(data_to_use, domain, range_color, [], "Price [SEK]", "Price over Time")
 
 
 def construct_storage_level_chart(storage_level_dfs: Dict[TradeMetadataKey, pd.DataFrame]) -> alt.Chart:
@@ -224,7 +224,7 @@ def construct_avg_day_elec_chart(elec_use_df: pd.DataFrame, period: tuple) -> al
 
     points = base.mark_point(filled=True, size=80).encode(
         x=alt.X('hour', axis=alt.Axis(title='Hour')),
-        y=alt.Y('mean_total_elec:Q', axis=alt.Axis(title=var_title_str), scale=alt.Scale(zero=False)),
+        y=alt.Y('mean_total_elec:Q', axis=alt.Axis(title=var_title_str, format='.2f'), scale=alt.Scale(zero=False)),
         color=alt.Color('weekday', scale=alt.Scale(domain=domain, range=range_color)),
         opacity=alt.condition(selection, alt.value(0.7), alt.value(0.0))
     )
@@ -240,3 +240,11 @@ def construct_avg_day_elec_chart(elec_use_df: pd.DataFrame, period: tuple) -> al
     combined_chart = points + error_bars
 
     return combined_chart.add_selection(selection).interactive(bind_y=False)
+
+
+def construct_heat_dump_chart(job_id: str):
+    df = db_to_viewable_level_df(job_id, TradeMetadataKey.HEAT_DUMP.name)
+    df = df.reset_index().rename(columns={'index': 'period', 'level': 'value'})
+    df['variable'] = 'Heat dump'
+    return altair_line_chart(df, ['Heat dump'], [app_constants.ALTAIR_BASE_COLORS[0]], [],
+                             "Heat [kWh]", "Heat dump", legend=False)

@@ -10,7 +10,7 @@ from tradingplatformpoc.app import app_constants
 from tradingplatformpoc.app.app_charts import altair_line_chart
 from tradingplatformpoc.app.app_functions import IdPair
 from tradingplatformpoc.market.trade import Action, Resource, TradeMetadataKey
-from tradingplatformpoc.sql.level.crud import db_to_viewable_level_df_by_agent
+from tradingplatformpoc.sql.level.crud import db_to_viewable_level_df, db_to_viewable_level_df_by_agent
 from tradingplatformpoc.sql.results.models import ResultsKey
 from tradingplatformpoc.sql.trade.crud import get_external_trades_df
 
@@ -84,6 +84,23 @@ def import_export_calculations(ids: ComparisonIds) -> alt.Chart:
     chart = altair_line_chart(new_df, domain, range_color, range_dash, "Energy [kWh]",
                               'Import and export of resources through trades with grid agents')
     return chart
+
+
+def construct_heat_dump_comparison_chart(ids: ComparisonIds) -> alt.Chart:
+    """Process data to be of a form that fits the altair chart, then construct a line chart."""
+    domain: List[str] = []
+    range_color: List[str] = app_constants.ALTAIR_BASE_COLORS[:2]
+    range_dash: List[List[int]] = [[0, 0], [8, 8]]
+    new_df = pd.DataFrame()
+    for job_id in ids.get_job_ids():
+        df = db_to_viewable_level_df(job_id, TradeMetadataKey.HEAT_DUMP.name)
+        df = df.reset_index().rename(columns={'index': 'period', 'level': 'value'})
+        config_id = ids.get_config_id(job_id)
+        df['variable'] = config_id
+        new_df = pd.concat((new_df, df))
+        domain.append(config_id)
+
+    return altair_line_chart(new_df, domain, range_color, range_dash, "Heat [kWh]", 'Heat dump')
 
 
 def show_key_figures(pre_calculated_results_1: Dict[str, Any], pre_calculated_results_2: Dict[str, Any]):
