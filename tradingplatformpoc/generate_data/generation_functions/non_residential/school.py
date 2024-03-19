@@ -1,10 +1,4 @@
 import datetime
-from typing import Any, Dict, Tuple
-
-import polars as pl
-
-from tradingplatformpoc.generate_data.generation_functions.non_residential.common import simulate_hot_tap_water, \
-    simulate_space_heating
 
 
 def get_monday_of_week(year: int, week_number: int) -> datetime.datetime:
@@ -64,24 +58,3 @@ def get_school_heating_consumption_hourly_factor(timestamp: datetime.datetime) -
     if not (8 <= timestamp.hour < 17):
         return 0.5
     return 1
-
-
-def simulate_school_area_heating(mock_data_constants: Dict[str, Any], school_gross_floor_area_m2: float,
-                                 random_seed: int, input_df: pl.LazyFrame, n_rows: int
-                                 ) -> Tuple[pl.LazyFrame, pl.LazyFrame]:
-    """
-    This function follows the recipe outlined in the corresponding function for commercial buildings.
-    @return Two pl.DataFrames with datetimes and hourly total heating load, in kWh.
-    """
-    space_heating_per_year_m2 = mock_data_constants['SchoolSpaceHeatKwhPerYearM2']
-    space_heating = simulate_space_heating(school_gross_floor_area_m2, random_seed, input_df,
-                                           space_heating_per_year_m2,
-                                           get_school_heating_consumption_hourly_factor, n_rows)
-    hot_tap_water_per_year_m2 = mock_data_constants['SchoolHotTapWaterKwhPerYearM2']
-    hot_tap_water_relative_error_std_dev = mock_data_constants['RelativeErrorStdDev']
-    hot_tap_water = simulate_hot_tap_water(school_gross_floor_area_m2, random_seed, input_df,
-                                           hot_tap_water_per_year_m2,
-                                           get_school_heating_consumption_hourly_factor,
-                                           hot_tap_water_relative_error_std_dev,
-                                           n_rows)
-    return space_heating, hot_tap_water

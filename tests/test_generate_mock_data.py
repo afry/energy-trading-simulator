@@ -15,9 +15,9 @@ from tradingplatformpoc.generate_data.generate_mock_data import DATA_PATH
 from tradingplatformpoc.generate_data.generation_functions.common import is_day_before_major_holiday_sweden, \
     is_major_holiday_sweden
 from tradingplatformpoc.generate_data.generation_functions.non_residential.commercial import \
-    simulate_commercial_area_cooling
+    get_commercial_cooling_consumption_factor
 from tradingplatformpoc.generate_data.generation_functions.non_residential.common import \
-    probability_of_0_space_heating, simulate_space_heating
+    probability_of_0_space_heating, simulate_cooling, simulate_space_heating
 from tradingplatformpoc.generate_data.generation_functions.non_residential.school import \
     get_school_heating_consumption_hourly_factor, is_break
 from tradingplatformpoc.generate_data.generation_functions.residential.electricity import \
@@ -28,15 +28,15 @@ from tradingplatformpoc.trading_platform_utils import hourly_datetime_array_betw
 class Test(TestCase):
 
     def test_is_major_holiday_sweden(self):
-        xmas_eve = pd.Timestamp('2017-12-24T01', tz='UTC')
+        xmas_eve = pd.Timestamp('2017-12-24T01', tz='UTC').to_pydatetime()
         self.assertTrue(is_major_holiday_sweden(xmas_eve))
-        xmas_eve_in_tz_far_away = pd.Timestamp('2017-12-24T01', tz='Australia/Sydney')
+        xmas_eve_in_tz_far_away = pd.Timestamp('2017-12-24T01', tz='Australia/Sydney').to_pydatetime()
         self.assertFalse(is_major_holiday_sweden(xmas_eve_in_tz_far_away))
 
     def test_is_day_before_major_holiday_sweden(self):
-        new_years_eve = pd.Timestamp('2017-12-31T01', tz='UTC')
+        new_years_eve = pd.Timestamp('2017-12-31T01', tz='UTC').to_pydatetime()
         self.assertTrue(is_day_before_major_holiday_sweden(new_years_eve))
-        new_years_eve_in_tz_far_away = pd.Timestamp('2017-12-31T01', tz='Australia/Sydney')
+        new_years_eve_in_tz_far_away = pd.Timestamp('2017-12-31T01', tz='Australia/Sydney').to_pydatetime()
         self.assertFalse(is_day_before_major_holiday_sweden(new_years_eve_in_tz_far_away))
 
     def test_non_residential_heating(self):
@@ -94,7 +94,8 @@ class Test(TestCase):
         date_values = [start_date + timedelta(hours=i) for i in range(num_hours_in_year)]
 
         input_df = pd.DataFrame({'datetime': date_values})
-        cooling = simulate_commercial_area_cooling(1000, 1, pl.from_pandas(input_df).lazy(), 34, 0.2, num_hours_in_year)
+        cooling = simulate_cooling(1000, 34, 0.2, get_commercial_cooling_consumption_factor, 1,
+                                   pl.from_pandas(input_df).lazy(), num_hours_in_year)
         output_pd_df = cooling.collect().to_pandas()
         self.assertAlmostEqual(34000, output_pd_df['value'].sum())
         self.assertEqual(0.0, output_pd_df['value'][0])  # no cooling consumption during winter
