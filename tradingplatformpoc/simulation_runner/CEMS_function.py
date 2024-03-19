@@ -17,7 +17,7 @@ def solve_model(solver: OptSolver, summer_mode: bool, n_agents: int, external_el
                 heatpump_max_heat: List[float], booster_heatpump_COP: List[float],
                 booster_heatpump_max_power: List[float], booster_heatpump_max_heat: List[float],
                 build_area: List[float], SOCTES0: List[float], thermalstorage_max_temp: List[float],
-                thermalstorage_volume: List[float], BITES_Eshallow0: List[float], BITES_Edeep0: List[float],
+                thermalstorage_volume: List[float], BITES_Eshallow0: List[float] , BITES_Edeep0: List[float],
                 elec_consumption: pd.DataFrame, hot_water_heatdem: pd.DataFrame, space_heating_heatdem: pd.DataFrame,
                 cold_consumption: pd.DataFrame, pv_production: pd.DataFrame, excess_heat: pd.DataFrame,
                 battery_efficiency: float = 0.95,
@@ -76,6 +76,7 @@ def solve_model(solver: OptSolver, summer_mode: bool, n_agents: int, external_el
     model.T = pyo.Set(initialize=range(int(trading_horizon)))  # index of time intervals
     model.I = pyo.Set(initialize=range(int(n_agents)))  # index of agents
     # Parameters
+    model.penalty = pyo.Param(initialize=1000)
     model.price_buy = pyo.Param(model.T, initialize=external_elec_buy_price)
     model.price_sell = pyo.Param(model.T, initialize=external_elec_sell_price)
     model.Hprice_energy = pyo.Param(initialize=external_heat_buy_price)
@@ -157,6 +158,7 @@ def solve_model(solver: OptSolver, summer_mode: bool, n_agents: int, external_el
     if summer_mode:
         model.HhpB = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
         model.PhpB = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
+    model.heat_dump = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
 
     add_obj_and_constraints(model, summer_mode)
 
@@ -221,7 +223,7 @@ def add_obj_and_constraints(model: pyo.ConcreteModel, summer_mode: bool):
 def obj_rul(model):
     return sum(
         model.Pbuy_market[t] * model.price_buy[t] - model.Psell_market[t] * model.price_sell[t]
-        + model.Hbuy_market[t] * model.Hprice_energy
+        + model.Hbuy_market[t] * model.Hprice_energy + model.heat_dump[t] * model.penalty
         for t in model.T)
 
 
@@ -369,7 +371,7 @@ def LEC_Pbalance(model, t):
 def LEC_Hbalance(model, t):
     return sum(model.Hsell_grid[i, t]*(1-model.Heat_trans_loss) for i in model.I) + \
            model.Hbuy_market[t]*(1-model.Heat_trans_loss) + model.Hcc[t]*(1-model.Heat_trans_loss)\
-           == sum(model.Hbuy_grid[i, t] for i in model.I)
+           == sum(model.Hbuy_grid[i, t] for i in model.I) + model.heat_dump[t]
 
 
 def LEC_Cbalance(model, t):
