@@ -51,6 +51,7 @@ class ChalmersOutputs:
     bites_flow: Dict[str, Dict[datetime.datetime, float]]
     hp_high_prod: Dict[str, Dict[datetime.datetime, float]]
     hp_low_prod: Dict[str, Dict[datetime.datetime, float]]
+    # Data which isn't agent-individual: (period, level)
     heat_dump: Dict[datetime.datetime, float]
 
     def __init__(self, trades: List[Trade],
