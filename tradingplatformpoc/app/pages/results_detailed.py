@@ -63,8 +63,8 @@ if len(ids) > 0:
             # The above can be None if there were no trades for the resource
             agg_trades = combine_trades_dfs(agg_buy_trades, agg_sell_trades)
             if agg_trades is not None:
-                agg_trades = agg_trades.transpose().style.set_properties(**{'width': '400px'})
-                st.dataframe(agg_trades)
+                agg_trades = agg_trades.transpose()
+                st.dataframe(agg_trades.style.format(precision=2))
 
             st.caption("The quantities used for calculations are before losses for purchases but"
                        " after losses for sales.")
