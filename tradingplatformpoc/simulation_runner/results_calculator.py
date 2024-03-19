@@ -75,7 +75,7 @@ class AggregatedTrades:
 
 
 def calculate_results_and_save(job_id: str, agents: List[IAgent], grid_agents: Dict[Resource, GridAgent],
-                               hp_high_heat_prod: float, hp_low_heat_prod: float):
+                               hp_high_heat_prod: float, hp_low_heat_prod: float, heat_dumped: float):
     """
     Pre-calculates some results, so that they can be easily fetched later.
     """
@@ -124,6 +124,8 @@ def calculate_results_and_save(job_id: str, agents: List[IAgent], grid_agents: D
     # Taxes and grid fees
     result_dict[ResultsKey.TAX_PAID] = get_total_tax_paid(job_id=job_id)
     result_dict[ResultsKey.GRID_FEES_PAID] = get_total_grid_fee_paid_on_internal_trades(job_id=job_id)
+    # Heat dumped into reservoir
+    # result_dict[ResultsKey.HEAT_DUMPED] = heat_dumped
 
     save_results(PreCalculatedResults(job_id=job_id, result_dict=result_dict))
 

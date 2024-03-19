@@ -299,7 +299,8 @@ class TradingSimulator:
 
         calculate_results_and_save(self.job_id, self.agents, self.grid_agents,
                                    hp_high_heat_prod=sum(sum(subdict.values()) for subdict in hp_high_prod.values()),
-                                   hp_low_heat_prod=sum(sum(subdict.values()) for subdict in hp_low_prod.values()))
+                                   hp_low_heat_prod=sum(sum(subdict.values()) for subdict in hp_low_prod.values()),
+                                   heat_dumped=sum(heat_dump.values()))
 
         logger.info("Finished simulating trades, beginning calculations on district heating price...")
 
