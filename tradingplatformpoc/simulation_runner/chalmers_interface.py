@@ -91,7 +91,7 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
              shallow_storage_start_dict: Dict[str, float], deep_storage_start_dict: Dict[str, float]) \
         -> ChalmersOutputs:
     block_agents: List[BlockAgent] = [agent for agent in agents if isinstance(agent, BlockAgent)]
-    agent_guids = [agent.guid for agent in agents]
+    agent_guids = [agent.guid for agent in block_agents]
     # The order specified in "agents" will be used throughout
     trading_horizon = area_info['TradingHorizon']
 
