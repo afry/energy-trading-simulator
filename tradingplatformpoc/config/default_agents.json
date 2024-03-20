@@ -300,19 +300,6 @@
 		"AccumulatorTankVolume": 4
 	},
 	{
-		"Type": "GroceryStoreAgent",
-		"Name": "GroceryStoreAgent",
-		"PVArea": 320,
-		"PVEfficiency": 0.165,
-		"GrossFloorArea": 6000,
-		"SellExcessHeat": true,
-		"HeatPumpMaxInput": 15,
-		"HeatPumpMaxOutput": 48,
-		"BoosterPumpMaxInput": 1.5,
-		"BoosterPumpMaxOutput": 6,
-		"AccumulatorTankVolume": 0.25
-	},
-	{
 		"Type": "GridAgent",
 		"Name": "ElectricityGridAgent",
 		"Resource": "ELECTRICITY",
