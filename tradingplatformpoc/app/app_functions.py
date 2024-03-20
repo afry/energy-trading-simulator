@@ -45,6 +45,14 @@ def calculate_max_table_height(n_rows: int, max_height: int = 300) -> Optional[i
     return max_height if n_rows > 7 else None
 
 
+def calculate_height_for_no_scroll_up_to(n_rows: int, max_rows_without_scroll: int = 10) -> int:
+    """
+    If height isn't specified, st.dataframe often annoyingly defaults to just-too-short, so that one has to scroll a
+    tiny bit.
+    """
+    return (min(n_rows, max_rows_without_scroll) + 1) * 35 + 15
+
+
 # @st.cache_data(ttl=3600)
 def convert_df_to_csv(df: pd.DataFrame, include_index: bool = False):
     return df.to_csv(index=include_index).encode('utf-8')
