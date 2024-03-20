@@ -120,9 +120,11 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
     heat_retail_price = heat_pricing.get_estimated_retail_price(start_datetime, True)
 
     n_agents = len(block_agents)
+    summer_mode = should_use_summer_mode(start_datetime)
+    heat_pump_cop = area_info['COPHeatPumpsLowTemp'] if summer_mode else area_info['COPHeatPumpsHighTemp']
     optimized_model, results = CEMS_function.solve_model(
         solver=solver,
-        summer_mode=should_use_summer_mode(start_datetime),
+        summer_mode=summer_mode,
         n_agents=n_agents,
         external_elec_buy_price=elec_retail_prices,
         external_elec_sell_price=elec_wholesale_prices,
@@ -131,7 +133,7 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
         battery_charge_rate=battery_max_charge,
         battery_discharge_rate=battery_max_discharge,
         SOCBES0=[area_info['StorageEndChargeLevel']] * n_agents,
-        heatpump_COP=[area_info['COPHeatPumps']] * n_agents,
+        heatpump_COP=[heat_pump_cop] * n_agents,
         heatpump_max_power=heatpump_max_power,
         heatpump_max_heat=heatpump_max_heat,
         booster_heatpump_COP=[area_info['COPBoosterPumps']] * n_agents,
