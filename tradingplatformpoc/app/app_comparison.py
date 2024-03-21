@@ -129,7 +129,7 @@ def show_key_figs_for_one(pre_calculated_results: Dict[str, Any], other_numbers:
               help="The net energy spend is calculated by subtracting the total revenue from energy exports from the "
                    "total expenditure on importing energy.",
               delta=deltas[0],
-              delta_color='inverse')
+              delta_color='inverse')  # delta_color='inverse' means negative number <--> green color, pos <--> red
     if deltas[0] is None:
         st.write('\n')
     st.metric(label="Net import of electricity:",
@@ -168,8 +168,12 @@ def construct_level_comparison_chart(ids: ComparisonIds, agent_names: List[str],
     return altair_line_chart(combined_level_df, domain, range_color, [], var_title_str, title_str, True)
 
 
-def get_config_ids_with_x_first(job_id_per_config_id: Dict[str, Any], x: str) -> List[str]:
-    config_ids = list(job_id_per_config_id.keys())
+def get_keys_with_x_first(some_dict: Dict[str, Any], x: str) -> List[str]:
+    """
+    Returns a list of the dictionary keys, with one change; if x is present, it will always be positioned first in the
+    returned list.
+    """
+    config_ids = list(some_dict.keys())
     if x in config_ids:
         config_ids.remove(x)
         config_ids = [x] + config_ids
