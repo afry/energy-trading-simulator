@@ -65,8 +65,7 @@ if not config_df.empty:
                                          categories=["Running", "Pending", "Completed", "Could not finish"],
                                          ordered=True)
     config_df.sort_values('Status', inplace=True)
-    config_df_styled = config_df.style.applymap(color_in, subset=['Status'])\
-        .set_properties(**{'background-color': '#f5f5f5'}, subset=['Status', 'Config ID'])
+    config_df_styled = config_df.style.applymap(color_in, subset=['Status'])
     delete_runs_form = st.form(key='Delete runs form')
     edited_df = delete_runs_form.data_editor(
         config_df_styled,
