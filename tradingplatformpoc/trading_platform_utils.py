@@ -144,3 +144,17 @@ def get_final_storage_level(trading_horizon: int,
     """For each agent, return the value for the final period in the input dict."""
     return {agent: sub_dict[horizon_start + timedelta(hours=trading_horizon - 1)]
             for agent, sub_dict in storage_by_period_and_agent.items()}
+
+
+def water_volume_to_energy(volume_m3: float, temperature_c: float = 65) -> float:
+    """Returns energy in kilowatt-hours."""
+    # Specific heat of water is 4182 J/(kg C)
+    # Density of water is 998 kg/m3
+    return temperature_c * volume_m3 * 4182 * 998 / 3600000
+
+
+def energy_to_water_volume(energy_kwh: float, temperature_c: float = 65) -> float:
+    """Returns volume in cubic metres."""
+    # Specific heat of water is 4182 J/(kg C)
+    # Density of water is 998 kg/m3
+    return energy_kwh / (temperature_c * 4182 * 998 / 3600000)
