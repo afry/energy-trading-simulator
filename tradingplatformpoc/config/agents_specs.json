@@ -82,12 +82,12 @@
             "help": "A number specifying the battery storage capacity, in kWh",
             "type": "float"
         },
-        "AccumulatorTankVolume": {
-            "display": "Accumulator tank volume (cu m)",
+        "AccumulatorTankCapacity": {
+            "display": "Accumulator tank capacity (kWh)",
             "min_value": 0.0,
-            "step": 0.5,
+            "step": 25.0,
             "default_value": 0.0,
-            "help": "A number specifying the volume of the agent's accumulator tank (slingtank), in cubic meters",
+            "help": "A number specifying the capacity of the agent's accumulator tank (slingtank), in kilowatt-hours. Assuming a temperature of 65 degrees C, 1 cubic metre corresponds to roughly 75 kWh.",
             "type": "float"
         }
     },
@@ -168,12 +168,12 @@
             "default_value": 6.0,
             "type": "float"
         },
-        "AccumulatorTankVolume": {
-            "display": "Accumulator tank volume (cu m)",
+        "AccumulatorTankCapacity": {
+            "display": "Accumulator tank capacity (kWh)",
             "min_value": 0.0,
-            "step": 0.25,
-            "default_value": 0.25,
-            "help": "A number specifying the volume of the agent's accumulator tank (slingtank), in cubic meters",
+            "step": 25.0,
+            "default_value": 25.0,
+            "help": "A number specifying the capacity of the agent's accumulator tank (slingtank), in kilowatt-hours. Assuming a temperature of 65 degrees C, 1 cubic metre corresponds to roughly 75 kWh.",
             "type": "float"
         }
     }

@@ -12,7 +12,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 4
+		"AccumulatorTankCapacity": 300
 	},
 	{
 		"Type": "BlockAgent",
@@ -27,7 +27,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 4
+		"AccumulatorTankCapacity": 300
 	},
 	{
 		"Type": "BlockAgent",
@@ -42,7 +42,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 4
+		"AccumulatorTankCapacity": 300
 	},
 	{
 		"Type": "BlockAgent",
@@ -57,7 +57,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 4
+		"AccumulatorTankCapacity": 300
 	},
 	{
 		"Type": "BlockAgent",
@@ -72,7 +72,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 4
+		"AccumulatorTankCapacity": 300
 	},
 	{
 		"Type": "BlockAgent",
@@ -87,7 +87,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 4
+		"AccumulatorTankCapacity": 300
 	},
 	{
 		"Type": "BlockAgent",
@@ -102,7 +102,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 4
+		"AccumulatorTankCapacity": 300
 	},
 	{
 		"Type": "BlockAgent",
@@ -117,7 +117,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 4
+		"AccumulatorTankCapacity": 300
 	},
 	{
 		"Type": "BlockAgent",
@@ -132,7 +132,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 4
+		"AccumulatorTankCapacity": 300
 	},
 	{
 		"Type": "BlockAgent",
@@ -147,7 +147,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 4
+		"AccumulatorTankCapacity": 300
 	},
 	{
 		"Type": "BlockAgent",
@@ -162,7 +162,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 4
+		"AccumulatorTankCapacity": 300
 	},
 	{
 		"Type": "BlockAgent",
@@ -177,7 +177,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 4
+		"AccumulatorTankCapacity": 300
 	},
 	{
 		"Type": "BlockAgent",
@@ -192,7 +192,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 4
+		"AccumulatorTankCapacity": 300
 	},
 	{
 		"Type": "BlockAgent",
@@ -207,7 +207,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 4
+		"AccumulatorTankCapacity": 300
 	},
 	{
 		"Type": "BlockAgent",
@@ -222,7 +222,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 4
+		"AccumulatorTankCapacity": 300
 	},
 	{
 		"Type": "BlockAgent",
@@ -237,7 +237,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 4
+		"AccumulatorTankCapacity": 300
 	},
 	{
 		"Type": "BlockAgent",
@@ -252,7 +252,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 4
+		"AccumulatorTankCapacity": 300
 	},
 	{
 		"Type": "BlockAgent",
@@ -267,7 +267,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 4
+		"AccumulatorTankCapacity": 300
 	},
 	{
 		"Type": "BlockAgent",
@@ -282,7 +282,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 4
+		"AccumulatorTankCapacity": 300
 	},
 	{
 		"Type": "BlockAgent",
@@ -297,7 +297,7 @@
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
 		"BatteryCapacity": 100,
-		"AccumulatorTankVolume": 4
+		"AccumulatorTankCapacity": 300
 	},
 	{
 		"Type": "GridAgent",

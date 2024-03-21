@@ -88,5 +88,5 @@ class Test(TestCase):
 
     def test_energy_to_water_volume(self):
         """Test that energy_to_water_volume and water_volume_to_energy are each other's inverse."""
-        self.assertAlmostEqual(1.327011157288642, energy_to_water_volume(100, 65))
-        self.assertAlmostEqual(100.0, water_volume_to_energy(1.327011157288642, 65))
+        self.assertAlmostEqual(75.35731666666666, water_volume_to_energy(1, 65))
+        self.assertAlmostEqual(1.0, energy_to_water_volume(75.35731666666666, 65))

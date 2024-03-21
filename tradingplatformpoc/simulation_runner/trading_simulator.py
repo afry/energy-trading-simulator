@@ -133,7 +133,7 @@ class TradingSimulator:
                                heat_pump_max_output=agent["HeatPumpMaxOutput"],
                                booster_pump_max_input=agent["BoosterPumpMaxInput"],
                                booster_pump_max_output=agent["BoosterPumpMaxOutput"],
-                               acc_tank_volume=agent["AccumulatorTankVolume"],
+                               acc_tank_capacity=agent["AccumulatorTankCapacity"],
                                battery=storage_digital_twin,
                                guid=agent_name))
 
@@ -157,7 +157,7 @@ class TradingSimulator:
                                heat_pump_max_output=agent["HeatPumpMaxOutput"],
                                booster_pump_max_input=agent["BoosterPumpMaxInput"],
                                booster_pump_max_output=agent["BoosterPumpMaxOutput"],
-                               acc_tank_volume=agent["AccumulatorTankVolume"],
+                               acc_tank_capacity=agent["AccumulatorTankCapacity"],
                                guid=agent_name))
             elif agent_type == "GridAgent":
                 if Resource[agent["Resource"]] == Resource.ELECTRICITY:

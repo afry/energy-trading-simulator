@@ -45,7 +45,7 @@ class TestAppFunctions(TestCase):
                    "BoosterPumpMaxInput": 0.0,
                    "BoosterPumpMaxOutput": 0.0,
                    "BatteryCapacity": 0.0,
-                   "AccumulatorTankVolume": 0.0,
+                   "AccumulatorTankCapacity": 0.0,
                    "PVArea": 20.0}
 
         self.assertIsNone(config_data_agent_screening({'Agents': [mock_grid_el, mock_grid_he, mock_pv]}))
