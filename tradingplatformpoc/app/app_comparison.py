@@ -106,21 +106,43 @@ def construct_heat_dump_comparison_chart(ids: ComparisonIds) -> alt.Chart:
 def show_key_figures(pre_calculated_results_1: Dict[str, Any], pre_calculated_results_2: Dict[str, Any]):
     c1, c2 = st.columns(2)
     with c1:
-        show_key_figs_for_one(pre_calculated_results_1)
+        numbers_first = show_key_figs_for_one(pre_calculated_results_1)
     with c2:
-        show_key_figs_for_one(pre_calculated_results_2)
+        show_key_figs_for_one(pre_calculated_results_2, numbers_first)
 
 
-def show_key_figs_for_one(pre_calculated_results: Dict[str, Any]):
-    st.metric(label="Total net energy spend:",
-              value="{:,.2f} SEK".format(pre_calculated_results[ResultsKey.NET_ENERGY_SPEND]),
-              help="The net energy spend is calculated by subtracting the total revenue from energy exports from the "
-                   "total expenditure on importing energy.")
+def show_key_figs_for_one(pre_calculated_results: Dict[str, Any], other_numbers: Optional[List[float]] = None) \
+        -> List[float]:
+    """
+    Uses 'other_numbers' to display "delta", a percentage change. Inserts blank lines if other_numbers aren't specified,
+    to improve vertical alignment.
+    """
     net_import_dict = pre_calculated_results[ResultsKey.SUM_NET_IMPORT]
+    numbers = [pre_calculated_results[ResultsKey.NET_ENERGY_SPEND],
+               net_import_dict[Resource.ELECTRICITY.name] / 1000,
+               net_import_dict[Resource.HIGH_TEMP_HEAT.name] / 1000]
+    deltas: List[Optional[str]] = [str(round(100 * (this - other) / other, 2)) + '%'
+                                   for this, other in zip(numbers, other_numbers)]\
+        if other_numbers else [None] * len(numbers)
+    st.metric(label="Total net energy spend:",
+              value="{:,.2f} SEK".format(numbers[0]),
+              help="The net energy spend is calculated by subtracting the total revenue from energy exports from the "
+                   "total expenditure on importing energy.",
+              delta=deltas[0],
+              delta_color='inverse')  # delta_color='inverse' means negative number <--> green color, pos <--> red
+    if deltas[0] is None:
+        st.write('\n')
     st.metric(label="Net import of electricity:",
-              value="{:,.2f} MWh".format(net_import_dict[Resource.ELECTRICITY.name] / 1000))
+              value="{:,.2f} MWh".format(numbers[1]),
+              delta=deltas[1],
+              delta_color='inverse')
+    if deltas[1] is None:
+        st.write('\n')
     st.metric(label="Net import of high-temp heating:",
-              value="{:,.2f} MWh".format(net_import_dict[Resource.HIGH_TEMP_HEAT.name] / 1000))
+              value="{:,.2f} MWh".format(numbers[2]),
+              delta=deltas[2],
+              delta_color='inverse')
+    return numbers
 
 
 def construct_level_comparison_chart(ids: ComparisonIds, agent_names: List[str],
@@ -144,3 +166,15 @@ def construct_level_comparison_chart(ids: ComparisonIds, agent_names: List[str],
     range_color = app_constants.ALTAIR_BASE_COLORS[:len(domain)]
 
     return altair_line_chart(combined_level_df, domain, range_color, [], var_title_str, title_str, True)
+
+
+def get_keys_with_x_first(some_dict: Dict[str, Any], x: str) -> List[str]:
+    """
+    Returns a list of the dictionary keys, with one change; if x is present, it will always be positioned first in the
+    returned list.
+    """
+    config_ids = list(some_dict.keys())
+    if x in config_ids:
+        config_ids.remove(x)
+        config_ids = [x] + config_ids
+    return config_ids
