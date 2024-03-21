@@ -8,3 +8,5 @@ MOCK_DATA_CONSTANTS_SPECS = resource_filename("tradingplatformpoc.config", "mock
 
 LEC_CAN_SELL_HEAT_TO_EXTERNAL = False  # Might want to extract this to a parameter
 SUMMER_MODE_MONTHS = [5, 6, 7, 8, 9]
+
+ACC_TANK_TEMPERATURE = 65
