@@ -166,3 +166,11 @@ def construct_level_comparison_chart(ids: ComparisonIds, agent_names: List[str],
     range_color = app_constants.ALTAIR_BASE_COLORS[:len(domain)]
 
     return altair_line_chart(combined_level_df, domain, range_color, [], var_title_str, title_str, True)
+
+
+def get_config_ids_with_x_first(job_id_per_config_id: Dict[str, Any], x: str) -> List[str]:
+    config_ids = list(job_id_per_config_id.keys())
+    if x in config_ids:
+        config_ids.remove(x)
+        config_ids = [x] + config_ids
+    return config_ids
