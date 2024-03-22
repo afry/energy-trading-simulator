@@ -118,7 +118,8 @@ class TradingSimulator:
                                                        space_heating_usage=space_heat_cons_series,
                                                        hot_water_usage=hot_tap_water_cons_series,
                                                        cooling_usage=cool_cons_series,
-                                                       electricity_production=pv_prod_series)
+                                                       electricity_production=pv_prod_series,
+                                                       has_borehole=agent['Borehole'])
 
                 storage_digital_twin = Battery(max_capacity_kwh=agent["BatteryCapacity"],
                                                max_charge_rate_fraction=area_info["BatteryChargeRate"],
@@ -133,22 +134,22 @@ class TradingSimulator:
                                heat_pump_max_output=agent["HeatPumpMaxOutput"],
                                booster_pump_max_input=agent["BoosterPumpMaxInput"],
                                booster_pump_max_output=agent["BoosterPumpMaxOutput"],
-                               acc_tank_capacity=agent["AccumulatorTankCapacity"],
-                               battery=storage_digital_twin,
+                               acc_tank_capacity=agent["AccumulatorTankCapacity"], battery=storage_digital_twin,
                                guid=agent_name))
 
             elif agent_type == "GroceryStoreAgent":
                 pv_prod_series = calculate_solar_prod(inputs_df['irradiation'],
                                                       agent['PVArea'],
                                                       agent['PVEfficiency'])
-                space_heat_prod = inputs_df['coop_space_heating_produced'] if agent["SellExcessHeat"] else None
+                space_heat_prod = inputs_df['coop_space_heating_produced'] if agent['SellExcessHeat'] else None
                 grocery_store_digital_twin = StaticDigitalTwin(gross_floor_area=agent['GrossFloorArea'],
                                                                electricity_usage=inputs_df['coop_electricity_consumed'],
                                                                space_heating_usage=inputs_df[
                                                                    'coop_space_heating_consumed'],
                                                                hot_water_usage=inputs_df['coop_hot_tap_water_consumed'],
                                                                electricity_production=pv_prod_series,
-                                                               space_heating_production=space_heat_prod)
+                                                               space_heating_production=space_heat_prod,
+                                                               has_borehole=agent['Borehole'])
                 agents.append(
                     BlockAgent(self.local_market_enabled, heat_pricing=self.heat_pricing,
                                electricity_pricing=self.electricity_pricing, digital_twin=grocery_store_digital_twin,
@@ -157,8 +158,7 @@ class TradingSimulator:
                                heat_pump_max_output=agent["HeatPumpMaxOutput"],
                                booster_pump_max_input=agent["BoosterPumpMaxInput"],
                                booster_pump_max_output=agent["BoosterPumpMaxOutput"],
-                               acc_tank_capacity=agent["AccumulatorTankCapacity"],
-                               guid=agent_name))
+                               acc_tank_capacity=agent["AccumulatorTankCapacity"], guid=agent_name))
             elif agent_type == "GridAgent":
                 if Resource[agent["Resource"]] == Resource.ELECTRICITY:
                     grid_agent = GridAgent(self.local_market_enabled, self.electricity_pricing,

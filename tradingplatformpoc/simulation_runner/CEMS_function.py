@@ -10,21 +10,22 @@ from pyomo.opt import OptSolver, SolverResults
 PERC_OF_HT_COVERABLE_BY_LT = 0.6
 
 
-def solve_model(solver: OptSolver, summer_mode: bool, n_agents: int, external_elec_buy_price: pd.Series,
+def solve_model(solver: OptSolver, summer_mode: bool, month: int, n_agents: int, external_elec_buy_price: pd.Series,
                 external_elec_sell_price: pd.Series, external_heat_buy_price: float,
                 battery_capacity: List[float], battery_charge_rate: List[float], battery_discharge_rate: List[float],
-                SOCBES0: List[float], heatpump_COP: List[float], heatpump_max_power: List[float],
-                heatpump_max_heat: List[float], booster_heatpump_COP: List[float],
-                booster_heatpump_max_power: List[float], booster_heatpump_max_heat: List[float],
-                build_area: List[float], SOCTES0: List[float], thermalstorage_max_temp: List[float],
-                thermalstorage_volume: List[float], BITES_Eshallow0: List[float] , BITES_Edeep0: List[float],
+                SOCBES0: List[float], heatpump_COP: List[float],
+                heatpump_max_power: List[float], heatpump_max_heat: List[float],
+                booster_heatpump_COP: List[float], booster_heatpump_max_power: List[float],
+                booster_heatpump_max_heat: List[float], build_area: List[float], SOCTES0: List[float],
+                thermalstorage_max_temp: List[float], thermalstorage_volume: List[float], BITES_Eshallow0: List[float],
+                BITES_Edeep0: List[float], borehole: List[bool],
                 elec_consumption: pd.DataFrame, hot_water_heatdem: pd.DataFrame, space_heating_heatdem: pd.DataFrame,
                 cold_consumption: pd.DataFrame, pv_production: pd.DataFrame, excess_heat: pd.DataFrame,
                 battery_efficiency: float = 0.95,
                 max_elec_transfer_between_agents: float = 500, max_elec_transfer_to_external: float = 1000,
                 max_heat_transfer_between_agents: float = 500, max_heat_transfer_to_external: float = 1000,
-                chiller_COP: float = 1.5, thermalstorage_efficiency: float = 0.98, heat_trans_loss: float = 0.05,
-                trading_horizon: int = 24) \
+                chiller_COP: float = 1.5, Pccmax: float = 100, thermalstorage_efficiency: float = 0.98,
+                heat_trans_loss: float = 0.05, cold_trans_loss: float = 0.05, trading_horizon: int = 24) \
         -> Tuple[pyo.ConcreteModel, SolverResults]:
     """
     This function should be exposed to AFRY's trading simulator in some way.
@@ -118,6 +119,9 @@ def solve_model(solver: OptSolver, summer_mode: bool, n_agents: int, external_el
     model.HhpBmax = pyo.Param(model.I, initialize=booster_heatpump_max_heat)
     # Chiller data
     model.COPcc = pyo.Param(initialize=chiller_COP)
+    model.Pccmax = pyo.Param(initialize=Pccmax)
+    # Borehole
+    model.borehole = pyo.Param(model.I, initialize=lambda m, i: borehole[i])
     # Thermal energy storage data
     model.efft = pyo.Param(model.I, initialize=thermalstorage_efficiency)
     model.SOCTES0 = pyo.Param(model.I, initialize=SOCTES0)
@@ -125,6 +129,7 @@ def solve_model(solver: OptSolver, summer_mode: bool, n_agents: int, external_el
     model.kwh_per_deg = pyo.Param(model.I, initialize=kwh_per_deg)
     # Local heat network efficiency
     model.Heat_trans_loss = pyo.Param(initialize=heat_trans_loss)
+    model.cold_trans_loss = pyo.Param(initialize=cold_trans_loss)
     # Variable
     model.Pbuy_market = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
     model.Psell_market = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
@@ -135,11 +140,14 @@ def solve_model(solver: OptSolver, summer_mode: bool, n_agents: int, external_el
     model.U_power_buy_sell_grid = pyo.Var(model.I, model.T, within=pyo.Binary, initialize=0)
     model.Hbuy_grid = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
     model.Hsell_grid = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
+    model.Cbuy_grid = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
+    model.Csell_grid = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
     model.Pcha = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
     model.Pdis = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
     model.SOCBES = pyo.Var(model.I, model.T, bounds=(0, 1), within=pyo.NonNegativeReals,
                            initialize=lambda m, i, t: SOCBES0[i])
     model.Hhp = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
+    model.Chp = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
     model.Php = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
     model.HTEScha = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
     model.HTESdis = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
@@ -160,14 +168,14 @@ def solve_model(solver: OptSolver, summer_mode: bool, n_agents: int, external_el
         model.PhpB = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
     model.heat_dump = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
 
-    add_obj_and_constraints(model, summer_mode)
+    add_obj_and_constraints(model, summer_mode, month)
 
     # Solve!
     results = solver.solve(model)
     return model, results
 
 
-def add_obj_and_constraints(model: pyo.ConcreteModel, summer_mode: bool):
+def add_obj_and_constraints(model: pyo.ConcreteModel, summer_mode: bool, month: int):
     # Objective function:
     model.obj = pyo.Objective(rule=obj_rul, sense=pyo.minimize)
     model.con_max_Pbuy_grid = pyo.Constraint(model.I, model.T, rule=max_Pbuy_grid)
@@ -179,12 +187,17 @@ def add_obj_and_constraints(model: pyo.ConcreteModel, summer_mode: bool):
         model.con_max_Hsell_grid_summer = pyo.Constraint(model.I, model.T, rule=max_Hsell_grid_summer)
         model.con_agent_Pbalance_summer = pyo.Constraint(model.I, model.T, rule=agent_Pbalance_summer)
         model.con_agent_Hbalance_summer = pyo.Constraint(model.I, model.T, rule=agent_Hbalance_summer)
-        model.con_boosterHP_Hproduct = pyo.Constraint(model.I, model.T, rule=boosterHP_Hproduct)
+        model.con_HTES_supplied_by_Bhp = pyo.Constraint(model.I, model.T, rule=HTES_supplied_by_Bhp)
     else:
         model.con_max_Hsell_grid_winter = pyo.Constraint(model.I, model.T, rule=max_Hsell_grid_winter)
         model.con_agent_Pbalance_winter = pyo.Constraint(model.I, model.T, rule=agent_Pbalance_winter)
         model.con_agent_Hbalance_winter = pyo.Constraint(model.I, model.T, rule=agent_Hbalance_winter)
-    model.con_HTES_dis = pyo.Constraint(model.I, model.T, rule=HTES_dis)
+
+    if month in [6, 7, 8]:
+        model.con_agent_Cbalance_summer = pyo.Constraint(model.I, model.T, rule=agent_Cbalance_summer)
+    else:
+        model.con_agent_Cbalance_winter = pyo.Constraint(model.I, model.T, rule=agent_Cbalance_winter)
+    model.con_Hhw_supplied_by_HTES = pyo.Constraint(model.I, model.T, rule=Hhw_supplied_by_HTES)
     model.con_BITES_Eshallow_balance = pyo.Constraint(model.I, model.T, rule=BITES_Eshallow_balance)
     model.con_BITES_shallow_dis = pyo.Constraint(model.I, model.T, rule=BITES_shallow_dis)
     model.con_BITES_shallow_cha = pyo.Constraint(model.I, model.T, rule=BITES_shallow_cha)
@@ -205,18 +218,20 @@ def add_obj_and_constraints(model: pyo.ConcreteModel, summer_mode: bool):
     model.con_BES_final_SOC = pyo.Constraint(model.I, rule=BES_final_SOC)
     model.con_BES_remove_binaries = pyo.Constraint(model.I, model.T, rule=BES_remove_binaries)
     model.con_HP_Hproduct = pyo.Constraint(model.I, model.T, rule=HP_Hproduct)
+    model.con_HP_Cproduct = pyo.Constraint(model.I, model.T, rule=HP_Cproduct)
     model.con_max_HP_Hproduct = pyo.Constraint(model.I, model.T, rule=max_HP_Hproduct)
-    model.con_max_HP_Pproduct = pyo.Constraint(model.I, model.T, rule=max_HP_Pproduct)
+    model.con_max_HP_Pconsumption = pyo.Constraint(model.I, model.T, rule=max_HP_Pconsumption)
     if summer_mode:
-        model.con_max_HP_Hproduct_summer = pyo.Constraint(model.I, model.T, rule=max_HP_Hproduct_summer)
-        model.con_Chiller_Hwaste_summer = pyo.Constraint(model.T, rule=Chiller_Hwaste_summer)
+        model.con_max_booster_HP_Hproduct_summer = pyo.Constraint(model.I, model.T, rule=max_booster_HP_Hproduct_summer)
+        model.con_chiller_Hwaste_summer = pyo.Constraint(model.T, rule=chiller_Hwaste_summer)
     else:
-        model.con_Chiller_Hwaste_winter = pyo.Constraint(model.T, rule=Chiller_Hwaste_winter)
+        model.con_chiller_Hwaste_winter = pyo.Constraint(model.T, rule=chiller_Hwaste_winter)
     model.con_max_HTES_dis = pyo.Constraint(model.I, model.T, rule=max_HTES_dis)
     model.con_max_HTES_cha = pyo.Constraint(model.I, model.T, rule=max_HTES_cha)
     model.con_HTES_Ebalance = pyo.Constraint(model.I, model.T, rule=HTES_Ebalance)
     model.con_HTES_final_SOC = pyo.Constraint(model.I, rule=HTES_final_SOC)
-    model.con_Chiller_Cpower_product = pyo.Constraint(model.T, rule=Chiller_Cpower_product)
+    model.con_chiller_Cpower_product = pyo.Constraint(model.T, rule=chiller_Cpower_product)
+    model.con_max_chiller_Cpower_product = pyo.Constraint(model.T, rule=max_chiller_Cpower_product)
 
 
 # Objective function: minimize the total charging cost (eq. 1 of the report)
@@ -285,18 +300,30 @@ def agent_Hbalance_winter(model, i, t):
 
 def agent_Hbalance_summer(model, i, t):
     # Only used in summer mode
-    return model.Hbuy_grid[i, t] + model.Hhp[i, t] + model.Hdis_shallow[i, t] + model.Hsh_excess[i, t] == \
-        model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] + PERC_OF_HT_COVERABLE_BY_LT * model.HTEScha[i, t] + \
-        model.Hsh[i, t]
+    return model.Hbuy_grid[i, t] + model.Hhp[i, t] + model.Hdis_shallow[i, t] \
+           + model.Hsh_excess[i, t] == model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] \
+           + PERC_OF_HT_COVERABLE_BY_LT * model.HTEScha[i, t] + model.Hsh[i, t]
+
+
+def agent_Cbalance_winter(model, i, t):
+    # Only used in months [1 to 5, 9 to 12]
+    # with free cooling from borehole (model.borehole[i] == 1)
+    # without free cooling from borehole (model.borehole[i] == 0)
+    return model.Cbuy_grid[i, t] + model.Chp[i, t] == model.Csell_grid[i, t] + model.Cld[i, t] * (1-model.borehole[i])
+
+
+def agent_Cbalance_summer(model, i, t):
+    # Only used in months [6, 7, 8]
+    return model.Cbuy_grid[i, t] + model.Chp[i, t] == model.Csell_grid[i, t] + model.Cld[i, t]
 
 
 # (eq. 5 and 6 of the report)
-def boosterHP_Hproduct(model, i, t):
+def HTES_supplied_by_Bhp(model, i, t):
     # Only used in summer mode
     return model.HhpB[i, t] == (1 - PERC_OF_HT_COVERABLE_BY_LT) * model.HTEScha[i, t]
 
 
-def HTES_dis(model, i, t):
+def Hhw_supplied_by_HTES(model, i, t):
     return model.HTESdis[i, t] == model.Hhw[i, t]
 
 
@@ -375,7 +402,8 @@ def LEC_Hbalance(model, t):
 
 
 def LEC_Cbalance(model, t):
-    return model.Ccc[t] == sum(model.Cld[i, t] for i in model.I)
+    return model.Ccc[t] + sum(model.Csell_grid[i, t]*(1-model.cold_trans_loss) for i in model.I) ==\
+           sum(model.Cbuy_grid[i, t] for i in model.I)
 
 
 # Battery energy storage model (eqs. 16 to 19 of the report)
@@ -420,22 +448,28 @@ def HP_Hproduct(model, i, t):
     return model.Hhp[i, t] == model.COPhp[i] * model.Php[i, t]
 
 
+def HP_Cproduct(model, i, t):
+    # replacing == with <= : cooling power can be used or not
+    return model.Chp[i, t] <= (model.COPhp[i] - 1) * model.Php[i, t]
+
+
 def max_HP_Hproduct(model, i, t):
     return model.Hhp[i, t] <= model.Hhpmax[i]
 
 
-def max_HP_Pproduct(model, i, t):
+def max_HP_Pconsumption(model, i, t):
     return model.Php[i, t] <= model.Phpmax[i]
 
 
-def max_HP_Hproduct_summer(model, i, t):
-    # Only used in summer mode
-    return model.HhpB[i, t] <= model.HhpBmax[i]
-
-
+# Booster heat pump model (eq. 20 of the report)
 def booster_HP_Hproduct(model, i, t):
     # Only used in summer mode
     return model.HhpB[i, t] == model.COPhpB[i] * model.PhpB[i, t]
+
+
+def max_booster_HP_Hproduct_summer(model, i, t):
+    # Only used in summer mode
+    return model.HhpB[i, t] <= model.HhpBmax[i]
 
 
 # Thermal energy storage model (eqs. 32 to 25 of the report)
@@ -468,16 +502,21 @@ def HTES_final_SOC(model, i):
 
 
 # Compression chiller model (eqs. 29 to 31 of the report)
-def Chiller_Cpower_product(model, t):
+def chiller_Cpower_product(model, t):
     return model.Ccc[t] == model.COPcc * model.Pcc[t]
 
 
-def Chiller_Hwaste_summer(model, t):
+def max_chiller_Cpower_product(model, t):
+    return model.Pcc[t] <= model.Pccmax
+
+
+def chiller_Hwaste_summer(model, t):
     # Only used in summer mode
-    return model.Hcc[t] == (1+model.COPcc) * model.Pcc[t]
+    # replacing == with <= : waste heat power can be used or not
+    return model.Hcc[t] <= (1+model.COPcc) * model.Pcc[t]
 
 
-def Chiller_Hwaste_winter(model, t):
+def chiller_Hwaste_winter(model, t):
     # Only used in winter mode : Due to high temperature of district heating (60 deg. C),
     # it is not possible to export heat from building to the district heating
     return model.Hcc[t] <= 0

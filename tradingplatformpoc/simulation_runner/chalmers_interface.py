@@ -108,6 +108,7 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
     booster_max_power = [agent.booster_pump_max_input for agent in block_agents]
     booster_max_heat = [agent.booster_pump_max_output for agent in block_agents]
     gross_floor_area = [agent.digital_twin.gross_floor_area for agent in block_agents]
+    has_borehole = [agent.digital_twin.has_borehole for agent in block_agents]
     shallow_storage_start = [(shallow_storage_start_dict[agent] if agent in shallow_storage_start_dict.keys() else 0.0)
                              for agent in agent_guids]
     deep_storage_start = [(deep_storage_start_dict[agent] if agent in shallow_storage_start_dict.keys() else 0.0)
@@ -125,6 +126,7 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
     optimized_model, results = CEMS_function.solve_model(
         solver=solver,
         summer_mode=summer_mode,
+        month=start_datetime.month,
         n_agents=n_agents,
         external_elec_buy_price=elec_retail_prices,
         external_elec_sell_price=elec_wholesale_prices,
@@ -139,6 +141,7 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
         booster_heatpump_COP=[area_info['COPBoosterPumps']] * n_agents,
         booster_heatpump_max_power=booster_max_power,
         booster_heatpump_max_heat=booster_max_heat,
+        borehole=has_borehole,
         build_area=gross_floor_area,
         SOCTES0=[area_info['StorageEndChargeLevel']] * n_agents,
         thermalstorage_max_temp=[constants.ACC_TANK_TEMPERATURE] * n_agents,

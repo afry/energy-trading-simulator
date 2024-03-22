@@ -74,6 +74,12 @@
             "default_value": 0.0,
             "type": "float"
         },
+        "Borehole": {
+            "display": "Has borehole?",
+            "default_value": true,
+            "help": "Does the agent have a borehole which it can use for free cooling?",
+            "type": "bool"
+        },
         "BatteryCapacity": {
             "display": "Battery capacity (kWh)",
             "min_value": 0.0,
@@ -167,6 +173,12 @@
             "help": "Booster pumps allow the block agent to create high-temperature heating, which is needed to cover hot water demand, in scenarios where the local distribution network operates at a low temperature. This number indicates the maximum total power output, summed over all booster heat pumps at the agent's disposal",
             "default_value": 6.0,
             "type": "float"
+        },
+        "Borehole": {
+            "display": "Has borehole?",
+            "default_value": true,
+            "help": "Does the agent have a borehole which it can use for free cooling?",
+            "type": "bool"
         },
         "AccumulatorTankCapacity": {
             "display": "Accumulator tank capacity (kWh)",

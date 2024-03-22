@@ -64,12 +64,9 @@ def reconstruct_block_agent_static_digital_twin(agent_id: str, config: Dict[str,
     hot_tap_water_cons_series = block_mock_data[get_hot_tap_water_cons_key(agent_id)]
     cooling_cons_series = block_mock_data[get_cooling_cons_key(agent_id)]
 
-    return StaticDigitalTwin(gross_floor_area=agent_config['GrossFloorArea'],
-                             electricity_usage=elec_cons_series,
-                             space_heating_usage=space_heat_cons_series,
-                             hot_water_usage=hot_tap_water_cons_series,
-                             cooling_usage=cooling_cons_series,
-                             electricity_production=pv_prod_series)
+    return StaticDigitalTwin(gross_floor_area=agent_config['GrossFloorArea'], electricity_usage=elec_cons_series,
+                             space_heating_usage=space_heat_cons_series, hot_water_usage=hot_tap_water_cons_series,
+                             cooling_usage=cooling_cons_series, electricity_production=pv_prod_series)
 
 
 def reconstruct_grocery_store_static_digital_twin(agent_config: Dict[str, Any]) \
@@ -83,8 +80,7 @@ def reconstruct_grocery_store_static_digital_twin(agent_config: Dict[str, Any]) 
                              electricity_usage=inputs_df['coop_electricity_consumed'],
                              space_heating_usage=inputs_df['coop_space_heating_consumed'],
                              hot_water_usage=inputs_df['coop_hot_tap_water_consumed'],
-                             electricity_production=pv_prod_series,
-                             space_heating_production=space_heat_prod)
+                             electricity_production=pv_prod_series, space_heating_production=space_heat_prod)
 
 
 # maybe we should move this to simulation_runner/trading_simulator
