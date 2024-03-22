@@ -51,6 +51,7 @@ class ChalmersOutputs:
     bites_flow: Dict[str, Dict[datetime.datetime, float]]
     hp_high_prod: Dict[str, Dict[datetime.datetime, float]]
     hp_low_prod: Dict[str, Dict[datetime.datetime, float]]
+    hp_cool_prod: Dict[str, Dict[datetime.datetime, float]]
     # Data which isn't agent-individual: (period, level)
     heat_dump: Dict[datetime.datetime, float]
 
@@ -68,6 +69,7 @@ class ChalmersOutputs:
                  bites_flow: Dict[str, Dict[datetime.datetime, float]],
                  hp_high_prod: Dict[str, Dict[datetime.datetime, float]],
                  hp_low_prod: Dict[str, Dict[datetime.datetime, float]],
+                 hp_cool_prod: Dict[str, Dict[datetime.datetime, float]],
                  heat_dump: Dict[datetime.datetime, float]):
         self.trades = trades
         self.battery_storage_levels = battery_storage_levels
@@ -83,6 +85,7 @@ class ChalmersOutputs:
         self.bites_flow = bites_flow
         self.hp_high_prod = hp_high_prod
         self.hp_low_prod = hp_low_prod
+        self.hp_cool_prod = hp_cool_prod
         self.heat_dump = heat_dump
 
 
@@ -160,6 +163,7 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
         max_heat_transfer_between_agents=area_info['InterAgentHeatTransferCapacity'],
         max_heat_transfer_to_external=grid_agents[Resource.HIGH_TEMP_HEAT].max_transfer_per_hour,
         chiller_COP=area_info['COPCompChiller'],
+        Pccmax=0.0,  # TODO
         heat_trans_loss=area_info['HeatTransferLoss'],
         trading_horizon=trading_horizon
     )
@@ -195,6 +199,7 @@ def extract_outputs(optimized_model: pyo.ConcreteModel,
                                       electricity_price_data)
     heat_trades = get_heat_transfers(optimized_model, start_datetime, heat_grid_agent_guid, agent_guids,
                                      heating_price_data)
+    cool_trades = get_cool_transfers(optimized_model, start_datetime, agent_guids)
     battery_storage_levels = get_value_per_agent(optimized_model, start_datetime, 'SOCBES', agent_guids,
                                                  lambda i: optimized_model.Emax_BES[i] > 0)
     acc_tank_levels = get_value_per_agent(optimized_model, start_datetime, 'SOCTES', agent_guids,
@@ -228,8 +233,10 @@ def extract_outputs(optimized_model: pyo.ConcreteModel,
         hp_high_prod = get_value_per_agent(optimized_model, start_datetime, 'Hhp', agent_guids,
                                            lambda i: optimized_model.Phpmax[i] > 0)
         hp_low_prod = {}
+    hp_cool_prod = get_value_per_agent(optimized_model, start_datetime, 'Chp', agent_guids,
+                                       lambda i: optimized_model.Phpmax[i] > 0)
     heat_dump = get_value_per_period(optimized_model, start_datetime, 'heat_dump')
-    return ChalmersOutputs(elec_trades + heat_trades,
+    return ChalmersOutputs(elec_trades + heat_trades + cool_trades,
                            battery_storage_levels,
                            acc_tank_levels,
                            shallow_storage_rel,
@@ -243,6 +250,7 @@ def extract_outputs(optimized_model: pyo.ConcreteModel,
                            bites_flow,
                            hp_high_prod,
                            hp_low_prod,
+                           hp_cool_prod,
                            heat_dump)
 
 
@@ -333,6 +341,13 @@ def get_heat_transfers(optimized_model: pyo.ConcreteModel, start_datetime: datet
     return inter_agent_trades + external_trades
 
 
+def get_cool_transfers(optimized_model: pyo.ConcreteModel, start_datetime: datetime.datetime, agent_guids: List[str]) \
+        -> List[Trade]:
+    return get_agent_transfers(optimized_model, start_datetime,
+                               sold_internal_name='Csell_grid', bought_internal_name='Cbuy_grid',
+                               resource=Resource.COOLING, agent_guids=agent_guids)
+
+
 def get_external_transfers(optimized_model: pyo.ConcreteModel, start_datetime: datetime.datetime,
                            sold_to_external_name: str, bought_from_external_name: str,
                            retail_price_name: str, wholesale_price_name: str,
@@ -363,6 +378,7 @@ def add_agent_trade(trade_list: List[Trade], bought_internal_name: str, sold_int
                          - getattr(optimized_model, sold_internal_name)[i_agent, hour])
     agent_name = agent_guids[i_agent]
     if quantity > VERY_SMALL_NUMBER or quantity < -VERY_SMALL_NUMBER:
+        # TODO: Include Heat_trans_loss etc
         trade_list.append(Trade(period=start_datetime + datetime.timedelta(hours=hour),
                                 action=Action.BUY if quantity > 0 else Action.SELL, resource=resource,
                                 quantity=abs(quantity), price=np.nan, source=agent_name, by_external=False,

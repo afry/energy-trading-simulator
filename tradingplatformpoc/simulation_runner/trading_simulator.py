@@ -197,6 +197,7 @@ class TradingSimulator:
         bites_flow_dict: Dict[str, Dict[datetime.datetime, float]] = {}
         hp_high_prod: Dict[str, Dict[datetime.datetime, float]] = {}
         hp_low_prod: Dict[str, Dict[datetime.datetime, float]] = {}
+        hp_cool_prod: Dict[str, Dict[datetime.datetime, float]] = {}
         heat_dump: Dict[datetime.datetime, float] = {}
 
         shallow_storage_end: Dict[str, float] = {}
@@ -254,6 +255,7 @@ class TradingSimulator:
                 add_all_to_nested_dict(bites_flow_dict, chalmers_outputs.bites_flow)
                 add_all_to_nested_dict(hp_high_prod, chalmers_outputs.hp_high_prod)
                 add_all_to_nested_dict(hp_low_prod, chalmers_outputs.hp_low_prod)
+                add_all_to_nested_dict(hp_cool_prod, chalmers_outputs.hp_cool_prod)
                 heat_dump.update(chalmers_outputs.heat_dump)
 
             logger.info('Saving trades to db...')
@@ -281,6 +283,7 @@ class TradingSimulator:
         bites_flow_dicts = levels_to_db_dict(bites_flow_dict, TradeMetadataKey.FLOW_SHALLOW_TO_DEEP.name, self.job_id)
         hp_high_prod_dicts = levels_to_db_dict(hp_high_prod, TradeMetadataKey.HP_HIGH_HEAT_PROD.name, self.job_id)
         hp_low_prod_dicts = levels_to_db_dict(hp_low_prod, TradeMetadataKey.HP_LOW_HEAT_PROD.name, self.job_id)
+        hp_cool_prod_dicts = levels_to_db_dict(hp_cool_prod, TradeMetadataKey.HP_COOL_PROD.name, self.job_id)
         heat_dump_dicts = overall_levels_to_db_dict(heat_dump, TradeMetadataKey.HEAT_DUMP.name, self.job_id)
         bulk_insert(TableLevel, battery_level_dicts)
         bulk_insert(TableLevel, acc_tank_level_dicts)
@@ -295,11 +298,13 @@ class TradingSimulator:
         bulk_insert(TableLevel, bites_flow_dicts)
         bulk_insert(TableLevel, hp_high_prod_dicts)
         bulk_insert(TableLevel, hp_low_prod_dicts)
+        bulk_insert(TableLevel, hp_cool_prod_dicts)
         bulk_insert(TableLevel, heat_dump_dicts)
 
         calculate_results_and_save(self.job_id, self.agents, self.grid_agents,
                                    hp_high_heat_prod=sum(sum(subdict.values()) for subdict in hp_high_prod.values()),
                                    hp_low_heat_prod=sum(sum(subdict.values()) for subdict in hp_low_prod.values()),
+                                   hp_cool_prod=sum(sum(subdict.values()) for subdict in hp_cool_prod.values()),
                                    heat_dumped=sum(heat_dump.values()))
 
         logger.info("Finished simulating trades, beginning calculations on district heating price...")
