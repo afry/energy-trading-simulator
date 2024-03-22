@@ -174,12 +174,6 @@
             "default_value": 6.0,
             "type": "float"
         },
-        "Borehole": {
-            "display": "Has borehole?",
-            "default_value": true,
-            "help": "Does the agent have a borehole which it can use for free cooling?",
-            "type": "bool"
-        },
         "AccumulatorTankCapacity": {
             "display": "Accumulator tank capacity (kWh)",
             "min_value": 0.0,

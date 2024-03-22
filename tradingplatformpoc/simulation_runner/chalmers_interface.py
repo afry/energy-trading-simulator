@@ -158,12 +158,14 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
         pv_production=elec_supply_df,
         excess_heat=low_heat_supply_df,
         battery_efficiency=area_info['BatteryEfficiency'],
+        thermalstorage_efficiency=0.98,  # TODO: RES-444
         max_elec_transfer_between_agents=area_info['InterAgentElectricityTransferCapacity'],
         max_elec_transfer_to_external=grid_agents[Resource.ELECTRICITY].max_transfer_per_hour,
         max_heat_transfer_between_agents=area_info['InterAgentHeatTransferCapacity'],
         max_heat_transfer_to_external=grid_agents[Resource.HIGH_TEMP_HEAT].max_transfer_per_hour,
         chiller_COP=area_info['COPCompChiller'],
-        Pccmax=0.0,  # TODO
+        Pccmax=0.0,  # TODO: RES-444
+        cold_trans_loss=0.05,  # TODO: RES-444
         heat_trans_loss=area_info['HeatTransferLoss'],
         trading_horizon=trading_horizon
     )
@@ -378,7 +380,7 @@ def add_agent_trade(trade_list: List[Trade], bought_internal_name: str, sold_int
                          - getattr(optimized_model, sold_internal_name)[i_agent, hour])
     agent_name = agent_guids[i_agent]
     if quantity > VERY_SMALL_NUMBER or quantity < -VERY_SMALL_NUMBER:
-        # TODO: Include Heat_trans_loss etc
+        # TODO: Include Heat_trans_loss etc (RES-447)
         trade_list.append(Trade(period=start_datetime + datetime.timedelta(hours=hour),
                                 action=Action.BUY if quantity > 0 else Action.SELL, resource=resource,
                                 quantity=abs(quantity), price=np.nan, source=agent_name, by_external=False,
