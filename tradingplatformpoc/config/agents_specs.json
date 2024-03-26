@@ -1,12 +1,12 @@
 
 {
     "BlockAgent": {
-        "GrossFloorArea": {
-            "display": "Gross floor area (sqm)",
+        "Atemp": {
+            "display": "Heated area (sqm)",
             "min_value": 0.0,
             "step": 10.0,
             "default_value": 1000.0,
-            "help": "Specified in square meters, used for calculating the energy demand",
+            "help": "Known as 'Atemp' in Swedish. Specified in square meters, used for calculating the energy demand",
             "type": "float"
         },
         "FractionCommercial": {
@@ -108,12 +108,12 @@
         }
     },
     "GroceryStoreAgent": {
-        "GrossFloorArea": {
-            "display": "Gross floor area (sqm)",
+        "Atemp": {
+            "display": "Heated area (sqm)",
             "min_value": 0.0,
             "step": 10.0,
             "default_value": 6000.0,
-            "help": "Specified in square meters, used for calculating the energy demand",
+            "help": "Known as 'Atemp' in Swedish. Specified in square meters, used for calculating the energy demand",
             "type": "float",
             "disabled": true
         },

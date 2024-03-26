@@ -188,7 +188,7 @@ def simulate(mock_data_constants: Dict[str, Any], agent: dict, df_inputs: pl.Laz
     seed_office_electricity = calculate_seed_from_string(agent_as_str + OFFICE_ELECTRICITY_SEED_SUFFIX)
     seed_office_heating = calculate_seed_from_string(agent_as_str + OFFICE_HEATING_SEED_SUFFIX)
 
-    # Fraction of GrossFloorArea in commercial, school and residential
+    # Fraction of area in commercial, school and residential
     fraction_commercial = get_if_exists_else(agent, 'FractionCommercial', 0)
     fraction_school = get_if_exists_else(agent, 'FractionSchool', 0)
     fraction_office = get_if_exists_else(agent, 'FractionOffice', 0)
@@ -206,39 +206,39 @@ def simulate(mock_data_constants: Dict[str, Any], agent: dict, df_inputs: pl.Laz
 
     # COMMERCIAL
     if fraction_commercial > 0:
-        commercial_gross_floor_area = agent['GrossFloorArea'] * fraction_commercial
+        commercial_atemp = agent['Atemp'] * fraction_commercial
 
         electricity_consumption.append(simulate_area_electricity(
-            commercial_gross_floor_area, seed_commercial_electricity, df_inputs,
+            commercial_atemp, seed_commercial_electricity, df_inputs,
             mock_data_constants['CommercialElecKwhPerYearM2'], mock_data_constants['RelativeErrorStdDev'],
             get_commercial_electricity_consumption_hourly_factor, n_rows))
-        
+
         commercial_space_heating_cons, commercial_hot_tap_water_cons = simulate_heating(
-            mock_data_constants, commercial_gross_floor_area, 'CommercialSpaceHeatKwhPerYearM2',
+            mock_data_constants, commercial_atemp, 'CommercialSpaceHeatKwhPerYearM2',
             'CommercialHotTapWaterKwhPerYearM2', get_commercial_heating_consumption_hourly_factor,
             seed_commercial_heating, df_inputs, n_rows)
         space_heating_consumption.append(commercial_space_heating_cons)
         hot_tap_water_consumption.append(commercial_hot_tap_water_cons)
 
-        commercial_cooling = simulate_cooling(commercial_gross_floor_area,
+        commercial_cooling = simulate_cooling(commercial_atemp,
                                               mock_data_constants['CommercialCoolKwhPerYearM2'],
                                               mock_data_constants['RelativeErrorStdDev'],
                                               get_commercial_cooling_consumption_factor,
                                               seed_commercial_electricity, df_inputs, n_rows)
         cooling_consumption.append(commercial_cooling)
-    
+
     # SCHOOL
     if fraction_school > 0:
-        school_gross_floor_area_m2 = agent['GrossFloorArea'] * fraction_school
+        school_atemp_m2 = agent['Atemp'] * fraction_school
 
         electricity_consumption.append(
             simulate_area_electricity(
-                school_gross_floor_area_m2, seed_school_electricity, df_inputs,
+                school_atemp_m2, seed_school_electricity, df_inputs,
                 mock_data_constants['SchoolElecKwhPerYearM2'], mock_data_constants['RelativeErrorStdDev'],
                 get_school_heating_consumption_hourly_factor, n_rows))
 
         school_space_heating_cons, school_hot_tap_water_cons = simulate_heating(
-            mock_data_constants, school_gross_floor_area_m2, 'SchoolSpaceHeatKwhPerYearM2',
+            mock_data_constants, school_atemp_m2, 'SchoolSpaceHeatKwhPerYearM2',
             'SchoolHotTapWaterKwhPerYearM2', get_school_heating_consumption_hourly_factor,
             seed_school_heating, df_inputs, n_rows)
         space_heating_consumption.append(school_space_heating_cons)
@@ -249,22 +249,22 @@ def simulate(mock_data_constants: Dict[str, Any], agent: dict, df_inputs: pl.Laz
 
     # OFFICE
     if fraction_office > 0:
-        office_gross_floor_area_m2 = agent['GrossFloorArea'] * fraction_office
+        office_atemp_m2 = agent['Atemp'] * fraction_office
 
         electricity_consumption.append(
             simulate_area_electricity(
-                office_gross_floor_area_m2, seed_office_electricity, df_inputs,
+                office_atemp_m2, seed_office_electricity, df_inputs,
                 mock_data_constants['OfficeElecKwhPerYearM2'], mock_data_constants['RelativeErrorStdDev'],
                 get_office_heating_consumption_hourly_factor, n_rows))
 
         office_space_heating_cons, office_hot_tap_water_cons = simulate_heating(
-            mock_data_constants, office_gross_floor_area_m2, 'OfficeSpaceHeatKwhPerYearM2',
+            mock_data_constants, office_atemp_m2, 'OfficeSpaceHeatKwhPerYearM2',
             'OfficeHotTapWaterKwhPerYearM2', get_office_heating_consumption_hourly_factor,
             seed_office_heating, df_inputs, n_rows)
         space_heating_consumption.append(office_space_heating_cons)
         hot_tap_water_consumption.append(office_hot_tap_water_cons)
 
-        office_cooling = simulate_cooling(office_gross_floor_area_m2,
+        office_cooling = simulate_cooling(office_atemp_m2,
                                           mock_data_constants['OfficeCoolKwhPerYearM2'],
                                           mock_data_constants['RelativeErrorStdDev'],
                                           get_office_cooling_consumption_factor,
@@ -273,17 +273,17 @@ def simulate(mock_data_constants: Dict[str, Any], agent: dict, df_inputs: pl.Laz
 
     # RESIDENTIAL
     if fraction_residential > 0:
-        residential_gross_floor_area = agent['GrossFloorArea'] * fraction_residential
+        residential_atemp = agent['Atemp'] * fraction_residential
 
-        household_el = simulate_household_electricity_aggregated(df_inputs, model, residential_gross_floor_area,
+        household_el = simulate_household_electricity_aggregated(df_inputs, model, residential_atemp,
                                                                  seed_residential_electricity, n_rows,
                                                                  mock_data_constants['HouseholdElecKwhPerYearM2Atemp'])
-        property_el = property_electricity(df_inputs, residential_gross_floor_area, n_rows,
+        property_el = property_electricity(df_inputs, residential_atemp, n_rows,
                                            mock_data_constants['ResidentialPropertyElecKwhPerYearM2Atemp'])
         electricity_consumption.append(add_datetime_value_frames([household_el, property_el]))
 
         residential_space_heating_cons, residential_hot_tap_water_cons = simulate_residential_total_heating(
-            mock_data_constants, df_inputs, n_rows, residential_gross_floor_area, seed_residential_heating)
+            mock_data_constants, df_inputs, n_rows, residential_atemp, seed_residential_heating)
         space_heating_consumption.append(residential_space_heating_cons)
         hot_tap_water_consumption.append(residential_hot_tap_water_cons)
 

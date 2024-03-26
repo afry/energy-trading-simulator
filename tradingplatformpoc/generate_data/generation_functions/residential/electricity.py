@@ -66,7 +66,7 @@ def simulate_series_with_log_energy_model(input_df: pl.DataFrame, rand_seed: int
 
 
 def simulate_household_electricity_aggregated(df_inputs: pl.LazyFrame, model: RegressionResultsWrapper,
-                                              gross_floor_area_m2: float, start_seed: int, n_rows: int,
+                                              atemp_m2: float, start_seed: int, n_rows: int,
                                               kwh_per_year_m2_atemp: float) -> pl.LazyFrame:
     """
     Simulates the aggregated household electricity consumption for an area. Instead of simulating individual apartments,
@@ -77,21 +77,21 @@ def simulate_household_electricity_aggregated(df_inputs: pl.LazyFrame, model: Re
     single apartment, increased randomness could actually be said to make a lot of sense.
     Returns a pl.DataFrame with the datetimes and the data.
     """
-    if gross_floor_area_m2 == 0:
+    if atemp_m2 == 0:
         return constants(df_inputs, 0)
 
     unscaled_simulated_values_for_area = simulate_series_with_log_energy_model(df_inputs.collect(), start_seed, model)
     # Scale
     simulated_values_for_this_area = scale_energy_consumption(unscaled_simulated_values_for_area.lazy(),
-                                                              gross_floor_area_m2, kwh_per_year_m2_atemp, n_rows)
+                                                              atemp_m2, kwh_per_year_m2_atemp, n_rows)
     return simulated_values_for_this_area
 
 
-def property_electricity(df_inputs: pl.LazyFrame, gross_floor_area_m2: float, n_rows: int,
+def property_electricity(df_inputs: pl.LazyFrame, atemp_m2: float, n_rows: int,
                          kwh_per_year_m2_atemp: float) -> pl.LazyFrame:
     """
     Property electricity is assumed to be constant here. See the XLSX file from BDAB, available at
     https://doc.afdrift.se/x/cgLBAg
     """
     unscaled = constants(df_inputs, 1)
-    return scale_energy_consumption(unscaled, gross_floor_area_m2, kwh_per_year_m2_atemp, n_rows)
+    return scale_energy_consumption(unscaled, atemp_m2, kwh_per_year_m2_atemp, n_rows)
