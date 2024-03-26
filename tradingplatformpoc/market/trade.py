@@ -44,13 +44,11 @@ class Action(Enum):
 
 
 class TradeMetadataKey(Enum):
-    STORAGE_LEVEL = 0
-    HEAT_PUMP_WORKLOAD = 1
     BATTERY_LEVEL = 2
     ACC_TANK_LEVEL = 3
     HP_HIGH_HEAT_PROD = 4
     HP_LOW_HEAT_PROD = 5
-    CM_PROD = 6  # Cooling machine
+    HP_COOL_PROD = 6
     # Building inertia as thermal energy storage things:
     SHALLOW_STORAGE_REL = 7
     DEEP_STORAGE_REL = 8
@@ -63,6 +61,7 @@ class TradeMetadataKey(Enum):
     DEEP_LOSS = 15
 
     HEAT_DUMP = 16
+    CM_PROD = 17  # Cooling machine
 
 
 class Trade:

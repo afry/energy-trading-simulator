@@ -15,7 +15,7 @@ from tradingplatformpoc import constants
 from tradingplatformpoc.agent.block_agent import BlockAgent
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
-from tradingplatformpoc.market.trade import Action, Market, Resource, Trade
+from tradingplatformpoc.market.trade import Action, Market, Resource, Trade, TradeMetadataKey
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
 from tradingplatformpoc.price.iprice import IPrice
@@ -38,51 +38,15 @@ Here we keep methods that do either
 class ChalmersOutputs:
     trades: List[Trade]
     # (agent_guid, (period, level))
-    battery_storage_levels: Dict[str, Dict[datetime.datetime, float]]
-    acc_tank_levels: Dict[str, Dict[datetime.datetime, float]]
-    shallow_storage_rel: Dict[str, Dict[datetime.datetime, float]]
-    deep_storage_rel: Dict[str, Dict[datetime.datetime, float]]
-    shallow_storage_abs: Dict[str, Dict[datetime.datetime, float]]
-    deep_storage_abs: Dict[str, Dict[datetime.datetime, float]]
-    shallow_loss: Dict[str, Dict[datetime.datetime, float]]
-    deep_loss: Dict[str, Dict[datetime.datetime, float]]
-    shallow_charge: Dict[str, Dict[datetime.datetime, float]]
-    shallow_discharge: Dict[str, Dict[datetime.datetime, float]]
-    bites_flow: Dict[str, Dict[datetime.datetime, float]]
-    hp_high_prod: Dict[str, Dict[datetime.datetime, float]]
-    hp_low_prod: Dict[str, Dict[datetime.datetime, float]]
+    metadata_per_agent_and_period: Dict[TradeMetadataKey, Dict[str, Dict[datetime.datetime, float]]]
     # Data which isn't agent-individual: (period, level)
     heat_dump: Dict[datetime.datetime, float]
 
     def __init__(self, trades: List[Trade],
-                 battery_storage_levels: Dict[str, Dict[datetime.datetime, float]],
-                 acc_tank_levels: Dict[str, Dict[datetime.datetime, float]],
-                 shallow_storage_rel: Dict[str, Dict[datetime.datetime, float]],
-                 deep_storage_rel: Dict[str, Dict[datetime.datetime, float]],
-                 shallow_storage_abs: Dict[str, Dict[datetime.datetime, float]],
-                 deep_storage_abs: Dict[str, Dict[datetime.datetime, float]],
-                 shallow_loss: Dict[str, Dict[datetime.datetime, float]],
-                 deep_loss: Dict[str, Dict[datetime.datetime, float]],
-                 shallow_charge: Dict[str, Dict[datetime.datetime, float]],
-                 shallow_discharge: Dict[str, Dict[datetime.datetime, float]],
-                 bites_flow: Dict[str, Dict[datetime.datetime, float]],
-                 hp_high_prod: Dict[str, Dict[datetime.datetime, float]],
-                 hp_low_prod: Dict[str, Dict[datetime.datetime, float]],
+                 metadata_per_agent_and_period: Dict[TradeMetadataKey, Dict[str, Dict[datetime.datetime, float]]],
                  heat_dump: Dict[datetime.datetime, float]):
         self.trades = trades
-        self.battery_storage_levels = battery_storage_levels
-        self.acc_tank_levels = acc_tank_levels
-        self.shallow_storage_rel = shallow_storage_rel
-        self.deep_storage_rel = deep_storage_rel
-        self.shallow_storage_abs = shallow_storage_abs
-        self.deep_storage_abs = deep_storage_abs
-        self.shallow_loss = shallow_loss
-        self.deep_loss = deep_loss
-        self.shallow_charge = shallow_charge
-        self.shallow_discharge = shallow_discharge
-        self.bites_flow = bites_flow
-        self.hp_high_prod = hp_high_prod
-        self.hp_low_prod = hp_low_prod
+        self.metadata_per_agent_and_period = metadata_per_agent_and_period
         self.heat_dump = heat_dump
 
 
@@ -108,6 +72,7 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
     booster_max_power = [agent.booster_pump_max_input for agent in block_agents]
     booster_max_heat = [agent.booster_pump_max_output for agent in block_agents]
     gross_floor_area = [agent.digital_twin.gross_floor_area for agent in block_agents]
+    has_borehole = [agent.digital_twin.has_borehole for agent in block_agents]
     shallow_storage_start = [(shallow_storage_start_dict[agent] if agent in shallow_storage_start_dict.keys() else 0.0)
                              for agent in agent_guids]
     deep_storage_start = [(deep_storage_start_dict[agent] if agent in shallow_storage_start_dict.keys() else 0.0)
@@ -125,6 +90,7 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
     optimized_model, results = CEMS_function.solve_model(
         solver=solver,
         summer_mode=summer_mode,
+        month=start_datetime.month,
         n_agents=n_agents,
         external_elec_buy_price=elec_retail_prices,
         external_elec_sell_price=elec_wholesale_prices,
@@ -139,6 +105,7 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
         booster_heatpump_COP=[area_info['COPBoosterPumps']] * n_agents,
         booster_heatpump_max_power=booster_max_power,
         booster_heatpump_max_heat=booster_max_heat,
+        borehole=has_borehole,
         build_area=gross_floor_area,
         SOCTES0=[area_info['StorageEndChargeLevel']] * n_agents,
         thermalstorage_max_temp=[constants.ACC_TANK_TEMPERATURE] * n_agents,
@@ -152,11 +119,14 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
         pv_production=elec_supply_df,
         excess_heat=low_heat_supply_df,
         battery_efficiency=area_info['BatteryEfficiency'],
+        thermalstorage_efficiency=0.98,  # TODO: RES-444
         max_elec_transfer_between_agents=area_info['InterAgentElectricityTransferCapacity'],
         max_elec_transfer_to_external=grid_agents[Resource.ELECTRICITY].max_transfer_per_hour,
         max_heat_transfer_between_agents=area_info['InterAgentHeatTransferCapacity'],
         max_heat_transfer_to_external=grid_agents[Resource.HIGH_TEMP_HEAT].max_transfer_per_hour,
         chiller_COP=area_info['COPCompChiller'],
+        Pccmax=0.0,  # TODO: RES-444
+        cold_trans_loss=0.05,  # TODO: RES-444
         heat_trans_loss=area_info['HeatTransferLoss'],
         trading_horizon=trading_horizon
     )
@@ -192,55 +162,55 @@ def extract_outputs(optimized_model: pyo.ConcreteModel,
                                       electricity_price_data)
     heat_trades = get_heat_transfers(optimized_model, start_datetime, heat_grid_agent_guid, agent_guids,
                                      heating_price_data)
-    battery_storage_levels = get_value_per_agent(optimized_model, start_datetime, 'SOCBES', agent_guids,
-                                                 lambda i: optimized_model.Emax_BES[i] > 0)
-    acc_tank_levels = get_value_per_agent(optimized_model, start_datetime, 'SOCTES', agent_guids,
-                                          lambda i: optimized_model.kwh_per_deg[i] > 0)
-    shallow_storage_rel = get_value_per_agent(optimized_model, start_datetime, 'Energy_shallow', agent_guids,
-                                              lambda i: optimized_model.Energy_shallow_cap[i] > 0,
-                                              lambda i: optimized_model.Energy_shallow_cap[i])
-    deep_storage_rel = get_value_per_agent(optimized_model, start_datetime, 'Energy_deep', agent_guids,
-                                           lambda i: optimized_model.Energy_deep_cap[i] > 0,
-                                           lambda i: optimized_model.Energy_deep_cap[i])
-    shallow_storage_abs = get_value_per_agent(optimized_model, start_datetime, 'Energy_shallow', agent_guids,
-                                              lambda i: optimized_model.Energy_shallow_cap[i] > 0)
-    deep_storage_abs = get_value_per_agent(optimized_model, start_datetime, 'Energy_deep', agent_guids,
-                                           lambda i: optimized_model.Energy_deep_cap[i] > 0)
-    shallow_loss = get_value_per_agent(optimized_model, start_datetime, 'Loss_shallow', agent_guids,
-                                       lambda i: optimized_model.Energy_shallow_cap[i] > 0)
-    deep_loss = get_value_per_agent(optimized_model, start_datetime, 'Loss_deep', agent_guids,
-                                    lambda i: optimized_model.Energy_deep_cap[i] > 0)
-    shallow_charge = get_value_per_agent(optimized_model, start_datetime, 'Hcha_shallow', agent_guids,
-                                         lambda i: optimized_model.Energy_shallow_cap[i] > 0)
-    shallow_discharge = get_value_per_agent(optimized_model, start_datetime, 'Hdis_shallow', agent_guids,
-                                            lambda i: optimized_model.Energy_shallow_cap[i] > 0)
-    bites_flow = get_value_per_agent(optimized_model, start_datetime, 'Flow', agent_guids,
-                                     lambda i: optimized_model.Energy_deep_cap[i] > 0)
+    cool_trades = get_cool_transfers(optimized_model, start_datetime, agent_guids)
+    metadata_per_agent_and_period = {
+        TradeMetadataKey.BATTERY_LEVEL: get_value_per_agent(optimized_model, start_datetime, 'SOCBES', agent_guids,
+                                                            lambda i: optimized_model.Emax_BES[i] > 0),
+        TradeMetadataKey.ACC_TANK_LEVEL: get_value_per_agent(optimized_model, start_datetime, 'SOCTES', agent_guids,
+                                                             lambda i: optimized_model.kwh_per_deg[i] > 0),
+        TradeMetadataKey.SHALLOW_STORAGE_REL: get_value_per_agent(optimized_model, start_datetime, 'Energy_shallow',
+                                                                  agent_guids,
+                                                                  lambda i: optimized_model.Energy_shallow_cap[i] > 0,
+                                                                  lambda i: optimized_model.Energy_shallow_cap[i]),
+        TradeMetadataKey.DEEP_STORAGE_REL: get_value_per_agent(optimized_model, start_datetime, 'Energy_deep',
+                                                               agent_guids,
+                                                               lambda i: optimized_model.Energy_deep_cap[i] > 0,
+                                                               lambda i: optimized_model.Energy_deep_cap[i]),
+        TradeMetadataKey.SHALLOW_STORAGE_ABS: get_value_per_agent(optimized_model, start_datetime, 'Energy_shallow',
+                                                                  agent_guids,
+                                                                  lambda i: optimized_model.Energy_shallow_cap[i] > 0),
+        TradeMetadataKey.DEEP_STORAGE_ABS: get_value_per_agent(optimized_model, start_datetime, 'Energy_deep',
+                                                               agent_guids,
+                                                               lambda i: optimized_model.Energy_deep_cap[i] > 0),
+        TradeMetadataKey.SHALLOW_LOSS: get_value_per_agent(optimized_model, start_datetime, 'Loss_shallow', agent_guids,
+                                                           lambda i: optimized_model.Energy_shallow_cap[i] > 0),
+        TradeMetadataKey.DEEP_LOSS: get_value_per_agent(optimized_model, start_datetime, 'Loss_deep', agent_guids,
+                                                        lambda i: optimized_model.Energy_deep_cap[i] > 0),
+        TradeMetadataKey.SHALLOW_CHARGE: get_value_per_agent(optimized_model, start_datetime, 'Hcha_shallow',
+                                                             agent_guids,
+                                                             lambda i: optimized_model.Energy_shallow_cap[i] > 0),
+        TradeMetadataKey.SHALLOW_DISCHARGE: get_value_per_agent(optimized_model, start_datetime, 'Hdis_shallow',
+                                                                agent_guids,
+                                                                lambda i: optimized_model.Energy_shallow_cap[i] > 0),
+        TradeMetadataKey.FLOW_SHALLOW_TO_DEEP: get_value_per_agent(optimized_model, start_datetime, 'Flow', agent_guids,
+                                                                   lambda i: optimized_model.Energy_deep_cap[i] > 0),
+        TradeMetadataKey.HP_COOL_PROD: get_value_per_agent(optimized_model, start_datetime, 'Chp', agent_guids,
+                                                           lambda i: optimized_model.Phpmax[i] > 0)
+    }
     if should_use_summer_mode(start_datetime):
-        hp_low_prod = get_value_per_agent(optimized_model, start_datetime, 'Hhp', agent_guids,
-                                          lambda i: optimized_model.Phpmax[i] > 0)
-        hp_high_prod = get_value_per_agent(optimized_model, start_datetime, 'HhpB', agent_guids,
-                                           lambda i: optimized_model.PhpBmax[i] > 0)
+        metadata_per_agent_and_period[TradeMetadataKey.HP_LOW_HEAT_PROD] = \
+            get_value_per_agent(optimized_model, start_datetime, 'Hhp', agent_guids,
+                                lambda i: optimized_model.Phpmax[i] > 0)
+        metadata_per_agent_and_period[TradeMetadataKey.HP_HIGH_HEAT_PROD] = \
+            get_value_per_agent(optimized_model, start_datetime, 'HhpB', agent_guids,
+                                lambda i: optimized_model.PhpBmax[i] > 0)
     else:
-        hp_high_prod = get_value_per_agent(optimized_model, start_datetime, 'Hhp', agent_guids,
-                                           lambda i: optimized_model.Phpmax[i] > 0)
-        hp_low_prod = {}
+        metadata_per_agent_and_period[TradeMetadataKey.HP_LOW_HEAT_PROD] = {}
+        metadata_per_agent_and_period[TradeMetadataKey.HP_HIGH_HEAT_PROD] = \
+            get_value_per_agent(optimized_model, start_datetime, 'Hhp', agent_guids,
+                                lambda i: optimized_model.Phpmax[i] > 0)
     heat_dump = get_value_per_period(optimized_model, start_datetime, 'heat_dump')
-    return ChalmersOutputs(elec_trades + heat_trades,
-                           battery_storage_levels,
-                           acc_tank_levels,
-                           shallow_storage_rel,
-                           deep_storage_rel,
-                           shallow_storage_abs,
-                           deep_storage_abs,
-                           shallow_loss,
-                           deep_loss,
-                           shallow_charge,
-                           shallow_discharge,
-                           bites_flow,
-                           hp_high_prod,
-                           hp_low_prod,
-                           heat_dump)
+    return ChalmersOutputs(elec_trades + heat_trades + cool_trades, metadata_per_agent_and_period, heat_dump)
 
 
 def build_supply_and_demand_dfs(agents: List[BlockAgent], start_datetime: datetime.datetime, trading_horizon: int) -> \
@@ -330,6 +300,13 @@ def get_heat_transfers(optimized_model: pyo.ConcreteModel, start_datetime: datet
     return inter_agent_trades + external_trades
 
 
+def get_cool_transfers(optimized_model: pyo.ConcreteModel, start_datetime: datetime.datetime, agent_guids: List[str]) \
+        -> List[Trade]:
+    return get_agent_transfers(optimized_model, start_datetime,
+                               sold_internal_name='Csell_grid', bought_internal_name='Cbuy_grid',
+                               resource=Resource.COOLING, agent_guids=agent_guids)
+
+
 def get_external_transfers(optimized_model: pyo.ConcreteModel, start_datetime: datetime.datetime,
                            sold_to_external_name: str, bought_from_external_name: str,
                            retail_price_name: str, wholesale_price_name: str,
@@ -360,6 +337,7 @@ def add_agent_trade(trade_list: List[Trade], bought_internal_name: str, sold_int
                          - getattr(optimized_model, sold_internal_name)[i_agent, hour])
     agent_name = agent_guids[i_agent]
     if quantity > VERY_SMALL_NUMBER or quantity < -VERY_SMALL_NUMBER:
+        # TODO: Include Heat_trans_loss etc (RES-447)
         trade_list.append(Trade(period=start_datetime + datetime.timedelta(hours=hour),
                                 action=Action.BUY if quantity > 0 else Action.SELL, resource=resource,
                                 quantity=abs(quantity), price=np.nan, source=agent_name, by_external=False,

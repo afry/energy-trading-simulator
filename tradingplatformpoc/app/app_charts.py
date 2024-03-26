@@ -75,6 +75,8 @@ def construct_agent_energy_chart(digital_twin: StaticDigitalTwin, agent_chosen_g
                                  "HP high heat production", app_constants.ALTAIR_BASE_COLORS[8])
         df = add_to_df_and_lists(df, heat_pump_df['level_low'], domain, range_color,
                                  "HP low heat production", app_constants.ALTAIR_BASE_COLORS[9])
+        df = add_to_df_and_lists(df, heat_pump_df['level_cool'], domain, range_color,
+                                 "HP cooling production", app_constants.ALTAIR_BASE_COLORS[10])
     return altair_line_chart(df, domain, range_color, [], "Energy [kWh]",
                              "Energy production/consumption for " + agent_chosen_guid)
 

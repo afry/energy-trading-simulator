@@ -11,6 +11,7 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
+		"Borehole": true,
 		"BatteryCapacity": 100,
 		"AccumulatorTankCapacity": 300
 	},
@@ -26,6 +27,7 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
+		"Borehole": true,
 		"BatteryCapacity": 100,
 		"AccumulatorTankCapacity": 300
 	},
@@ -41,6 +43,7 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
+		"Borehole": true,
 		"BatteryCapacity": 100,
 		"AccumulatorTankCapacity": 300
 	},
@@ -56,6 +59,7 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
+		"Borehole": true,
 		"BatteryCapacity": 100,
 		"AccumulatorTankCapacity": 300
 	},
@@ -71,6 +75,7 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
+		"Borehole": true,
 		"BatteryCapacity": 100,
 		"AccumulatorTankCapacity": 300
 	},
@@ -86,6 +91,7 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
+		"Borehole": true,
 		"BatteryCapacity": 100,
 		"AccumulatorTankCapacity": 300
 	},
@@ -101,6 +107,7 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
+		"Borehole": true,
 		"BatteryCapacity": 100,
 		"AccumulatorTankCapacity": 300
 	},
@@ -116,6 +123,7 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
+		"Borehole": true,
 		"BatteryCapacity": 100,
 		"AccumulatorTankCapacity": 300
 	},
@@ -131,6 +139,7 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
+		"Borehole": true,
 		"BatteryCapacity": 100,
 		"AccumulatorTankCapacity": 300
 	},
@@ -146,6 +155,7 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
+		"Borehole": true,
 		"BatteryCapacity": 100,
 		"AccumulatorTankCapacity": 300
 	},
@@ -161,6 +171,7 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
+		"Borehole": true,
 		"BatteryCapacity": 100,
 		"AccumulatorTankCapacity": 300
 	},
@@ -176,6 +187,7 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
+		"Borehole": true,
 		"BatteryCapacity": 100,
 		"AccumulatorTankCapacity": 300
 	},
@@ -191,6 +203,7 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
+		"Borehole": true,
 		"BatteryCapacity": 100,
 		"AccumulatorTankCapacity": 300
 	},
@@ -206,6 +219,7 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
+		"Borehole": true,
 		"BatteryCapacity": 100,
 		"AccumulatorTankCapacity": 300
 	},
@@ -221,6 +235,7 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
+		"Borehole": true,
 		"BatteryCapacity": 100,
 		"AccumulatorTankCapacity": 300
 	},
@@ -236,6 +251,7 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
+		"Borehole": true,
 		"BatteryCapacity": 100,
 		"AccumulatorTankCapacity": 300
 	},
@@ -251,6 +267,7 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
+		"Borehole": true,
 		"BatteryCapacity": 100,
 		"AccumulatorTankCapacity": 300
 	},
@@ -266,6 +283,7 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
+		"Borehole": true,
 		"BatteryCapacity": 100,
 		"AccumulatorTankCapacity": 300
 	},
@@ -281,6 +299,7 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
+		"Borehole": true,
 		"BatteryCapacity": 100,
 		"AccumulatorTankCapacity": 300
 	},
@@ -296,6 +315,7 @@
 		"HeatPumpMaxOutput": 145,
 		"BoosterPumpMaxInput": 25,
 		"BoosterPumpMaxOutput": 100,
+		"Borehole": true,
 		"BatteryCapacity": 100,
 		"AccumulatorTankCapacity": 300
 	},
