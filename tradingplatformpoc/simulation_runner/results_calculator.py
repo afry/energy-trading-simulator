@@ -34,7 +34,7 @@ class AggregatedTrades:
     sum_export_below_1_c: float
 
     def __init__(self, external_trades_df: pd.DataFrame, periods_above_1_c: List[datetime.datetime],
-                 value_column_name: str = 'quantity_post_loss'):
+                 value_column_name: str = 'quantity_pre_loss'):
         """
         Expected columns in external_trades_df:
         ['period', 'action', 'price', value_column_name]

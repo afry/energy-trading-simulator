@@ -113,13 +113,12 @@ def db_to_aggregated_trade_df(job_id: str, resource: Resource, action: Action,
                               = session_scope) -> Optional[pd.DataFrame]:
     """Fetches aggregated trades data from database for specified agent (source), resource and action."""
     with session_generator() as db:
+        quantity_attribute = "quantity_pre_loss"
         if action == Action.BUY:
             label = "bought"
-            quantity_attribute = "quantity_pre_loss"
             action_attribute = "bought_for"
         elif action == Action.SELL:
             label = "sold"
-            quantity_attribute = "quantity_post_loss"
             action_attribute = "sold_for"
         res = db.query(
             TableTrade.source.label('Agent'),
@@ -253,7 +252,7 @@ def get_external_trades_df(job_ids: List[str],
             TableTrade.action.label('action'),
             TableTrade.resource.label('resource'),
             TableTrade.price.label('price'),
-            TableTrade.quantity_post_loss.label('quantity_post_loss'),
+            TableTrade.quantity_pre_loss.label('quantity_pre_loss'),
         ).filter(TableTrade.job_id.in_(job_ids),
                  TableTrade.by_external).all()
         if len(res) > 0:
@@ -262,7 +261,7 @@ def get_external_trades_df(job_ids: List[str],
                                                'action': elem.action,
                                                'resource': elem.resource,
                                                'price': elem.price,
-                                               'quantity_post_loss': elem.quantity_post_loss}
+                                               'quantity_pre_loss': elem.quantity_pre_loss}
                                               for elem in res])
         else:
-            return pd.DataFrame(columns=['job_id', 'period', 'action', 'resource', 'price', 'quantity_post_loss'])
+            return pd.DataFrame(columns=['job_id', 'period', 'action', 'resource', 'price', 'quantity_pre_loss'])
