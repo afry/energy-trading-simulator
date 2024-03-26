@@ -4,6 +4,8 @@ from typing import Any, Callable, Dict, List
 
 import pandas as pd
 
+from sqlalchemy import func
+
 from sqlmodel import Session
 
 from tradingplatformpoc.connection import session_scope
@@ -77,3 +79,12 @@ def db_to_viewable_level_df(job_id: str, level_type: str,
                                                } for level in levels], index='period')
         else:
             return pd.DataFrame(columns=['period', 'level'])
+
+
+def sum_levels(job_id: str, level_type: str,
+               session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope) -> float:
+    with session_generator() as db:
+        rows = db.query(func.sum(Level.level)).filter(Level.job_id == job_id, Level.type == level_type).all()
+        if len(rows) > 0 and len(rows[0]) > 0:
+            return rows[0][0]
+        return 0.0
