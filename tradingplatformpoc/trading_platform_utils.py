@@ -103,6 +103,16 @@ def add_to_nested_dict(nested_dict: Dict[Any, dict], key1, key2, value):
         nested_dict[key1] = {key2: value}
 
 
+def add_to_twice_nested_dict(twice_nested_dict: Dict[Any, Dict[Any, dict]], key1, key2, key3, value):
+    """
+    Emulates add_to_nested_dict but with one more level
+    """
+    if key1 in twice_nested_dict:
+        add_to_nested_dict(twice_nested_dict[key1], key2, key3, value)
+    else:
+        twice_nested_dict[key1] = {key2: {key3: value}}
+
+
 def add_all_to_nested_dict(nested_dict: Dict[Any, dict], other_nested_dict: Dict[Any, dict]):
     """
     Will add all data from other_nested_dict into nested_dict. If there are key pairs that exist in both, the values
@@ -111,6 +121,17 @@ def add_all_to_nested_dict(nested_dict: Dict[Any, dict], other_nested_dict: Dict
     for (k1, subdict) in other_nested_dict.items():
         for (k2, v) in subdict.items():
             add_to_nested_dict(nested_dict, k1, k2, v)
+
+
+def add_all_to_twice_nested_dict(first_dict: Dict[Any, Dict[Any, dict]], second_dict: Dict[Any, Dict[Any, dict]]):
+    """
+    Will add all data from first_dict into second_dict. If there are key pairs that exist in both, the values
+    in second_dict will overwrite those in first_dict.
+    """
+    for (k1, subdict1) in second_dict.items():
+        for (k2, subdict2) in subdict1.items():
+            for (k3, v) in subdict2.items():
+                add_to_twice_nested_dict(first_dict, k1, k2, k3, v)
 
 
 def get_glpk_solver() -> OptSolver:
@@ -144,6 +165,10 @@ def get_final_storage_level(trading_horizon: int,
     """For each agent, return the value for the final period in the input dict."""
     return {agent: sub_dict[horizon_start + timedelta(hours=trading_horizon - 1)]
             for agent, sub_dict in storage_by_period_and_agent.items()}
+
+
+def sum_nested_dict_values(levels_dict: Dict[Any, Dict[Any, float]]) -> float:
+    return sum(sum(subdict.values()) for subdict in levels_dict.values())
 
 
 def water_volume_to_energy(volume_m3: float, temperature_c: float = 65) -> float:

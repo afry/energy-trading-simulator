@@ -44,8 +44,6 @@ class Action(Enum):
 
 
 class TradeMetadataKey(Enum):
-    STORAGE_LEVEL = 0
-    HEAT_PUMP_WORKLOAD = 1
     BATTERY_LEVEL = 2
     ACC_TANK_LEVEL = 3
     HP_HIGH_HEAT_PROD = 4
