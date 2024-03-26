@@ -7,8 +7,9 @@ import pandas as pd
 from sqlmodel import Session
 
 from tradingplatformpoc.connection import session_scope
+from tradingplatformpoc.market.trade import TradeMetadataKey
 from tradingplatformpoc.sql.level.models import Level
-
+from tradingplatformpoc.trading_platform_utils import flatten_collection
 
 NOT_AN_AGENT = ''
 
@@ -22,6 +23,12 @@ def levels_to_db_dict(levels_dict: Dict[str, Dict[datetime.datetime, float]],
              'level': level}
             for agent, some_dict in levels_dict.items()
             for period, level in some_dict.items()]
+
+
+def tmk_levels_dict_to_db_dict(tmk_levels_dict: Dict[TradeMetadataKey, Dict[str, Dict[datetime.datetime, float]]],
+                               job_id: str) -> List[Dict[str, Any]]:
+    many_lists = [levels_to_db_dict(levels_dict, tmk.name, job_id) for tmk, levels_dict in tmk_levels_dict.items()]
+    return flatten_collection(many_lists)
 
 
 def overall_levels_to_db_dict(levels_dict: Dict[datetime.datetime, float],

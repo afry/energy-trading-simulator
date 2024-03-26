@@ -31,12 +31,12 @@ from tradingplatformpoc.sql.heating_price.models import HeatingPrice as TableHea
 from tradingplatformpoc.sql.input_data.crud import get_periods_from_db, read_inputs_df_for_agent_creation
 from tradingplatformpoc.sql.input_electricity_price.crud import electricity_price_series_from_db
 from tradingplatformpoc.sql.job.crud import delete_job, get_config_id_for_job_id, update_job_with_time
-from tradingplatformpoc.sql.level.crud import levels_to_db_dict, overall_levels_to_db_dict
+from tradingplatformpoc.sql.level.crud import overall_levels_to_db_dict, tmk_levels_dict_to_db_dict
 from tradingplatformpoc.sql.level.models import Level as TableLevel
 from tradingplatformpoc.sql.trade.crud import trades_to_db_dict
 from tradingplatformpoc.sql.trade.models import Trade as TableTrade
-from tradingplatformpoc.trading_platform_utils import add_all_to_nested_dict, calculate_solar_prod, \
-    get_external_heating_prices, get_final_storage_level, get_glpk_solver
+from tradingplatformpoc.trading_platform_utils import add_all_to_twice_nested_dict, calculate_solar_prod, \
+    get_external_heating_prices, get_final_storage_level, get_glpk_solver, sum_nested_dict_values
 
 logger = logging.getLogger(__name__)
 
@@ -185,20 +185,7 @@ class TradingSimulator:
 
         logger.info("Starting trading simulations")
 
-        battery_levels_dict: Dict[str, Dict[datetime.datetime, float]] = {}
-        acc_tank_levels_dict: Dict[str, Dict[datetime.datetime, float]] = {}
-        shallow_storage_rel_dict: Dict[str, Dict[datetime.datetime, float]] = {}
-        deep_storage_rel_dict: Dict[str, Dict[datetime.datetime, float]] = {}
-        shallow_storage_abs_dict: Dict[str, Dict[datetime.datetime, float]] = {}
-        deep_storage_abs_dict: Dict[str, Dict[datetime.datetime, float]] = {}
-        shallow_loss_dict: Dict[str, Dict[datetime.datetime, float]] = {}
-        deep_loss_dict: Dict[str, Dict[datetime.datetime, float]] = {}
-        shallow_charge_dict: Dict[str, Dict[datetime.datetime, float]] = {}
-        shallow_discharge_dict: Dict[str, Dict[datetime.datetime, float]] = {}
-        bites_flow_dict: Dict[str, Dict[datetime.datetime, float]] = {}
-        hp_high_prod: Dict[str, Dict[datetime.datetime, float]] = {}
-        hp_low_prod: Dict[str, Dict[datetime.datetime, float]] = {}
-        hp_cool_prod: Dict[str, Dict[datetime.datetime, float]] = {}
+        metadata_per_agent_and_period: Dict[TradeMetadataKey, Dict[str, Dict[datetime.datetime, float]]] = {}
         heat_dump: Dict[datetime.datetime, float] = {}
 
         shallow_storage_end: Dict[str, float] = {}
@@ -240,23 +227,15 @@ class TradingSimulator:
                                             shallow_storage_end, deep_storage_end)
                 all_trades_list_batch.append(chalmers_outputs.trades)
                 shallow_storage_end = get_final_storage_level(
-                    self.trading_horizon, chalmers_outputs.shallow_storage_abs, horizon_start)
+                    self.trading_horizon,
+                    chalmers_outputs.metadata_per_agent_and_period[TradeMetadataKey.SHALLOW_STORAGE_ABS],
+                    horizon_start)
                 deep_storage_end = get_final_storage_level(
-                    self.trading_horizon, chalmers_outputs.deep_storage_abs, horizon_start)
-                add_all_to_nested_dict(battery_levels_dict, chalmers_outputs.battery_storage_levels)
-                add_all_to_nested_dict(acc_tank_levels_dict, chalmers_outputs.acc_tank_levels)
-                add_all_to_nested_dict(shallow_storage_rel_dict, chalmers_outputs.shallow_storage_rel)
-                add_all_to_nested_dict(deep_storage_rel_dict, chalmers_outputs.deep_storage_rel)
-                add_all_to_nested_dict(shallow_storage_abs_dict, chalmers_outputs.shallow_storage_abs)
-                add_all_to_nested_dict(deep_storage_abs_dict, chalmers_outputs.deep_storage_abs)
-                add_all_to_nested_dict(shallow_loss_dict, chalmers_outputs.shallow_loss)
-                add_all_to_nested_dict(deep_loss_dict, chalmers_outputs.deep_loss)
-                add_all_to_nested_dict(shallow_charge_dict, chalmers_outputs.shallow_charge)
-                add_all_to_nested_dict(shallow_discharge_dict, chalmers_outputs.shallow_discharge)
-                add_all_to_nested_dict(bites_flow_dict, chalmers_outputs.bites_flow)
-                add_all_to_nested_dict(hp_high_prod, chalmers_outputs.hp_high_prod)
-                add_all_to_nested_dict(hp_low_prod, chalmers_outputs.hp_low_prod)
-                add_all_to_nested_dict(hp_cool_prod, chalmers_outputs.hp_cool_prod)
+                    self.trading_horizon,
+                    chalmers_outputs.metadata_per_agent_and_period[TradeMetadataKey.DEEP_STORAGE_ABS],
+                    horizon_start)
+                add_all_to_twice_nested_dict(metadata_per_agent_and_period,
+                                             chalmers_outputs.metadata_per_agent_and_period)
                 heat_dump.update(chalmers_outputs.heat_dump)
 
             logger.info('Saving trades to db...')
@@ -265,47 +244,18 @@ class TradingSimulator:
             logger.info('Saving electricity price to db...')
             bulk_insert(TableElectricityPrice, electricity_price_list_batch)
 
-        battery_level_dicts = levels_to_db_dict(battery_levels_dict, TradeMetadataKey.BATTERY_LEVEL.name, self.job_id)
-        acc_tank_level_dicts = levels_to_db_dict(acc_tank_levels_dict, TradeMetadataKey.ACC_TANK_LEVEL.name,
-                                                 self.job_id)
-        shallow_storage_rel_dicts = levels_to_db_dict(shallow_storage_rel_dict,
-                                                      TradeMetadataKey.SHALLOW_STORAGE_REL.name, self.job_id)
-        shallow_storage_abs_dicts = levels_to_db_dict(shallow_storage_abs_dict,
-                                                      TradeMetadataKey.SHALLOW_STORAGE_ABS.name, self.job_id)
-        deep_storage_rel_dicts = levels_to_db_dict(deep_storage_rel_dict, TradeMetadataKey.DEEP_STORAGE_REL.name,
-                                                   self.job_id)
-        deep_storage_abs_dicts = levels_to_db_dict(deep_storage_abs_dict, TradeMetadataKey.DEEP_STORAGE_ABS.name,
-                                                   self.job_id)
-        shallow_loss_dicts = levels_to_db_dict(shallow_loss_dict, TradeMetadataKey.SHALLOW_LOSS.name, self.job_id)
-        deep_loss_dicts = levels_to_db_dict(deep_loss_dict, TradeMetadataKey.DEEP_LOSS.name, self.job_id)
-        shallow_charge_dicts = levels_to_db_dict(shallow_charge_dict, TradeMetadataKey.SHALLOW_CHARGE.name, self.job_id)
-        shallow_discharge_dicts = levels_to_db_dict(shallow_discharge_dict, TradeMetadataKey.SHALLOW_DISCHARGE.name,
-                                                    self.job_id)
-        bites_flow_dicts = levels_to_db_dict(bites_flow_dict, TradeMetadataKey.FLOW_SHALLOW_TO_DEEP.name, self.job_id)
-        hp_high_prod_dicts = levels_to_db_dict(hp_high_prod, TradeMetadataKey.HP_HIGH_HEAT_PROD.name, self.job_id)
-        hp_low_prod_dicts = levels_to_db_dict(hp_low_prod, TradeMetadataKey.HP_LOW_HEAT_PROD.name, self.job_id)
-        hp_cool_prod_dicts = levels_to_db_dict(hp_cool_prod, TradeMetadataKey.HP_COOL_PROD.name, self.job_id)
+        metadata_per_agent_and_period_dicts = tmk_levels_dict_to_db_dict(metadata_per_agent_and_period, self.job_id)
         heat_dump_dicts = overall_levels_to_db_dict(heat_dump, TradeMetadataKey.HEAT_DUMP.name, self.job_id)
-        bulk_insert(TableLevel, battery_level_dicts)
-        bulk_insert(TableLevel, acc_tank_level_dicts)
-        bulk_insert(TableLevel, shallow_storage_rel_dicts)
-        bulk_insert(TableLevel, deep_storage_rel_dicts)
-        bulk_insert(TableLevel, shallow_storage_abs_dicts)
-        bulk_insert(TableLevel, deep_storage_abs_dicts)
-        bulk_insert(TableLevel, shallow_loss_dicts)
-        bulk_insert(TableLevel, deep_loss_dicts)
-        bulk_insert(TableLevel, shallow_charge_dicts)
-        bulk_insert(TableLevel, shallow_discharge_dicts)
-        bulk_insert(TableLevel, bites_flow_dicts)
-        bulk_insert(TableLevel, hp_high_prod_dicts)
-        bulk_insert(TableLevel, hp_low_prod_dicts)
-        bulk_insert(TableLevel, hp_cool_prod_dicts)
+        bulk_insert(TableLevel, metadata_per_agent_and_period_dicts)
         bulk_insert(TableLevel, heat_dump_dicts)
 
         calculate_results_and_save(self.job_id, self.agents, self.grid_agents,
-                                   hp_high_heat_prod=sum(sum(subdict.values()) for subdict in hp_high_prod.values()),
-                                   hp_low_heat_prod=sum(sum(subdict.values()) for subdict in hp_low_prod.values()),
-                                   hp_cool_prod=sum(sum(subdict.values()) for subdict in hp_cool_prod.values()),
+                                   hp_high_heat_prod=sum_nested_dict_values(
+                                       metadata_per_agent_and_period[TradeMetadataKey.HP_HIGH_HEAT_PROD]),
+                                   hp_low_heat_prod=sum_nested_dict_values(
+                                       metadata_per_agent_and_period[TradeMetadataKey.HP_LOW_HEAT_PROD]),
+                                   hp_cool_prod=sum_nested_dict_values(
+                                       metadata_per_agent_and_period[TradeMetadataKey.HP_COOL_PROD]),
                                    heat_dumped=sum(heat_dump.values()))
 
         logger.info("Finished simulating trades, beginning calculations on district heating price...")
