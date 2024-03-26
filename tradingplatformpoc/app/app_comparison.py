@@ -121,7 +121,7 @@ def show_key_figs_for_one(pre_calculated_results: Dict[str, Any], other_numbers:
     numbers = [pre_calculated_results[ResultsKey.NET_ENERGY_SPEND],
                net_import_dict[Resource.ELECTRICITY.name] / 1000,
                net_import_dict[Resource.HIGH_TEMP_HEAT.name] / 1000]
-    deltas: List[Optional[str]] = [str(round(100 * (this - other) / other, 2)) + '%'
+    deltas: List[Optional[str]] = [calculate_percentage_change(this, other) + '%'
                                    for this, other in zip(numbers, other_numbers)]\
         if other_numbers else [None] * len(numbers)
     st.metric(label="Total net energy spend:",
@@ -143,6 +143,14 @@ def show_key_figs_for_one(pre_calculated_results: Dict[str, Any], other_numbers:
               delta=deltas[2],
               delta_color='inverse')
     return numbers
+
+
+def calculate_percentage_change(this: float, other: float) -> str:
+    if other == this:
+        return '0.0'
+    if other == 0.0:
+        return 'inf'
+    return str(round(100 * (this - other) / other, 2))
 
 
 def construct_level_comparison_chart(ids: ComparisonIds, agent_names: List[str],
