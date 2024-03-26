@@ -66,8 +66,7 @@ if len(ids) > 0:
                 agg_trades = agg_trades.transpose()
                 st.dataframe(agg_trades.style.format(precision=2))
 
-            st.caption("The quantities used for calculations are before losses for purchases but"
-                       " after losses for sales.")
+            st.caption("The quantities used for calculations are before losses.")
 
             if resource == Resource.ELECTRICITY:
                 # TODO: Make it possible to choose ex. Dec-Jan
@@ -125,7 +124,8 @@ if len(ids) > 0:
         st.metric(label="Electricity",
                   value="{:,.2f} MWh".format(res_dict[Resource.ELECTRICITY.name] / 1000))
         st.metric(label="Cooling",
-                  value="{:,.2f} MWh".format(res_dict[Resource.COOLING.name] / 1000))
+                  value="{:,.2f} MWh".format(res_dict[Resource.COOLING.name] / 1000),
+                  help="'Waste' cooling produced by heat pumps.")
         st.metric(label="Low-tempered heating",
                   value="{:,.2f} MWh".format(res_dict[Resource.LOW_TEMP_HEAT.name] / 1000),
                   help="Heating produced by heat pumps during summer, and excess heat from cooling machines.")

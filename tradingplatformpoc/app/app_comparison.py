@@ -63,7 +63,7 @@ def import_export_calculations(ids: ComparisonIds) -> alt.Chart:
         resource = k[1]
         for job_id in pd.unique(df.job_id):
             subset = df[(df.resource == resource) & (df.job_id == job_id) & (df.action == action)][[
-                'period', 'quantity_post_loss']]
+                'period', 'quantity_pre_loss']]
 
             if not subset.empty:
                 subset = subset.set_index('period')
@@ -73,7 +73,7 @@ def import_export_calculations(ids: ComparisonIds) -> alt.Chart:
                 subset = subset.reset_index().rename(columns={'index': 'period'})
                 variable = title + ' - ' + ids.get_config_id(job_id)
                 subset['variable'] = variable
-                subset = subset.rename(columns={'quantity_post_loss': 'value'})
+                subset = subset.rename(columns={'quantity_pre_loss': 'value'})
 
                 domain.append(variable)
                 range_color.append(colors[j])
