@@ -24,7 +24,7 @@
         "max_value": 0.99,
         "format": "%.3f",
         "default": 0.05,
-        "help": "A number specifying the loss of heat in every transfer. Must be between 0 and 0.99, where 0 would mean no losses at all, and 0.99 would mean that almost all energy is lost when trying to transfer heat from one agent to another. A reasonable number would be in the 0-0.10 range."
+        "help": "A number specifying the loss of heat in every transfer. Must be between 0 and 0.99, where 0 would mean no losses at all, and 0.99 would mean that almost all energy is lost when trying to transfer heat from one agent to another. A reasonable number would be in the 0-0.10 range. When buying heat from the external grid, the LEC pays for the quantity before losses, but can only use the quantity after losses."
     },
     "ExternalElectricityWholesalePriceOffset": {
         "display": "External electricity wholesale price offset:",
