@@ -113,7 +113,7 @@ class TradingSimulator:
                                                       agent['PVArea'],
                                                       area_info['PVEfficiency'])
 
-                block_digital_twin = StaticDigitalTwin(gross_floor_area=agent['GrossFloorArea'],
+                block_digital_twin = StaticDigitalTwin(atemp=agent['Atemp'],
                                                        electricity_usage=elec_cons_series,
                                                        space_heating_usage=space_heat_cons_series,
                                                        hot_water_usage=hot_tap_water_cons_series,
@@ -142,7 +142,7 @@ class TradingSimulator:
                                                       agent['PVArea'],
                                                       agent['PVEfficiency'])
                 space_heat_prod = inputs_df['coop_space_heating_produced'] if agent['SellExcessHeat'] else None
-                grocery_store_digital_twin = StaticDigitalTwin(gross_floor_area=agent['GrossFloorArea'],
+                grocery_store_digital_twin = StaticDigitalTwin(atemp=agent['Atemp'],
                                                                electricity_usage=inputs_df['coop_electricity_consumed'],
                                                                space_heating_usage=inputs_df[
                                                                    'coop_space_heating_consumed'],

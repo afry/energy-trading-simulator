@@ -71,7 +71,7 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
     heatpump_max_heat = [agent.heat_pump_max_output for agent in block_agents]
     booster_max_power = [agent.booster_pump_max_input for agent in block_agents]
     booster_max_heat = [agent.booster_pump_max_output for agent in block_agents]
-    gross_floor_area = [agent.digital_twin.gross_floor_area for agent in block_agents]
+    atemps = [agent.digital_twin.atemp for agent in block_agents]
     has_borehole = [agent.digital_twin.has_borehole for agent in block_agents]
     shallow_storage_start = [(shallow_storage_start_dict[agent] if agent in shallow_storage_start_dict.keys() else 0.0)
                              for agent in agent_guids]
@@ -106,7 +106,7 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
         booster_heatpump_max_power=booster_max_power,
         booster_heatpump_max_heat=booster_max_heat,
         borehole=has_borehole,
-        build_area=gross_floor_area,
+        build_area=atemps,
         SOCTES0=[area_info['StorageEndChargeLevel']] * n_agents,
         thermalstorage_max_temp=[constants.ACC_TANK_TEMPERATURE] * n_agents,
         thermalstorage_volume=acc_tank_volumes,

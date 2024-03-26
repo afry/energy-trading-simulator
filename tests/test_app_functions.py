@@ -36,7 +36,7 @@ class TestAppFunctions(TestCase):
                         "Resource": "HIGH_TEMP_HEAT", "TransferRate": 5.0}
         mock_pv = {"Type": "BlockAgent",
                    "Name": "PVParkAgent",
-                   "GrossFloorArea": 0.0,
+                   "Atemp": 0.0,
                    "FractionCommercial": 0.0,
                    "FractionSchool": 0.0,
                    "FractionOffice": 0.0,

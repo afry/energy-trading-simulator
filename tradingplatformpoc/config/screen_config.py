@@ -222,7 +222,7 @@ def display_diff_in_config(old: dict, new: dict) -> List[str]:
 def diff_string(key: str, old_val: float, new_val: float) -> str:
     """
     Will output for example:
-    GrossFloorArea: 11305 → 11315
+    Atemp: 11305 → 11315
     """
     return key + ': ' + str(round_if_float(old_val)) + ' &rarr; ' + str(round_if_float(new_val)) + ', '
 

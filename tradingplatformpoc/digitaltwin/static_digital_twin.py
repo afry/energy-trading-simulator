@@ -29,7 +29,7 @@ class StaticDigitalTwin:
     i.e. are defined when initializing the digital twin, and never change after that.
     Not specifying a Series when initializing the class will make it assume it is 0.
     """
-    gross_floor_area: float
+    atemp: float
     electricity_usage: pd.Series
     space_heating_usage: pd.Series
     hot_water_usage: pd.Series
@@ -42,12 +42,12 @@ class StaticDigitalTwin:
     total_heating_production: pd.Series
     has_borehole: bool
 
-    def __init__(self, gross_floor_area: float, electricity_usage: pd.Series = None,
+    def __init__(self, atemp: float, electricity_usage: pd.Series = None,
                  space_heating_usage: pd.Series = None, hot_water_usage: pd.Series = None,
                  cooling_usage: pd.Series = None, electricity_production: pd.Series = None,
                  space_heating_production: pd.Series = None, hot_water_production: pd.Series = None,
                  cooling_production: pd.Series = None, has_borehole: bool = True):
-        self.gross_floor_area = gross_floor_area
+        self.atemp = atemp
         self.electricity_usage = electricity_usage
         self.space_heating_usage = space_heating_usage
         self.hot_water_usage = hot_water_usage
