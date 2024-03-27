@@ -297,7 +297,6 @@ def build_leaderboard_df(list_of_dicts: List[dict]) -> pd.DataFrame:
                       ResultsKey.format_results_key_name(ResultsKey.LOCALLY_PRODUCED_RESOURCES,
                                                          Resource.HIGH_TEMP_HEAT),
                       ResultsKey.format_results_key_name(ResultsKey.LOCALLY_PRODUCED_RESOURCES, Resource.LOW_TEMP_HEAT),
-                      ResultsKey.format_results_key_name(ResultsKey.LOCALLY_PRODUCED_RESOURCES, Resource.COOLING),
                       ResultsKey.TAX_PAID,
                       ResultsKey.GRID_FEES_PAID,
                       ResultsKey.format_results_key_name(ResultsKey.SUM_IMPORT_BELOW_1_C, Resource.HIGH_TEMP_HEAT),

@@ -123,9 +123,6 @@ if len(ids) > 0:
         res_dict = pre_calculated_results[ResultsKey.LOCALLY_PRODUCED_RESOURCES]
         st.metric(label="Electricity",
                   value="{:,.2f} MWh".format(res_dict[Resource.ELECTRICITY.name] / 1000))
-        st.metric(label="Cooling",
-                  value="{:,.2f} MWh".format(res_dict[Resource.COOLING.name] / 1000),
-                  help="'Waste' cooling produced by heat pumps.")
         st.metric(label="Low-tempered heating",
                   value="{:,.2f} MWh".format(res_dict[Resource.LOW_TEMP_HEAT.name] / 1000),
                   help="Heating produced by heat pumps during summer, and excess heat from cooling machines.")
