@@ -7,13 +7,13 @@
 		"FractionCommercial": 0.2,
 		"FractionSchool": 0.0,
 		"FractionOffice": 0.0,
-		"HeatPumpMaxInput": 45,
-		"HeatPumpMaxOutput": 145,
-		"BoosterPumpMaxInput": 25,
-		"BoosterPumpMaxOutput": 100,
+		"HeatPumpMaxInput": 45.0,
+		"HeatPumpMaxOutput": 145.0,
+		"BoosterPumpMaxInput": 25.0,
+		"BoosterPumpMaxOutput": 100.0,
 		"Borehole": true,
-		"BatteryCapacity": 100,
-		"AccumulatorTankCapacity": 300
+		"BatteryCapacity": 100.0,
+		"AccumulatorTankCapacity": 300.0
 	},
 	{
 		"Type": "BlockAgent",
@@ -23,13 +23,13 @@
 		"FractionCommercial": 0.0,
 		"FractionSchool": 0.0,
 		"FractionOffice": 0.0,
-		"HeatPumpMaxInput": 45,
-		"HeatPumpMaxOutput": 145,
-		"BoosterPumpMaxInput": 25,
-		"BoosterPumpMaxOutput": 100,
+		"HeatPumpMaxInput": 45.0,
+		"HeatPumpMaxOutput": 145.0,
+		"BoosterPumpMaxInput": 25.0,
+		"BoosterPumpMaxOutput": 100.0,
 		"Borehole": true,
-		"BatteryCapacity": 100,
-		"AccumulatorTankCapacity": 300
+		"BatteryCapacity": 100.0,
+		"AccumulatorTankCapacity": 300.0
 	},
 	{
 		"Type": "BlockAgent",
@@ -39,13 +39,13 @@
 		"FractionCommercial": 0.0,
 		"FractionSchool": 0.0,
 		"FractionOffice": 0.0,
-		"HeatPumpMaxInput": 45,
-		"HeatPumpMaxOutput": 145,
-		"BoosterPumpMaxInput": 25,
-		"BoosterPumpMaxOutput": 100,
+		"HeatPumpMaxInput": 45.0,
+		"HeatPumpMaxOutput": 145.0,
+		"BoosterPumpMaxInput": 25.0,
+		"BoosterPumpMaxOutput": 100.0,
 		"Borehole": true,
-		"BatteryCapacity": 100,
-		"AccumulatorTankCapacity": 300
+		"BatteryCapacity": 100.0,
+		"AccumulatorTankCapacity": 300.0
 	},
 	{
 		"Type": "BlockAgent",
@@ -55,13 +55,13 @@
 		"FractionCommercial": 0.0,
 		"FractionSchool": 0.0,
 		"FractionOffice": 0.0,
-		"HeatPumpMaxInput": 45,
-		"HeatPumpMaxOutput": 145,
-		"BoosterPumpMaxInput": 25,
-		"BoosterPumpMaxOutput": 100,
+		"HeatPumpMaxInput": 45.0,
+		"HeatPumpMaxOutput": 145.0,
+		"BoosterPumpMaxInput": 25.0,
+		"BoosterPumpMaxOutput": 100.0,
 		"Borehole": true,
-		"BatteryCapacity": 100,
-		"AccumulatorTankCapacity": 300
+		"BatteryCapacity": 100.0,
+		"AccumulatorTankCapacity": 300.0
 	},
 	{
 		"Type": "BlockAgent",
@@ -71,13 +71,13 @@
 		"FractionCommercial": 0.0,
 		"FractionSchool": 0.0,
 		"FractionOffice": 0.0,
-		"HeatPumpMaxInput": 45,
-		"HeatPumpMaxOutput": 145,
-		"BoosterPumpMaxInput": 25,
-		"BoosterPumpMaxOutput": 100,
+		"HeatPumpMaxInput": 45.0,
+		"HeatPumpMaxOutput": 145.0,
+		"BoosterPumpMaxInput": 25.0,
+		"BoosterPumpMaxOutput": 100.0,
 		"Borehole": true,
-		"BatteryCapacity": 100,
-		"AccumulatorTankCapacity": 300
+		"BatteryCapacity": 100.0,
+		"AccumulatorTankCapacity": 300.0
 	},
 	{
 		"Type": "BlockAgent",
@@ -87,13 +87,13 @@
 		"FractionCommercial": 0.2,
 		"FractionSchool": 0.0,
 		"FractionOffice": 0.0,
-		"HeatPumpMaxInput": 45,
-		"HeatPumpMaxOutput": 145,
-		"BoosterPumpMaxInput": 25,
-		"BoosterPumpMaxOutput": 100,
+		"HeatPumpMaxInput": 45.0,
+		"HeatPumpMaxOutput": 145.0,
+		"BoosterPumpMaxInput": 25.0,
+		"BoosterPumpMaxOutput": 100.0,
 		"Borehole": true,
-		"BatteryCapacity": 100,
-		"AccumulatorTankCapacity": 300
+		"BatteryCapacity": 100.0,
+		"AccumulatorTankCapacity": 300.0
 	},
 	{
 		"Type": "BlockAgent",
@@ -103,13 +103,13 @@
 		"FractionCommercial": 0.2,
 		"FractionSchool": 0.0,
 		"FractionOffice": 0.0,
-		"HeatPumpMaxInput": 45,
-		"HeatPumpMaxOutput": 145,
-		"BoosterPumpMaxInput": 25,
-		"BoosterPumpMaxOutput": 100,
+		"HeatPumpMaxInput": 45.0,
+		"HeatPumpMaxOutput": 145.0,
+		"BoosterPumpMaxInput": 25.0,
+		"BoosterPumpMaxOutput": 100.0,
 		"Borehole": true,
-		"BatteryCapacity": 100,
-		"AccumulatorTankCapacity": 300
+		"BatteryCapacity": 100.0,
+		"AccumulatorTankCapacity": 300.0
 	},
 	{
 		"Type": "BlockAgent",
@@ -119,13 +119,13 @@
 		"FractionCommercial": 0.0,
 		"FractionSchool": 0.0,
 		"FractionOffice": 0.0,
-		"HeatPumpMaxInput": 45,
-		"HeatPumpMaxOutput": 145,
-		"BoosterPumpMaxInput": 25,
-		"BoosterPumpMaxOutput": 100,
+		"HeatPumpMaxInput": 45.0,
+		"HeatPumpMaxOutput": 145.0,
+		"BoosterPumpMaxInput": 25.0,
+		"BoosterPumpMaxOutput": 100.0,
 		"Borehole": true,
-		"BatteryCapacity": 100,
-		"AccumulatorTankCapacity": 300
+		"BatteryCapacity": 100.0,
+		"AccumulatorTankCapacity": 300.0
 	},
 	{
 		"Type": "BlockAgent",
@@ -135,13 +135,13 @@
 		"FractionCommercial": 0.0,
 		"FractionSchool": 0.0,
 		"FractionOffice": 0.0,
-		"HeatPumpMaxInput": 45,
-		"HeatPumpMaxOutput": 145,
-		"BoosterPumpMaxInput": 25,
-		"BoosterPumpMaxOutput": 100,
+		"HeatPumpMaxInput": 45.0,
+		"HeatPumpMaxOutput": 145.0,
+		"BoosterPumpMaxInput": 25.0,
+		"BoosterPumpMaxOutput": 100.0,
 		"Borehole": true,
-		"BatteryCapacity": 100,
-		"AccumulatorTankCapacity": 300
+		"BatteryCapacity": 100.0,
+		"AccumulatorTankCapacity": 300.0
 	},
 	{
 		"Type": "BlockAgent",
@@ -151,13 +151,13 @@
 		"FractionCommercial": 0.0,
 		"FractionSchool": 0.0,
 		"FractionOffice": 0.0,
-		"HeatPumpMaxInput": 45,
-		"HeatPumpMaxOutput": 145,
-		"BoosterPumpMaxInput": 25,
-		"BoosterPumpMaxOutput": 100,
+		"HeatPumpMaxInput": 45.0,
+		"HeatPumpMaxOutput": 145.0,
+		"BoosterPumpMaxInput": 25.0,
+		"BoosterPumpMaxOutput": 100.0,
 		"Borehole": true,
-		"BatteryCapacity": 100,
-		"AccumulatorTankCapacity": 300
+		"BatteryCapacity": 100.0,
+		"AccumulatorTankCapacity": 300.0
 	},
 	{
 		"Type": "BlockAgent",
@@ -167,13 +167,13 @@
 		"FractionCommercial": 0.0,
 		"FractionSchool": 0.0,
 		"FractionOffice": 0.0,
-		"HeatPumpMaxInput": 45,
-		"HeatPumpMaxOutput": 145,
-		"BoosterPumpMaxInput": 25,
-		"BoosterPumpMaxOutput": 100,
+		"HeatPumpMaxInput": 45.0,
+		"HeatPumpMaxOutput": 145.0,
+		"BoosterPumpMaxInput": 25.0,
+		"BoosterPumpMaxOutput": 100.0,
 		"Borehole": true,
-		"BatteryCapacity": 100,
-		"AccumulatorTankCapacity": 300
+		"BatteryCapacity": 100.0,
+		"AccumulatorTankCapacity": 300.0
 	},
 	{
 		"Type": "BlockAgent",
@@ -183,13 +183,13 @@
 		"FractionCommercial": 0.2,
 		"FractionSchool": 0.0,
 		"FractionOffice": 0.0,
-		"HeatPumpMaxInput": 45,
-		"HeatPumpMaxOutput": 145,
-		"BoosterPumpMaxInput": 25,
-		"BoosterPumpMaxOutput": 100,
+		"HeatPumpMaxInput": 45.0,
+		"HeatPumpMaxOutput": 145.0,
+		"BoosterPumpMaxInput": 25.0,
+		"BoosterPumpMaxOutput": 100.0,
 		"Borehole": true,
-		"BatteryCapacity": 100,
-		"AccumulatorTankCapacity": 300
+		"BatteryCapacity": 100.0,
+		"AccumulatorTankCapacity": 300.0
 	},
 	{
 		"Type": "BlockAgent",
@@ -199,13 +199,13 @@
 		"FractionCommercial": 0.0,
 		"FractionSchool": 0.0,
 		"FractionOffice": 0.0,
-		"HeatPumpMaxInput": 45,
-		"HeatPumpMaxOutput": 145,
-		"BoosterPumpMaxInput": 25,
-		"BoosterPumpMaxOutput": 100,
+		"HeatPumpMaxInput": 45.0,
+		"HeatPumpMaxOutput": 145.0,
+		"BoosterPumpMaxInput": 25.0,
+		"BoosterPumpMaxOutput": 100.0,
 		"Borehole": true,
-		"BatteryCapacity": 100,
-		"AccumulatorTankCapacity": 300
+		"BatteryCapacity": 100.0,
+		"AccumulatorTankCapacity": 300.0
 	},
 	{
 		"Type": "BlockAgent",
@@ -215,13 +215,13 @@
 		"FractionCommercial": 0.0,
 		"FractionSchool": 0.0,
 		"FractionOffice": 0.0,
-		"HeatPumpMaxInput": 45,
-		"HeatPumpMaxOutput": 145,
-		"BoosterPumpMaxInput": 25,
-		"BoosterPumpMaxOutput": 100,
+		"HeatPumpMaxInput": 45.0,
+		"HeatPumpMaxOutput": 145.0,
+		"BoosterPumpMaxInput": 25.0,
+		"BoosterPumpMaxOutput": 100.0,
 		"Borehole": true,
-		"BatteryCapacity": 100,
-		"AccumulatorTankCapacity": 300
+		"BatteryCapacity": 100.0,
+		"AccumulatorTankCapacity": 300.0
 	},
 	{
 		"Type": "BlockAgent",
@@ -231,13 +231,13 @@
 		"FractionCommercial": 0.0,
 		"FractionSchool": 0.0,
 		"FractionOffice": 0.0,
-		"HeatPumpMaxInput": 45,
-		"HeatPumpMaxOutput": 145,
-		"BoosterPumpMaxInput": 25,
-		"BoosterPumpMaxOutput": 100,
+		"HeatPumpMaxInput": 45.0,
+		"HeatPumpMaxOutput": 145.0,
+		"BoosterPumpMaxInput": 25.0,
+		"BoosterPumpMaxOutput": 100.0,
 		"Borehole": true,
-		"BatteryCapacity": 100,
-		"AccumulatorTankCapacity": 300
+		"BatteryCapacity": 100.0,
+		"AccumulatorTankCapacity": 300.0
 	},
 	{
 		"Type": "BlockAgent",
@@ -247,13 +247,13 @@
 		"FractionCommercial": 0.0,
 		"FractionSchool": 0.0,
 		"FractionOffice": 0.0,
-		"HeatPumpMaxInput": 45,
-		"HeatPumpMaxOutput": 145,
-		"BoosterPumpMaxInput": 25,
-		"BoosterPumpMaxOutput": 100,
+		"HeatPumpMaxInput": 45.0,
+		"HeatPumpMaxOutput": 145.0,
+		"BoosterPumpMaxInput": 25.0,
+		"BoosterPumpMaxOutput": 100.0,
 		"Borehole": true,
-		"BatteryCapacity": 100,
-		"AccumulatorTankCapacity": 300
+		"BatteryCapacity": 100.0,
+		"AccumulatorTankCapacity": 300.0
 	},
 	{
 		"Type": "BlockAgent",
@@ -263,13 +263,13 @@
 		"FractionCommercial": 0.2,
 		"FractionSchool": 0.0,
 		"FractionOffice": 0.0,
-		"HeatPumpMaxInput": 45,
-		"HeatPumpMaxOutput": 145,
-		"BoosterPumpMaxInput": 25,
-		"BoosterPumpMaxOutput": 100,
+		"HeatPumpMaxInput": 45.0,
+		"HeatPumpMaxOutput": 145.0,
+		"BoosterPumpMaxInput": 25.0,
+		"BoosterPumpMaxOutput": 100.0,
 		"Borehole": true,
-		"BatteryCapacity": 100,
-		"AccumulatorTankCapacity": 300
+		"BatteryCapacity": 100.0,
+		"AccumulatorTankCapacity": 300.0
 	},
 	{
 		"Type": "BlockAgent",
@@ -279,13 +279,13 @@
 		"FractionCommercial": 0.0,
 		"FractionSchool": 0.0,
 		"FractionOffice": 0.0,
-		"HeatPumpMaxInput": 45,
-		"HeatPumpMaxOutput": 145,
-		"BoosterPumpMaxInput": 25,
-		"BoosterPumpMaxOutput": 100,
+		"HeatPumpMaxInput": 45.0,
+		"HeatPumpMaxOutput": 145.0,
+		"BoosterPumpMaxInput": 25.0,
+		"BoosterPumpMaxOutput": 100.0,
 		"Borehole": true,
-		"BatteryCapacity": 100,
-		"AccumulatorTankCapacity": 300
+		"BatteryCapacity": 100.0,
+		"AccumulatorTankCapacity": 300.0
 	},
 	{
 		"Type": "BlockAgent",
@@ -295,13 +295,13 @@
 		"FractionCommercial": 0.0,
 		"FractionSchool": 0.0,
 		"FractionOffice": 0.0,
-		"HeatPumpMaxInput": 45,
-		"HeatPumpMaxOutput": 145,
-		"BoosterPumpMaxInput": 25,
-		"BoosterPumpMaxOutput": 100,
+		"HeatPumpMaxInput": 45.0,
+		"HeatPumpMaxOutput": 145.0,
+		"BoosterPumpMaxInput": 25.0,
+		"BoosterPumpMaxOutput": 100.0,
 		"Borehole": true,
-		"BatteryCapacity": 100,
-		"AccumulatorTankCapacity": 300
+		"BatteryCapacity": 100.0,
+		"AccumulatorTankCapacity": 300.0
 	},
 	{
 		"Type": "BlockAgent",
@@ -311,13 +311,13 @@
 		"FractionCommercial": 0.0,
 		"FractionSchool": 0.0,
 		"FractionOffice": 0.0,
-		"HeatPumpMaxInput": 45,
-		"HeatPumpMaxOutput": 145,
-		"BoosterPumpMaxInput": 25,
-		"BoosterPumpMaxOutput": 100,
+		"HeatPumpMaxInput": 45.0,
+		"HeatPumpMaxOutput": 145.0,
+		"BoosterPumpMaxInput": 25.0,
+		"BoosterPumpMaxOutput": 100.0,
 		"Borehole": true,
-		"BatteryCapacity": 100,
-		"AccumulatorTankCapacity": 300
+		"BatteryCapacity": 100.0,
+		"AccumulatorTankCapacity": 300.0
 	},
 	{
 		"Type": "GridAgent",

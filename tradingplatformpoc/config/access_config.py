@@ -1,15 +1,16 @@
 import json
+from typing import Any, Dict
 
 from tradingplatformpoc.constants import AGENT_SPECS_FILENAME, AREA_INFO_SPECS, \
     DEFAULT_AGENTS_FILENAME, MOCK_DATA_CONSTANTS_SPECS
 
 
-def read_agent_specs():
+def read_agent_specs() -> Dict[str, Dict[str, Dict[str, Any]]]:
     with open(AGENT_SPECS_FILENAME, "r") as jsonfile:
         return json.load(jsonfile)
 
 
-def read_agent_defaults(agent_type, agent_specs):
+def read_agent_defaults(agent_type, agent_specs) -> dict:
     return dict((param, val["default_value"]) for param, val in agent_specs[agent_type].items())
 
 

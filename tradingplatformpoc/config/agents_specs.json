@@ -98,6 +98,10 @@
         }
     },
     "GridAgent": {
+        "Resource": {
+            "help": "The resource which this agent trades",
+            "type": "string"
+        },
         "TransferRate": {
             "display": "Transfer rate",
             "min_value": 0.0,

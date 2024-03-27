@@ -65,24 +65,6 @@ def download_df_as_csv_button(df: pd.DataFrame, file_name: str, include_index: b
                        file_name=file_name + ".csv")
 
 
-def update_multiselect_style():
-    st.markdown(
-        """
-        <style>
-            .stMultiSelect [data-baseweb="tag"] {
-                height: fit-content;
-                background-color: white !important;
-                color: black;
-            }
-            .stMultiSelect [data-baseweb="tag"] span[title] {
-                white-space: normal; max-width: 100%; overflow-wrap: anywhere;
-            }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
 def color_in(val):
     if 'Running' in val:
         color = '#f7a34f'
@@ -127,8 +109,7 @@ def run_simulation(job_id: str):
     logger.info("Running simulation")
     simulator = TradingSimulator(job_id)
     simulator()
-    # TODO: Functionality to shut down job
-    # TODO: Delete job is not finished?
+    # TODO: Delete job if not finished?
     # TODO: Add functionality to schedule removal of potential uncompleted jobs
 
 
