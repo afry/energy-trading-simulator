@@ -10,11 +10,9 @@ from st_pages import add_indentation, show_pages_from_config
 import streamlit as st
 
 from tradingplatformpoc.app import app_constants, footer
-from tradingplatformpoc.app.app_functions import cleanup_config_name, config_naming_is_valid, \
-    make_room_for_menu_in_sidebar, set_max_width, update_multiselect_style, calculate_height_for_no_scroll_up_to
-from tradingplatformpoc.app.app_inputs import add_block_agent, add_grocery_store_agent, \
-    add_params_to_form, agent_inputs, column_config_for_agent_type, duplicate_agent, remove_agent, \
-    remove_all_block_agents
+from tradingplatformpoc.app.app_functions import calculate_height_for_no_scroll_up_to, cleanup_config_name, \
+    config_naming_is_valid, make_room_for_menu_in_sidebar, set_max_width
+from tradingplatformpoc.app.app_inputs import add_params_to_form, column_config_for_agent_type
 from tradingplatformpoc.config.access_config import fill_agents_with_defaults, fill_with_default_params, \
     read_agent_specs, read_param_specs
 from tradingplatformpoc.config.screen_config import config_data_json_screening, display_diff_in_config
@@ -276,7 +274,7 @@ with st.expander('Edit descriptions'):
     if not all_configs_df.empty:
         all_configs_df = all_configs_df.set_index('Config ID')
         edit_configs_form = st.form(key='Edit configs form')
-        edited_block_agents = edit_configs_form.data_editor(
+        edited_df = edit_configs_form.data_editor(
             all_configs_df,
             # use_container_width=True,  # Caused shaking before
             key='edit_df',
@@ -292,7 +290,7 @@ with st.expander('Edit descriptions'):
                                                                    help='')
         if edit_configs_submit:
             edit_configs_submit = False
-            for i, row in edited_block_agents.iterrows():
+            for i, row in edited_df.iterrows():
                 if row['Description'] != all_configs_df.loc[i, 'Description']:
                     if config_naming_is_valid(row['Description']):
                         update_description(i, row['Description'])
