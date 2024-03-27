@@ -54,6 +54,46 @@ if len(ids) > 0:
         st.metric(label="Total grid fees paid on internal trades",
                   value="{:,.2f} SEK".format(total_grid_fees_paid))
 
+    with st.expander('Total imported and exported electricity and heating:'):
+        col1, col2 = st.columns(2)
+        col1.header('Imported')
+        col2.header("Exported")
+        st.caption("Split on period of year:")
+        col1, col2 = st.columns(2)
+        total_values_import = pre_calculated_results[ResultsKey.SUM_IMPORT]
+        mask_values = pre_calculated_results[ResultsKey.SUM_IMPORT_JAN_FEB]
+        col1.dataframe({'Jan-Feb': values_by_resource_to_mwh(mask_values),
+                        'Total': values_by_resource_to_mwh(total_values_import)})
+        total_values_export = pre_calculated_results[ResultsKey.SUM_EXPORT]
+        mask_values = pre_calculated_results[ResultsKey.SUM_EXPORT_JAN_FEB]
+        col2.dataframe({'Jan-Feb': values_by_resource_to_mwh(mask_values),
+                        'Total': values_by_resource_to_mwh(total_values_export)})
+        st.caption("Split on temperature above or below 1 degree Celsius:")
+        col1, col2 = st.columns(2)
+        below_values = pre_calculated_results[ResultsKey.SUM_IMPORT_BELOW_1_C]
+        above_values = {k: total_values_import[k] - v for k, v in below_values.items()}
+        col1.dataframe({'Below': values_by_resource_to_mwh(below_values),
+                        'Above': values_by_resource_to_mwh(above_values)})
+        below_values = pre_calculated_results[ResultsKey.SUM_EXPORT_BELOW_1_C]
+        above_values = {k: total_values_export[k] - v for k, v in below_values.items()}
+        col2.dataframe({'Below': values_by_resource_to_mwh(below_values),
+                        'Above': values_by_resource_to_mwh(above_values)})
+
+    with st.expander('Total of locally produced resources:'):
+        res_dict = pre_calculated_results[ResultsKey.LOCALLY_PRODUCED_RESOURCES]
+        st.metric(label="Electricity",
+                  value="{:,.2f} MWh".format(res_dict[Resource.ELECTRICITY.name] / 1000))
+        st.metric(label="Low-tempered heating",
+                  value="{:,.2f} MWh".format(res_dict[Resource.LOW_TEMP_HEAT.name] / 1000),
+                  help="Heating produced by heat pumps during summer, and excess heat from cooling machines.")
+        st.metric(label="High-tempered heating",
+                  value="{:,.2f} MWh".format(res_dict[Resource.HIGH_TEMP_HEAT.name] / 1000),
+                  help="Heating produced by heat pumps during winter, and booster heat pumps during summer.")
+
+    # Heat dump
+    heat_dump_chart = construct_heat_dump_chart(job_id)
+    st.altair_chart(heat_dump_chart, use_container_width=True, theme=None)
+
     resources = [Resource.ELECTRICITY, Resource.HIGH_TEMP_HEAT, Resource.LOW_TEMP_HEAT]
     agg_tabs = st.tabs([resource.get_display_name(True) for resource in resources])
     for resource, tab in zip(resources, agg_tabs):
@@ -93,49 +133,6 @@ if len(ids) > 0:
                     price_chart = construct_price_chart(combined_price_df, Resource.ELECTRICITY,)
                 st.caption("Click on a variable in legend to highlight it in the graph.")
                 st.altair_chart(price_chart, use_container_width=True, theme=None)
-
-    with st.expander('Total imported and exported electricity and heating:'):
-        col1, col2 = st.columns(2)
-        col1.header('Imported')
-        col2.header("Exported")
-        st.caption("Split on period of year:")
-        col1, col2 = st.columns(2)
-        total_values_import = pre_calculated_results[ResultsKey.SUM_IMPORT]
-        mask_values = pre_calculated_results[ResultsKey.SUM_IMPORT_JAN_FEB]
-        col1.dataframe({'Jan-Feb': values_by_resource_to_mwh(mask_values),
-                        'Total': values_by_resource_to_mwh(total_values_import)})
-        total_values_export = pre_calculated_results[ResultsKey.SUM_EXPORT]
-        mask_values = pre_calculated_results[ResultsKey.SUM_EXPORT_JAN_FEB]
-        col2.dataframe({'Jan-Feb': values_by_resource_to_mwh(mask_values),
-                        'Total': values_by_resource_to_mwh(total_values_export)})
-        st.caption("Split on temperature above or below 1 degree Celsius:")
-        col1, col2 = st.columns(2)
-        below_values = pre_calculated_results[ResultsKey.SUM_IMPORT_BELOW_1_C]
-        above_values = {k: total_values_import[k] - v for k, v in below_values.items()}
-        col1.dataframe({'Below': values_by_resource_to_mwh(below_values),
-                        'Above': values_by_resource_to_mwh(above_values)})
-        below_values = pre_calculated_results[ResultsKey.SUM_EXPORT_BELOW_1_C]
-        above_values = {k: total_values_export[k] - v for k, v in below_values.items()}
-        col2.dataframe({'Below': values_by_resource_to_mwh(below_values),
-                        'Above': values_by_resource_to_mwh(above_values)})
-
-    with st.expander('Total of locally produced resources:'):
-        res_dict = pre_calculated_results[ResultsKey.LOCALLY_PRODUCED_RESOURCES]
-        st.metric(label="Electricity",
-                  value="{:,.2f} MWh".format(res_dict[Resource.ELECTRICITY.name] / 1000))
-        st.metric(label="Cooling",
-                  value="{:,.2f} MWh".format(res_dict[Resource.COOLING.name] / 1000),
-                  help="'Waste' cooling produced by heat pumps.")
-        st.metric(label="Low-tempered heating",
-                  value="{:,.2f} MWh".format(res_dict[Resource.LOW_TEMP_HEAT.name] / 1000),
-                  help="Heating produced by heat pumps during summer, and excess heat from cooling machines.")
-        st.metric(label="High-tempered heating",
-                  value="{:,.2f} MWh".format(res_dict[Resource.HIGH_TEMP_HEAT.name] / 1000),
-                  help="Heating produced by heat pumps during winter, and booster heat pumps during summer.")
-
-    # Heat dump
-    heat_dump_chart = construct_heat_dump_chart(job_id)
-    st.altair_chart(heat_dump_chart, use_container_width=True, theme=None)
             
 else:
     st.markdown('No results to view yet, set up a configuration in '
