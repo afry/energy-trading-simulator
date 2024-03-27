@@ -37,17 +37,17 @@ Here we keep methods that do either
 
 class ChalmersOutputs:
     trades: List[Trade]
-    # (agent_guid, (period, level))
+    # (TradeMetadataKey, agent_guid, (period, level)))
     metadata_per_agent_and_period: Dict[TradeMetadataKey, Dict[str, Dict[datetime.datetime, float]]]
-    # Data which isn't agent-individual: (period, level)
-    heat_dump: Dict[datetime.datetime, float]
+    # Data which isn't agent-individual: (TradeMetadataKey, (period, level))
+    metadata_per_period: Dict[TradeMetadataKey, Dict[datetime.datetime, float]]
 
     def __init__(self, trades: List[Trade],
                  metadata_per_agent_and_period: Dict[TradeMetadataKey, Dict[str, Dict[datetime.datetime, float]]],
-                 heat_dump: Dict[datetime.datetime, float]):
+                 metadata_per_period: Dict[TradeMetadataKey, Dict[datetime.datetime, float]]):
         self.trades = trades
         self.metadata_per_agent_and_period = metadata_per_agent_and_period
-        self.heat_dump = heat_dump
+        self.metadata_per_period = metadata_per_period
 
 
 def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource, GridAgent], area_info: Dict[str, Any],
@@ -125,7 +125,7 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
         max_heat_transfer_between_agents=area_info['InterAgentHeatTransferCapacity'],
         max_heat_transfer_to_external=grid_agents[Resource.HIGH_TEMP_HEAT].max_transfer_per_hour,
         chiller_COP=area_info['CompChillerCOP'],
-        Pccmax=area_info['CompChillerMaxOutput'],
+        Pccmax=area_info['CompChillerMaxInput'],
         cold_trans_loss=area_info['CoolingTransferLoss'],
         heat_trans_loss=area_info['HeatTransferLoss'],
         trading_horizon=trading_horizon
@@ -206,8 +206,11 @@ def extract_outputs(optimized_model: pyo.ConcreteModel,
         metadata_per_agent_and_period[TradeMetadataKey.HP_HIGH_HEAT_PROD] = \
             get_value_per_agent(optimized_model, start_datetime, 'Hhp', agent_guids,
                                 lambda i: optimized_model.Phpmax[i] > 0)
-    heat_dump = get_value_per_period(optimized_model, start_datetime, 'heat_dump')
-    return ChalmersOutputs(elec_trades + heat_trades + cool_trades, metadata_per_agent_and_period, heat_dump)
+    metadata_per_period = {
+        TradeMetadataKey.HEAT_DUMP: get_value_per_period(optimized_model, start_datetime, 'heat_dump'),
+        TradeMetadataKey.CM_PROD: get_value_per_period(optimized_model, start_datetime, 'Ccc')
+    }
+    return ChalmersOutputs(elec_trades + heat_trades + cool_trades, metadata_per_agent_and_period, metadata_per_period)
 
 
 def build_supply_and_demand_dfs(agents: List[BlockAgent], start_datetime: datetime.datetime, trading_horizon: int) -> \

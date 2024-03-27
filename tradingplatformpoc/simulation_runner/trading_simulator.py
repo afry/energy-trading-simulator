@@ -31,12 +31,12 @@ from tradingplatformpoc.sql.heating_price.models import HeatingPrice as TableHea
 from tradingplatformpoc.sql.input_data.crud import get_periods_from_db, read_inputs_df_for_agent_creation
 from tradingplatformpoc.sql.input_electricity_price.crud import electricity_price_series_from_db
 from tradingplatformpoc.sql.job.crud import delete_job, get_config_id_for_job_id, update_job_with_time
-from tradingplatformpoc.sql.level.crud import overall_levels_to_db_dict, tmk_levels_dict_to_db_dict
+from tradingplatformpoc.sql.level.crud import tmk_levels_dict_to_db_dict, tmk_overall_levels_dict_to_db_dict
 from tradingplatformpoc.sql.level.models import Level as TableLevel
 from tradingplatformpoc.sql.trade.crud import trades_to_db_dict
 from tradingplatformpoc.sql.trade.models import Trade as TableTrade
-from tradingplatformpoc.trading_platform_utils import add_all_to_twice_nested_dict, calculate_solar_prod, \
-    get_external_heating_prices, get_final_storage_level, get_glpk_solver
+from tradingplatformpoc.trading_platform_utils import add_all_to_nested_dict, add_all_to_twice_nested_dict, \
+    calculate_solar_prod, get_external_heating_prices, get_final_storage_level, get_glpk_solver
 
 logger = logging.getLogger(__name__)
 
@@ -208,7 +208,7 @@ class TradingSimulator:
             all_trades_list_batch: List[List[Trade]] = []
             electricity_price_list_batch: List[dict] = []
             metadata_per_agent_and_period: Dict[TradeMetadataKey, Dict[str, Dict[datetime.datetime, float]]] = {}
-            heat_dump: Dict[datetime.datetime, float] = {}
+            metadata_per_period: Dict[TradeMetadataKey, Dict[datetime.datetime, float]] = {}
 
             # ------- NEW --------
             for horizon_start in thsps_in_this_batch:
@@ -235,7 +235,7 @@ class TradingSimulator:
                     horizon_start)
                 add_all_to_twice_nested_dict(metadata_per_agent_and_period,
                                              chalmers_outputs.metadata_per_agent_and_period)
-                heat_dump.update(chalmers_outputs.heat_dump)
+                add_all_to_nested_dict(metadata_per_period, chalmers_outputs.metadata_per_period)
 
             logger.info('Saving trades to db...')
             trade_dict = trades_to_db_dict(all_trades_list_batch, self.job_id)
@@ -243,10 +243,11 @@ class TradingSimulator:
             logger.info('Saving electricity price to db...')
             bulk_insert(TableElectricityPrice, electricity_price_list_batch)
 
+            logger.info('Saving metadata to db...')
             metadata_per_agent_and_period_dicts = tmk_levels_dict_to_db_dict(metadata_per_agent_and_period, self.job_id)
-            heat_dump_dicts = overall_levels_to_db_dict(heat_dump, TradeMetadataKey.HEAT_DUMP.name, self.job_id)
+            metadata_per_period_dicts = tmk_overall_levels_dict_to_db_dict(metadata_per_period, self.job_id)
             bulk_insert(TableLevel, metadata_per_agent_and_period_dicts)
-            bulk_insert(TableLevel, heat_dump_dicts)
+            bulk_insert(TableLevel, metadata_per_period_dicts)
 
         calculate_results_and_save(self.job_id, self.agents, self.grid_agents)
 
