@@ -119,14 +119,14 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
         pv_production=elec_supply_df,
         excess_heat=low_heat_supply_df,
         battery_efficiency=area_info['BatteryEfficiency'],
-        thermalstorage_efficiency=0.98,  # TODO: RES-444
+        thermalstorage_efficiency=area_info['AccTankEfficiency'],
         max_elec_transfer_between_agents=area_info['InterAgentElectricityTransferCapacity'],
         max_elec_transfer_to_external=grid_agents[Resource.ELECTRICITY].max_transfer_per_hour,
         max_heat_transfer_between_agents=area_info['InterAgentHeatTransferCapacity'],
         max_heat_transfer_to_external=grid_agents[Resource.HIGH_TEMP_HEAT].max_transfer_per_hour,
-        chiller_COP=area_info['COPCompChiller'],
-        Pccmax=0.0,  # TODO: RES-444
-        cold_trans_loss=0.05,  # TODO: RES-444
+        chiller_COP=area_info['CompChillerCOP'],
+        Pccmax=area_info['CompChillerMaxOutput'],
+        cold_trans_loss=area_info['CoolingTransferLoss'],
         heat_trans_loss=area_info['HeatTransferLoss'],
         trading_horizon=trading_horizon
     )
