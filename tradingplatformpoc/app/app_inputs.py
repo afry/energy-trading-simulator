@@ -1,6 +1,7 @@
 from typing import Any, Dict, Iterable
 
 import streamlit as st
+from streamlit.elements.lib.column_types import ColumnConfig
 
 from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.config.access_config import read_agent_defaults, read_agent_specs
@@ -135,3 +136,20 @@ def add_params_to_form(form, param_spec_dict: dict, info_type: str):
         else:
             st.session_state.config_data[info_type][key] = form.number_input(
                 val['display'], value=current_config[info_type][key], **kwargs)
+
+
+def column_config_for_agent_type(agent_specs: Dict[str, Dict[str, Any]]) -> Dict[str, ColumnConfig]:
+    config_dict: Dict[str, ColumnConfig] = {
+        "Name": st.column_config.TextColumn(required=True, max_chars=100, default="NewAgent")
+    }
+    for col_name, params in agent_specs.items():
+        this_col_config = {k: v for k, v in params.items() if k not in
+                           ['display', 'default_value', 'type']}
+        this_col_config['default'] = params['default_value']
+
+        if ("type", "float") in params.items():
+            config_dict[col_name] = st.column_config.NumberColumn(**this_col_config)
+        if ("type", "bool") in params.items():
+            config_dict[col_name] = st.column_config.CheckboxColumn(**this_col_config)
+
+    return config_dict
