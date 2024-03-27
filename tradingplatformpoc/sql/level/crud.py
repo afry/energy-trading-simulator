@@ -33,6 +33,13 @@ def tmk_levels_dict_to_db_dict(tmk_levels_dict: Dict[TradeMetadataKey, Dict[str,
     return flatten_collection(many_lists)
 
 
+def tmk_overall_levels_dict_to_db_dict(tmk_levels_dict: Dict[TradeMetadataKey, Dict[datetime.datetime, float]],
+                                       job_id: str) -> List[Dict[str, Any]]:
+    many_lists = [overall_levels_to_db_dict(levels_dict, tmk.name, job_id)
+                  for tmk, levels_dict in tmk_levels_dict.items()]
+    return flatten_collection(many_lists)
+
+
 def overall_levels_to_db_dict(levels_dict: Dict[datetime.datetime, float],
                               level_type: str, job_id: str) -> List[Dict[str, Any]]:
     """Mimics levels_to_db_dict, but for values that are not for individual agents."""

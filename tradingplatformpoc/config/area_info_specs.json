@@ -62,11 +62,11 @@
         "help": "The maximum amount of heat an agent can buy/sell from/to the local energy community, in a single trading period (i.e. an hour). For the external transfer capacity, see the external grid agent",
         "default": 500
     },
-    "CompChillerMaxOutput": {
-        "display": "Compressor chiller max output capacity [kW]",
+    "CompChillerMaxInput": {
+        "display": "Compressor chiller max input power [kW]",
         "min_value": 0.0,
         "step": 100.0,
-        "help": "The capacity of a centralized compressor chiller, providing cooling to the LEC. Setting this to 0 corresponds to not having a centralized chiller.",
+        "help": "The capacity of a centralized compressor chiller, providing cooling to the LEC. Setting this to 0 corresponds to not having a centralized chiller. The max output will be this number multiplied by the COP.",
         "default": 0.0
     },
     "CompChillerCOP": {
