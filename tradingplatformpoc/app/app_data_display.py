@@ -242,7 +242,6 @@ def get_bites_dfs(job_id: str, agent_chosen_guid: str) -> Dict[TradeMetadataKey,
     keys = [TradeMetadataKey.SHALLOW_STORAGE_ABS,
             TradeMetadataKey.DEEP_STORAGE_ABS,
             TradeMetadataKey.SHALLOW_CHARGE,
-            TradeMetadataKey.SHALLOW_DISCHARGE,
             TradeMetadataKey.FLOW_SHALLOW_TO_DEEP,
             TradeMetadataKey.SHALLOW_LOSS,
             TradeMetadataKey.DEEP_LOSS]

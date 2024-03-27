@@ -157,8 +157,8 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, n_agents: int,
     model.Hcc = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
     model.Pcc = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
     model.Energy_shallow = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
-    model.Hcha_shallow = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
-    model.Hdis_shallow = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
+    # Charge/discharge of the shallow layer, a negative value meaning discharge
+    model.Hcha_shallow = pyo.Var(model.I, model.T, within=pyo.Reals, initialize=0)
     model.Flow = pyo.Var(model.I, model.T, within=pyo.Reals, initialize=0)
     model.Loss_shallow = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
     model.Energy_deep = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
@@ -294,13 +294,13 @@ def agent_Pbalance_summer(model, i, t):
 
 def agent_Hbalance_winter(model, i, t):
     # Only used in winter mode
-    return model.Hbuy_grid[i, t] + model.Hhp[i, t] + model.Hdis_shallow[i, t] == \
+    return model.Hbuy_grid[i, t] + model.Hhp[i, t] == \
            model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] + model.Hsh[i, t] + model.HTEScha[i, t]
 
 
 def agent_Hbalance_summer(model, i, t):
     # Only used in summer mode
-    return model.Hbuy_grid[i, t] + model.Hhp[i, t] + model.Hdis_shallow[i, t] \
+    return model.Hbuy_grid[i, t] + model.Hhp[i, t] \
            + model.Hsh_excess[i, t] == model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] \
            + PERC_OF_HT_COVERABLE_BY_LT * model.HTEScha[i, t] + model.Hsh[i, t]
 
@@ -331,14 +331,15 @@ def Hhw_supplied_by_HTES(model, i, t):
 def BITES_Eshallow_balance(model, i, t):
     if t == 0:
         return model.Energy_shallow[i, 0] == model.BITES_Eshallow0[i] + model.Hcha_shallow[i, 0] \
-            - model.Hdis_shallow[i, 0] - model.Flow[i, 0] - model.Loss_shallow[i, 0]
+            - model.Flow[i, 0] - model.Loss_shallow[i, 0]
     else:
         return model.Energy_shallow[i, t] == model.Energy_shallow[i, t - 1] + model.Hcha_shallow[i, t] \
-            - model.Hdis_shallow[i, t] - model.Flow[i, t] - model.Loss_shallow[i, t]
+            - model.Flow[i, t] - model.Loss_shallow[i, t]
 
 
 def BITES_shallow_dis(model, i, t):
-    return model.Hdis_shallow[i, t] <= model.Heat_rate_shallow[i]
+    # Negative charge means discharge
+    return -model.Hcha_shallow[i, t] <= model.Heat_rate_shallow[i]
 
 
 def BITES_shallow_cha(model, i, t):
@@ -382,7 +383,8 @@ def BITES_deep_loss(model, i, t):
 
 
 def BITES_max_Hdis_shallow(model, i, t):
-    return model.Hdis_shallow[i, t] <= model.Hsh[i, t]
+    # Negative charge means discharge
+    return -model.Hcha_shallow[i, t] <= model.Hsh[i, t]
 
 
 def BITES_max_Hcha_shallow(model, i, t):
