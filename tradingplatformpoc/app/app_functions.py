@@ -45,6 +45,14 @@ def calculate_max_table_height(n_rows: int, max_height: int = 300) -> Optional[i
     return max_height if n_rows > 7 else None
 
 
+def calculate_height_for_no_scroll_up_to(n_rows: int, max_rows_without_scroll: int = 10) -> int:
+    """
+    If height isn't specified, st.dataframe often annoyingly defaults to just-too-short, so that one has to scroll a
+    tiny bit.
+    """
+    return (min(n_rows, max_rows_without_scroll) + 1) * 35 + 15
+
+
 # @st.cache_data(ttl=3600)
 def convert_df_to_csv(df: pd.DataFrame, include_index: bool = False):
     return df.to_csv(index=include_index).encode('utf-8')
@@ -55,24 +63,6 @@ def download_df_as_csv_button(df: pd.DataFrame, file_name: str, include_index: b
     st.download_button(label='Download as csv',
                        data=csv,
                        file_name=file_name + ".csv")
-
-
-def update_multiselect_style():
-    st.markdown(
-        """
-        <style>
-            .stMultiSelect [data-baseweb="tag"] {
-                height: fit-content;
-                background-color: white !important;
-                color: black;
-            }
-            .stMultiSelect [data-baseweb="tag"] span[title] {
-                white-space: normal; max-width: 100%; overflow-wrap: anywhere;
-            }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
 
 
 def color_in(val):
@@ -119,8 +109,7 @@ def run_simulation(job_id: str):
     logger.info("Running simulation")
     simulator = TradingSimulator(job_id)
     simulator()
-    # TODO: Functionality to shut down job
-    # TODO: Delete job is not finished?
+    # TODO: Delete job if not finished?
     # TODO: Add functionality to schedule removal of potential uncompleted jobs
 
 

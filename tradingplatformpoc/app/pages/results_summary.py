@@ -6,6 +6,7 @@ import streamlit as st
 
 from tradingplatformpoc.app import footer
 from tradingplatformpoc.app.app_data_display import build_leaderboard_df
+from tradingplatformpoc.app.app_functions import calculate_height_for_no_scroll_up_to
 from tradingplatformpoc.sql.results.crud import get_all_results
 
 logger = logging.getLogger(__name__)
@@ -22,7 +23,7 @@ if len(list_of_dicts):
     df_to_display = build_leaderboard_df(list_of_dicts)
     # If height isn't specified, it annoyingly defaults to just-too-short, so that one has to scroll a tiny bit
     n_rows = len(df_to_display.index)
-    st.dataframe(df_to_display, height=(n_rows + 1) * 35 + 15)
+    st.dataframe(df_to_display, height=calculate_height_for_no_scroll_up_to(n_rows))
 else:
     st.markdown('No results to display. Set up a configuration in '
                 '**Setup configuration** and run it in **Run simulation**.')

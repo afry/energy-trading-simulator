@@ -18,13 +18,79 @@
         "default": 24,
         "help": "How many trading periods (hours) in advance each energy trading process is performed over."
     },
+    "PVEfficiency": {
+        "display": "Default PV efficiency:",
+        "min_value": 0.01,
+        "max_value": 0.99,
+        "format": "%.3f",
+        "default": 0.165,
+        "step": 0.005,
+        "help": "A number specifying the efficiency of solar panels in the microgrid. Number must be between 0 and 1, and is typically in the 0.15-0.25 range"
+    },
+    "COPHeatPumpsHighTemp": {
+        "display": "Heat pump COP for high temperature",
+        "min_value": 1.5,
+        "step": 0.1,
+        "help": "The relative Coefficient of Performance of heat pumps when producing high temperature (~65 degrees) heat. This will be used when the local heat distribution network is in it's 'winter mode'.",
+        "default": 2.5
+    },
+    "COPHeatPumpsLowTemp": {
+        "display": "Heat pump COP for low temperature",
+        "min_value": 2.5,
+        "step": 0.1,
+        "help": "The relative Coefficient of Performance of heat pumps when producing low temperature (~45 degrees) heat. This will be used when the local heat distribution network is in it's 'summer mode'.",
+        "default": 3.5
+    },
+    "COPBoosterPumps": {
+        "display": "Booster heat pump COP",
+        "min_value": 2.0,
+        "step": 0.1,
+        "help": "The relative Coefficient of Performance of \"booster heat pumps\" for BlockAgents in the microgrid. These pumps are used to raise the temperature of low-tempered heat (~40-45 degrees C) to 60-65 degrees C, so that it can cover hot water demand.",
+        "default": 4.0
+    },
+    "InterAgentElectricityTransferCapacity": {
+        "display": "Maximum electricity transfer capacity in microgrid [kW]",
+        "min_value": 0,
+        "step": 10,
+        "help": "The maximum amount of electricity an agent can buy/sell from/to the local energy community, in a single trading period (i.e. an hour). For the external transfer capacity, see the external grid agent",
+        "default": 1000
+    },
+    "InterAgentHeatTransferCapacity": {
+        "display": "Maximum heating transfer capacity in microgrid [kW]",
+        "min_value": 0,
+        "step": 10,
+        "help": "The maximum amount of heat an agent can buy/sell from/to the local energy community, in a single trading period (i.e. an hour). For the external transfer capacity, see the external grid agent",
+        "default": 500
+    },
+    "CompChillerMaxOutput": {
+        "display": "Compressor chiller max output capacity [kW]",
+        "min_value": 0.0,
+        "step": 100.0,
+        "help": "The capacity of a centralized compressor chiller, providing cooling to the LEC. Setting this to 0 corresponds to not having a centralized chiller.",
+        "default": 0.0
+    },
+    "CompChillerCOP": {
+        "display": "Compressor chiller COP",
+        "min_value": 1.0,
+        "step": 0.1,
+        "help": "The relative Coefficient of Performance of any compressor chillers in the LEC",
+        "default": 4.0
+    },
+    "CoolingTransferLoss": {
+        "display": "Cooling transfer loss:",
+        "min_value": 0.0,
+        "max_value": 0.99,
+        "format": "%.3f",
+        "default": 0.05,
+        "help": "A number specifying the loss of cooling in every transfer. Must be between 0 and 0.99, where 0 would mean no losses at all, and 0.99 would mean that almost all energy is lost when trying to transfer cooling from one agent to another. A reasonable number would be in the 0-0.10 range."
+    },
     "HeatTransferLoss": {
         "display": "Heat transfer loss:",
         "min_value": 0.0,
         "max_value": 0.99,
         "format": "%.3f",
         "default": 0.05,
-        "help": "A number specifying the loss of heat in every transfer. Must be between 0 and 0.99, where 0 would mean no losses at all, and 0.99 would mean that almost all energy is lost when trying to transfer heat from one agent to another. A reasonable number would be in the 0-0.10 range."
+        "help": "A number specifying the loss of heat in every transfer. Must be between 0 and 0.99, where 0 would mean no losses at all, and 0.99 would mean that almost all energy is lost when trying to transfer heat from one agent to another. A reasonable number would be in the 0-0.10 range. When buying heat from the external grid, the LEC pays for the quantity before losses, but can only use the quantity after losses."
     },
     "ExternalElectricityWholesalePriceOffset": {
         "display": "External electricity wholesale price offset:",
@@ -68,57 +134,19 @@
         "default": 0.93,
         "help": "A number specifying the round-trip efficiency of batteries used by agents. This value being equal to 1 would mean that there are no losses for the storage entity; if one charges it with X kWh, one can later discharge exactly the same amount. Must be a positive number, no larger than 1"
     },
+    "AccTankEfficiency": {
+        "display": "Accumulator tank round-trip efficiency",
+        "min_value": 0.01,
+        "max_value": 1.0,
+        "default": 0.98,
+        "help": "A number specifying the round-trip efficiency of accumulator tanks used by agents. This value being equal to 1 would mean that there are no losses for the storage entity; if one charges it with X kWh, one can later discharge exactly the same amount. Must be a positive number, no larger than 1"
+    },
     "StorageEndChargeLevel": {
         "display": "Storage levels at the end of the trading horizon",
         "min_value": 0.0,
         "max_value": 1.0,
         "default": 0.1,
         "help": "A number specifying the charge level for batteries and accumulator tanks at the end of each trading horizon. If this is 0, all such storages will be completely discharged at the end of each trading horizon. If it is 1, they will be fully charged. If running a 24 hour trading horizon, starting at midnight, one probably wants to keep this low, since electricity is often cheap 00:00-05:00 or so."
-    },
-    "PVEfficiency": {
-        "display": "Default PV efficiency:",
-        "min_value": 0.01,
-        "max_value": 0.99,
-        "format": "%.3f",
-        "default": 0.165,
-        "step": 0.005,
-        "help": "A number specifying the efficiency of solar panels in the microgrid. Number must be between 0 and 1, and is typically in the 0.15-0.25 range"
-    },
-    "COPHeatPumps": {
-        "display": "Heat pump COP",
-        "min_value": 2.0,
-        "step": 0.1,
-        "help": "The relative Coefficient of Performance of heat pumps for BlockAgents in the microgrid",
-        "default": 3.5
-    },
-    "COPBoosterPumps": {
-        "display": "Booster heat pump COP",
-        "min_value": 2.0,
-        "step": 0.1,
-        "help": "The relative Coefficient of Performance of \"booster heat pumps\" for BlockAgents in the microgrid. These pumps are used to raise the temperature of low-tempered heat (~40-45 degrees C) to 60-65 degrees C, so that it can cover hot water demand.",
-        "default": 4.0
-    },
-    "InterAgentElectricityTransferCapacity": {
-        "display": "Maximum electricity transfer capacity in microgrid [kW]",
-        "min_value": 0,
-        "step": 10,
-        "help": "The maximum amount of electricity an agent can buy/sell from/to the local energy community, in a single trading period (i.e. an hour). For the external transfer capacity, see the external grid agent",
-        "default": 5000
-    },
-    "InterAgentHeatTransferCapacity": {
-        "display": "Maximum heating transfer capacity in microgrid [kW]",
-        "min_value": 0,
-        "step": 10,
-        "help": "The maximum amount of heat an agent can buy/sell from/to the local energy community, in a single trading period (i.e. an hour). For the external transfer capacity, see the external grid agent",
-        "default": 500
-    },
-    "COPCompChiller": {
-        "display": "Compressor chiller COP",
-        "min_value": 1.0,
-        "step": 0.1,
-        "help": "The relative Coefficient of Performance of any compressor chillers in the microgrid. Not yet implemented!",
-        "default": 4.0,
-        "disabled": true
     },
     "ElectricityTaxInternal": {
         "display": "Electricity tax (internal):",

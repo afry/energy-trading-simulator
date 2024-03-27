@@ -117,7 +117,7 @@ def config_data_agent_screening(config_data: dict) -> Optional[str]:
     # Check agents for correct keys and values in ranges
     agent_specs = read_agent_specs()
     for agent in config_data['Agents']:
-        items = {k: v for k, v in agent.items() if k not in ['Type', 'Name', 'Resource']}
+        items = {k: v for k, v in agent.items() if k not in ['Type', 'Name']}
         for key, val in items.items():
 
             if key not in agent_specs[agent['Type']].keys():
@@ -222,7 +222,7 @@ def display_diff_in_config(old: dict, new: dict) -> List[str]:
 def diff_string(key: str, old_val: float, new_val: float) -> str:
     """
     Will output for example:
-    GrossFloorArea: 11305 → 11315
+    Atemp: 11305 → 11315
     """
     return key + ': ' + str(round_if_float(old_val)) + ' &rarr; ' + str(round_if_float(new_val)) + ', '
 

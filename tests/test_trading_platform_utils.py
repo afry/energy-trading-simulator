@@ -2,8 +2,9 @@ from collections import Counter
 from datetime import datetime
 from unittest import TestCase
 
-from tradingplatformpoc.trading_platform_utils import add_all_to_nested_dict, flatten_collection, \
-    get_final_storage_level, get_if_exists_else, get_intersection, minus_n_hours
+from tradingplatformpoc.trading_platform_utils import add_all_to_nested_dict, energy_to_water_volume, \
+    flatten_collection, get_final_storage_level, get_if_exists_else, get_intersection, minus_n_hours, \
+    water_volume_to_energy
 
 
 class Test(TestCase):
@@ -84,3 +85,8 @@ class Test(TestCase):
 
         # Check if the result matches the expected output
         self.assertEqual(result, expected_result)
+
+    def test_energy_to_water_volume(self):
+        """Test that energy_to_water_volume and water_volume_to_energy are each other's inverse."""
+        self.assertAlmostEqual(75.35731666666666, water_volume_to_energy(1, 65))
+        self.assertAlmostEqual(1.0, energy_to_water_volume(75.35731666666666, 65))

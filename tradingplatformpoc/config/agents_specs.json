@@ -1,12 +1,12 @@
 
 {
     "BlockAgent": {
-        "GrossFloorArea": {
-            "display": "Gross floor area (sqm)",
+        "Atemp": {
+            "display": "Heated area (sqm)",
             "min_value": 0.0,
             "step": 10.0,
             "default_value": 1000.0,
-            "help": "Specified in square meters, used for calculating the energy demand",
+            "help": "Known as 'Atemp' in Swedish. Specified in square meters, used for calculating the energy demand",
             "type": "float"
         },
         "FractionCommercial": {
@@ -74,6 +74,12 @@
             "default_value": 0.0,
             "type": "float"
         },
+        "Borehole": {
+            "display": "Has borehole?",
+            "default_value": true,
+            "help": "Does the agent have a borehole which it can use for free cooling?",
+            "type": "bool"
+        },
         "BatteryCapacity": {
             "display": "Battery capacity (kWh)",
             "min_value": 0.0,
@@ -82,16 +88,20 @@
             "help": "A number specifying the battery storage capacity, in kWh",
             "type": "float"
         },
-        "AccumulatorTankVolume": {
-            "display": "Accumulator tank volume (cu m)",
+        "AccumulatorTankCapacity": {
+            "display": "Accumulator tank capacity (kWh)",
             "min_value": 0.0,
-            "step": 0.5,
+            "step": 25.0,
             "default_value": 0.0,
-            "help": "A number specifying the volume of the agent's accumulator tank (slingtank), in cubic meters",
+            "help": "A number specifying the capacity of the agent's accumulator tank (slingtank), in kilowatt-hours. Assuming a temperature of 65 degrees C, 1 cubic metre corresponds to roughly 75 kWh.",
             "type": "float"
         }
     },
     "GridAgent": {
+        "Resource": {
+            "help": "The resource which this agent trades",
+            "type": "string"
+        },
         "TransferRate": {
             "display": "Transfer rate",
             "min_value": 0.0,
@@ -102,12 +112,12 @@
         }
     },
     "GroceryStoreAgent": {
-        "GrossFloorArea": {
-            "display": "Gross floor area (sqm)",
+        "Atemp": {
+            "display": "Heated area (sqm)",
             "min_value": 0.0,
             "step": 10.0,
-            "default_value": 1000.0,
-            "help": "Specified in square meters, used for calculating the energy demand",
+            "default_value": 6000.0,
+            "help": "Known as 'Atemp' in Swedish. Specified in square meters, used for calculating the energy demand",
             "type": "float",
             "disabled": true
         },
@@ -157,7 +167,7 @@
             "min_value": 0.0,
             "step": 1.0,
             "help": "Booster pumps allow the block agent to create high-temperature heating, which is needed to cover hot water demand, in scenarios where the local distribution network operates at a low temperature. This number indicates the maximum total power input, summed over all booster heat pumps at the agent's disposal",
-            "default_value": 0.0,
+            "default_value": 1.5,
             "type": "float"
         },
         "BoosterPumpMaxOutput": {
@@ -165,15 +175,15 @@
             "min_value": 0.0,
             "step": 1.0,
             "help": "Booster pumps allow the block agent to create high-temperature heating, which is needed to cover hot water demand, in scenarios where the local distribution network operates at a low temperature. This number indicates the maximum total power output, summed over all booster heat pumps at the agent's disposal",
-            "default_value": 0.0,
+            "default_value": 6.0,
             "type": "float"
         },
-        "AccumulatorTankVolume": {
-            "display": "Accumulator tank volume (cu m)",
+        "AccumulatorTankCapacity": {
+            "display": "Accumulator tank capacity (kWh)",
             "min_value": 0.0,
-            "step": 0.5,
-            "default_value": 0.0,
-            "help": "A number specifying the volume of the agent's accumulator tank (slingtank), in cubic meters",
+            "step": 25.0,
+            "default_value": 25.0,
+            "help": "A number specifying the capacity of the agent's accumulator tank (slingtank), in kilowatt-hours. Assuming a temperature of 65 degrees C, 1 cubic metre corresponds to roughly 75 kWh.",
             "type": "float"
         }
     }

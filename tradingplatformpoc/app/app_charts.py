@@ -75,6 +75,8 @@ def construct_agent_energy_chart(digital_twin: StaticDigitalTwin, agent_chosen_g
                                  "HP high heat production", app_constants.ALTAIR_BASE_COLORS[8])
         df = add_to_df_and_lists(df, heat_pump_df['level_low'], domain, range_color,
                                  "HP low heat production", app_constants.ALTAIR_BASE_COLORS[9])
+        df = add_to_df_and_lists(df, heat_pump_df['level_cool'], domain, range_color,
+                                 "HP cooling production", app_constants.ALTAIR_BASE_COLORS[10])
     return altair_line_chart(df, domain, range_color, [], "Energy [kWh]",
                              "Energy production/consumption for " + agent_chosen_guid)
 
@@ -178,18 +180,16 @@ def construct_bites_chart(bites_dfs: Dict[TradeMetadataKey, pd.DataFrame]) -> al
 
     titles = {TradeMetadataKey.SHALLOW_STORAGE_ABS: 'Shallow storage',
               TradeMetadataKey.DEEP_STORAGE_ABS: 'Deep storage',
-              TradeMetadataKey.SHALLOW_CHARGE: 'Shallow charge',
-              TradeMetadataKey.SHALLOW_DISCHARGE: 'Shallow discharge',
-              TradeMetadataKey.FLOW_SHALLOW_TO_DEEP: 'Flow shallow -> deep',
+              TradeMetadataKey.SHALLOW_CHARGE: 'Shallow charge (+) or discharge (-)',
+              TradeMetadataKey.FLOW_SHALLOW_TO_DEEP: 'Deep charge (+) or discharge (-)',
               TradeMetadataKey.SHALLOW_LOSS: 'Shallow storage loss',
               TradeMetadataKey.DEEP_LOSS: 'Deep storage loss'}
     colors = {TradeMetadataKey.SHALLOW_STORAGE_ABS: app_constants.ALTAIR_BASE_COLORS[0],
               TradeMetadataKey.DEEP_STORAGE_ABS: app_constants.ALTAIR_BASE_COLORS[1],
               TradeMetadataKey.SHALLOW_CHARGE: app_constants.ALTAIR_BASE_COLORS[2],
-              TradeMetadataKey.SHALLOW_DISCHARGE: app_constants.ALTAIR_BASE_COLORS[3],
-              TradeMetadataKey.FLOW_SHALLOW_TO_DEEP: app_constants.ALTAIR_BASE_COLORS[4],
-              TradeMetadataKey.SHALLOW_LOSS: app_constants.ALTAIR_BASE_COLORS[5],
-              TradeMetadataKey.DEEP_LOSS: app_constants.ALTAIR_BASE_COLORS[6]}
+              TradeMetadataKey.FLOW_SHALLOW_TO_DEEP: app_constants.ALTAIR_BASE_COLORS[3],
+              TradeMetadataKey.SHALLOW_LOSS: app_constants.ALTAIR_BASE_COLORS[4],
+              TradeMetadataKey.DEEP_LOSS: app_constants.ALTAIR_BASE_COLORS[5]}
 
     for (tmk, sub_df) in bites_dfs.items():
         df = pd.concat((df, pd.DataFrame({'period': sub_df['level'].index,

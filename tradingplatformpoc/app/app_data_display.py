@@ -64,7 +64,7 @@ def reconstruct_block_agent_static_digital_twin(agent_id: str, config: Dict[str,
     hot_tap_water_cons_series = block_mock_data[get_hot_tap_water_cons_key(agent_id)]
     cooling_cons_series = block_mock_data[get_cooling_cons_key(agent_id)]
 
-    return StaticDigitalTwin(gross_floor_area=agent_config['GrossFloorArea'],
+    return StaticDigitalTwin(atemp=agent_config['Atemp'],
                              electricity_usage=elec_cons_series,
                              space_heating_usage=space_heat_cons_series,
                              hot_water_usage=hot_tap_water_cons_series,
@@ -72,14 +72,13 @@ def reconstruct_block_agent_static_digital_twin(agent_id: str, config: Dict[str,
                              electricity_production=pv_prod_series)
 
 
-def reconstruct_grocery_store_static_digital_twin(agent_config: Dict[str, Any]) \
-        -> StaticDigitalTwin:
+def reconstruct_grocery_store_static_digital_twin(agent_config: Dict[str, Any]) -> StaticDigitalTwin:
     inputs_df = read_inputs_df_for_agent_creation()
     pv_prod_series = calculate_solar_prod(inputs_df['irradiation'], agent_config['PVArea'],
                                           agent_config['PVEfficiency'])
     space_heat_prod = inputs_df['coop_space_heating_produced'] if agent_config['SellExcessHeat'] else None
 
-    return StaticDigitalTwin(gross_floor_area=agent_config['GrossFloorArea'],
+    return StaticDigitalTwin(atemp=agent_config['Atemp'],
                              electricity_usage=inputs_df['coop_electricity_consumed'],
                              space_heating_usage=inputs_df['coop_space_heating_consumed'],
                              hot_water_usage=inputs_df['coop_hot_tap_water_consumed'],
@@ -219,17 +218,21 @@ def results_by_agent_as_df_with_highlight(df: pd.DataFrame, agent_chosen_guid: s
 
 def build_heat_pump_prod_df(job_id: str, agent_chosen_guid: str, agent_config: dict) -> pd.DataFrame:
     """
-    If agent_config['HeatPumpMaxOutput'] > 0, will return a DataFrame with a DatetimeIndex, and two numerical columns:
-    'level_high' and 'level_low'. These signify the heat pump production of high- and low-tempered heat respectively,
-    in kWh for a given hour (a.k.a. kW).
+    If agent_config['HeatPumpMaxOutput'] > 0, will return a DataFrame with a DatetimeIndex, and three numerical columns:
+    'level_high', 'level_low' and 'level_cool'. These signify the heat pump production of high-/low-tempered heat and
+    cooling, respectively, in kWh for a given hour (a.k.a. kW).
     """
     if agent_config['HeatPumpMaxOutput'] > 0:
         high_heat_prod = db_to_viewable_level_df_by_agent(job_id=job_id, agent_guid=agent_chosen_guid,
                                                           level_type=TradeMetadataKey.HP_HIGH_HEAT_PROD.name)
         low_heat_prod = db_to_viewable_level_df_by_agent(job_id=job_id, agent_guid=agent_chosen_guid,
                                                          level_type=TradeMetadataKey.HP_LOW_HEAT_PROD.name)
-        return pd.merge(high_heat_prod, low_heat_prod, left_index=True, right_index=True, how='outer',
-                        suffixes=('_high', '_low')).fillna(0)
+        cool_prod = db_to_viewable_level_df_by_agent(job_id=job_id, agent_guid=agent_chosen_guid,
+                                                     level_type=TradeMetadataKey.HP_COOL_PROD.name)
+        step_1 = pd.merge(high_heat_prod, low_heat_prod, left_index=True, right_index=True, how='outer',
+                          suffixes=('_high', '_low')).fillna(0)
+        return pd.merge(step_1, cool_prod.rename({'level': 'level_cool'}, axis=1),
+                        left_index=True, right_index=True, how='outer').fillna(0)
     else:
         return pd.DataFrame()
 
@@ -239,7 +242,6 @@ def get_bites_dfs(job_id: str, agent_chosen_guid: str) -> Dict[TradeMetadataKey,
     keys = [TradeMetadataKey.SHALLOW_STORAGE_ABS,
             TradeMetadataKey.DEEP_STORAGE_ABS,
             TradeMetadataKey.SHALLOW_CHARGE,
-            TradeMetadataKey.SHALLOW_DISCHARGE,
             TradeMetadataKey.FLOW_SHALLOW_TO_DEEP,
             TradeMetadataKey.SHALLOW_LOSS,
             TradeMetadataKey.DEEP_LOSS]
@@ -295,7 +297,6 @@ def build_leaderboard_df(list_of_dicts: List[dict]) -> pd.DataFrame:
                       ResultsKey.format_results_key_name(ResultsKey.LOCALLY_PRODUCED_RESOURCES,
                                                          Resource.HIGH_TEMP_HEAT),
                       ResultsKey.format_results_key_name(ResultsKey.LOCALLY_PRODUCED_RESOURCES, Resource.LOW_TEMP_HEAT),
-                      ResultsKey.format_results_key_name(ResultsKey.LOCALLY_PRODUCED_RESOURCES, Resource.COOLING),
                       ResultsKey.TAX_PAID,
                       ResultsKey.GRID_FEES_PAID,
                       ResultsKey.format_results_key_name(ResultsKey.SUM_IMPORT_BELOW_1_C, Resource.HIGH_TEMP_HEAT),

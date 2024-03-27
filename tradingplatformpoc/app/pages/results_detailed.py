@@ -54,47 +54,6 @@ if len(ids) > 0:
         st.metric(label="Total grid fees paid on internal trades",
                   value="{:,.2f} SEK".format(total_grid_fees_paid))
 
-    resources = [Resource.ELECTRICITY, Resource.HIGH_TEMP_HEAT, Resource.LOW_TEMP_HEAT]
-    agg_tabs = st.tabs([resource.get_display_name(True) for resource in resources])
-    for resource, tab in zip(resources, agg_tabs):
-        with tab:
-            agg_buy_trades = db_to_aggregated_trade_df(job_id, resource, Action.BUY)
-            agg_sell_trades = db_to_aggregated_trade_df(job_id, resource, Action.SELL)
-            # The above can be None if there were no trades for the resource
-            agg_trades = combine_trades_dfs(agg_buy_trades, agg_sell_trades)
-            if agg_trades is not None:
-                agg_trades = agg_trades.transpose()
-                st.dataframe(agg_trades.style.format(precision=2))
-
-            st.caption("The quantities used for calculations are before losses for purchases but"
-                       " after losses for sales.")
-
-            if resource == Resource.ELECTRICITY:
-                # TODO: Make it possible to choose ex. Dec-Jan
-                time_period = st.select_slider('Select which months to view',
-                                               options=['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                                                        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-                                               value=('Jan', 'Mar'))
-
-                time_period_elec_bought = aggregated_net_elec_import_results_df_split_on_period(job_id, time_period)
-                if time_period_elec_bought is not None:
-                    st.caption("Hold *Shift* and click on multiple days in the legend to highlight them in the graph.")
-                    st.altair_chart(construct_avg_day_elec_chart(time_period_elec_bought, time_period),
-                                    use_container_width=True, theme=None)
-                    st.caption("The energy use is calculated from trades, and therefore includes the electricity used \
-                               for running heat pumps. The error bars are the standard deviation of the electricity \
-                               used.")
-                    st.divider()
-
-                logger.info("Constructing price graph")
-                st.spinner("Constructing price graph")
-
-                combined_price_df = construct_combined_price_df(config)
-                if not combined_price_df.empty:
-                    price_chart = construct_price_chart(combined_price_df, Resource.ELECTRICITY,)
-                st.caption("Click on a variable in legend to highlight it in the graph.")
-                st.altair_chart(price_chart, use_container_width=True, theme=None)
-
     with st.expander('Total imported and exported electricity and heating:'):
         col1, col2 = st.columns(2)
         col1.header('Imported')
@@ -124,8 +83,6 @@ if len(ids) > 0:
         res_dict = pre_calculated_results[ResultsKey.LOCALLY_PRODUCED_RESOURCES]
         st.metric(label="Electricity",
                   value="{:,.2f} MWh".format(res_dict[Resource.ELECTRICITY.name] / 1000))
-        st.metric(label="Cooling",
-                  value="{:,.2f} MWh".format(res_dict[Resource.COOLING.name] / 1000))
         st.metric(label="Low-tempered heating",
                   value="{:,.2f} MWh".format(res_dict[Resource.LOW_TEMP_HEAT.name] / 1000),
                   help="Heating produced by heat pumps during summer, and excess heat from cooling machines.")
@@ -136,6 +93,46 @@ if len(ids) > 0:
     # Heat dump
     heat_dump_chart = construct_heat_dump_chart(job_id)
     st.altair_chart(heat_dump_chart, use_container_width=True, theme=None)
+
+    resources = [Resource.ELECTRICITY, Resource.HIGH_TEMP_HEAT, Resource.LOW_TEMP_HEAT]
+    agg_tabs = st.tabs([resource.get_display_name(True) for resource in resources])
+    for resource, tab in zip(resources, agg_tabs):
+        with tab:
+            agg_buy_trades = db_to_aggregated_trade_df(job_id, resource, Action.BUY)
+            agg_sell_trades = db_to_aggregated_trade_df(job_id, resource, Action.SELL)
+            # The above can be None if there were no trades for the resource
+            agg_trades = combine_trades_dfs(agg_buy_trades, agg_sell_trades)
+            if agg_trades is not None:
+                agg_trades = agg_trades.transpose()
+                st.dataframe(agg_trades.style.format(precision=2))
+
+            st.caption("The quantities used for calculations are before losses.")
+
+            if resource == Resource.ELECTRICITY:
+                # TODO: Make it possible to choose ex. Dec-Jan
+                time_period = st.select_slider('Select which months to view',
+                                               options=['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                                                        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                                               value=('Jan', 'Mar'))
+
+                time_period_elec_bought = aggregated_net_elec_import_results_df_split_on_period(job_id, time_period)
+                if time_period_elec_bought is not None:
+                    st.caption("Hold *Shift* and click on multiple days in the legend to highlight them in the graph.")
+                    st.altair_chart(construct_avg_day_elec_chart(time_period_elec_bought, time_period),
+                                    use_container_width=True, theme=None)
+                    st.caption("The energy use is calculated from trades, and therefore includes the electricity used \
+                               for running heat pumps. The error bars are the standard deviation of the electricity \
+                               used.")
+                    st.divider()
+
+                logger.info("Constructing price graph")
+                st.spinner("Constructing price graph")
+
+                combined_price_df = construct_combined_price_df(config)
+                if not combined_price_df.empty:
+                    price_chart = construct_price_chart(combined_price_df, Resource.ELECTRICITY,)
+                st.caption("Click on a variable in legend to highlight it in the graph.")
+                st.altair_chart(price_chart, use_container_width=True, theme=None)
             
 else:
     st.markdown('No results to view yet, set up a configuration in '

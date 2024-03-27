@@ -6,7 +6,7 @@ import streamlit as st
 
 from tradingplatformpoc.app import footer
 from tradingplatformpoc.app.app_comparison import ComparisonIds, construct_heat_dump_comparison_chart, \
-    construct_level_comparison_chart, import_export_calculations, show_key_figures
+    construct_level_comparison_chart, get_keys_with_x_first, import_export_calculations, show_key_figures
 from tradingplatformpoc.market.trade import TradeMetadataKey
 from tradingplatformpoc.sql.agent.crud import get_agent_type
 from tradingplatformpoc.sql.config.crud import get_all_agents_in_config, get_all_finished_job_config_id_pairs_in_db
@@ -20,14 +20,17 @@ add_indentation()
 job_id_per_config_id = get_all_finished_job_config_id_pairs_in_db()
 if len(job_id_per_config_id) >= 2:
     first_col, second_col = st.columns(2)
+
+    # Ensure that 'default' goes in the leftmost column by default, if it has been run.
+    config_ids = get_keys_with_x_first(job_id_per_config_id, 'default')
+
     with first_col:
-        chosen_config_id_to_view_1 = st.selectbox('Choose a first configuration to compare',
-                                                  job_id_per_config_id.keys())
+        chosen_config_id_to_view_1 = st.selectbox('Choose a first configuration to compare', config_ids)
 
     with second_col:
         chosen_config_id_to_view_2 = st.selectbox(
             'Choose a second configuration to compare',
-            [key for key in job_id_per_config_id.keys() if key != chosen_config_id_to_view_1])
+            [key for key in config_ids if key != chosen_config_id_to_view_1])
             
     chosen_config_ids = [chosen_config_id_to_view_1, chosen_config_id_to_view_2]
     if None not in chosen_config_ids:
