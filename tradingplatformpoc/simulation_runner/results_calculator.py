@@ -119,9 +119,7 @@ def calculate_results_and_save(job_id: str, agents: List[IAgent], grid_agents: D
     result_dict[ResultsKey.SUM_EXPORT_BELOW_1_C] = {Resource.ELECTRICITY.name: agg_elec_trades.sum_export_below_1_c,
                                                     Resource.HIGH_TEMP_HEAT.name: agg_heat_trades.sum_export_below_1_c}
     # Aggregated local production
-    hp_high_heat_prod = sum_levels(job_id, TradeMetadataKey.HP_HIGH_HEAT_PROD.name)
-    hp_low_heat_prod = sum_levels(job_id, TradeMetadataKey.HP_LOW_HEAT_PROD.name)
-    local_prod_dict = aggregated_local_productions(agents, hp_high_heat_prod, hp_low_heat_prod)
+    local_prod_dict = aggregated_local_productions(agents, job_id)
     result_dict[ResultsKey.LOCALLY_PRODUCED_RESOURCES] = local_prod_dict
     # Taxes and grid fees
     result_dict[ResultsKey.TAX_PAID] = get_total_tax_paid(job_id=job_id)
@@ -142,12 +140,15 @@ def get_extra_costs_sum(grid_agents: Dict[Resource, GridAgent], job_id: str) -> 
     return 0.0
 
 
-def aggregated_local_productions(agents: List[IAgent], hp_high_heat_prod: float, hp_low_heat_prod: float) \
-        -> Dict[str, float]:
+def aggregated_local_productions(agents: List[IAgent], job_id: str) -> Dict[str, float]:
     """
     Computing total amount of locally produced resources.
     @return Summed local production by resource name
     """
+    hp_high_heat_prod = sum_levels(job_id, TradeMetadataKey.HP_HIGH_HEAT_PROD.name)
+    hp_low_heat_prod = sum_levels(job_id, TradeMetadataKey.HP_LOW_HEAT_PROD.name)
+    cm_low_heat_prod = sum_levels(job_id, TradeMetadataKey.CM_HEAT_PROD.name)
+
     production_electricity_lst = []
     production_low_temp_heat_lst = []
     for agent in agents:
@@ -158,4 +159,4 @@ def aggregated_local_productions(agents: List[IAgent], hp_high_heat_prod: float,
                 production_low_temp_heat_lst.append(sum(agent.digital_twin.space_heating_production))
     return {Resource.ELECTRICITY.name: sum(production_electricity_lst),
             Resource.HIGH_TEMP_HEAT.name: hp_high_heat_prod,
-            Resource.LOW_TEMP_HEAT.name: sum(production_low_temp_heat_lst) + hp_low_heat_prod}
+            Resource.LOW_TEMP_HEAT.name: sum(production_low_temp_heat_lst) + hp_low_heat_prod + cm_low_heat_prod}
