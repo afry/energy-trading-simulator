@@ -1,6 +1,6 @@
 import pandas as pd
 
-PERCENT_OF_BYA_TO_COVER_WITH_PV_PANELS = 0.2
+PERCENT_OF_BYA_TO_COVER_WITH_PV_PANELS = 0.25
 # White estimated that 50% of BYA can be covered by rooftop PV panels
 # (see https://doc.afdrift.se/display/RPJ/BDAB+data)
 # But for our base case, we'll go with a more modest number, 20%
@@ -30,10 +30,11 @@ if __name__ == '__main__':
     areas = areas[['Type', 'Name', 'Atemp', 'PVArea', 'FractionCommercial']]
     areas['FractionSchool'] = 0.0
     areas['FractionOffice'] = 0.0
-    areas['HeatPumpMaxInput'] = 45
-    areas['HeatPumpMaxOutput'] = 145
-    areas['BoosterPumpMaxInput'] = 25
-    areas['BoosterPumpMaxOutput'] = 100
-    areas['BatteryCapacity'] = 100
-    areas['AccumulatorTankCapacity'] = 300
+    areas['HeatPumpMaxInput'] = [0.0 if i < 10 else 45.0 for i in range(20)]
+    areas['HeatPumpMaxOutput'] = [0.0 if i < 10 else 145.0 for i in range(20)]
+    areas['BoosterPumpMaxInput'] = 25.0
+    areas['BoosterPumpMaxOutput'] = 100.0
+    areas['Borehole'] = [i >= 10 for i in range(20)]
+    areas['BatteryCapacity'] = 100.0
+    areas['AccumulatorTankCapacity'] = 300.0
     print(areas.to_json(orient='records'))
