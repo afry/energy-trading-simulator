@@ -80,7 +80,7 @@ class TradingSimulator:
         self.trading_periods = get_periods_from_db().sort_values()
         # FIXME: Remove
         # self.trading_periods = self.trading_periods.take(list(range(4008, 4032))
-        #                                                  + list(range(5520, 5544))
+        #                                                  + list(range(5664, 5688))
         #                                                  + list(range(5952, 5976)))
         self.trading_horizon = self.config_data['AreaInfo']['TradingHorizon']
 
@@ -127,14 +127,18 @@ class TradingSimulator:
                                                discharging_efficiency=area_info["BatteryEfficiency"])
 
                 agents.append(
-                    BlockAgent(self.local_market_enabled, heat_pricing=self.heat_pricing,
-                               electricity_pricing=self.electricity_pricing, digital_twin=block_digital_twin,
+                    BlockAgent(self.local_market_enabled,
+                               heat_pricing=self.heat_pricing,
+                               electricity_pricing=self.electricity_pricing,
+                               digital_twin=block_digital_twin,
                                can_sell_heat_to_external=LEC_CAN_SELL_HEAT_TO_EXTERNAL,
                                heat_pump_max_input=agent["HeatPumpMaxInput"],
                                heat_pump_max_output=agent["HeatPumpMaxOutput"],
                                booster_pump_max_input=agent["BoosterPumpMaxInput"],
                                booster_pump_max_output=agent["BoosterPumpMaxOutput"],
-                               acc_tank_capacity=agent["AccumulatorTankCapacity"], battery=storage_digital_twin,
+                               acc_tank_capacity=agent["AccumulatorTankCapacity"],
+                               frac_for_bites=agent["FractionUsedForBITES"],
+                               battery=storage_digital_twin,
                                guid=agent_name))
 
             elif agent_type == "GroceryStoreAgent":
@@ -151,7 +155,8 @@ class TradingSimulator:
                                                                space_heating_production=space_heat_prod,
                                                                has_borehole=False)  # Cooling is handled "internally"
                 agents.append(
-                    BlockAgent(self.local_market_enabled, heat_pricing=self.heat_pricing,
+                    BlockAgent(self.local_market_enabled,
+                               heat_pricing=self.heat_pricing,
                                electricity_pricing=self.electricity_pricing, digital_twin=grocery_store_digital_twin,
                                can_sell_heat_to_external=LEC_CAN_SELL_HEAT_TO_EXTERNAL,
                                heat_pump_max_input=agent["HeatPumpMaxInput"],
@@ -159,6 +164,7 @@ class TradingSimulator:
                                booster_pump_max_input=agent["BoosterPumpMaxInput"],
                                booster_pump_max_output=agent["BoosterPumpMaxOutput"],
                                acc_tank_capacity=agent["AccumulatorTankCapacity"],
+                               frac_for_bites=agent["FractionUsedForBITES"],
                                guid=agent_name))
             elif agent_type == "GridAgent":
                 if Resource[agent["Resource"]] == Resource.ELECTRICITY:

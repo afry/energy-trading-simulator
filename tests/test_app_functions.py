@@ -46,6 +46,7 @@ class TestAppFunctions(TestCase):
                    "BoosterPumpMaxOutput": 0.0,
                    "BatteryCapacity": 0.0,
                    "AccumulatorTankCapacity": 0.0,
+                   "FractionUsedForBITES": 0.0,
                    "Borehole": False,
                    "PVArea": 20.0}
 

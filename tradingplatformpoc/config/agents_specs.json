@@ -95,11 +95,20 @@
             "default_value": 0.0,
             "help": "A number specifying the capacity of the agent's accumulator tank (slingtank), in kilowatt-hours. Assuming a temperature of 65 degrees C, 1 cubic metre corresponds to roughly 75 kWh.",
             "type": "float"
+        },
+        "FractionUsedForBITES": {
+            "display": "Fraction used for building inertia thermal energy storage",
+            "min_value": 0.0,
+            "max_value": 1.0,
+            "help": "A number from 0 to 1, specifying how much of the block's heated area to use for building inertia thermal energy storage (BITES).",
+            "default_value": 0.0,
+            "type": "float"
         }
     },
     "GridAgent": {
         "Resource": {
             "help": "The resource which this agent trades",
+            "default_value": "ELECTRICITY",
             "type": "string"
         },
         "TransferRate": {
@@ -184,6 +193,14 @@
             "step": 25.0,
             "default_value": 25.0,
             "help": "A number specifying the capacity of the agent's accumulator tank (slingtank), in kilowatt-hours. Assuming a temperature of 65 degrees C, 1 cubic metre corresponds to roughly 75 kWh.",
+            "type": "float"
+        },
+        "FractionUsedForBITES": {
+            "display": "Fraction used for building inertia thermal energy storage",
+            "min_value": 0.0,
+            "max_value": 1.0,
+            "help": "A number from 0 to 1, specifying how much of the block's heated area to use for building inertia thermal energy storage (BITES).",
+            "default_value": 0.0,
             "type": "float"
         }
     }

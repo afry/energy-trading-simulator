@@ -5,11 +5,11 @@ from st_pages import add_indentation, show_pages_from_config
 import streamlit as st
 
 from tradingplatformpoc.app import footer
-from tradingplatformpoc.app.app_charts import construct_avg_day_elec_chart, construct_heat_dump_chart, \
-    construct_price_chart
+from tradingplatformpoc.app.app_charts import construct_avg_day_elec_chart, construct_cooling_machine_chart, \
+    construct_price_chart, construct_reservoir_chart
 from tradingplatformpoc.app.app_data_display import aggregated_net_elec_import_results_df_split_on_period, \
     combine_trades_dfs, construct_combined_price_df, values_by_resource_to_mwh
-from tradingplatformpoc.market.trade import Action, Resource
+from tradingplatformpoc.market.trade import Action, Resource, TradeMetadataKey
 from tradingplatformpoc.sql.config.crud import get_all_finished_job_config_id_pairs_in_db, read_config
 from tradingplatformpoc.sql.results.crud import get_results_for_job
 from tradingplatformpoc.sql.results.models import ResultsKey
@@ -90,11 +90,14 @@ if len(ids) > 0:
                   value="{:,.2f} MWh".format(res_dict[Resource.HIGH_TEMP_HEAT.name] / 1000),
                   help="Heating produced by heat pumps during winter, and booster heat pumps during summer.")
 
-    # Heat dump
-    heat_dump_chart = construct_heat_dump_chart(job_id)
-    st.altair_chart(heat_dump_chart, use_container_width=True, theme=None)
+    with st.expander('Unused resources:'):
+        heat_dump_chart = construct_reservoir_chart(job_id, TradeMetadataKey.HEAT_DUMP, "Heat")
+        st.altair_chart(heat_dump_chart, use_container_width=True, theme=None)
+        cool_dump_chart = construct_reservoir_chart(job_id, TradeMetadataKey.COOL_DUMP, "Cooling")
+        st.altair_chart(cool_dump_chart, use_container_width=True, theme=None)
 
-    resources = [Resource.ELECTRICITY, Resource.HIGH_TEMP_HEAT, Resource.LOW_TEMP_HEAT]
+    # Resource tabs
+    resources = [Resource.ELECTRICITY, Resource.HIGH_TEMP_HEAT, Resource.LOW_TEMP_HEAT, Resource.COOLING]
     agg_tabs = st.tabs([resource.get_display_name(True) for resource in resources])
     for resource, tab in zip(resources, agg_tabs):
         with tab:
@@ -106,7 +109,7 @@ if len(ids) > 0:
                 agg_trades = agg_trades.transpose()
                 st.dataframe(agg_trades.style.format(precision=2))
 
-            st.caption("The quantities used for calculations are before losses.")
+            st.caption("The quantities in the table are before losses.")
 
             if resource == Resource.ELECTRICITY:
                 # TODO: Make it possible to choose ex. Dec-Jan
@@ -133,7 +136,11 @@ if len(ids) > 0:
                     price_chart = construct_price_chart(combined_price_df, Resource.ELECTRICITY,)
                 st.caption("Click on a variable in legend to highlight it in the graph.")
                 st.altair_chart(price_chart, use_container_width=True, theme=None)
-            
+            elif resource == Resource.COOLING:
+                # Show centralized cooling machine production
+                cm_chart = construct_cooling_machine_chart(job_id)
+                st.altair_chart(cm_chart, use_container_width=True, theme=None)
+
 else:
     st.markdown('No results to view yet, set up a configuration in '
                 '**Setup configuration** and run it in **Run simulation**.')

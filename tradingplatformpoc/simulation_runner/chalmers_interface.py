@@ -71,7 +71,7 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
     heatpump_max_heat = [agent.heat_pump_max_output for agent in block_agents]
     booster_max_power = [agent.booster_pump_max_input for agent in block_agents]
     booster_max_heat = [agent.booster_pump_max_output for agent in block_agents]
-    atemps = [agent.digital_twin.atemp for agent in block_agents]
+    atemp_for_bites = [agent.digital_twin.atemp * agent.frac_for_bites for agent in block_agents]
     has_borehole = [agent.digital_twin.has_borehole for agent in block_agents]
     shallow_storage_start = [(shallow_storage_start_dict[agent] if agent in shallow_storage_start_dict.keys() else 0.0)
                              for agent in agent_guids]
@@ -106,7 +106,7 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
         booster_heatpump_max_power=booster_max_power,
         booster_heatpump_max_heat=booster_max_heat,
         borehole=has_borehole,
-        build_area=atemps,
+        build_area=atemp_for_bites,
         SOCTES0=[area_info['StorageEndChargeLevel']] * n_agents,
         thermalstorage_max_temp=[constants.ACC_TANK_TEMPERATURE] * n_agents,
         thermalstorage_volume=acc_tank_volumes,
@@ -208,7 +208,10 @@ def extract_outputs(optimized_model: pyo.ConcreteModel,
                                 lambda i: optimized_model.Phpmax[i] > 0)
     metadata_per_period = {
         TradeMetadataKey.HEAT_DUMP: get_value_per_period(optimized_model, start_datetime, 'heat_dump'),
-        TradeMetadataKey.CM_PROD: get_value_per_period(optimized_model, start_datetime, 'Ccc')
+        TradeMetadataKey.COOL_DUMP: get_value_per_period(optimized_model, start_datetime, 'cool_dump'),
+        TradeMetadataKey.CM_COOL_PROD: get_value_per_period(optimized_model, start_datetime, 'Ccc'),
+        TradeMetadataKey.CM_HEAT_PROD: get_value_per_period(optimized_model, start_datetime, 'Hcc'),
+        TradeMetadataKey.CM_ELEC_CONS: get_value_per_period(optimized_model, start_datetime, 'Pcc')
     }
     return ChalmersOutputs(elec_trades + heat_trades + cool_trades, metadata_per_agent_and_period, metadata_per_period)
 

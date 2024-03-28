@@ -60,7 +60,12 @@ class TradeMetadataKey(Enum):
     DEEP_LOSS = 15
 
     HEAT_DUMP = 16
-    CM_PROD = 17  # Cooling machine
+    COOL_DUMP = 17
+
+    # Cooling machine
+    CM_COOL_PROD = 18
+    CM_HEAT_PROD = 19
+    CM_ELEC_CONS = 20
 
 
 class Trade:

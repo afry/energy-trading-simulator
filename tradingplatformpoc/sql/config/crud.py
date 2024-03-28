@@ -210,3 +210,4 @@ def update_description(config_id: str, new_description: str,
                        = session_scope):
     with session_generator() as db:
         db.query(Config).filter(Config.id == config_id).update({'description': new_description})
+        logger.info('Updated description for config ID {}'.format(config_id))

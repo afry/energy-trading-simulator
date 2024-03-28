@@ -126,8 +126,8 @@ if option_chosen == options[0]:
         st.markdown("To delete an agent, check the box in the leftmost column and press 'Delete' on your keyboard.")
         st.markdown("Note that bulk-editing is possible by dragging the handle on a cell (similar to Excel).")
         st.markdown("Also note that Ctrl+Z does not work for these tables, so handle with care. If you accidentally "
-                    "delete an agent you wished to keep, refresh the page to get it back - but all other unsaved "
-                    "changes you made in these tables will be lost.")
+                    "delete an agent you wished to keep, you can refresh the page to get it back - but all other "
+                    "unsaved changes you made in these tables will be lost.")
 
         agent_form = st.form(key="AgentTables")
 

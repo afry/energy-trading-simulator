@@ -86,21 +86,22 @@ def import_export_calculations(ids: ComparisonIds) -> alt.Chart:
     return chart
 
 
-def construct_heat_dump_comparison_chart(ids: ComparisonIds) -> alt.Chart:
+def construct_dump_comparison_chart(ids: ComparisonIds, tmk: TradeMetadataKey, resource_name: str) -> alt.Chart:
     """Process data to be of a form that fits the altair chart, then construct a line chart."""
     domain: List[str] = []
     range_color: List[str] = app_constants.ALTAIR_BASE_COLORS[:2]
     range_dash: List[List[int]] = [[0, 0], [8, 8]]
     new_df = pd.DataFrame()
     for job_id in ids.get_job_ids():
-        df = db_to_viewable_level_df(job_id, TradeMetadataKey.HEAT_DUMP.name)
+        df = db_to_viewable_level_df(job_id, tmk.name)
         df = df.reset_index().rename(columns={'index': 'period', 'level': 'value'})
         config_id = ids.get_config_id(job_id)
         df['variable'] = config_id
         new_df = pd.concat((new_df, df))
         domain.append(config_id)
 
-    return altair_line_chart(new_df, domain, range_color, range_dash, "Heat [kWh]", 'Heat dump')
+    title = 'Unused ' + resource_name.lower()
+    return altair_line_chart(new_df, domain, range_color, range_dash, resource_name + ' [kWh]', title)
 
 
 def show_key_figures(pre_calculated_results_1: Dict[str, Any], pre_calculated_results_2: Dict[str, Any]):
