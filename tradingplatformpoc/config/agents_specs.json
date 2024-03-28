@@ -100,6 +100,7 @@
     "GridAgent": {
         "Resource": {
             "help": "The resource which this agent trades",
+            "default_value": "ELECTRICITY",
             "type": "string"
         },
         "TransferRate": {
