@@ -37,4 +37,5 @@ if __name__ == '__main__':
     areas['Borehole'] = [i >= 10 for i in range(20)]
     areas['BatteryCapacity'] = 100.0
     areas['AccumulatorTankCapacity'] = 300.0
+    areas['FractionUsedForBITES'] = 0.0
     print(areas.to_json(orient='records'))
