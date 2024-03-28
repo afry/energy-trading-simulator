@@ -249,3 +249,28 @@ def construct_reservoir_chart(job_id: str, tmk: TradeMetadataKey, resource_name:
     df['variable'] = name
     return altair_line_chart(df, [name], [app_constants.ALTAIR_BASE_COLORS[0]], [],
                              resource_name + ' [kWh]', name, legend=False)
+
+
+def construct_cooling_machine_chart(job_id: str) -> alt.Chart:
+    df_cool = db_to_viewable_level_df(job_id, TradeMetadataKey.CM_COOL_PROD.name)
+    df_cool = df_cool.reset_index().rename(columns={'index': 'period', 'level': 'value'})
+    cooling_produced = 'Cooling produced'
+    df_cool['variable'] = cooling_produced
+
+    df_heat = db_to_viewable_level_df(job_id, TradeMetadataKey.CM_HEAT_PROD.name)
+    df_heat = df_heat.reset_index().rename(columns={'index': 'period', 'level': 'value'})
+    heat_produced = 'Low-temp heat produced'
+    df_heat['variable'] = heat_produced
+
+    df_elec = db_to_viewable_level_df(job_id, TradeMetadataKey.CM_ELEC_CONS.name)
+    df_elec = df_elec.reset_index().rename(columns={'index': 'period', 'level': 'value'})
+    elec_consumed = 'Electricity consumed'
+    df_elec['variable'] = elec_consumed
+
+    df = pd.concat((df_cool, df_heat, df_elec), axis=0)
+    return altair_line_chart(df,
+                             [cooling_produced, heat_produced, elec_consumed],
+                             app_constants.ALTAIR_BASE_COLORS[:3],
+                             [],
+                             'Energy [kWh]',
+                             'Centralized cooling machine')
