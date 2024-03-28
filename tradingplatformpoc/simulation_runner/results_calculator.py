@@ -124,9 +124,9 @@ def calculate_results_and_save(job_id: str, agents: List[IAgent], grid_agents: D
     # Taxes and grid fees
     result_dict[ResultsKey.TAX_PAID] = get_total_tax_paid(job_id=job_id)
     result_dict[ResultsKey.GRID_FEES_PAID] = get_total_grid_fee_paid_on_internal_trades(job_id=job_id)
-    # Heat dumped into reservoir
-    heat_dumped = sum_levels(job_id, TradeMetadataKey.HEAT_DUMP.name)
-    result_dict[ResultsKey.HEAT_DUMPED] = heat_dumped
+    # Resources dumped into reservoir
+    result_dict[ResultsKey.HEAT_DUMPED] = sum_levels(job_id, TradeMetadataKey.HEAT_DUMP.name)
+    result_dict[ResultsKey.COOL_DUMPED] = sum_levels(job_id, TradeMetadataKey.COOL_DUMP.name)
 
     save_results(PreCalculatedResults(job_id=job_id, result_dict=result_dict))
 

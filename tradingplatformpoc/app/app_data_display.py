@@ -301,7 +301,8 @@ def build_leaderboard_df(list_of_dicts: List[dict]) -> pd.DataFrame:
                       ResultsKey.GRID_FEES_PAID,
                       ResultsKey.format_results_key_name(ResultsKey.SUM_IMPORT_BELOW_1_C, Resource.HIGH_TEMP_HEAT),
                       ResultsKey.format_results_key_name(ResultsKey.SUM_IMPORT_JAN_FEB, Resource.HIGH_TEMP_HEAT),
-                      ResultsKey.HEAT_DUMPED]
+                      ResultsKey.HEAT_DUMPED,
+                      ResultsKey.COOL_DUMPED]
 
     for wanted_column in wanted_columns:
         if wanted_column not in df_to_display.columns:
