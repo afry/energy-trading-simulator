@@ -43,6 +43,7 @@ class ResultsKey:
     SUM_EXPORT_BELOW_1_C = '{} export when <1C [kWh]'
     LOCALLY_PRODUCED_RESOURCES = 'Local prod. {} [kWh]'
     HEAT_DUMPED = 'Heat dumped [kWh]'
+    COOL_DUMPED = 'Cooling dumped [kWh]'
 
     @staticmethod
     def format_results_key_name(results_key_name: str, resource: Resource) -> str:

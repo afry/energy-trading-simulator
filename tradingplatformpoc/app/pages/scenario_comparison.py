@@ -5,7 +5,7 @@ from st_pages import add_indentation, show_pages_from_config
 import streamlit as st
 
 from tradingplatformpoc.app import footer
-from tradingplatformpoc.app.app_comparison import ComparisonIds, construct_heat_dump_comparison_chart, \
+from tradingplatformpoc.app.app_comparison import ComparisonIds, construct_dump_comparison_chart, \
     construct_level_comparison_chart, get_keys_with_x_first, import_export_calculations, show_key_figures
 from tradingplatformpoc.market.trade import TradeMetadataKey
 from tradingplatformpoc.sql.agent.crud import get_agent_type
@@ -46,11 +46,13 @@ if len(job_id_per_config_id) >= 2:
             st.caption("Hold *Shift* and click on multiple variables in the legend to highlight them in the graph.")
             st.altair_chart(imp_exp_chart, use_container_width=True, theme=None)
 
-        # Heat dump graph
-        logger.info("Constructing heat dump graph")
-        with st.spinner("Constructing heat dump graph"):
-            heat_dump_chart = construct_heat_dump_comparison_chart(comparison_ids)
+        # Unused resource graphs
+        with st.expander('Unused resources:'):
+            logger.info("Constructing resource dump graphs")
+            heat_dump_chart = construct_dump_comparison_chart(comparison_ids, TradeMetadataKey.HEAT_DUMP, "Heat")
             st.altair_chart(heat_dump_chart, use_container_width=True, theme=None)
+            cool_dump_chart = construct_dump_comparison_chart(comparison_ids, TradeMetadataKey.COOL_DUMP, "Cooling")
+            st.altair_chart(cool_dump_chart, use_container_width=True, theme=None)
 
         # Agent comparison
         st.subheader("Agent comparison graphs")
