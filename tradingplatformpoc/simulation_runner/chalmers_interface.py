@@ -208,7 +208,10 @@ def extract_outputs(optimized_model: pyo.ConcreteModel,
                                 lambda i: optimized_model.Phpmax[i] > 0)
     metadata_per_period = {
         TradeMetadataKey.HEAT_DUMP: get_value_per_period(optimized_model, start_datetime, 'heat_dump'),
-        TradeMetadataKey.CM_PROD: get_value_per_period(optimized_model, start_datetime, 'Ccc')
+        TradeMetadataKey.COOL_DUMP: get_value_per_period(optimized_model, start_datetime, 'cool_dump'),
+        TradeMetadataKey.CM_COOL_PROD: get_value_per_period(optimized_model, start_datetime, 'Ccc'),
+        TradeMetadataKey.CM_HEAT_PROD: get_value_per_period(optimized_model, start_datetime, 'Hcc'),
+        TradeMetadataKey.CM_ELEC_CONS: get_value_per_period(optimized_model, start_datetime, 'Pcc')
     }
     return ChalmersOutputs(elec_trades + heat_trades + cool_trades, metadata_per_agent_and_period, metadata_per_period)
 

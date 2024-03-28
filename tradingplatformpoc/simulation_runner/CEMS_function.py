@@ -167,6 +167,9 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, n_agents: int,
         model.HhpB = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
         model.PhpB = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
     model.heat_dump = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
+    # This variable will keep track of the unused excess cooling for us. No penalty associated with it - this cooling
+    # can be used, or not, it's fine either way
+    model.cool_dump = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
 
     add_obj_and_constraints(model, summer_mode, month)
 
@@ -405,7 +408,7 @@ def LEC_Hbalance(model, t):
 
 def LEC_Cbalance(model, t):
     return model.Ccc[t] + sum(model.Csell_grid[i, t]*(1-model.cold_trans_loss) for i in model.I) ==\
-           sum(model.Cbuy_grid[i, t] for i in model.I)
+           sum(model.Cbuy_grid[i, t] for i in model.I) + model.cool_dump[t]
 
 
 # Battery energy storage model (eqs. 16 to 19 of the report)
@@ -451,8 +454,7 @@ def HP_Hproduct(model, i, t):
 
 
 def HP_Cproduct(model, i, t):
-    # replacing == with <= : cooling power can be used or not
-    return model.Chp[i, t] <= (model.COPhp[i] - 1) * model.Php[i, t]
+    return model.Chp[i, t] == (model.COPhp[i] - 1) * model.Php[i, t]
 
 
 def max_HP_Hproduct(model, i, t):
@@ -514,8 +516,7 @@ def max_chiller_Cpower_product(model, t):
 
 def chiller_Hwaste_summer(model, t):
     # Only used in summer mode
-    # replacing == with <= : waste heat power can be used or not
-    return model.Hcc[t] <= (1+model.COPcc) * model.Pcc[t]
+    return model.Hcc[t] == (1+model.COPcc) * model.Pcc[t]
 
 
 def chiller_Hwaste_winter(model, t):
