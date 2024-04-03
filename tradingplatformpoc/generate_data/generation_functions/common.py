@@ -1,13 +1,20 @@
 import datetime
 from typing import List, Union
 
+import numpy as np
+
 import pandas as pd
 
 import polars as pl
 
 import pytz
 
+from tradingplatformpoc.trading_platform_utils import nan_helper
+
 SWEDEN_TIMEZONE = pytz.timezone("Europe/Stockholm")
+# For the series which we take a pre-calculated value and add noise, this random noise will be piecewise linear, with
+# knots every X hours
+EVERY_X_HOURS = 3
 
 
 def scale_energy_consumption(unscaled_simulated_values_kwh: pl.LazyFrame, m2: float,
@@ -90,3 +97,16 @@ def extract_datetime_features_from_inputs_df(df_inputs: pd.DataFrame) -> pl.Data
 
 def constants(df_inputs: pl.LazyFrame, val: float) -> pl.LazyFrame:
     return df_inputs.select([pl.col('datetime'), pl.lit(val).alias('value')])
+
+
+def get_noise(n_rows: int, random_seed: int, std_dev: float) -> np.ndarray:
+    every_xth = np.arange(0, n_rows, EVERY_X_HOURS)
+    points_to_generate = len(every_xth)
+    rng = np.random.default_rng(random_seed)
+    generated_points = rng.normal(1, std_dev, points_to_generate)
+    noise = np.empty((n_rows,))
+    noise[:] = np.nan
+    noise[every_xth] = generated_points
+    nans, x = nan_helper(noise)
+    noise[nans] = np.interp(x(nans), x(~nans), noise[~nans])
+    return noise
