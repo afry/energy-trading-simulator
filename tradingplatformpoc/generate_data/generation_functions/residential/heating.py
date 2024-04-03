@@ -1,13 +1,8 @@
 from typing import Any, Dict, Tuple
 
-import numpy as np
-
 import polars as pl
 
-from tradingplatformpoc.generate_data.generation_functions.common import constants, scale_energy_consumption
-from tradingplatformpoc.trading_platform_utils import nan_helper
-
-EVERY_X_HOURS = 3  # Random noise will be piecewise linear, with knots every X hours
+from tradingplatformpoc.generate_data.generation_functions.common import constants, get_noise, scale_energy_consumption
 
 
 def simulate_residential_total_heating(mock_data_constants: Dict[str, Any], df_inputs: pl.LazyFrame, n_rows: int,
@@ -25,19 +20,7 @@ def simulate_residential_total_heating(mock_data_constants: Dict[str, Any], df_i
         zeroes = constants(df_inputs, 0)
         return zeroes, zeroes
 
-    every_xth = np.arange(0, n_rows, EVERY_X_HOURS)
-    points_to_generate = len(every_xth)
-
-    rng = np.random.default_rng(random_seed)
-    std_dev = mock_data_constants['RelativeErrorStdDev']
-    generated_points = rng.normal(1, std_dev, points_to_generate)
-
-    noise = np.empty((n_rows,))
-    noise[:] = np.nan
-    noise[every_xth] = generated_points
-
-    nans, x = nan_helper(noise)
-    noise[nans] = np.interp(x(nans), x(~nans), noise[~nans])
+    noise = get_noise(n_rows, random_seed, mock_data_constants['RelativeErrorStdDev'])
 
     space_heating_unscaled = df_inputs.select([pl.col('datetime'), pl.col('rad_energy').alias('value') * noise])
     hot_tap_water_unscaled = df_inputs.select([pl.col('datetime'), pl.col('hw_energy').alias('value') * noise])

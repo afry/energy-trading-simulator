@@ -18,6 +18,7 @@ from tradingplatformpoc.generate_data.generation_functions.non_residential.comme
     get_commercial_cooling_consumption_factor
 from tradingplatformpoc.generate_data.generation_functions.non_residential.common import \
     probability_of_0_space_heating, simulate_cooling, simulate_space_heating
+from tradingplatformpoc.generate_data.generation_functions.non_residential.office import read_office_dicts
 from tradingplatformpoc.generate_data.generation_functions.non_residential.school import \
     get_school_heating_consumption_hourly_factor, is_break
 from tradingplatformpoc.generate_data.generation_functions.residential.electricity import \
@@ -103,3 +104,9 @@ class Test(TestCase):
 
     def test_binomial_model(self):
         self.assertAlmostEqual(0.011051883541022711, probability_of_0_space_heating(7))
+
+    def test_read_office_dicts(self):
+        """Test that read_office_dicts returns dicts that aren't empty."""
+        elec_dict, hot_water_dict = read_office_dicts()
+        self.assertTrue(len(elec_dict.items()) > 0)
+        self.assertTrue(len(hot_water_dict.items()) > 0)

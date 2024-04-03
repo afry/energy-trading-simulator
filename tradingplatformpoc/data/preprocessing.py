@@ -1,3 +1,4 @@
+import datetime
 import functools
 import logging
 
@@ -106,12 +107,51 @@ def read_heating_data(data_path: str = "tradingplatformpoc.data",
     return df_heat
 
 
+def read_office_data(data_path: str = 'tradingplatformpoc.data',
+                     office_data_file: str = 'office_hourly.csv') -> pd.DataFrame:
+    csv_path = resource_filename(data_path, office_data_file)
+    hourly_data = pd.read_csv(csv_path, sep=';', header=None, skiprows=4,
+                              names=['datetime', 'office_cooling', 'office_space_heating'])
+    # This file is for 2019, even though it says 2021. Our other data is 2019-02 - 2020-01, so we'll take 2019-01 from
+    # this data and move it to 2020-01.
+    hourly_data['datetime'] = pd.to_datetime(hourly_data['datetime'].astype(str).str.
+                                             replace('2021-01', '2020-01').str.
+                                             replace('2021-', '2019-'))
+    # Do the timezone thing as above
+    hourly_data['datetime'] = hourly_data['datetime'].dt. \
+        tz_localize('Europe/Stockholm', nonexistent='NaT', ambiguous='NaT')
+    hourly_data = hourly_data.loc[~hourly_data['datetime'].isnull()]
+    # Finally, convert to UTC
+    hourly_data['datetime'] = hourly_data['datetime'].dt.tz_convert('UTC')
+    # One duplicate, when going from DST, remove it:
+    hourly_data = hourly_data.groupby('datetime').mean().reset_index()
+
+    # Missing one entry at the end:
+    # Find the last row
+    last_row = hourly_data.iloc[-1]
+    # Increment datetime by 1 hour
+    new_datetime = last_row['datetime'] + datetime.timedelta(hours=1)
+    # Create a new row with datetime increased by 1 hour and other values copied from the last row
+    new_row = last_row.copy()
+    new_row['datetime'] = new_datetime
+    # Append the new row to the DataFrame
+    hourly_data = pd.concat([hourly_data, pd.DataFrame(new_row).transpose()], ignore_index=True)
+    hourly_data['office_cooling'] = hourly_data['office_cooling'].astype(float)
+    hourly_data['office_space_heating'] = hourly_data['office_space_heating'].astype(float)
+
+    # Remove first row (2019-01-31 23:00)
+    hourly_data = hourly_data.iloc[1:]
+
+    return hourly_data
+
+
 # Preprocess data
 # ----------------------------------------------------------------------------------------------------------------------
 
 def clean(df: pd.DataFrame) -> pd.DataFrame:
     """
     Interpolate values for missing datetimes in dataframe range.
+    The input df must have a column named 'datetime'.
     """
     df = df.set_index('datetime')
     datetime_range = pd.date_range(start=df.index.min(), end=df.index.max(),
@@ -125,11 +165,15 @@ def clean(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def read_and_process_input_data():
+def read_and_process_input_data() -> pd.DataFrame:
     """
     Create input dataframe.
     """
-    dfs = [read_irradiation_data(), read_temperature_data(), read_heating_data(), read_energy_data()]
+    dfs = [read_irradiation_data(),
+           read_temperature_data(),
+           read_heating_data(),
+           read_energy_data(),
+           read_office_data()]
     dfs_cleaned = [clean(df) for df in dfs]
     df_merged = functools.reduce(lambda left, right: left.join(right, on='datetime', how='inner'), dfs_cleaned)
     return df_merged.reset_index()

@@ -48,18 +48,22 @@ def read_input_column_df_from_db(
 def read_inputs_df_for_mock_data_generation(
         session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope):
     with session_generator() as db:
-        res = db.execute(select(InputData.period.label('period'),
-                                InputData.irradiation.label('irradiation'),
-                                InputData.temperature.label('temperature'),
-                                InputData.rad_energy.label('rad_energy'),
-                                InputData.hw_energy.label('hw_energy'))).all()
+        res = db.execute(select(InputData.period,
+                                InputData.irradiation,
+                                InputData.temperature,
+                                InputData.rad_energy,
+                                InputData.hw_energy,
+                                InputData.office_cooling,
+                                InputData.office_space_heating)).all()
         if res is not None:
             return pd.DataFrame.from_records([{
                 'datetime': x.period,
                 'irradiation': x.irradiation,
                 'temperature': x.temperature,
                 'rad_energy': x.rad_energy,
-                'hw_energy': x.hw_energy}
+                'hw_energy': x.hw_energy,
+                'office_cooling': x.office_cooling,
+                'office_space_heating': x.office_space_heating}
                 for x in res])
         else:
             raise Exception('Could not fetch input data from database.')
