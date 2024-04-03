@@ -51,19 +51,11 @@ def simulate_office_based_on_hourly(atemp_m2: float, std_dev: float, scale_facto
 def simulate_office_based_on_daily(atemp_m2: float, std_dev: float, scale_factor: float, random_seed: int,
                                    lazy_inputs: pl.LazyFrame, n_rows: int,
                                    per_month_and_hour: Dict[Tuple[int, int], float]) -> pl.LazyFrame:
-    if atemp_m2 == 0:
-        return constants(lazy_inputs, 0)
-
     # First, add in the raw values from BDAB
     lf = lazy_inputs.with_column(
         pl.col('datetime').apply(lambda d: get_value_for_month_and_hour(d, per_month_and_hour)).alias('raw')
     )
-    # Now, add noise
-    noise = get_noise(n_rows, random_seed, std_dev)
-    energy_unscaled = lf.select([pl.col('datetime'), pl.col('raw').alias('value') * noise])
-
-    # Scale
-    return scale_energy_consumption(energy_unscaled, atemp_m2, scale_factor, n_rows)
+    return simulate_office_based_on_hourly(atemp_m2, std_dev, scale_factor, 'raw', random_seed, lf, n_rows)
 
 
 def get_value_for_month_and_hour(d: datetime.datetime, per_month_and_hour: Dict[Tuple[int, int], float]):
@@ -77,6 +69,10 @@ def get_value_for_month_and_hour(d: datetime.datetime, per_month_and_hour: Dict[
 
 
 def read_office_dicts() -> Tuple[Dict[Tuple[int, int], float], Dict[Tuple[int, int], float]]:
+    """
+    From the 'office_days.csv' file, this function constructs dicts (the first for electricity, the second for hot
+    water), with a value for energy consumption based on the month and hour of day.
+    """
     df = pd.read_csv(resource_filename('tradingplatformpoc.data', 'office_days.csv'), sep=';',
                      names=['month', 'hour', 'elec_1', 'elec_2', 'hot_water'], skiprows=1)
     df['month'] = df['month'].fillna(method='ffill').astype(int)
