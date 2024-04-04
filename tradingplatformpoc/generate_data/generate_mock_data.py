@@ -140,13 +140,20 @@ def run(config_id: str, reuse: bool = True) -> Union[pl.DataFrame, pl.LazyFrame]
     dfs_from_db: List[pl.DataFrame] = []
     for mock_data_id in existing_mock_data_ids:
         dfs_from_db.append(db_to_mock_data_df(mock_data_id))
+    mock_data_to_insert: List[dict] = []
     for agent_id, equivalents in mock_id_to_reuse_for_agent_id.items():
         existing_df = db_to_mock_data_df(equivalents['mock_data_id'])
-        # Rename columns, then add
+        # Rename columns
         renamed_df = existing_df.select(
             pl.all().map_alias(lambda col_name: col_name.replace(equivalents['agent_id'], agent_id))
         )
+        # This mock data already exists in the DB, but with a different agent_id. Save it as a new row with this agent
+        # ID, so that it can be used in the UI
+        db_dict = mock_data_df_to_db_dict(agent_id, mock_data_constants, renamed_df)
+        mock_data_to_insert.append(db_dict)
+        # Finally add the dataframe to the list
         dfs_from_db.append(renamed_df)
+    bulk_insert(TableMockData, mock_data_to_insert)
 
     logger.info('Joining dataframes from database.')
     joined_dfs_from_db = join_list_of_polar_dfs(dfs_from_db)
