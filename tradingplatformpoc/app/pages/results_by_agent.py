@@ -10,8 +10,8 @@ from tradingplatformpoc.app.app_data_display import build_heat_pump_prod_df, get
 from tradingplatformpoc.app.app_functions import IdPair, calculate_max_table_height, download_df_as_csv_button, \
     make_room_for_menu_in_sidebar
 from tradingplatformpoc.sql.agent.crud import get_agent_config, get_agent_type
-from tradingplatformpoc.sql.config.crud import get_all_agents_in_config, get_all_finished_job_config_id_pairs_in_db, \
-    read_config
+from tradingplatformpoc.sql.config.crud import get_all_agent_name_id_pairs_in_config, \
+    get_all_finished_job_config_id_pairs_in_db, read_config
 from tradingplatformpoc.sql.extra_cost.crud import db_to_viewable_extra_costs_df_by_agent
 from tradingplatformpoc.sql.trade.crud import db_to_viewable_trade_df_by_agent
 
@@ -25,7 +25,7 @@ ids = get_all_finished_job_config_id_pairs_in_db()
 if len(ids) > 0:
     chosen_config_id_to_view = st.selectbox('Choose a configuration to view results for', ids.keys())
     chosen_id_to_view = IdPair(chosen_config_id_to_view, ids[chosen_config_id_to_view])
-    agent_specs = get_all_agents_in_config(chosen_id_to_view.config_id)
+    agent_specs = get_all_agent_name_id_pairs_in_config(chosen_id_to_view.config_id)
     agent_names = [name for name in agent_specs.keys()]
     agent_chosen_guid = st.sidebar.selectbox('Choose agent:', agent_names)
     agent_type = get_agent_type(agent_specs[agent_chosen_guid])

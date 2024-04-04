@@ -9,7 +9,8 @@ from tradingplatformpoc.app.app_comparison import ComparisonIds, construct_dump_
     construct_level_comparison_chart, get_keys_with_x_first, import_export_calculations, show_key_figures
 from tradingplatformpoc.market.trade import TradeMetadataKey
 from tradingplatformpoc.sql.agent.crud import get_agent_type
-from tradingplatformpoc.sql.config.crud import get_all_agents_in_config, get_all_finished_job_config_id_pairs_in_db
+from tradingplatformpoc.sql.config.crud import get_all_agent_name_id_pairs_in_config, \
+    get_all_finished_job_config_id_pairs_in_db
 from tradingplatformpoc.sql.results.crud import get_results_for_job
 
 logger = logging.getLogger(__name__)
@@ -60,13 +61,13 @@ if len(job_id_per_config_id) >= 2:
         # The default "PVParkAgent" has nothing which will be shown here, so we exclude it from the lists. A bit hacky,
         # would want to change it if we remove/change this agent at some point.
         with first_col:
-            agent_1_specs = get_all_agents_in_config(comparison_ids.id_pairs[0].config_id)
+            agent_1_specs = get_all_agent_name_id_pairs_in_config(comparison_ids.id_pairs[0].config_id)
             agent_1_names = [name for name, uid in agent_1_specs.items()
                              if get_agent_type(uid) == "BlockAgent" and 'PVParkAgent' not in name]
             chosen_agent_name_to_view_1 = st.selectbox('Select an agent from the first configuration', agent_1_names)
             agent_1_type = get_agent_type(agent_1_specs.get(chosen_agent_name_to_view_1))
         with second_col:
-            agent_2_specs = get_all_agents_in_config(comparison_ids.id_pairs[1].config_id)
+            agent_2_specs = get_all_agent_name_id_pairs_in_config(comparison_ids.id_pairs[1].config_id)
             agent_2_names = [name for name, uid in agent_2_specs.items()
                              if get_agent_type(uid) == agent_1_type and 'PVParkAgent' not in name]
             chosen_agent_name_to_view_2 = st.selectbox('Select an agent from the second configuration', agent_2_names)

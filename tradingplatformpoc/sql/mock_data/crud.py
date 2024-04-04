@@ -1,15 +1,18 @@
 import json
 import logging
 from contextlib import _GeneratorContextManager
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Optional
 
 import pandas as pd
 
 import polars as pl
 
+from sqlalchemy import select
+
 from sqlmodel import Session
 
 from tradingplatformpoc.connection import session_scope
+from tradingplatformpoc.sql.agent.models import Agent
 from tradingplatformpoc.sql.mock_data.models import MockData
 
 
@@ -55,7 +58,7 @@ def get_mock_data_agent_pairs_in_db(agent_ids: List[str], mock_data_constants: D
                                     session_generator: Callable[[], _GeneratorContextManager[Session]]
                                     = session_scope) -> Dict[str, str]:
     """
-    Get mock data for agent_ids and mock data constants
+    Get mock data for agent_ids and mock data constants. The returned dict has mock data ID as key, agent ID as value.
     """
     with session_generator() as db:
 
@@ -74,3 +77,63 @@ def get_mock_data_ids_for_agent(agent_id: str,
     with session_generator() as db:
         res = db.query(MockData.id).filter(MockData.agent_id == agent_id).all()
         return [mock_data_id for (mock_data_id,) in res]
+
+
+def check_if_agent_equivalent_in_db(agent_config: Dict[str, Any], mock_data_constants: Dict[str, Any],
+                                    session_generator: Callable[[], _GeneratorContextManager[Session]]
+                                    = session_scope) -> Optional[Dict[str, str]]:
+    """
+    Is there an 'equivalent', in the mock-data-generating sense, for which we have already generated mock data?
+    If there is, the function will return a dict with 2 entries:
+    'agent_id' which keeps the ID of the agent which was found to be equivalent to the input agent
+    'mock_data_id' which keeps the mock data ID, which can be reused for the input agent
+    """
+    input_agent = get_relevant_agent_config(agent_config)
+
+    # Which mock data constants are relevant?
+    relevant_mdc_keys = get_relevant_mdc_keys(input_agent, mock_data_constants)
+    relevant_mdc = {k: v for k, v in mock_data_constants.items() if k in relevant_mdc_keys}
+
+    with session_generator() as db:
+        # Look at agents for which we have generated mock data
+        agents_in_db = db.execute(select(Agent.id,
+                                         Agent.agent_config,
+                                         MockData.id.label('mock_data_id'),
+                                         MockData.mock_data_constants)
+                                  .join(MockData, Agent.id == MockData.agent_id)
+                                  .where(Agent.agent_type == 'BlockAgent')).all()
+        for agent_in_db in agents_in_db:
+            # First, check that the mock data constants match
+            comparison_mdc = {k: v for k, v in agent_in_db.mock_data_constants.items() if k in relevant_mdc_keys}
+            mdc_diff = set(relevant_mdc.items()).symmetric_difference(set(comparison_mdc.items()))
+            if len(mdc_diff) == 0:
+                # For the agent config, keep only the fields used for mock data generation
+                comparison_agent = get_relevant_agent_config(agent_in_db.agent_config)
+                agent_diff = set(input_agent.items()).symmetric_difference(set(comparison_agent.items()))
+                if len(agent_diff) == 0:
+                    logger.info('Agent equivalent found in db with id {}'.format(agent_in_db.id))
+                    return {'agent_id': agent_in_db.id, 'mock_data_id': agent_in_db.mock_data_id}
+
+        return None
+
+
+def get_relevant_agent_config(agent_config: Dict[str, Any]) -> Dict[str, Any]:
+    """Keep only the fields used for mock data generation"""
+    fields_used = ['Atemp', 'FractionCommercial', 'FractionSchool', 'FractionOffice']
+    return {k: v for k, v in agent_config.items() if k in fields_used}
+
+
+def get_relevant_mdc_keys(input_agent: Dict[str, Any], mock_data_constants: Dict[str, Any]) -> List[str]:
+    """
+    If an agent only consists of residential buildings, for example, then the commercial, school etc. constants are
+    irrelevant.
+    """
+    relevant_mdc_keys = ['RelativeErrorStdDev']
+    for area_type in ['Commercial', 'Office', 'School']:
+        if input_agent['Fraction' + area_type] > 0:
+            relevant_mdc_keys = relevant_mdc_keys + [mdc_key for mdc_key in mock_data_constants.keys()
+                                                     if area_type in mdc_key]
+    if input_agent['FractionCommercial'] + input_agent['FractionOffice'] + input_agent['FractionSchool'] < 1:
+        relevant_mdc_keys = relevant_mdc_keys + [mdc_key for mdc_key in mock_data_constants.keys()
+                                                 if 'Residential' in mdc_key]
+    return relevant_mdc_keys
