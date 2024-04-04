@@ -13,7 +13,7 @@ PERC_OF_HT_COVERABLE_BY_LT = 0.6
 def solve_model(solver: OptSolver, summer_mode: bool, month: int, n_agents: int, external_elec_buy_price: pd.Series,
                 external_elec_sell_price: pd.Series, external_heat_buy_price: float,
                 battery_capacity: List[float], battery_charge_rate: List[float], battery_discharge_rate: List[float],
-                SOCBES0: List[float], heatpump_COP: List[float],
+                SOCBES0: List[float], HP_Cproduct_active: list[bool], heatpump_COP: List[float],
                 heatpump_max_power: List[float], heatpump_max_heat: List[float],
                 booster_heatpump_COP: List[float], booster_heatpump_max_power: List[float],
                 booster_heatpump_max_heat: List[float], build_area: List[float], SOCTES0: List[float],
@@ -113,6 +113,7 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, n_agents: int,
     model.COPhp = pyo.Param(model.I, initialize=heatpump_COP)
     model.Phpmax = pyo.Param(model.I, initialize=heatpump_max_power)
     model.Hhpmax = pyo.Param(model.I, initialize=heatpump_max_heat)
+    model.HP_Cproduct_active = pyo.Param(model.I, initialize=lambda m, i: HP_Cproduct_active[i])
     # Booster heat pump data
     model.COPhpB = pyo.Param(model.I, initialize=booster_heatpump_COP)
     model.PhpBmax = pyo.Param(model.I, initialize=booster_heatpump_max_power)
@@ -297,15 +298,28 @@ def agent_Pbalance_summer(model, i, t):
 
 def agent_Hbalance_winter(model, i, t):
     # Only used in winter mode
-    return model.Hbuy_grid[i, t] + model.Hhp[i, t] == \
-           model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] + model.Hsh[i, t] + model.HTEScha[i, t]
+    # with TES
+    if model.kwh_per_deg[i] != 0:
+        return model.Hbuy_grid[i, t] + model.Hhp[i, t] == \
+               model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] + model.Hsh[i, t] + model.HTEScha[i, t]
+    # without TES
+    else:
+        return model.Hbuy_grid[i, t] + model.Hhp[i, t] == \
+               model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] + model.Hsh[i, t] + model.Hhw[i, t]
 
 
 def agent_Hbalance_summer(model, i, t):
     # Only used in summer mode
-    return model.Hbuy_grid[i, t] + model.Hhp[i, t] \
-           + model.Hsh_excess[i, t] == model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] \
-           + PERC_OF_HT_COVERABLE_BY_LT * model.HTEScha[i, t] + model.Hsh[i, t]
+    # with TES
+    if model.kwh_per_deg[i] != 0:
+        return model.Hbuy_grid[i, t] + model.Hhp[i, t] \
+             + model.Hsh_excess[i, t] == model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] \
+             + model.Hsh[i, t] + PERC_OF_HT_COVERABLE_BY_LT * model.HTEScha[i, t]
+    # without TES
+    else:
+        return model.Hbuy_grid[i, t] + model.Hhp[i, t] \
+             + model.Hsh_excess[i, t] == model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] \
+             + model.Hsh[i, t] + PERC_OF_HT_COVERABLE_BY_LT * model.Hhw[i, t]
 
 
 def agent_Cbalance_winter(model, i, t):
@@ -323,11 +337,21 @@ def agent_Cbalance_summer(model, i, t):
 # (eq. 5 and 6 of the report)
 def HTES_supplied_by_Bhp(model, i, t):
     # Only used in summer mode
-    return model.HhpB[i, t] == (1 - PERC_OF_HT_COVERABLE_BY_LT) * model.HTEScha[i, t]
+    # with TES
+    if model.kwh_per_deg[i] != 0:
+        return model.HhpB[i, t] == (1 - PERC_OF_HT_COVERABLE_BY_LT) * model.HTEScha[i, t]
+    # without TES
+    else:
+        return model.HhpB[i, t] == (1 - PERC_OF_HT_COVERABLE_BY_LT) * model.Hhw[i, t]
 
 
 def Hhw_supplied_by_HTES(model, i, t):
-    return model.HTESdis[i, t] == model.Hhw[i, t]
+    # with TES
+    if model.kwh_per_deg[i] != 0:
+        return model.HTESdis[i, t] == model.Hhw[i, t]
+    # without TES
+    else:
+        return pyo.Constraint.Skip
 
 
 # (eqs. 22 to 28 of the report)
@@ -454,7 +478,10 @@ def HP_Hproduct(model, i, t):
 
 
 def HP_Cproduct(model, i, t):
-    return model.Chp[i, t] == (model.COPhp[i] - 1) * model.Php[i, t]
+    if model.HP_Cproduct_active:
+        return model.Chp[i, t] == (model.COPhp[i] - 1) * model.Php[i, t]
+    else:
+        return model.Chp[i, t] == 0
 
 
 def max_HP_Hproduct(model, i, t):

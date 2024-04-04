@@ -102,6 +102,7 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
         heatpump_COP=[heat_pump_cop] * n_agents,
         heatpump_max_power=heatpump_max_power,
         heatpump_max_heat=heatpump_max_heat,
+        HP_Cproduct_active=has_borehole,  # TODO: Is this right? Awaiting response from Andreas
         booster_heatpump_COP=[area_info['COPBoosterPumps']] * n_agents,
         booster_heatpump_max_power=booster_max_power,
         booster_heatpump_max_heat=booster_max_heat,
