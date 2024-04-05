@@ -7,7 +7,7 @@ import pandas as pd
 
 import polars as pl
 
-from sqlalchemy import select
+from sqlalchemy import Float, and_, select
 
 from sqlmodel import Session
 
@@ -88,32 +88,43 @@ def check_if_agent_equivalent_in_db(agent_config: Dict[str, Any], mock_data_cons
     'agent_id' which keeps the ID of the agent which was found to be equivalent to the input agent
     'mock_data_id' which keeps the mock data ID, which can be reused for the input agent
     """
+    # Only some parts of the agent configuration is relevant for mock data generation
     input_agent = get_relevant_agent_config(agent_config)
 
     # Which mock data constants are relevant?
     relevant_mdc_keys = get_relevant_mdc_keys(input_agent, mock_data_constants)
     relevant_mdc = {k: v for k, v in mock_data_constants.items() if k in relevant_mdc_keys}
 
-    with session_generator() as db:
-        # Look at agents for which we have generated mock data
-        agents_in_db = db.execute(select(Agent.id,
-                                         Agent.agent_config,
-                                         MockData.id.label('mock_data_id'),
-                                         MockData.mock_data_constants)
-                                  .join(MockData, Agent.id == MockData.agent_id)
-                                  .where(Agent.agent_type == 'BlockAgent')).all()
-        for agent_in_db in agents_in_db:
-            # First, check that the mock data constants match
-            comparison_mdc = {k: v for k, v in agent_in_db.mock_data_constants.items() if k in relevant_mdc_keys}
-            mdc_diff = set(relevant_mdc.items()).symmetric_difference(set(comparison_mdc.items()))
-            if len(mdc_diff) == 0:
-                # For the agent config, keep only the fields used for mock data generation
-                comparison_agent = get_relevant_agent_config(agent_in_db.agent_config)
-                agent_diff = set(input_agent.items()).symmetric_difference(set(comparison_agent.items()))
-                if len(agent_diff) == 0:
-                    logger.info('Agent equivalent found in db with id {}'.format(agent_in_db.id))
-                    return {'agent_id': agent_in_db.id, 'mock_data_id': agent_in_db.mock_data_id}
+    # Look at agents for which
+    # 1. We have generated mock data
+    # 2. The relevant mock data constants match
+    # 3. The relevant parts of agent config match
 
+    # Build conditions based on mock data constants:
+    conditions = []
+    for key, value in relevant_mdc.items():
+        conditions.append(MockData.mock_data_constants[key].astext.cast(Float) == value)
+    mock_data_constants_conditions = and_(*conditions)
+
+    # Build conditions based on agent config:
+    conditions = []
+    for key, value in input_agent.items():
+        conditions.append(Agent.agent_config[key].astext.cast(Float) == value)
+    agent_config_conditions = and_(*conditions)
+
+    with session_generator() as db:
+        agent_in_db = db.execute(select(Agent.id,
+                                        Agent.agent_config,
+                                        MockData.id.label('mock_data_id'),
+                                        MockData.mock_data_constants)
+                                 .join(MockData, Agent.id == MockData.agent_id)
+                                 .where(Agent.agent_type == 'BlockAgent',
+                                        mock_data_constants_conditions,
+                                        agent_config_conditions)).first()
+
+        if agent_in_db is not None:
+            logger.info('Agent equivalent found in db with id {}'.format(agent_in_db.id))
+            return {'agent_id': agent_in_db.id, 'mock_data_id': agent_in_db.mock_data_id}
         return None
 
 
