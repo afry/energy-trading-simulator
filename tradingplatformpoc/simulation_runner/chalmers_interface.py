@@ -133,10 +133,9 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
     )
 
     if results.solver.termination_condition != TerminationCondition.optimal:
-        # Raise error here?
-        logger.error('For period {}, the solver did not find an optimal solution. Solver status: {}'.format(
-            start_datetime, results.solver.termination_condition))
         log_infeasible_constraints(optimized_model)
+        raise RuntimeError('For period {}, the solver did not find an optimal solution. Solver status: {}'.format(
+            start_datetime, results.solver.termination_condition))
 
     elec_grid_agent_guid = grid_agents[Resource.ELECTRICITY].guid
     heat_grid_agent_guid = grid_agents[Resource.HIGH_TEMP_HEAT].guid
