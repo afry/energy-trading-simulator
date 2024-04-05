@@ -104,7 +104,7 @@ def get_all_ongoing_jobs(session_generator: Callable[[], _GeneratorContextManage
 
 
 def get_config_id_for_job_id(job_id: str,
-                             session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope):
+                             session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope) -> str:
     with session_generator() as db:
         res = db.query(Job.config_id.label('config_id')).filter(Job.id == job_id).first()
         if res is not None:

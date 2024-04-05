@@ -152,10 +152,10 @@ def check_if_id_in_db(config_id: str,
         return res[0] if res is not None else None
 
  
-def get_all_agents_in_config(config_id: str,
-                             session_generator: Callable[[], _GeneratorContextManager[Session]]
-                             = session_scope) -> Dict[str, str]:
-    """Returns agents names and ids."""
+def get_all_agent_name_id_pairs_in_config(config_id: str,
+                                          session_generator: Callable[[], _GeneratorContextManager[Session]]
+                                          = session_scope) -> Dict[str, str]:
+    """Returns agent's names and ids."""
     with session_generator() as db:
         res = db.execute(select(Config.agents_spec).where(Config.id == config_id)).first()
         if res is None:
