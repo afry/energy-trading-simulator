@@ -11,7 +11,7 @@
 		"HeatPumpMaxOutput": 0.0,
 		"BoosterPumpMaxInput": 25.0,
 		"BoosterPumpMaxOutput": 100.0,
-		"Borehole": false,
+		"HeatPumpForCooling": false,
 		"BatteryCapacity": 100.0,
 		"AccumulatorTankCapacity": 300.0,
 		"FractionUsedForBITES": 0.0
@@ -28,7 +28,7 @@
 		"HeatPumpMaxOutput": 0.0,
 		"BoosterPumpMaxInput": 25.0,
 		"BoosterPumpMaxOutput": 100.0,
-		"Borehole": false,
+		"HeatPumpForCooling": false,
 		"BatteryCapacity": 100.0,
 		"AccumulatorTankCapacity": 300.0,
 		"FractionUsedForBITES": 0.0
@@ -45,7 +45,7 @@
 		"HeatPumpMaxOutput": 0.0,
 		"BoosterPumpMaxInput": 25.0,
 		"BoosterPumpMaxOutput": 100.0,
-		"Borehole": false,
+		"HeatPumpForCooling": false,
 		"BatteryCapacity": 100.0,
 		"AccumulatorTankCapacity": 300.0,
 		"FractionUsedForBITES": 0.0
@@ -62,7 +62,7 @@
 		"HeatPumpMaxOutput": 0.0,
 		"BoosterPumpMaxInput": 25.0,
 		"BoosterPumpMaxOutput": 100.0,
-		"Borehole": false,
+		"HeatPumpForCooling": false,
 		"BatteryCapacity": 100.0,
 		"AccumulatorTankCapacity": 300.0,
 		"FractionUsedForBITES": 0.0
@@ -79,7 +79,7 @@
 		"HeatPumpMaxOutput": 0.0,
 		"BoosterPumpMaxInput": 25.0,
 		"BoosterPumpMaxOutput": 100.0,
-		"Borehole": false,
+		"HeatPumpForCooling": false,
 		"BatteryCapacity": 100.0,
 		"AccumulatorTankCapacity": 300.0,
 		"FractionUsedForBITES": 0.0
@@ -96,7 +96,7 @@
 		"HeatPumpMaxOutput": 0.0,
 		"BoosterPumpMaxInput": 25.0,
 		"BoosterPumpMaxOutput": 100.0,
-		"Borehole": false,
+		"HeatPumpForCooling": false,
 		"BatteryCapacity": 100.0,
 		"AccumulatorTankCapacity": 300.0,
 		"FractionUsedForBITES": 0.0
@@ -113,7 +113,7 @@
 		"HeatPumpMaxOutput": 0.0,
 		"BoosterPumpMaxInput": 25.0,
 		"BoosterPumpMaxOutput": 100.0,
-		"Borehole": false,
+		"HeatPumpForCooling": false,
 		"BatteryCapacity": 100.0,
 		"AccumulatorTankCapacity": 300.0,
 		"FractionUsedForBITES": 0.0
@@ -130,7 +130,7 @@
 		"HeatPumpMaxOutput": 0.0,
 		"BoosterPumpMaxInput": 25.0,
 		"BoosterPumpMaxOutput": 100.0,
-		"Borehole": false,
+		"HeatPumpForCooling": false,
 		"BatteryCapacity": 100.0,
 		"AccumulatorTankCapacity": 300.0,
 		"FractionUsedForBITES": 0.0
@@ -147,7 +147,7 @@
 		"HeatPumpMaxOutput": 0.0,
 		"BoosterPumpMaxInput": 25.0,
 		"BoosterPumpMaxOutput": 100.0,
-		"Borehole": false,
+		"HeatPumpForCooling": false,
 		"BatteryCapacity": 100.0,
 		"AccumulatorTankCapacity": 300.0,
 		"FractionUsedForBITES": 0.0
@@ -164,7 +164,7 @@
 		"HeatPumpMaxOutput": 0.0,
 		"BoosterPumpMaxInput": 25.0,
 		"BoosterPumpMaxOutput": 100.0,
-		"Borehole": false,
+		"HeatPumpForCooling": false,
 		"BatteryCapacity": 100.0,
 		"AccumulatorTankCapacity": 300.0,
 		"FractionUsedForBITES": 0.0
@@ -181,7 +181,7 @@
 		"HeatPumpMaxOutput": 145.0,
 		"BoosterPumpMaxInput": 25.0,
 		"BoosterPumpMaxOutput": 100.0,
-		"Borehole": true,
+		"HeatPumpForCooling": false,
 		"BatteryCapacity": 100.0,
 		"AccumulatorTankCapacity": 300.0,
 		"FractionUsedForBITES": 0.0
@@ -198,7 +198,7 @@
 		"HeatPumpMaxOutput": 145.0,
 		"BoosterPumpMaxInput": 25.0,
 		"BoosterPumpMaxOutput": 100.0,
-		"Borehole": true,
+		"HeatPumpForCooling": false,
 		"BatteryCapacity": 100.0,
 		"AccumulatorTankCapacity": 300.0,
 		"FractionUsedForBITES": 0.0
@@ -215,7 +215,7 @@
 		"HeatPumpMaxOutput": 145.0,
 		"BoosterPumpMaxInput": 25.0,
 		"BoosterPumpMaxOutput": 100.0,
-		"Borehole": true,
+		"HeatPumpForCooling": false,
 		"BatteryCapacity": 100.0,
 		"AccumulatorTankCapacity": 300.0,
 		"FractionUsedForBITES": 0.0
@@ -232,7 +232,7 @@
 		"HeatPumpMaxOutput": 145.0,
 		"BoosterPumpMaxInput": 25.0,
 		"BoosterPumpMaxOutput": 100.0,
-		"Borehole": true,
+		"HeatPumpForCooling": false,
 		"BatteryCapacity": 100.0,
 		"AccumulatorTankCapacity": 300.0,
 		"FractionUsedForBITES": 0.0
@@ -249,7 +249,7 @@
 		"HeatPumpMaxOutput": 145.0,
 		"BoosterPumpMaxInput": 25.0,
 		"BoosterPumpMaxOutput": 100.0,
-		"Borehole": true,
+		"HeatPumpForCooling": false,
 		"BatteryCapacity": 100.0,
 		"AccumulatorTankCapacity": 300.0,
 		"FractionUsedForBITES": 0.0
@@ -266,7 +266,7 @@
 		"HeatPumpMaxOutput": 145.0,
 		"BoosterPumpMaxInput": 25.0,
 		"BoosterPumpMaxOutput": 100.0,
-		"Borehole": true,
+		"HeatPumpForCooling": false,
 		"BatteryCapacity": 100.0,
 		"AccumulatorTankCapacity": 300.0,
 		"FractionUsedForBITES": 0.0
@@ -283,7 +283,7 @@
 		"HeatPumpMaxOutput": 145.0,
 		"BoosterPumpMaxInput": 25.0,
 		"BoosterPumpMaxOutput": 100.0,
-		"Borehole": true,
+		"HeatPumpForCooling": false,
 		"BatteryCapacity": 100.0,
 		"AccumulatorTankCapacity": 300.0,
 		"FractionUsedForBITES": 0.0
@@ -300,7 +300,7 @@
 		"HeatPumpMaxOutput": 145.0,
 		"BoosterPumpMaxInput": 25.0,
 		"BoosterPumpMaxOutput": 100.0,
-		"Borehole": true,
+		"HeatPumpForCooling": false,
 		"BatteryCapacity": 100.0,
 		"AccumulatorTankCapacity": 300.0,
 		"FractionUsedForBITES": 0.0
@@ -317,7 +317,7 @@
 		"HeatPumpMaxOutput": 145.0,
 		"BoosterPumpMaxInput": 25.0,
 		"BoosterPumpMaxOutput": 100.0,
-		"Borehole": true,
+		"HeatPumpForCooling": false,
 		"BatteryCapacity": 100.0,
 		"AccumulatorTankCapacity": 300.0,
 		"FractionUsedForBITES": 0.0
@@ -334,7 +334,7 @@
 		"HeatPumpMaxOutput": 145.0,
 		"BoosterPumpMaxInput": 25.0,
 		"BoosterPumpMaxOutput": 100.0,
-		"Borehole": true,
+		"HeatPumpForCooling": false,
 		"BatteryCapacity": 100.0,
 		"AccumulatorTankCapacity": 300.0,
 		"FractionUsedForBITES": 0.0

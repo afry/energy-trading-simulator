@@ -47,7 +47,7 @@ class TestAppFunctions(TestCase):
                    "BatteryCapacity": 0.0,
                    "AccumulatorTankCapacity": 0.0,
                    "FractionUsedForBITES": 0.0,
-                   "Borehole": False,
+                   "HeatPumpForCooling": False,
                    "PVArea": 20.0}
 
         self.assertIsNone(config_data_agent_screening({'Agents': [mock_grid_el, mock_grid_he, mock_pv]}))

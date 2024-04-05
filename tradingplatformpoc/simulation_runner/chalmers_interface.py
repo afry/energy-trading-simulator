@@ -72,7 +72,7 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
     booster_max_power = [agent.booster_pump_max_input for agent in block_agents]
     booster_max_heat = [agent.booster_pump_max_output for agent in block_agents]
     atemp_for_bites = [agent.digital_twin.atemp * agent.frac_for_bites for agent in block_agents]
-    has_borehole = [agent.digital_twin.has_borehole for agent in block_agents]
+    hp_produce_cooling = [agent.digital_twin.hp_produce_cooling for agent in block_agents]
     shallow_storage_start = [(shallow_storage_start_dict[agent] if agent in shallow_storage_start_dict.keys() else 0.0)
                              for agent in agent_guids]
     deep_storage_start = [(deep_storage_start_dict[agent] if agent in shallow_storage_start_dict.keys() else 0.0)
@@ -102,11 +102,11 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
         heatpump_COP=[heat_pump_cop] * n_agents,
         heatpump_max_power=heatpump_max_power,
         heatpump_max_heat=heatpump_max_heat,
-        HP_Cproduct_active=has_borehole,  # TODO: Is this right? Awaiting response from Andreas
+        HP_Cproduct_active=hp_produce_cooling,
+        borehole=hp_produce_cooling,
         booster_heatpump_COP=[area_info['COPBoosterPumps']] * n_agents,
         booster_heatpump_max_power=booster_max_power,
         booster_heatpump_max_heat=booster_max_heat,
-        borehole=has_borehole,
         build_area=atemp_for_bites,
         SOCTES0=[area_info['StorageEndChargeLevel']] * n_agents,
         thermalstorage_max_temp=[constants.ACC_TANK_TEMPERATURE] * n_agents,

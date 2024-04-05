@@ -119,7 +119,7 @@ class TradingSimulator:
                                                        hot_water_usage=hot_tap_water_cons_series,
                                                        cooling_usage=cool_cons_series,
                                                        electricity_production=pv_prod_series,
-                                                       has_borehole=agent['Borehole'])
+                                                       hp_produce_cooling=agent['HeatPumpForCooling'])
 
                 storage_digital_twin = Battery(max_capacity_kwh=agent["BatteryCapacity"],
                                                max_charge_rate_fraction=area_info["BatteryChargeRate"],
@@ -153,7 +153,8 @@ class TradingSimulator:
                                                                hot_water_usage=inputs_df['coop_hot_tap_water_consumed'],
                                                                electricity_production=pv_prod_series,
                                                                space_heating_production=space_heat_prod,
-                                                               has_borehole=False)  # Cooling is handled "internally"
+                                                               # Cooling is handled "internally", so this is False:
+                                                               hp_produce_cooling=False)
                 agents.append(
                     BlockAgent(self.local_market_enabled,
                                heat_pricing=self.heat_pricing,
