@@ -40,13 +40,13 @@ class StaticDigitalTwin:
     cooling_production: pd.Series
     total_heating_usage: pd.Series
     total_heating_production: pd.Series
-    has_borehole: bool
+    hp_produce_cooling: bool
 
     def __init__(self, atemp: float, electricity_usage: pd.Series = None,
                  space_heating_usage: pd.Series = None, hot_water_usage: pd.Series = None,
                  cooling_usage: pd.Series = None, electricity_production: pd.Series = None,
                  space_heating_production: pd.Series = None, hot_water_production: pd.Series = None,
-                 cooling_production: pd.Series = None, has_borehole: bool = True):
+                 cooling_production: pd.Series = None, hp_produce_cooling: bool = True):
         self.atemp = atemp
         self.electricity_usage = electricity_usage
         self.space_heating_usage = space_heating_usage
@@ -56,7 +56,7 @@ class StaticDigitalTwin:
         self.space_heating_production = space_heating_production
         self.hot_water_production = hot_water_production
         self.cooling_production = cooling_production
-        self.has_borehole = has_borehole
+        self.hp_produce_cooling = hp_produce_cooling
 
     def get_production(self, period, resource: Resource) -> float:
         if resource == Resource.ELECTRICITY:

@@ -41,7 +41,7 @@ class Test(TestCase):
                          return_value='fake_config_id'),
               mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.read_config',
                          return_value=fake_config),
-              mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.get_all_agents_in_config',
+              mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.get_all_agent_name_id_pairs_in_config',
                          return_value=agent_specs),
               mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.get_periods_from_db',
                          return_value=pd.DatetimeIndex(input_data.period)),

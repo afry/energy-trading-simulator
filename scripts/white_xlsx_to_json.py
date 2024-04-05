@@ -34,7 +34,7 @@ if __name__ == '__main__':
     areas['HeatPumpMaxOutput'] = [0.0 if i < 10 else 145.0 for i in range(20)]
     areas['BoosterPumpMaxInput'] = 25.0
     areas['BoosterPumpMaxOutput'] = 100.0
-    areas['Borehole'] = [i >= 10 for i in range(20)]
+    areas['HeatPumpForCooling'] = False
     areas['BatteryCapacity'] = 100.0
     areas['AccumulatorTankCapacity'] = 300.0
     areas['FractionUsedForBITES'] = 0.0

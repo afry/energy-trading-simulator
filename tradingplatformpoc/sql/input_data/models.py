@@ -62,3 +62,15 @@ class InputData(SQLModel, table=True):
               'having covered their own space heating demand).',
         nullable=False
     )
+    office_cooling: float = Field(
+        primary_key=False,
+        default=None,
+        title='Office cooling consumption in kW(h).',
+        nullable=False
+    )
+    office_space_heating: float = Field(
+        primary_key=False,
+        default=None,
+        title='Office space heating consumption in kW(h).',
+        nullable=False
+    )

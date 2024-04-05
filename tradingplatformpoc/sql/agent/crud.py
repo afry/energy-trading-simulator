@@ -53,7 +53,7 @@ def check_if_agent_in_db(agent_type: str, agent_config: Dict[str, Any],
 def get_block_agent_dicts_from_id_list(
         agent_ids: List[str],
         session_generator: Callable[[], _GeneratorContextManager[Session]]
-        = session_scope):
+        = session_scope) -> List[Dict[str, Any]]:
     """
     Get agents
     """

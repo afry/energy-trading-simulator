@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Tuple, Union
 
 import pandas as pd
 
@@ -19,18 +19,18 @@ from tradingplatformpoc.generate_data.generation_functions.non_residential.comme
     get_commercial_heating_consumption_hourly_factor
 from tradingplatformpoc.generate_data.generation_functions.non_residential.common import simulate_area_electricity, \
     simulate_cooling, simulate_heating
-from tradingplatformpoc.generate_data.generation_functions.non_residential.office import \
-    get_office_cooling_consumption_factor, get_office_heating_consumption_hourly_factor
+from tradingplatformpoc.generate_data.generation_functions.non_residential.office import read_office_dicts, \
+    simulate_office_based_on_daily, simulate_office_based_on_hourly
 from tradingplatformpoc.generate_data.generation_functions.non_residential.school import \
     get_school_heating_consumption_hourly_factor
 from tradingplatformpoc.generate_data.generation_functions.residential.electricity import \
     property_electricity, simulate_household_electricity_aggregated
 from tradingplatformpoc.generate_data.generation_functions.residential.heating import simulate_residential_total_heating
 from tradingplatformpoc.generate_data.mock_data_utils import \
-    calculate_seed_from_string, get_cooling_cons_key, get_elec_cons_key, get_hot_tap_water_cons_key, \
-    get_space_heat_cons_key, join_list_of_polar_dfs
+    calculate_seed_from_string, get_cooling_cons_key, get_elec_cons_key, get_equivalent_mock_data, \
+    get_hot_tap_water_cons_key, get_mock_ids_to_reuse, get_space_heat_cons_key, join_list_of_polar_dfs
 from tradingplatformpoc.sql.agent.crud import get_block_agent_dicts_from_id_list
-from tradingplatformpoc.sql.config.crud import get_all_agents_in_config, get_mock_data_constants
+from tradingplatformpoc.sql.config.crud import get_all_agent_name_id_pairs_in_config, get_mock_data_constants
 from tradingplatformpoc.sql.input_data.crud import read_inputs_df_for_mock_data_generation
 from tradingplatformpoc.sql.mock_data.crud import db_to_mock_data_df, get_mock_data_agent_pairs_in_db, \
     mock_data_df_to_db_dict
@@ -83,22 +83,34 @@ def get_generated_mock_data(config_id: str) -> pd.DataFrame:
     return data_set.to_pandas().set_index('datetime')
 
 
-def run(config_id: str) -> Union[pl.DataFrame, pl.LazyFrame]:
+def run(config_id: str, reuse: bool = True) -> Union[pl.DataFrame, pl.LazyFrame]:
     """
     Fetch mock data if it exists, else generate it.
     @param config_id: Config id in db
+    @param reuse: If true, will re-use existing mock data found in database, where appropriate
     @return: A pl.DataFrame or pl.LazyFrame containing mock data for block agents
     """
-    agent_specs = get_all_agents_in_config(config_id)
+    agent_name_id_pairs = get_all_agent_name_id_pairs_in_config(config_id)
     mock_data_constants = get_mock_data_constants(config_id)
-    agent_ids_in_config = list(agent_specs.values())
+    if mock_data_constants is None:
+        raise RuntimeError('No mock data constants found for config ID {}'.format(config_id))
+    agent_ids_in_config = list(agent_name_id_pairs.values())
     mock_data_agent_ids_dict = get_mock_data_agent_pairs_in_db(agent_ids_in_config, mock_data_constants)
-    agent_ids_without_mock_data = [agent_id for agent_id in agent_ids_in_config
-                                   if agent_id not in mock_data_agent_ids_dict.values()]
-    block_agents_to_simulate_for = get_block_agent_dicts_from_id_list(agent_ids_without_mock_data)
+    if reuse:
+        agent_ids_without_mock_data = [agent_id for agent_id in agent_ids_in_config
+                                       if agent_id not in mock_data_agent_ids_dict.values()]
+    else:
+        agent_ids_without_mock_data = agent_ids_in_config
+    block_agents_not_pre_existing = get_block_agent_dicts_from_id_list(agent_ids_without_mock_data)
+    mock_id_to_reuse_for_agent_id = get_mock_ids_to_reuse(block_agents_not_pre_existing, mock_data_constants, reuse)
+    block_agents_to_simulate_for = [ba for ba in block_agents_not_pre_existing
+                                    if ba['db_id'] not in mock_id_to_reuse_for_agent_id.keys()]
+
     existing_mock_data_ids = mock_data_agent_ids_dict.keys()
     
-    if (len(existing_mock_data_ids) == 0) and (len(block_agents_to_simulate_for) == 0):
+    if ((len(existing_mock_data_ids) == 0)
+            and (len(block_agents_to_simulate_for) == 0)
+            and (len(mock_id_to_reuse_for_agent_id) == 0)):
         logger.info('No mock data needed.')
         return pl.DataFrame(columns=['datetime'])
 
@@ -123,6 +135,17 @@ def run(config_id: str) -> Union[pl.DataFrame, pl.LazyFrame]:
     dfs_from_db: List[pl.DataFrame] = []
     for mock_data_id in existing_mock_data_ids:
         dfs_from_db.append(db_to_mock_data_df(mock_data_id))
+    mock_data_to_insert: List[dict] = []
+    for agent_id, equivalents in mock_id_to_reuse_for_agent_id.items():
+        renamed_df = get_equivalent_mock_data(equivalents['mock_data_id'], equivalents['agent_id'], agent_id)
+        # This mock data already exists in the DB, but with a different agent_id. Save it as a new row with this agent
+        # ID, so that it can be used in the UI
+        db_dict = mock_data_df_to_db_dict(agent_id, mock_data_constants, renamed_df)
+        mock_data_to_insert.append(db_dict)
+        # Finally add the dataframe to the list
+        dfs_from_db.append(renamed_df)
+    bulk_insert(TableMockData, mock_data_to_insert)
+
     logger.info('Joining dataframes from database.')
     joined_dfs_from_db = join_list_of_polar_dfs(dfs_from_db)
 
@@ -147,6 +170,9 @@ def simulate_for_agents(agent_dicts: List[Dict[str, Any]], mock_data_constants: 
     model = bz2_decompress_pickle(resource_filename(DATA_PATH, 'models/household_electricity_model.pbz2'))
     logger.debug('Model loaded')
 
+    # Load dicts for office data
+    office_elec_dict, office_hot_water_dict = read_office_dicts()
+
     # Read input data: Temperature, irradiation and heat consumption
     df_inputs_pandas = read_inputs_df_for_mock_data_generation()
     df_inputs = extract_datetime_features_from_inputs_df(df_inputs_pandas)
@@ -164,14 +190,17 @@ def simulate_for_agents(agent_dicts: List[Dict[str, Any]], mock_data_constants: 
 
         logger.info('Generating new data for ' + agent_dict[key])
         output_per_block = simulate(mock_data_constants, agent_dict, lazy_inputs,
-                                    n_rows, model, output_per_actor.clone(), key)
+                                    n_rows, model, output_per_actor.clone(), key,
+                                    office_elec_dict, office_hot_water_dict)
         dfs_new[agent_dict[key]] = output_per_block
     
     return dfs_new
 
 
 def simulate(mock_data_constants: Dict[str, Any], agent: dict, df_inputs: pl.LazyFrame, n_rows: int,
-             model: RegressionResultsWrapper, output_per_actor: pl.DataFrame, key: str) -> pl.DataFrame:
+             model: RegressionResultsWrapper, output_per_actor: pl.DataFrame, key: str,
+             office_elec_dict: Dict[Tuple[int, int], float], office_hot_water_dict: Dict[Tuple[int, int], float]) \
+        -> pl.DataFrame:
     """
     Simulate mock data for agent and mock data constants.
     """
@@ -252,23 +281,28 @@ def simulate(mock_data_constants: Dict[str, Any], agent: dict, df_inputs: pl.Laz
         office_atemp_m2 = agent['Atemp'] * fraction_office
 
         electricity_consumption.append(
-            simulate_area_electricity(
-                office_atemp_m2, seed_office_electricity, df_inputs,
-                mock_data_constants['OfficeElecKwhPerYearM2'], mock_data_constants['RelativeErrorStdDev'],
-                get_office_heating_consumption_hourly_factor, n_rows))
+            simulate_office_based_on_daily(
+                office_atemp_m2, mock_data_constants['RelativeErrorStdDev'],
+                mock_data_constants['OfficeElecKwhPerYearM2'], seed_office_heating,
+                df_inputs, n_rows, office_elec_dict))
 
-        office_space_heating_cons, office_hot_tap_water_cons = simulate_heating(
-            mock_data_constants, office_atemp_m2, 'OfficeSpaceHeatKwhPerYearM2',
-            'OfficeHotTapWaterKwhPerYearM2', get_office_heating_consumption_hourly_factor,
-            seed_office_heating, df_inputs, n_rows)
+        office_hot_tap_water_cons = simulate_office_based_on_daily(
+            office_atemp_m2, mock_data_constants['RelativeErrorStdDev'],
+            mock_data_constants['OfficeHotTapWaterKwhPerYearM2'], seed_office_heating,
+            df_inputs, n_rows, office_hot_water_dict)
+        office_space_heating_cons = simulate_office_based_on_hourly(office_atemp_m2,
+                                                                    mock_data_constants['RelativeErrorStdDev'],
+                                                                    mock_data_constants['OfficeSpaceHeatKwhPerYearM2'],
+                                                                    'office_space_heating',
+                                                                    seed_office_heating, df_inputs, n_rows)
         space_heating_consumption.append(office_space_heating_cons)
         hot_tap_water_consumption.append(office_hot_tap_water_cons)
 
-        office_cooling = simulate_cooling(office_atemp_m2,
-                                          mock_data_constants['OfficeCoolKwhPerYearM2'],
-                                          mock_data_constants['RelativeErrorStdDev'],
-                                          get_office_cooling_consumption_factor,
-                                          seed_office_electricity, df_inputs, n_rows)
+        office_cooling = simulate_office_based_on_hourly(office_atemp_m2,
+                                                         mock_data_constants['RelativeErrorStdDev'],
+                                                         mock_data_constants['OfficeCoolKwhPerYearM2'],
+                                                         'office_cooling',
+                                                         seed_office_electricity, df_inputs, n_rows)
         cooling_consumption.append(office_cooling)
 
     # RESIDENTIAL
@@ -319,4 +353,4 @@ if __name__ == '__main__':
         handlers=[file_handler, stream_handler], force=True  # Note that we remove all previously existing handlers here
     )
 
-    run('default')
+    run('default', reuse=False)

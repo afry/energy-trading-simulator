@@ -109,6 +109,7 @@ def run_simulation(job_id: str):
     logger.info("Running simulation")
     simulator = TradingSimulator(job_id)
     simulator()
+    run_next_job_in_queue()
     # TODO: Delete job if not finished?
     # TODO: Add functionality to schedule removal of potential uncompleted jobs
 

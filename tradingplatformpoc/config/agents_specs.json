@@ -74,10 +74,10 @@
             "default_value": 0.0,
             "type": "float"
         },
-        "Borehole": {
-            "display": "Has borehole?",
+        "HeatPumpForCooling": {
+            "display": "Heat pump producing cooling?",
             "default_value": true,
-            "help": "Does the agent have a borehole which it can use for free cooling?",
+            "help": "Does the heat pump produce excess cooling? If true, 'free cooling' will also be used, except during summer.",
             "type": "bool"
         },
         "BatteryCapacity": {

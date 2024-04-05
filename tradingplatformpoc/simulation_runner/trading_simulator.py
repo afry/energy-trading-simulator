@@ -6,6 +6,8 @@ from typing import Any, Dict, List, Tuple
 
 import pandas as pd
 
+from pyomo.opt import OptSolver
+
 from tradingplatformpoc.agent.block_agent import BlockAgent
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
@@ -23,7 +25,7 @@ from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
 from tradingplatformpoc.simulation_runner.chalmers_interface import optimize
 from tradingplatformpoc.simulation_runner.results_calculator import calculate_results_and_save
-from tradingplatformpoc.sql.config.crud import get_all_agents_in_config, read_config
+from tradingplatformpoc.sql.config.crud import get_all_agent_name_id_pairs_in_config, read_config
 from tradingplatformpoc.sql.electricity_price.models import ElectricityPrice as TableElectricityPrice
 from tradingplatformpoc.sql.extra_cost.crud import extra_costs_to_db_dict
 from tradingplatformpoc.sql.extra_cost.models import ExtraCost as TableExtraCost
@@ -43,11 +45,11 @@ logger = logging.getLogger(__name__)
 
 class TradingSimulator:
     def __init__(self, job_id: str):
-        self.solver = get_glpk_solver()
-        self.job_id = job_id
-        self.config_id = get_config_id_for_job_id(self.job_id)
+        self.solver: OptSolver = get_glpk_solver()
+        self.job_id: str = job_id
+        self.config_id: str = get_config_id_for_job_id(self.job_id)
         self.config_data: Dict[str, Any] = read_config(self.config_id)
-        self.agent_specs = get_all_agents_in_config(self.config_id)
+        self.agent_name_id_pairs: Dict[str, str] = get_all_agent_name_id_pairs_in_config(self.config_id)
 
     def __call__(self):
         if (self.job_id is not None) and (self.config_data is not None):
@@ -104,7 +106,7 @@ class TradingSimulator:
             # "reconstruct_static_digital_twin"-related methods in app_data_display.py
 
             if agent_type == "BlockAgent":
-                agent_id = self.agent_specs[agent['Name']]
+                agent_id = self.agent_name_id_pairs[agent['Name']]
                 elec_cons_series = blocks_mock_data.get(get_elec_cons_key(agent_id))
                 space_heat_cons_series = blocks_mock_data.get(get_space_heat_cons_key(agent_id))
                 hot_tap_water_cons_series = blocks_mock_data.get(get_hot_tap_water_cons_key(agent_id))
@@ -119,7 +121,7 @@ class TradingSimulator:
                                                        hot_water_usage=hot_tap_water_cons_series,
                                                        cooling_usage=cool_cons_series,
                                                        electricity_production=pv_prod_series,
-                                                       has_borehole=agent['Borehole'])
+                                                       hp_produce_cooling=agent['HeatPumpForCooling'])
 
                 storage_digital_twin = Battery(max_capacity_kwh=agent["BatteryCapacity"],
                                                max_charge_rate_fraction=area_info["BatteryChargeRate"],
@@ -153,7 +155,8 @@ class TradingSimulator:
                                                                hot_water_usage=inputs_df['coop_hot_tap_water_consumed'],
                                                                electricity_production=pv_prod_series,
                                                                space_heating_production=space_heat_prod,
-                                                               has_borehole=False)  # Cooling is handled "internally"
+                                                               # Cooling is handled "internally", so this is False:
+                                                               hp_produce_cooling=False)
                 agents.append(
                     BlockAgent(self.local_market_enabled,
                                heat_pricing=self.heat_pricing,
