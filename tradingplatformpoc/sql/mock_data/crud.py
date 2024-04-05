@@ -146,5 +146,5 @@ def get_relevant_mdc_keys(input_agent: Dict[str, Any], mock_data_constants: Dict
                                                      if area_type in mdc_key]
     if input_agent['FractionCommercial'] + input_agent['FractionOffice'] + input_agent['FractionSchool'] < 1:
         relevant_mdc_keys = relevant_mdc_keys + [mdc_key for mdc_key in mock_data_constants.keys()
-                                                 if 'Residential' in mdc_key]
+                                                 if ('Residential' in mdc_key) or ('Household' in mdc_key)]
     return relevant_mdc_keys
