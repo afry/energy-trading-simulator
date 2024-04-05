@@ -27,13 +27,13 @@ from tradingplatformpoc.generate_data.generation_functions.residential.electrici
     property_electricity, simulate_household_electricity_aggregated
 from tradingplatformpoc.generate_data.generation_functions.residential.heating import simulate_residential_total_heating
 from tradingplatformpoc.generate_data.mock_data_utils import \
-    calculate_seed_from_string, get_cooling_cons_key, get_elec_cons_key, get_hot_tap_water_cons_key, \
-    get_space_heat_cons_key, join_list_of_polar_dfs
+    calculate_seed_from_string, get_cooling_cons_key, get_elec_cons_key, get_equivalent_mock_data, \
+    get_hot_tap_water_cons_key, get_mock_ids_to_reuse, get_space_heat_cons_key, join_list_of_polar_dfs
 from tradingplatformpoc.sql.agent.crud import get_block_agent_dicts_from_id_list
 from tradingplatformpoc.sql.config.crud import get_all_agent_name_id_pairs_in_config, get_mock_data_constants
 from tradingplatformpoc.sql.input_data.crud import read_inputs_df_for_mock_data_generation
-from tradingplatformpoc.sql.mock_data.crud import check_if_agent_equivalent_in_db, db_to_mock_data_df, \
-    get_mock_data_agent_pairs_in_db, mock_data_df_to_db_dict
+from tradingplatformpoc.sql.mock_data.crud import db_to_mock_data_df, get_mock_data_agent_pairs_in_db, \
+    mock_data_df_to_db_dict
 from tradingplatformpoc.sql.mock_data.models import MockData as TableMockData
 from tradingplatformpoc.trading_platform_utils import get_if_exists_else
 
@@ -102,20 +102,15 @@ def run(config_id: str, reuse: bool = True) -> Union[pl.DataFrame, pl.LazyFrame]
     else:
         agent_ids_without_mock_data = agent_ids_in_config
     block_agents_not_pre_existing = get_block_agent_dicts_from_id_list(agent_ids_without_mock_data)
-    mock_id_to_reuse_for_agent_id: Dict[str, Dict[str, str]] = {}
-    if reuse:
-        for block_agent in block_agents_not_pre_existing:
-            equivalents = check_if_agent_equivalent_in_db(block_agent, mock_data_constants)
-            if equivalents is not None:
-                mock_id_to_reuse_for_agent_id[block_agent['db_id']] = equivalents
+    mock_id_to_reuse_for_agent_id = get_mock_ids_to_reuse(block_agents_not_pre_existing, mock_data_constants, reuse)
     block_agents_to_simulate_for = [ba for ba in block_agents_not_pre_existing
                                     if ba['db_id'] not in mock_id_to_reuse_for_agent_id.keys()]
 
     existing_mock_data_ids = mock_data_agent_ids_dict.keys()
     
-    if ((len(existing_mock_data_ids) == 0) and
-            (len(block_agents_to_simulate_for) == 0) and
-            (len(mock_id_to_reuse_for_agent_id) == 0)):
+    if ((len(existing_mock_data_ids) == 0)
+            and (len(block_agents_to_simulate_for) == 0)
+            and (len(mock_id_to_reuse_for_agent_id) == 0)):
         logger.info('No mock data needed.')
         return pl.DataFrame(columns=['datetime'])
 
@@ -142,11 +137,7 @@ def run(config_id: str, reuse: bool = True) -> Union[pl.DataFrame, pl.LazyFrame]
         dfs_from_db.append(db_to_mock_data_df(mock_data_id))
     mock_data_to_insert: List[dict] = []
     for agent_id, equivalents in mock_id_to_reuse_for_agent_id.items():
-        existing_df = db_to_mock_data_df(equivalents['mock_data_id'])
-        # Rename columns
-        renamed_df = existing_df.select(
-            pl.all().map_alias(lambda col_name: col_name.replace(equivalents['agent_id'], agent_id))
-        )
+        renamed_df = get_equivalent_mock_data(equivalents['mock_data_id'], equivalents['agent_id'], agent_id)
         # This mock data already exists in the DB, but with a different agent_id. Save it as a new row with this agent
         # ID, so that it can be used in the UI
         db_dict = mock_data_df_to_db_dict(agent_id, mock_data_constants, renamed_df)
