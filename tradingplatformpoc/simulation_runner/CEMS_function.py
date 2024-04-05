@@ -69,7 +69,7 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, n_agents: int,
     max_tank_discharge = [x * y for x, y in zip(kwh_per_deg, thermalstorage_max_temp)]
     too_big_hot_water_demand = hot_water_heatdem.gt(max_tank_discharge, axis=0).any(axis=1)
     # FIXME: Temporarily diverting from Chalmers code here:
-    problems = too_big_hot_water_demand.tolist() and [v > 0 for v in thermalstorage_volume]
+    problems = [tbhwd and (v > 0) for tbhwd, v in zip(too_big_hot_water_demand.tolist(), thermalstorage_volume)]
     if sum(problems) > 0:
         problematic_agent_indices = [i for i, x in enumerate(problems) if x]
         raise RuntimeError('Unfillable hot water demand for agent indices: {}'.format(problematic_agent_indices))
