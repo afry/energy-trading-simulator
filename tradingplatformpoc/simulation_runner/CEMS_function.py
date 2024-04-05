@@ -480,7 +480,7 @@ def HP_Hproduct(model, i, t):
 
 
 def HP_Cproduct(model, i, t):
-    if model.HP_Cproduct_active:
+    if model.HP_Cproduct_active[i]:
         return model.Chp[i, t] == (model.COPhp[i] - 1) * model.Php[i, t]
     else:
         return model.Chp[i, t] == 0
