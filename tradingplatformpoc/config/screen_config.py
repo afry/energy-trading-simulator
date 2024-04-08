@@ -24,11 +24,14 @@ def config_data_json_screening(config_data: dict) -> Optional[str]:
 
 
 def config_data_keys_screening(config_data: dict) -> Optional[str]:
-    """Check that config is structured as expected."""
+    """
+    Check that config is structured as expected.
+    Will return None if no problem is found.
+    """
     # Make sure no unrecognized keys are passed
-    unreq = [key for key in config_data.keys() if key not in ['Agents', 'AreaInfo', 'MockDataConstants']]
-    if len(unreq) > 0:
-        return 'Unrecognized key/keys: [\'{}\'] in uploaded config.'.format(', '.join(unreq))
+    un_req = [key for key in config_data.keys() if key not in ['Agents', 'AreaInfo', 'MockDataConstants']]
+    if len(un_req) > 0:
+        return 'Unrecognized key/keys: [\'{}\'] in uploaded config.'.format(', '.join(un_req))
 
     if 'AreaInfo' in config_data:
         if not isinstance(config_data['AreaInfo'], dict):
@@ -52,7 +55,10 @@ def config_data_keys_screening(config_data: dict) -> Optional[str]:
 
 
 def config_data_param_screening(config_data: dict) -> Optional[str]:
-    """Check that config json contains reasonable parameters."""
+    """
+    Check that config json contains reasonable parameters.
+    Will return None if no problem is found.
+    """
 
     param_specs = read_param_specs(['AreaInfo', 'MockDataConstants'])
 
@@ -79,7 +85,10 @@ def config_data_param_screening(config_data: dict) -> Optional[str]:
 
 
 def config_data_agent_screening(config_data: dict) -> Optional[str]:
-    """Check that config json contains reasonable agents."""
+    """
+    Check that config json contains reasonable agents.
+    Will return None if no problem is found.
+    """
 
     # Make sure no agents are passed without name or type
     for agent in config_data['Agents']:
@@ -139,6 +148,34 @@ def config_data_agent_screening(config_data: dict) -> Optional[str]:
                 if ('optional' not in val.keys()) or (not val['optional']):
                     return "Missing parameter {} for agent {}.".format(key, agent['Name'])
 
+    return None
+
+
+def config_data_feasibility_screening(config_data: dict) -> Optional[str]:
+    """
+    This function is intended to catch things that will lead to the optimization problem in CEMS_function.py being
+    infeasible. This can be caused by stuff like it not being possible to generate enough of a certain resource, either
+    in the LEC as a whole, or for a specific agent.
+    It may be necessary to change this method if certain changes are made to field names in the config, or if
+    certain constraints in CEMS_function.py are modified.
+
+    @return: Will return None if no problem is found. Otherwise, will return a string describing the problem found.
+    """
+    area_info = config_data['AreaInfo']
+
+    # Check that cooling demand can be met
+    has_cooling_need = any([agent['Type'] == 'BlockAgent'
+                            and agent['Atemp'] > 0
+                            and (agent['FractionCommercial'] + agent['FractionOffice'] > 0)
+                            for agent in config_data['Agents']])
+    central_cool_prod = area_info['CompChillerMaxInput'] * area_info['CompChillerCOP']
+    worst_case_max_cool_prod_agent = [
+        (min(area_info['COPHeatPumpsHighTemp'], area_info['COPHeatPumpsLowTemp']) - 1) * agent['HeatPumpMaxOutput']
+        if agent['HeatPumpForCooling'] else 0
+        for agent in config_data['Agents'] if agent['Type'] == 'BlockAgent']
+    has_cooling_production = central_cool_prod > 0 or any([cp > 0 for cp in worst_case_max_cool_prod_agent])
+    if has_cooling_need and not has_cooling_production:
+        return 'The config includes agents with a cooling demand, but no ways of cooling production!'
     return None
 # ------------------------------------- End config screening ----------------------------------
 
