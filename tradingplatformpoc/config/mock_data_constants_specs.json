@@ -85,31 +85,31 @@
         "help": "Number indicating the hot tap water consumption of school buildings, in kWh per year and square meter Atemp. The default of 7 kWh/year/m2 has been provided by BDAB."
     },
     "OfficeElecKwhPerYearM2": {
-        "display": "Office electricity kWh/year/m2 [PLACEHOLDER!]:",
+        "display": "Office electricity kWh/year/m2:",
         "min_value": 1,
         "max_value": 200,
-        "default": 100,
-        "help": "Number indicating the electricity consumption of office buildings, in kWh per year and square meter Atemp. The default of 100 kWh/year/m2 is a placeholder!"
+        "default": 50,
+        "help": "Number indicating the electricity consumption of office buildings, in kWh per year and square meter Atemp. The default of 50 kWh/year/m2 has been provided by BDAB."
     },
     "OfficeSpaceHeatKwhPerYearM2": {
         "display": "Office space heat kWh/year/m2:",
         "min_value": 1,
         "max_value": 100,
-        "default": 20,
-        "help": "Number indicating the space heating consumption of office buildings, in kWh per year and square meter Atemp. The default of 20 kWh/year/m2 has been provided by BDAB."
+        "default": 22,
+        "help": "Number indicating the space heating consumption of office buildings, in kWh per year and square meter Atemp. The default of 22 kWh/year/m2 has been provided by BDAB."
     },
     "OfficeHotTapWaterKwhPerYearM2": {
         "display": "Office hot tap water kWh/year/m2:",
         "min_value": 1,
         "max_value": 100,
-        "default": 2,
-        "help": "Number indicating the hot tap water consumption of office buildings, in kWh per year and square meter Atemp. The default of 2 kWh/year/m2 has been provided by BDAB."
+        "default": 5,
+        "help": "Number indicating the hot tap water consumption of office buildings, in kWh per year and square meter Atemp. The default of 5 kWh/year/m2 has been provided by BDAB."
     },
     "OfficeCoolKwhPerYearM2": {
         "display": "Office cooling kWh/year/m2:",
         "min_value": 0,
         "max_value": 100,
-        "default": 20,
-        "help": "Number indicating the cooling consumption of office buildings, in kWh per year and square meter Atemp. The default of 20 kWh/year/m2 comes from BDAB."
+        "default": 6,
+        "help": "Number indicating the cooling consumption of office buildings, in kWh per year and square meter Atemp. The default of 6 kWh/year/m2 has been provided by BDAB."
     }
 }
