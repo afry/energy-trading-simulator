@@ -30,11 +30,12 @@ if __name__ == '__main__':
     areas = areas[['Type', 'Name', 'Atemp', 'PVArea', 'FractionCommercial']]
     areas['FractionSchool'] = 0.0
     areas['FractionOffice'] = 0.0
-    areas['HeatPumpMaxInput'] = [0.0 if i < 10 else 45.0 for i in range(20)]
-    areas['HeatPumpMaxOutput'] = [0.0 if i < 10 else 145.0 for i in range(20)]
+    # BC areas need a heat pump to be able to produce cooling
+    areas['HeatPumpMaxInput'] = [45.0 if should_include_commercial.values[i] or i >= 14 else 0.0 for i in range(20)]
+    areas['HeatPumpMaxOutput'] = [145.0 if should_include_commercial.values[i] or i >= 14 else 0.0 for i in range(20)]
     areas['BoosterPumpMaxInput'] = 25.0
     areas['BoosterPumpMaxOutput'] = 100.0
-    areas['HeatPumpForCooling'] = False
+    areas['HeatPumpForCooling'] = should_include_commercial.values
     areas['BatteryCapacity'] = 100.0
     areas['AccumulatorTankCapacity'] = 300.0
     areas['FractionUsedForBITES'] = 0.0
