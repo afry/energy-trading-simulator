@@ -1,5 +1,7 @@
 from typing import List, Tuple
 
+import numpy as np
+
 import pandas as pd
 
 import pyomo.environ as pyo
@@ -66,13 +68,25 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, n_agents: int,
     # All hot water is covered by discharging the accumulator tank. So hot water demand cannot be greater than the
     # maximum discharge capability, or we won't be able to find a solution (the TerminationCondition will be
     # 'infeasible'). Easier to raise this error straight away, so that the user knows specifically what went wrong.
+    # TODO: Update this if/when max_HTES_dis is modified. The max discharge is equal to the max capacity plus the max
+    #  input...
     max_tank_discharge = [x * y for x, y in zip(kwh_per_deg, thermalstorage_max_temp)]
     too_big_hot_water_demand = hot_water_heatdem.gt(max_tank_discharge, axis=0).any(axis=1)
-    # FIXME: Temporarily diverting from Chalmers code here:
     problems = [tbhwd and (v > 0) for tbhwd, v in zip(too_big_hot_water_demand.tolist(), thermalstorage_volume)]
     if sum(problems) > 0:
         problematic_agent_indices = [i for i, x in enumerate(problems) if x]
         raise RuntimeError('Unfillable hot water demand for agent indices: {}'.format(problematic_agent_indices))
+
+    # Similarly, check the maximum cooling produced vs the cooling demand
+    max_cooling_produced_for_1_hour = Pccmax * chiller_COP \
+        + sum([(hp_cop - 1) * max_php if hpc_active else
+               np.inf if has_bh and month not in [6, 7, 8] else 0
+               for hp_cop, max_php, hpc_active, has_bh in
+               zip(heatpump_COP, heatpump_max_power, HP_Cproduct_active, borehole)])
+    too_big_cool_demand = cold_consumption.sum(axis=0).gt(max_cooling_produced_for_1_hour)
+    if too_big_cool_demand.any():
+        problematic_hours = [i for i, x in enumerate(too_big_cool_demand) if x]
+        raise RuntimeError('Unfillable cooling demand in LEC for hour(s) {}!'.format(problematic_hours))
 
     model = pyo.ConcreteModel()
     # Sets
@@ -169,7 +183,7 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, n_agents: int,
     if summer_mode:
         model.HhpB = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
         model.PhpB = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
-    model.heat_dump = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
+    model.heat_dump = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
     # This variable will keep track of the unused excess cooling for us. No penalty associated with it - this cooling
     # can be used, or not, it's fine either way
     model.cool_dump = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
@@ -244,7 +258,8 @@ def add_obj_and_constraints(model: pyo.ConcreteModel, summer_mode: bool, month: 
 def obj_rul(model):
     return sum(
         model.Pbuy_market[t] * model.price_buy[t] - model.Psell_market[t] * model.price_sell[t]
-        + model.Hbuy_market[t] * model.Hprice_energy + model.heat_dump[t] * model.penalty
+        + model.Hbuy_market[t] * model.Hprice_energy
+        + model.cool_dump[t] * model.penalty + sum(model.heat_dump[i, t] for i in model.I) * model.penalty
         for t in model.T)
 
 
@@ -303,11 +318,13 @@ def agent_Hbalance_winter(model, i, t):
     # with TES
     if model.kwh_per_deg[i] != 0:
         return model.Hbuy_grid[i, t] + model.Hhp[i, t] == \
-               model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] + model.Hsh[i, t] + model.HTEScha[i, t]
+               model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] + model.Hsh[i, t]\
+               + model.HTEScha[i, t] + model.heat_dump[i, t]
     # without TES
     else:
         return model.Hbuy_grid[i, t] + model.Hhp[i, t] == \
-               model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] + model.Hsh[i, t] + model.Hhw[i, t]
+               model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] + model.Hsh[i, t] \
+               + model.Hhw[i, t] + model.heat_dump[i, t]
 
 
 def agent_Hbalance_summer(model, i, t):
@@ -316,12 +333,12 @@ def agent_Hbalance_summer(model, i, t):
     if model.kwh_per_deg[i] != 0:
         return model.Hbuy_grid[i, t] + model.Hhp[i, t] \
              + model.Hsh_excess[i, t] == model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] \
-             + model.Hsh[i, t] + PERC_OF_HT_COVERABLE_BY_LT * model.HTEScha[i, t]
+             + model.Hsh[i, t] + PERC_OF_HT_COVERABLE_BY_LT * model.HTEScha[i, t] + model.heat_dump[i, t]
     # without TES
     else:
         return model.Hbuy_grid[i, t] + model.Hhp[i, t] \
              + model.Hsh_excess[i, t] == model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] \
-             + model.Hsh[i, t] + PERC_OF_HT_COVERABLE_BY_LT * model.Hhw[i, t]
+             + model.Hsh[i, t] + PERC_OF_HT_COVERABLE_BY_LT * model.Hhw[i, t] + model.heat_dump[i, t]
 
 
 def agent_Cbalance_winter(model, i, t):
@@ -429,7 +446,7 @@ def LEC_Pbalance(model, t):
 def LEC_Hbalance(model, t):
     return sum(model.Hsell_grid[i, t]*(1-model.Heat_trans_loss) for i in model.I) + \
            model.Hbuy_market[t]*(1-model.Heat_trans_loss) + model.Hcc[t]*(1-model.Heat_trans_loss)\
-           == sum(model.Hbuy_grid[i, t] for i in model.I) + model.heat_dump[t]
+           == sum(model.Hbuy_grid[i, t] for i in model.I)
 
 
 def LEC_Cbalance(model, t):

@@ -206,13 +206,19 @@ def extract_outputs(optimized_model: pyo.ConcreteModel,
         metadata_per_agent_and_period[TradeMetadataKey.HP_HIGH_HEAT_PROD] = \
             get_value_per_agent(optimized_model, start_datetime, 'Hhp', agent_guids,
                                 lambda i: optimized_model.Phpmax[i] > 0)
+
+    # Build metadata per period (not agent-individual)
     metadata_per_period = {
-        TradeMetadataKey.HEAT_DUMP: get_value_per_period(optimized_model, start_datetime, 'heat_dump'),
         TradeMetadataKey.COOL_DUMP: get_value_per_period(optimized_model, start_datetime, 'cool_dump'),
         TradeMetadataKey.CM_COOL_PROD: get_value_per_period(optimized_model, start_datetime, 'Ccc'),
         TradeMetadataKey.CM_HEAT_PROD: get_value_per_period(optimized_model, start_datetime, 'Hcc'),
         TradeMetadataKey.CM_ELEC_CONS: get_value_per_period(optimized_model, start_datetime, 'Pcc')
     }
+    heat_dump_per_agent = get_value_per_agent(optimized_model, start_datetime, 'heat_dump', agent_guids,
+                                              lambda i: True)
+    heat_dump_total = {dt: sum(inner_dict[dt] for inner_dict in heat_dump_per_agent.values() if dt in inner_dict)
+                       for dt in set(key for inner_dict in heat_dump_per_agent.values() for key in inner_dict)}
+    metadata_per_period[TradeMetadataKey.HEAT_DUMP] = heat_dump_total
     return ChalmersOutputs(elec_trades + heat_trades + cool_trades, metadata_per_agent_and_period, metadata_per_period)
 
 
