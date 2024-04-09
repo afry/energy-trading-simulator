@@ -224,7 +224,7 @@ def build_heat_pump_prod_df(job_id: str, agent_chosen_guid: str, agent_config: d
     These signify the heat pump production of high-/low-tempered heat and cooling, respectively, in kWh for a given
     hour (a.k.a. kW).
     """
-    if agent_config['HeatPumpMaxOutput'] + agent_config['BoosterPumpMaxOutput'] > 0:
+    if agent_config['HeatPumpMaxOutput'] > 0:
         high_heat_prod = db_to_viewable_level_df_by_agent(job_id=job_id, agent_guid=agent_chosen_guid,
                                                           level_type=TradeMetadataKey.HP_HIGH_HEAT_PROD.name)
         low_heat_prod = db_to_viewable_level_df_by_agent(job_id=job_id, agent_guid=agent_chosen_guid,
@@ -235,6 +235,10 @@ def build_heat_pump_prod_df(job_id: str, agent_chosen_guid: str, agent_config: d
                           suffixes=('_high', '_low')).fillna(0)
         return pd.merge(step_1, cool_prod.rename({'level': 'level_cool'}, axis=1),
                         left_index=True, right_index=True, how='outer').fillna(0)
+    if agent_config['BoosterPumpMaxOutput'] > 0:
+        high_heat_prod = db_to_viewable_level_df_by_agent(job_id=job_id, agent_guid=agent_chosen_guid,
+                                                          level_type=TradeMetadataKey.HP_HIGH_HEAT_PROD.name)
+        return high_heat_prod.rename({'level': 'level_high'}, axis=1)
     else:
         return pd.DataFrame()
 
