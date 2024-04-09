@@ -1,5 +1,7 @@
 from typing import List, Tuple
 
+import numpy as np
+
 import pandas as pd
 
 import pyomo.environ as pyo
@@ -66,13 +68,25 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, n_agents: int,
     # All hot water is covered by discharging the accumulator tank. So hot water demand cannot be greater than the
     # maximum discharge capability, or we won't be able to find a solution (the TerminationCondition will be
     # 'infeasible'). Easier to raise this error straight away, so that the user knows specifically what went wrong.
+    # TODO: Update this if/when max_HTES_dis is modified. The max discharge is equal to the max capacity plus the max
+    #  input...
     max_tank_discharge = [x * y for x, y in zip(kwh_per_deg, thermalstorage_max_temp)]
     too_big_hot_water_demand = hot_water_heatdem.gt(max_tank_discharge, axis=0).any(axis=1)
-    # FIXME: Temporarily diverting from Chalmers code here:
     problems = [tbhwd and (v > 0) for tbhwd, v in zip(too_big_hot_water_demand.tolist(), thermalstorage_volume)]
     if sum(problems) > 0:
         problematic_agent_indices = [i for i, x in enumerate(problems) if x]
         raise RuntimeError('Unfillable hot water demand for agent indices: {}'.format(problematic_agent_indices))
+
+    # Similarly, check the maximum cooling produced vs the cooling demand
+    max_cooling_produced_for_1_hour = Pccmax * chiller_COP \
+        + sum([(hp_cop - 1) * max_php if hpc_active else
+               np.inf if has_bh and month not in [6, 7, 8] else 0
+               for hp_cop, max_php, hpc_active, has_bh in
+               zip(heatpump_COP, heatpump_max_power, HP_Cproduct_active, borehole)])
+    too_big_cool_demand = cold_consumption.sum(axis=0).gt(max_cooling_produced_for_1_hour)
+    if too_big_cool_demand.any():
+        problematic_hours = [i for i, x in enumerate(too_big_cool_demand) if x]
+        raise RuntimeError('Unfillable cooling demand in LEC for hour(s) {}!'.format(problematic_hours))
 
     model = pyo.ConcreteModel()
     # Sets
