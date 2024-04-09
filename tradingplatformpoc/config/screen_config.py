@@ -176,6 +176,22 @@ def config_data_feasibility_screening(config_data: dict) -> Optional[str]:
     has_cooling_production = central_cool_prod > 0 or any([cp > 0 for cp in worst_case_max_cool_prod_agent])
     if has_cooling_need and not has_cooling_production:
         return 'The config includes agents with a cooling demand, but no ways of cooling production!'
+
+    # Check that booster heat pumps exist
+    has_hw_need = [agent['Type'] == 'BlockAgent'
+                   and agent['Atemp'] > 0
+                   for agent in config_data['Agents']]
+    has_booster_hp = [agent['Type'] == 'BlockAgent'
+                      and agent['BoosterPumpMaxOutput'] > 0
+                      and agent['BoosterPumpMaxInput'] > 0
+                      for agent in config_data['Agents']]
+    problem_agents = [config_data['Agents'][i]['Name']
+                      for i in range(len(has_hw_need))
+                      if has_hw_need[i] and not has_booster_hp[i]]
+    if len(problem_agents) > 0:
+        if len(problem_agents) > 1:
+            return 'Agents {} need booster heat pumps!'.format(problem_agents)
+        return 'Agent {} needs a booster heat pump!'.format(problem_agents[0])
     return None
 # ------------------------------------- End config screening ----------------------------------
 
