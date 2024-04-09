@@ -162,30 +162,27 @@ def config_data_feasibility_screening(config_data: dict) -> Optional[str]:
     @return: Will return None if no problem is found. Otherwise, will return a string describing the problem found.
     """
     area_info = config_data['AreaInfo']
+    non_grid_agents = [agent for agent in config_data['Agents'] if agent['Type'] != 'GridAgent']
 
     # Check that cooling demand can be met
     has_cooling_need = any([agent['Type'] == 'BlockAgent'
                             and agent['Atemp'] > 0
                             and (agent['FractionCommercial'] + agent['FractionOffice'] > 0)
-                            for agent in config_data['Agents']])
+                            for agent in non_grid_agents])
     central_cool_prod = area_info['CompChillerMaxInput'] * area_info['CompChillerCOP']
     worst_case_max_cool_prod_agent = [
         (min(area_info['COPHeatPumpsHighTemp'], area_info['COPHeatPumpsLowTemp']) - 1) * agent['HeatPumpMaxOutput']
         if agent['HeatPumpForCooling'] else 0
-        for agent in config_data['Agents'] if agent['Type'] == 'BlockAgent']
+        for agent in non_grid_agents if agent['Type'] == 'BlockAgent']
     has_cooling_production = central_cool_prod > 0 or any([cp > 0 for cp in worst_case_max_cool_prod_agent])
     if has_cooling_need and not has_cooling_production:
         return 'The config includes agents with a cooling demand, but no ways of cooling production!'
 
     # Check that booster heat pumps exist
-    has_hw_need = [agent['Type'] == 'BlockAgent'
-                   and agent['Atemp'] > 0
-                   for agent in config_data['Agents']]
-    has_booster_hp = [agent['Type'] == 'BlockAgent'
-                      and agent['BoosterPumpMaxOutput'] > 0
-                      and agent['BoosterPumpMaxInput'] > 0
-                      for agent in config_data['Agents']]
-    problem_agents = [config_data['Agents'][i]['Name']
+    has_hw_need = [agent['Atemp'] > 0 for agent in non_grid_agents]
+    has_booster_hp = [agent['BoosterPumpMaxOutput'] > 0 and agent['BoosterPumpMaxInput'] > 0
+                      for agent in non_grid_agents]
+    problem_agents = [non_grid_agents[i]['Name']
                       for i in range(len(has_hw_need))
                       if has_hw_need[i] and not has_booster_hp[i]]
     if len(problem_agents) > 0:
