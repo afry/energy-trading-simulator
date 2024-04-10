@@ -1,6 +1,6 @@
 import datetime
 import logging
-from typing import Any, Callable, Dict, List, Tuple, Union
+from typing import Any, Callable, Dict, List, Set, Tuple, Union
 
 import numpy as np
 
@@ -9,7 +9,7 @@ import pandas as pd
 import pyomo.environ as pyo
 from pyomo.core.base.param import IndexedParam, ScalarParam
 from pyomo.opt import OptSolver, SolverResults, TerminationCondition
-from pyomo.util.infeasible import log_infeasible_constraints
+from pyomo.util.infeasible import find_infeasible_constraints, log_infeasible_constraints
 
 from tradingplatformpoc import constants
 from tradingplatformpoc.agent.block_agent import BlockAgent
@@ -133,6 +133,9 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
     )
 
     if results.solver.termination_condition != TerminationCondition.optimal:
+        constraint_names_no_index: Set[str] = set()
+        for constraint, body_value, infeasible in find_infeasible_constraints(optimized_model):
+            constraint_names_no_index.add(constraint.name.split('[')[0])
         log_infeasible_constraints(optimized_model)
         raise RuntimeError('For period {}, the solver did not find an optimal solution. Solver status: {}'.format(
             start_datetime, results.solver.termination_condition))

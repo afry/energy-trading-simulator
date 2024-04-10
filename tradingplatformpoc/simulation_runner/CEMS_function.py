@@ -12,6 +12,15 @@ from pyomo.opt import OptSolver, SolverResults
 PERC_OF_HT_COVERABLE_BY_LT = 0.6
 
 
+class InfeasibilityError(Exception):
+    agent_indices: list[int]
+    hour_indices: list[int]
+
+    def __init__(self, message: str, agent_indices: list[int], hour_indices: list[int]):
+        self.message = message
+        super().__init__(self.message)
+
+
 def solve_model(solver: OptSolver, summer_mode: bool, month: int, n_agents: int, external_elec_buy_price: pd.Series,
                 external_elec_sell_price: pd.Series, external_heat_buy_price: float,
                 battery_capacity: List[float], battery_charge_rate: List[float], battery_discharge_rate: List[float],
@@ -77,18 +86,22 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, n_agents: int,
         too_big_hot_water_demand = must_be_covered_by_booster.gt(booster_heatpump_max_heat, axis=0).any(axis=1)
         if sum(too_big_hot_water_demand) > 0:
             problematic_agent_indices = [i for i, x in enumerate(too_big_hot_water_demand) if x]
-            raise RuntimeError('Unfillable hot water demand for agent indices: {}'.format(problematic_agent_indices))
+            raise InfeasibilityError(message='Unfillable hot water demand',
+                                     agent_indices=problematic_agent_indices,
+                                     hour_indices=[])
 
     # Similarly, check the maximum cooling produced vs the cooling demand
     max_cooling_produced_for_1_hour = Pccmax * chiller_COP \
-        + sum([(hp_cop - 1) * max_php if hpc_active else
-               np.inf if has_bh and month not in [6, 7, 8] else 0
-               for hp_cop, max_php, hpc_active, has_bh in
-               zip(heatpump_COP, heatpump_max_power, HP_Cproduct_active, borehole)])
+                                      + sum([(hp_cop - 1) * max_php if hpc_active else
+                                             np.inf if has_bh and month not in [6, 7, 8] else 0
+                                             for hp_cop, max_php, hpc_active, has_bh in
+                                             zip(heatpump_COP, heatpump_max_power, HP_Cproduct_active, borehole)])
     too_big_cool_demand = cold_consumption.sum(axis=0).gt(max_cooling_produced_for_1_hour)
     if too_big_cool_demand.any():
         problematic_hours = [i for i, x in enumerate(too_big_cool_demand) if x]
-        raise RuntimeError('Unfillable cooling demand in LEC for hour(s) {}!'.format(problematic_hours))
+        raise InfeasibilityError(message='Unfillable cooling demand in LEC',
+                                 agent_indices=[],
+                                 hour_indices=problematic_hours)
 
     model = pyo.ConcreteModel()
     # Sets
