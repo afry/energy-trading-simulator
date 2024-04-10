@@ -90,7 +90,6 @@ def construct_dump_comparison_chart(ids: ComparisonIds, tmk: TradeMetadataKey, r
     """Process data to be of a form that fits the altair chart, then construct a line chart."""
     domain: List[str] = []
     range_color: List[str] = app_constants.ALTAIR_BASE_COLORS[:2]
-    range_dash: List[List[int]] = [[0, 0], [8, 8]]
     new_df = pd.DataFrame()
     for job_id in ids.get_job_ids():
         df = db_to_viewable_level_df(job_id, tmk.name)
@@ -101,7 +100,8 @@ def construct_dump_comparison_chart(ids: ComparisonIds, tmk: TradeMetadataKey, r
         domain.append(config_id)
 
     title = 'Unused ' + resource_name.lower()
-    return altair_line_chart(new_df, domain, range_color, range_dash, resource_name + ' [kWh]', title)
+    return altair_line_chart(new_df, domain, range_color, app_constants.ALTAIR_SOLID_AND_DASHED,
+                             resource_name + ' [kWh]', title)
 
 
 def show_key_figures(pre_calculated_results_1: Dict[str, Any], pre_calculated_results_2: Dict[str, Any]):
@@ -172,9 +172,10 @@ def construct_level_comparison_chart(ids: ComparisonIds, agent_names: List[str],
         return None
     combined_level_df = combined_level_df.rename(columns={'level': 'value'})
     domain = list(pd.unique(combined_level_df['variable']))
-    range_color = app_constants.ALTAIR_BASE_COLORS[:len(domain)]
+    range_color = app_constants.ALTAIR_BASE_COLORS[:2]
 
-    return altair_line_chart(combined_level_df, domain, range_color, [], var_title_str, title_str, True)
+    return altair_line_chart(combined_level_df, domain, range_color, app_constants.ALTAIR_SOLID_AND_DASHED,
+                             var_title_str, title_str, True)
 
 
 def get_keys_with_x_first(some_dict: Dict[str, Any], x: str) -> List[str]:

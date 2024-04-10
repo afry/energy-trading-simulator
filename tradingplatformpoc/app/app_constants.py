@@ -8,6 +8,7 @@ ALTAIR_BASE_COLORS = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
                       "#6e7c8b"]
 ALTAIR_DARK_COLORS = ["#144d75", "#ab5509", "#175217", "#691414"]
 ALTAIR_STROKE_DASH = [[2, 1], [8, 8], [0, 0], [2, 4], [1, 0], [1, 1], [4, 4], [8, 4]]
+ALTAIR_SOLID_AND_DASHED = [[1, 0], [8, 8]]
 
 DEFAULT_CONFIG_NAME = "default"
 

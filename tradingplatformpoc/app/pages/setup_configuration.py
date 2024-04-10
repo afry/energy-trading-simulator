@@ -192,6 +192,7 @@ if option_chosen == options[0]:
                                                     )
 
         # ----------- Buttons -----------
+        agent_form.caption('Do not forget to press this button after modifying agents!')
         save_agents = agent_form.form_submit_button("Save agents")
 
         if save_agents:
