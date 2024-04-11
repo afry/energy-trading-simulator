@@ -18,7 +18,6 @@ class CEMSError(Exception):
 
     def __init__(self, message: str, agent_indices: list[int], hour_indices: list[int]):
         self.message = message
-        super().__init__(self.message)
         self.agent_indices = agent_indices
         self.hour_indices = hour_indices
 
@@ -88,7 +87,7 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, n_agents: int,
         too_big_hot_water_demand = must_be_covered_by_booster.gt(booster_heatpump_max_heat, axis=0).any(axis=1)
         if sum(too_big_hot_water_demand) > 0:
             problematic_agent_indices = [i for i, x in enumerate(too_big_hot_water_demand) if x]
-            raise CEMSError(message='Unfillable hot water demand',
+            raise CEMSError(message='Unfillable hot water demand for agent(s)',
                             agent_indices=problematic_agent_indices,
                             hour_indices=[])
 

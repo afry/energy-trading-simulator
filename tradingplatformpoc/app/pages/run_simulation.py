@@ -109,9 +109,7 @@ if not failed_jobs_df.empty:
         key='delete_failed_df',
         column_config={
             "Delete": st.column_config.CheckboxColumn(
-                "Delete",
-                help="Check the box if you want to delete the data for this run.",
-                default=False,
+                help="Check the box if you want to delete the data for this run."
             ),
             "Failed period": st.column_config.TextColumn(
                 help="The first trading period which caused problems."

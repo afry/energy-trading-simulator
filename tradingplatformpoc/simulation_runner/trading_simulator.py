@@ -62,6 +62,7 @@ class TradingSimulator:
                 update_job_with_time(self.job_id, 'end_time')
 
             except InfeasibilityError as e:
+                logger.error(e.message)
                 set_error_info(self.job_id, e)
                 delete_job(self.job_id, only_delete_associated_data=True)
 

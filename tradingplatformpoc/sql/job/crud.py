@@ -54,7 +54,6 @@ def delete_job(job_id: str,
         if not job:
             logger.error('No job in database with ID {}'.format(job_id))
         else:
-            logger.info('Deleting job in database with ID {}, along with all related data'.format(job_id))
             # Delete job AND ALL RELATED DATA
             db.execute(delete(TableElectricityPrice).where(TableElectricityPrice.job_id == job_id))
             db.execute(delete(TableExtraCost).where(TableExtraCost.job_id == job_id))
@@ -64,9 +63,13 @@ def delete_job(job_id: str,
             db.execute(delete(PreCalculatedResults).where(PreCalculatedResults.job_id == job_id))
 
             if not only_delete_associated_data:
+                logger.info('Deleting job in database with ID {}, along with all related data'.format(job_id))
                 db.delete(job)
+            else:
+                logger.info('Deleting all related data for job {}, but keeping job for fail info'.format(job_id))
+
             db.commit()
-            logger.info('Job {} deleted'.format(job_id))
+            logger.info('Deleted data for job {}'.format(job_id))
 
 
 # TODO: If job for config exists show or delete and rerun
@@ -126,8 +129,9 @@ def set_error_info(job_id: str, e: InfeasibilityError,
 
         if not job_to_update:
             logger.error('No job to update in database with ID {}'.format(job_id))
-            raise Exception("No job to update in database with ID {}'.format(job_id)")
+            raise Exception('No job to update in database with ID {}'.format(job_id))
 
+        logger.info('Setting error info for job {}'.format(job_id))
         job_to_update.fail_info = {'message': e.message,
                                    'agent_names': e.agent_names,
                                    'hour_indices': e.hour_indices,
