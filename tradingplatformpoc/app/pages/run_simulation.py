@@ -99,6 +99,7 @@ else:
 
 failed_jobs_df = get_failed_jobs_df()
 if not failed_jobs_df.empty:
+    st.subheader('Failed jobs due to infeasibility')
     n_rows = len(failed_jobs_df.index)
     failed_jobs_df['Delete'] = False
     delete_failed_runs = st.form(key='Delete failed runs form')
@@ -134,8 +135,8 @@ if not failed_jobs_df.empty:
         disabled=['Config ID', 'Message', 'Failed period', 'Agents', 'Hours', 'Constraints'],
         height=calculate_height_for_no_scroll_up_to(n_rows)
     )
-    delete_failed_runs.markdown('Note: Since these jobs failed, you should also modify or delete the associated '
-                                'configuration on the "Setup configuration" page.')
+    delete_failed_runs.caption('Note: Since these jobs failed, you should also modify or delete the associated '
+                               'configuration on the "Setup configuration" page.')
     delete_failed_runs_submit = delete_failed_runs.form_submit_button(
         '**DELETE DATA FOR SELECTED RUNS**',
         help='IMPORTANT: Clicking this button will delete selected jobs and all associated data.')
