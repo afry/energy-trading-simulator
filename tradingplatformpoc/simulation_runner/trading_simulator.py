@@ -23,7 +23,7 @@ from tradingplatformpoc.market.balance_manager import correct_for_exact_heating_
 from tradingplatformpoc.market.trade import Resource, Trade, TradeMetadataKey
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
-from tradingplatformpoc.simulation_runner.chalmers_interface import optimize
+from tradingplatformpoc.simulation_runner.chalmers_interface import InfeasibilityError, optimize
 from tradingplatformpoc.simulation_runner.results_calculator import calculate_results_and_save
 from tradingplatformpoc.sql.config.crud import get_all_agent_name_id_pairs_in_config, read_config
 from tradingplatformpoc.sql.electricity_price.models import ElectricityPrice as TableElectricityPrice
@@ -32,7 +32,7 @@ from tradingplatformpoc.sql.extra_cost.models import ExtraCost as TableExtraCost
 from tradingplatformpoc.sql.heating_price.models import HeatingPrice as TableHeatingPrice
 from tradingplatformpoc.sql.input_data.crud import get_periods_from_db, read_inputs_df_for_agent_creation
 from tradingplatformpoc.sql.input_electricity_price.crud import electricity_price_series_from_db
-from tradingplatformpoc.sql.job.crud import delete_job, get_config_id_for_job_id, update_job_with_time
+from tradingplatformpoc.sql.job.crud import delete_job, get_config_id_for_job_id, set_error_info, update_job_with_time
 from tradingplatformpoc.sql.level.crud import tmk_levels_dict_to_db_dict, tmk_overall_levels_dict_to_db_dict
 from tradingplatformpoc.sql.level.models import Level as TableLevel
 from tradingplatformpoc.sql.trade.crud import trades_to_db_dict
@@ -61,8 +61,13 @@ class TradingSimulator:
                 self.extract_heating_price()
                 update_job_with_time(self.job_id, 'end_time')
 
-            except Exception as e:
-                logger.exception(e)
+            except InfeasibilityError as e:
+                logger.error(e.message)
+                set_error_info(self.job_id, e)
+                delete_job(self.job_id, only_delete_associated_data=True)
+
+            except Exception as other_error:
+                logger.exception(other_error)
                 delete_job(self.job_id)
 
     def initialize_data(self):

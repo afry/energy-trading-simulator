@@ -12,6 +12,16 @@ from pyomo.opt import OptSolver, SolverResults
 PERC_OF_HT_COVERABLE_BY_LT = 0.6
 
 
+class CEMSError(Exception):
+    agent_indices: list[int]
+    hour_indices: list[int]
+
+    def __init__(self, message: str, agent_indices: list[int], hour_indices: list[int]):
+        self.message = message
+        self.agent_indices = agent_indices
+        self.hour_indices = hour_indices
+
+
 def solve_model(solver: OptSolver, summer_mode: bool, month: int, n_agents: int, external_elec_buy_price: pd.Series,
                 external_elec_sell_price: pd.Series, external_heat_buy_price: float,
                 battery_capacity: List[float], battery_charge_rate: List[float], battery_discharge_rate: List[float],
@@ -77,7 +87,9 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, n_agents: int,
         too_big_hot_water_demand = must_be_covered_by_booster.gt(booster_heatpump_max_heat, axis=0).any(axis=1)
         if sum(too_big_hot_water_demand) > 0:
             problematic_agent_indices = [i for i, x in enumerate(too_big_hot_water_demand) if x]
-            raise RuntimeError('Unfillable hot water demand for agent indices: {}'.format(problematic_agent_indices))
+            raise CEMSError(message='Unfillable hot water demand for agent(s)',
+                            agent_indices=problematic_agent_indices,
+                            hour_indices=[])
 
     # Similarly, check the maximum cooling produced vs the cooling demand
     max_cooling_produced_for_1_hour = Pccmax * chiller_COP \
@@ -88,7 +100,9 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, n_agents: int,
     too_big_cool_demand = cold_consumption.sum(axis=0).gt(max_cooling_produced_for_1_hour)
     if too_big_cool_demand.any():
         problematic_hours = [i for i, x in enumerate(too_big_cool_demand) if x]
-        raise RuntimeError('Unfillable cooling demand in LEC for hour(s) {}!'.format(problematic_hours))
+        raise CEMSError(message='Unfillable cooling demand in LEC',
+                        agent_indices=[],
+                        hour_indices=problematic_hours)
 
     model = pyo.ConcreteModel()
     # Sets
@@ -248,8 +262,8 @@ def add_obj_and_constraints(model: pyo.ConcreteModel, summer_mode: bool, month: 
         model.con_chiller_Hwaste_summer = pyo.Constraint(model.T, rule=chiller_Hwaste_summer)
     else:
         model.con_chiller_Hwaste_winter = pyo.Constraint(model.T, rule=chiller_Hwaste_winter)
-    model.con_max_HTES_dis = pyo.Constraint(model.I, model.T, rule=max_HTES_dis)
-    model.con_max_HTES_cha = pyo.Constraint(model.I, model.T, rule=max_HTES_cha)
+#    model.con_max_HTES_dis = pyo.Constraint(model.I, model.T, rule=max_HTES_dis)
+#    model.con_max_HTES_cha = pyo.Constraint(model.I, model.T, rule=max_HTES_cha)
     model.con_HTES_Ebalance = pyo.Constraint(model.I, model.T, rule=HTES_Ebalance)
     model.con_HTES_final_SOC = pyo.Constraint(model.I, rule=HTES_final_SOC)
     model.con_chiller_Cpower_product = pyo.Constraint(model.T, rule=chiller_Cpower_product)
@@ -261,8 +275,7 @@ def obj_rul(model):
     return sum(
         model.Pbuy_market[t] * model.price_buy[t] - model.Psell_market[t] * model.price_sell[t]
         + model.Hbuy_market[t] * model.Hprice_energy
-        + model.cool_dump[t] * model.penalty + sum(model.heat_dump[i, t] for i in model.I) * model.penalty
-        for t in model.T)
+        + sum(model.heat_dump[i, t] for i in model.I) * model.penalty for t in model.T)
 
 
 # Constraints:
@@ -526,12 +539,12 @@ def max_booster_HP_Hproduct_summer(model, i, t):
 
 # Thermal energy storage model (eqs. 32 to 25 of the report)
 # Maximum/minimum temperature limitations of hot water inside TES
-def max_HTES_dis(model, i, t):
-    return model.HTESdis[i, t] <= model.kwh_per_deg[i] * model.Tmax_TES[i]
-
-
-def max_HTES_cha(model, i, t):
-    return model.HTEScha[i, t] <= model.kwh_per_deg[i] * model.Tmax_TES[i]
+# def max_HTES_dis(model, i, t):
+#     return model.HTESdis[i, t] <= model.kwh_per_deg[i] * model.Tmax_TES[i]
+#
+#
+# def max_HTES_cha(model, i, t):
+#     return model.HTEScha[i, t] <= model.kwh_per_deg[i] * model.Tmax_TES[i]
 
 
 # State of charge modelling

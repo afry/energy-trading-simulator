@@ -123,7 +123,9 @@ def get_all_finished_job_config_id_pairs_in_db(session_generator: Callable[[], _
 def get_all_config_ids_in_db_with_jobs_df(session_generator: Callable[[], _GeneratorContextManager[Session]]
                                           = session_scope) -> pd.DataFrame:
     with session_generator() as db:
-        res = db.execute(select(Job, Config.description).join(Config, Job.config_id == Config.id)).all()
+        res = db.execute(select(Job, Config.description).
+                         join(Config, Job.config_id == Config.id).
+                         where(Job.fail_info.is_(None))).all()
         return pd.DataFrame.from_records([{'Job ID': job.id, 'Config ID': job.config_id, 'Description': desc,
                                            'Start time': job.start_time, 'End time': job.end_time}
                                          for (job, desc) in res])
