@@ -12,13 +12,15 @@ from pyomo.opt import OptSolver, SolverResults
 PERC_OF_HT_COVERABLE_BY_LT = 0.6
 
 
-class InfeasibilityError(Exception):
+class CEMSError(Exception):
     agent_indices: list[int]
     hour_indices: list[int]
 
     def __init__(self, message: str, agent_indices: list[int], hour_indices: list[int]):
         self.message = message
         super().__init__(self.message)
+        self.agent_indices = agent_indices
+        self.hour_indices = hour_indices
 
 
 def solve_model(solver: OptSolver, summer_mode: bool, month: int, n_agents: int, external_elec_buy_price: pd.Series,
@@ -86,9 +88,9 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, n_agents: int,
         too_big_hot_water_demand = must_be_covered_by_booster.gt(booster_heatpump_max_heat, axis=0).any(axis=1)
         if sum(too_big_hot_water_demand) > 0:
             problematic_agent_indices = [i for i, x in enumerate(too_big_hot_water_demand) if x]
-            raise InfeasibilityError(message='Unfillable hot water demand',
-                                     agent_indices=problematic_agent_indices,
-                                     hour_indices=[])
+            raise CEMSError(message='Unfillable hot water demand',
+                            agent_indices=problematic_agent_indices,
+                            hour_indices=[])
 
     # Similarly, check the maximum cooling produced vs the cooling demand
     max_cooling_produced_for_1_hour = Pccmax * chiller_COP \
@@ -99,9 +101,9 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, n_agents: int,
     too_big_cool_demand = cold_consumption.sum(axis=0).gt(max_cooling_produced_for_1_hour)
     if too_big_cool_demand.any():
         problematic_hours = [i for i, x in enumerate(too_big_cool_demand) if x]
-        raise InfeasibilityError(message='Unfillable cooling demand in LEC',
-                                 agent_indices=[],
-                                 hour_indices=problematic_hours)
+        raise CEMSError(message='Unfillable cooling demand in LEC',
+                        agent_indices=[],
+                        hour_indices=problematic_hours)
 
     model = pyo.ConcreteModel()
     # Sets

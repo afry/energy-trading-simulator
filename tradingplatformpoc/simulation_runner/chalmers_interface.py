@@ -20,6 +20,7 @@ from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
 from tradingplatformpoc.price.iprice import IPrice
 from tradingplatformpoc.simulation_runner import CEMS_function
+from tradingplatformpoc.simulation_runner.CEMS_function import CEMSError
 from tradingplatformpoc.trading_platform_utils import add_to_nested_dict
 
 VERY_SMALL_NUMBER = 0.000001  # to avoid trades with quantity 1e-7, for example
@@ -48,6 +49,21 @@ class ChalmersOutputs:
         self.trades = trades
         self.metadata_per_agent_and_period = metadata_per_agent_and_period
         self.metadata_per_period = metadata_per_period
+
+
+class InfeasibilityError(CEMSError):
+    agent_names: List[str]
+    horizon_start: datetime.datetime
+    horizon_end: datetime.datetime
+    constraints: Set[str]
+
+    def __init__(self, message: str, agent_names: List[str], hour_indices: List[int],
+                 horizon_start: datetime.datetime, horizon_end: datetime.datetime, constraints: Set[str]):
+        super().__init__(message, [], hour_indices)
+        self.agent_names = agent_names
+        self.horizon_start = horizon_start
+        self.horizon_end = horizon_end
+        self.constraints = constraints
 
 
 def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource, GridAgent], area_info: Dict[str, Any],
@@ -87,58 +103,70 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
     n_agents = len(block_agents)
     summer_mode = should_use_summer_mode(start_datetime)
     heat_pump_cop = area_info['COPHeatPumpsLowTemp'] if summer_mode else area_info['COPHeatPumpsHighTemp']
-    optimized_model, results = CEMS_function.solve_model(
-        solver=solver,
-        summer_mode=summer_mode,
-        month=start_datetime.month,
-        n_agents=n_agents,
-        external_elec_buy_price=elec_retail_prices,
-        external_elec_sell_price=elec_wholesale_prices,
-        external_heat_buy_price=heat_retail_price,
-        battery_capacity=battery_capacities,
-        battery_charge_rate=battery_max_charge,
-        battery_discharge_rate=battery_max_discharge,
-        SOCBES0=[area_info['StorageEndChargeLevel']] * n_agents,
-        heatpump_COP=[heat_pump_cop] * n_agents,
-        heatpump_max_power=heatpump_max_power,
-        heatpump_max_heat=heatpump_max_heat,
-        HP_Cproduct_active=hp_produce_cooling,
-        borehole=hp_produce_cooling,
-        booster_heatpump_COP=[area_info['COPBoosterPumps']] * n_agents,
-        booster_heatpump_max_power=booster_max_power,
-        booster_heatpump_max_heat=booster_max_heat,
-        build_area=atemp_for_bites,
-        SOCTES0=[area_info['StorageEndChargeLevel']] * n_agents,
-        thermalstorage_max_temp=[constants.ACC_TANK_TEMPERATURE] * n_agents,
-        thermalstorage_volume=acc_tank_volumes,
-        BITES_Eshallow0=shallow_storage_start,
-        BITES_Edeep0=deep_storage_start,
-        elec_consumption=elec_demand_df,
-        hot_water_heatdem=high_heat_demand_df,
-        space_heating_heatdem=low_heat_demand_df,
-        cold_consumption=cooling_demand_df,
-        pv_production=elec_supply_df,
-        excess_heat=low_heat_supply_df,
-        battery_efficiency=area_info['BatteryEfficiency'],
-        thermalstorage_efficiency=area_info['AccTankEfficiency'],
-        max_elec_transfer_between_agents=area_info['InterAgentElectricityTransferCapacity'],
-        max_elec_transfer_to_external=grid_agents[Resource.ELECTRICITY].max_transfer_per_hour,
-        max_heat_transfer_between_agents=area_info['InterAgentHeatTransferCapacity'],
-        max_heat_transfer_to_external=grid_agents[Resource.HIGH_TEMP_HEAT].max_transfer_per_hour,
-        chiller_COP=area_info['CompChillerCOP'],
-        Pccmax=area_info['CompChillerMaxInput'],
-        cold_trans_loss=area_info['CoolingTransferLoss'],
-        heat_trans_loss=area_info['HeatTransferLoss'],
-        trading_horizon=trading_horizon
-    )
+    try:
+        optimized_model, results = CEMS_function.solve_model(
+            solver=solver,
+            summer_mode=summer_mode,
+            month=start_datetime.month,
+            n_agents=n_agents,
+            external_elec_buy_price=elec_retail_prices,
+            external_elec_sell_price=elec_wholesale_prices,
+            external_heat_buy_price=heat_retail_price,
+            battery_capacity=battery_capacities,
+            battery_charge_rate=battery_max_charge,
+            battery_discharge_rate=battery_max_discharge,
+            SOCBES0=[area_info['StorageEndChargeLevel']] * n_agents,
+            heatpump_COP=[heat_pump_cop] * n_agents,
+            heatpump_max_power=heatpump_max_power,
+            heatpump_max_heat=heatpump_max_heat,
+            HP_Cproduct_active=hp_produce_cooling,
+            borehole=hp_produce_cooling,
+            booster_heatpump_COP=[area_info['COPBoosterPumps']] * n_agents,
+            booster_heatpump_max_power=booster_max_power,
+            booster_heatpump_max_heat=booster_max_heat,
+            build_area=atemp_for_bites,
+            SOCTES0=[area_info['StorageEndChargeLevel']] * n_agents,
+            thermalstorage_max_temp=[constants.ACC_TANK_TEMPERATURE] * n_agents,
+            thermalstorage_volume=acc_tank_volumes,
+            BITES_Eshallow0=shallow_storage_start,
+            BITES_Edeep0=deep_storage_start,
+            elec_consumption=elec_demand_df,
+            hot_water_heatdem=high_heat_demand_df,
+            space_heating_heatdem=low_heat_demand_df,
+            cold_consumption=cooling_demand_df,
+            pv_production=elec_supply_df,
+            excess_heat=low_heat_supply_df,
+            battery_efficiency=area_info['BatteryEfficiency'],
+            thermalstorage_efficiency=area_info['AccTankEfficiency'],
+            max_elec_transfer_between_agents=area_info['InterAgentElectricityTransferCapacity'],
+            max_elec_transfer_to_external=grid_agents[Resource.ELECTRICITY].max_transfer_per_hour,
+            max_heat_transfer_between_agents=area_info['InterAgentHeatTransferCapacity'],
+            max_heat_transfer_to_external=grid_agents[Resource.HIGH_TEMP_HEAT].max_transfer_per_hour,
+            chiller_COP=area_info['CompChillerCOP'],
+            Pccmax=area_info['CompChillerMaxInput'],
+            cold_trans_loss=area_info['CoolingTransferLoss'],
+            heat_trans_loss=area_info['HeatTransferLoss'],
+            trading_horizon=trading_horizon
+        )
+    except CEMSError as e:
+        raise InfeasibilityError(message=e.message,
+                                 agent_names=[agent_guids[i] for i in e.agent_indices],
+                                 hour_indices=e.hour_indices,
+                                 horizon_start=start_datetime,
+                                 horizon_end=start_datetime + datetime.timedelta(hours=trading_horizon),
+                                 constraints=set())
 
     if results.solver.termination_condition != TerminationCondition.optimal:
         constraint_names_no_index: Set[str] = set()
-        for constraint, body_value, infeasible in find_infeasible_constraints(optimized_model):
+        for constraint, _body_value, _infeasible in find_infeasible_constraints(optimized_model):
             constraint_names_no_index.add(constraint.name.split('[')[0])
         log_infeasible_constraints(optimized_model)
-        raise RuntimeError('For period {}, the solver did not find an optimal solution. Solver status: {}'.format(
-            start_datetime, results.solver.termination_condition))
+        raise InfeasibilityError(message='Infeasible optimization problem',
+                                 agent_names=[],
+                                 hour_indices=[],
+                                 horizon_start=start_datetime,
+                                 horizon_end=start_datetime + datetime.timedelta(hours=trading_horizon),
+                                 constraints=constraint_names_no_index)
 
     elec_grid_agent_guid = grid_agents[Resource.ELECTRICITY].guid
     heat_grid_agent_guid = grid_agents[Resource.HIGH_TEMP_HEAT].guid
