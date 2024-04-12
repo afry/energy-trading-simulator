@@ -1,5 +1,7 @@
 from typing import List, Tuple
 
+import numpy as np
+
 import pandas as pd
 
 import pyomo.environ as pyo
@@ -8,6 +10,16 @@ from pyomo.opt import OptSolver, SolverResults
 # This share of high-temp heat need can be covered by low-temp heat (source: BDAB). The rest needs to be covered by
 # a booster heat pump.
 PERC_OF_HT_COVERABLE_BY_LT = 0.6
+
+
+class CEMSError(Exception):
+    agent_indices: list[int]
+    hour_indices: list[int]
+
+    def __init__(self, message: str, agent_indices: list[int], hour_indices: list[int]):
+        self.message = message
+        self.agent_indices = agent_indices
+        self.hour_indices = hour_indices
 
 
 def solve_model(solver: OptSolver, summer_mode: bool, month: int, n_agents: int, external_elec_buy_price: pd.Series,
@@ -63,16 +75,34 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, n_agents: int,
     # 1000 should be removed from the following formulation:
     kwh_per_deg = [v * 4182 * 998 / 3600000 for v in thermalstorage_volume]
 
-    # All hot water is covered by discharging the accumulator tank. So hot water demand cannot be greater than the
-    # maximum discharge capability, or we won't be able to find a solution (the TerminationCondition will be
+    # When running in summer mode, agents cannot buy high-temperature district heating, so all hot water needs to be
+    # covered, to (1 - PERC_OF_HT_COVERABLE_BY_LT) * 100%, by the booster heat pump, but agents can also use the
+    # accumulator tank.
+    # (Hhw - acc_tank_capacity) * (1 - PERC_OF_HT_COVERABLE_BY_LT) must be covered by booster in any given hour.
+    # If the booster cannot cover this, we won't be able to find a solution (the TerminationCondition will be
     # 'infeasible'). Easier to raise this error straight away, so that the user knows specifically what went wrong.
-    max_tank_discharge = [x * y for x, y in zip(kwh_per_deg, thermalstorage_max_temp)]
-    too_big_hot_water_demand = hot_water_heatdem.gt(max_tank_discharge, axis=0).any(axis=1)
-    # FIXME: Temporarily diverting from Chalmers code here:
-    problems = [tbhwd and (v > 0) for tbhwd, v in zip(too_big_hot_water_demand.tolist(), thermalstorage_volume)]
-    if sum(problems) > 0:
-        problematic_agent_indices = [i for i, x in enumerate(problems) if x]
-        raise RuntimeError('Unfillable hot water demand for agent indices: {}'.format(problematic_agent_indices))
+    if summer_mode:
+        max_tank_dis = [x * y for x, y in zip(kwh_per_deg, thermalstorage_max_temp)]
+        must_be_covered_by_booster = hot_water_heatdem.sub(max_tank_dis, axis=0) * (1 - PERC_OF_HT_COVERABLE_BY_LT)
+        too_big_hot_water_demand = must_be_covered_by_booster.gt(booster_heatpump_max_heat, axis=0).any(axis=1)
+        if sum(too_big_hot_water_demand) > 0:
+            problematic_agent_indices = [i for i, x in enumerate(too_big_hot_water_demand) if x]
+            raise CEMSError(message='Unfillable hot water demand for agent(s)',
+                            agent_indices=problematic_agent_indices,
+                            hour_indices=[])
+
+    # Similarly, check the maximum cooling produced vs the cooling demand
+    max_cooling_produced_for_1_hour = Pccmax * chiller_COP \
+        + sum([(hp_cop - 1) * max_php if hpc_active else
+               np.inf if has_bh and month not in [6, 7, 8] else 0
+               for hp_cop, max_php, hpc_active, has_bh in
+               zip(heatpump_COP, heatpump_max_power, HP_Cproduct_active, borehole)])
+    too_big_cool_demand = cold_consumption.sum(axis=0).gt(max_cooling_produced_for_1_hour)
+    if too_big_cool_demand.any():
+        problematic_hours = [i for i, x in enumerate(too_big_cool_demand) if x]
+        raise CEMSError(message='Unfillable cooling demand in LEC',
+                        agent_indices=[],
+                        hour_indices=problematic_hours)
 
     model = pyo.ConcreteModel()
     # Sets
@@ -169,7 +199,7 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, n_agents: int,
     if summer_mode:
         model.HhpB = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
         model.PhpB = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
-    model.heat_dump = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
+    model.heat_dump = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
     # This variable will keep track of the unused excess cooling for us. No penalty associated with it - this cooling
     # can be used, or not, it's fine either way
     model.cool_dump = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
@@ -232,8 +262,8 @@ def add_obj_and_constraints(model: pyo.ConcreteModel, summer_mode: bool, month: 
         model.con_chiller_Hwaste_summer = pyo.Constraint(model.T, rule=chiller_Hwaste_summer)
     else:
         model.con_chiller_Hwaste_winter = pyo.Constraint(model.T, rule=chiller_Hwaste_winter)
-    model.con_max_HTES_dis = pyo.Constraint(model.I, model.T, rule=max_HTES_dis)
-    model.con_max_HTES_cha = pyo.Constraint(model.I, model.T, rule=max_HTES_cha)
+#    model.con_max_HTES_dis = pyo.Constraint(model.I, model.T, rule=max_HTES_dis)
+#    model.con_max_HTES_cha = pyo.Constraint(model.I, model.T, rule=max_HTES_cha)
     model.con_HTES_Ebalance = pyo.Constraint(model.I, model.T, rule=HTES_Ebalance)
     model.con_HTES_final_SOC = pyo.Constraint(model.I, rule=HTES_final_SOC)
     model.con_chiller_Cpower_product = pyo.Constraint(model.T, rule=chiller_Cpower_product)
@@ -244,8 +274,8 @@ def add_obj_and_constraints(model: pyo.ConcreteModel, summer_mode: bool, month: 
 def obj_rul(model):
     return sum(
         model.Pbuy_market[t] * model.price_buy[t] - model.Psell_market[t] * model.price_sell[t]
-        + model.Hbuy_market[t] * model.Hprice_energy + model.heat_dump[t] * model.penalty
-        for t in model.T)
+        + model.Hbuy_market[t] * model.Hprice_energy
+        + sum(model.heat_dump[i, t] for i in model.I) * model.penalty for t in model.T)
 
 
 # Constraints:
@@ -303,11 +333,13 @@ def agent_Hbalance_winter(model, i, t):
     # with TES
     if model.kwh_per_deg[i] != 0:
         return model.Hbuy_grid[i, t] + model.Hhp[i, t] == \
-               model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] + model.Hsh[i, t] + model.HTEScha[i, t]
+               model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] + model.Hsh[i, t]\
+               + model.HTEScha[i, t] + model.heat_dump[i, t]
     # without TES
     else:
         return model.Hbuy_grid[i, t] + model.Hhp[i, t] == \
-               model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] + model.Hsh[i, t] + model.Hhw[i, t]
+               model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] + model.Hsh[i, t] \
+               + model.Hhw[i, t] + model.heat_dump[i, t]
 
 
 def agent_Hbalance_summer(model, i, t):
@@ -316,12 +348,12 @@ def agent_Hbalance_summer(model, i, t):
     if model.kwh_per_deg[i] != 0:
         return model.Hbuy_grid[i, t] + model.Hhp[i, t] \
              + model.Hsh_excess[i, t] == model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] \
-             + model.Hsh[i, t] + PERC_OF_HT_COVERABLE_BY_LT * model.HTEScha[i, t]
+             + model.Hsh[i, t] + PERC_OF_HT_COVERABLE_BY_LT * model.HTEScha[i, t] + model.heat_dump[i, t]
     # without TES
     else:
         return model.Hbuy_grid[i, t] + model.Hhp[i, t] \
              + model.Hsh_excess[i, t] == model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] \
-             + model.Hsh[i, t] + PERC_OF_HT_COVERABLE_BY_LT * model.Hhw[i, t]
+             + model.Hsh[i, t] + PERC_OF_HT_COVERABLE_BY_LT * model.Hhw[i, t] + model.heat_dump[i, t]
 
 
 def agent_Cbalance_winter(model, i, t):
@@ -429,7 +461,7 @@ def LEC_Pbalance(model, t):
 def LEC_Hbalance(model, t):
     return sum(model.Hsell_grid[i, t]*(1-model.Heat_trans_loss) for i in model.I) + \
            model.Hbuy_market[t]*(1-model.Heat_trans_loss) + model.Hcc[t]*(1-model.Heat_trans_loss)\
-           == sum(model.Hbuy_grid[i, t] for i in model.I) + model.heat_dump[t]
+           == sum(model.Hbuy_grid[i, t] for i in model.I)
 
 
 def LEC_Cbalance(model, t):
@@ -507,12 +539,12 @@ def max_booster_HP_Hproduct_summer(model, i, t):
 
 # Thermal energy storage model (eqs. 32 to 25 of the report)
 # Maximum/minimum temperature limitations of hot water inside TES
-def max_HTES_dis(model, i, t):
-    return model.HTESdis[i, t] <= model.kwh_per_deg[i] * model.Tmax_TES[i]
-
-
-def max_HTES_cha(model, i, t):
-    return model.HTEScha[i, t] <= model.kwh_per_deg[i] * model.Tmax_TES[i]
+# def max_HTES_dis(model, i, t):
+#     return model.HTESdis[i, t] <= model.kwh_per_deg[i] * model.Tmax_TES[i]
+#
+#
+# def max_HTES_cha(model, i, t):
+#     return model.HTEScha[i, t] <= model.kwh_per_deg[i] * model.Tmax_TES[i]
 
 
 # State of charge modelling

@@ -15,7 +15,8 @@ from tradingplatformpoc.app.app_functions import calculate_height_for_no_scroll_
 from tradingplatformpoc.app.app_inputs import add_params_to_form, column_config_for_agent_type
 from tradingplatformpoc.config.access_config import fill_agents_with_defaults, fill_with_default_params, \
     read_agent_specs, read_param_specs
-from tradingplatformpoc.config.screen_config import config_data_json_screening, display_diff_in_config
+from tradingplatformpoc.config.screen_config import config_data_feasibility_screening, config_data_json_screening, \
+    display_diff_in_config
 from tradingplatformpoc.sql.config.crud import create_config_if_not_in_db, delete_config_if_no_jobs_exist, \
     get_all_config_ids_in_db, get_all_configs_in_db_df, read_description, update_description
 from tradingplatformpoc.sql.config.crud import read_config
@@ -191,6 +192,7 @@ if option_chosen == options[0]:
                                                     )
 
         # ----------- Buttons -----------
+        agent_form.caption('Do not forget to press this button after modifying agents!')
         save_agents = agent_form.form_submit_button("Save agents")
 
         if save_agents:
@@ -256,12 +258,16 @@ if config_submit:
     elif not config_naming_is_valid(description):
         st.error("Provide a valid description!")
     else:
-        config_name = cleanup_config_name(config_name)
-        config_created = create_config_if_not_in_db(st.session_state.config_data, config_name, description)
-        if config_created['created']:
-            st.success(config_created['message'])
+        problems = config_data_feasibility_screening(st.session_state.config_data)
+        if problems:
+            st.error(problems)
         else:
-            st.warning(config_created['message'])
+            config_name = cleanup_config_name(config_name)
+            config_created = create_config_if_not_in_db(st.session_state.config_data, config_name, description)
+            if config_created['created']:
+                st.success(config_created['message'])
+            else:
+                st.warning(config_created['message'])
     sleep(10)
     st.experimental_rerun()
 

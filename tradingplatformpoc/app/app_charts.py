@@ -70,11 +70,13 @@ def construct_agent_energy_chart(digital_twin: StaticDigitalTwin, agent_chosen_g
                              "Cooling consumption", app_constants.ALTAIR_BASE_COLORS[6])
     df = add_to_df_and_lists(df, digital_twin.cooling_production, domain, range_color,
                              "Cooling production", app_constants.ALTAIR_BASE_COLORS[7])
-    if len(heat_pump_df.index) > 0:
+    if 'level_high' in heat_pump_df.columns:
         df = add_to_df_and_lists(df, heat_pump_df['level_high'], domain, range_color,
                                  "HP high heat production", app_constants.ALTAIR_BASE_COLORS[8])
+    if 'level_low' in heat_pump_df.columns:
         df = add_to_df_and_lists(df, heat_pump_df['level_low'], domain, range_color,
                                  "HP low heat production", app_constants.ALTAIR_BASE_COLORS[9])
+    if 'level_cool' in heat_pump_df.columns:
         df = add_to_df_and_lists(df, heat_pump_df['level_cool'], domain, range_color,
                                  "HP cooling production", app_constants.ALTAIR_BASE_COLORS[10])
     return altair_line_chart(df, domain, range_color, [], "Energy [kWh]",

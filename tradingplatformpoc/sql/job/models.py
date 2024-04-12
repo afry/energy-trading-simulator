@@ -3,6 +3,7 @@ import uuid
 from typing import Optional
 
 from sqlalchemy import Column, DateTime, func
+from sqlalchemy.dialects.postgresql import JSONB
 
 from sqlmodel import Field, SQLModel
 
@@ -36,6 +37,10 @@ class Job(SQLModel, table=True):
         primary_key=False,
         title='Configuration ID',
         nullable=False
+    )
+    fail_info: Optional[dict] = Field(
+        title="Fail info",
+        sa_column=Column(JSONB(none_as_null=True), primary_key=False, nullable=True)
     )
 
 

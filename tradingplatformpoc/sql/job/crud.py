@@ -3,13 +3,17 @@ import logging
 from contextlib import _GeneratorContextManager
 from typing import Callable
 
+import pandas as pd
+
 import pytz
 
 from sqlalchemy import delete, select
+from sqlalchemy.orm.attributes import flag_modified
 
 from sqlmodel import Session
 
 from tradingplatformpoc.connection import session_scope
+from tradingplatformpoc.simulation_runner.chalmers_interface import InfeasibilityError
 from tradingplatformpoc.sql.electricity_price.models import ElectricityPrice as TableElectricityPrice
 from tradingplatformpoc.sql.extra_cost.models import ExtraCost as TableExtraCost
 from tradingplatformpoc.sql.heating_price.models import HeatingPrice as TableHeatingPrice
@@ -19,14 +23,6 @@ from tradingplatformpoc.sql.results.models import PreCalculatedResults
 from tradingplatformpoc.sql.trade.models import Trade as TableTrade
 
 logger = logging.getLogger(__name__)
-
-
-def get_all_job_ids_in_db(session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope):
-    pass
-    # with session_generator() as db:
-    #     db.session.query(
-    #         Job.id
-    #     ).distinct().all()
 
 
 def create_job(job: JobCreate, db: Session):
@@ -51,13 +47,13 @@ def create_job_if_new_config(config_id: str,
 
 
 def delete_job(job_id: str,
+               only_delete_associated_data: bool = False,
                session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope):
     with session_generator() as db:
         job = db.get(Job, job_id)
         if not job:
             logger.error('No job in database with ID {}'.format(job_id))
         else:
-            logger.info('Deleting job in database with ID {}, along with all related data'.format(job_id))
             # Delete job AND ALL RELATED DATA
             db.execute(delete(TableElectricityPrice).where(TableElectricityPrice.job_id == job_id))
             db.execute(delete(TableExtraCost).where(TableExtraCost.job_id == job_id))
@@ -66,9 +62,14 @@ def delete_job(job_id: str,
             db.execute(delete(TableTrade).where(TableTrade.job_id == job_id))
             db.execute(delete(PreCalculatedResults).where(PreCalculatedResults.job_id == job_id))
 
-            db.delete(job)
+            if not only_delete_associated_data:
+                logger.info('Deleting job in database with ID {}, along with all related data'.format(job_id))
+                db.delete(job)
+            else:
+                logger.info('Deleting all related data for job {}, but keeping job for fail info'.format(job_id))
+
             db.commit()
-            logger.info('Job {} deleted'.format(job_id))
+            logger.info('Deleted data for job {}'.format(job_id))
 
 
 # TODO: If job for config exists show or delete and rerun
@@ -119,3 +120,42 @@ def get_all_queued_jobs(session_generator: Callable[[], _GeneratorContextManager
         res = db.query(Job.id).filter(Job.start_time.is_(None), Job.end_time.is_(None)).\
             order_by(Job.created_at.asc()).all()
         return [job_id for (job_id,) in res]
+
+
+def set_error_info(job_id: str, e: InfeasibilityError,
+                   session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope):
+    with session_generator() as db:
+        job_to_update: Job = db.get(Job, job_id)
+
+        if not job_to_update:
+            logger.error('No job to update in database with ID {}'.format(job_id))
+            raise Exception('No job to update in database with ID {}'.format(job_id))
+
+        logger.info('Setting error info for job {}'.format(job_id))
+        job_to_update.fail_info = {'message': e.message,
+                                   'agent_names': e.agent_names,
+                                   'hour_indices': e.hour_indices,
+                                   'horizon_start': e.horizon_start.strftime('%Y-%m-%d %H:%M'),
+                                   'horizon_end': e.horizon_end.strftime('%Y-%m-%d %H:%M'),
+                                   'constraints': list(e.constraints)}
+
+        # Make sure the ORM recognizes that fail_info has changed. Necessary for JSONB columns.
+        flag_modified(job_to_update, 'fail_info')
+
+        db.add(job_to_update)
+        db.commit()
+        db.refresh(job_to_update)
+
+
+def get_failed_jobs_df(session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope) \
+        -> pd.DataFrame:
+    with session_generator() as db:
+        res = db.execute(select(Job).where(Job.fail_info.is_not(None))).all()
+        return pd.DataFrame.from_records([{'Job ID': job.id,
+                                           'Config ID': job.config_id,
+                                           'Message': job.fail_info['message'],
+                                           'Agents': job.fail_info['agent_names'],
+                                           'Hours': job.fail_info['hour_indices'],
+                                           'Failed period': job.fail_info['horizon_start'],
+                                           'Constraints': job.fail_info['constraints']}
+                                         for (job,) in res])
