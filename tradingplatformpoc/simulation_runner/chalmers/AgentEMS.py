@@ -1,22 +1,21 @@
-from typing import List, Tuple
+from typing import Tuple
 import numpy as np
 import pandas as pd
 import pyomo.environ as pyo
 from pyomo.opt import OptSolver, SolverResults
 
+from tradingplatformpoc.simulation_runner.chalmers.CEMS_function import CEMSError, PERC_OF_HT_COVERABLE_BY_LT
+
 
 def solve_model(solver: OptSolver, summer_mode: bool, month: int, agent: int, external_elec_buy_price: pd.Series,
-                external_elec_sell_price: pd.Series, external_heat_buy_price: float,
-                battery_capacity: List[float], battery_charge_rate: List[float], battery_discharge_rate: List[float],
-                SOCBES0: List[float], HP_Cproduct_active: list[bool], heatpump_COP: List[float],
-                heatpump_max_power: List[float], heatpump_max_heat: List[float],
-                booster_heatpump_COP: List[float], booster_heatpump_max_power: List[float],
-                booster_heatpump_max_heat: List[float], build_area: List[float], SOCTES0: List[float],
-                thermalstorage_max_temp: List[float], thermalstorage_volume: List[float], BITES_Eshallow0: List[float],
-                BITES_Edeep0: List[float], borehole: List[bool],
-                elec_consumption: pd.DataFrame, hot_water_heatdem: pd.DataFrame, space_heating_heatdem: pd.DataFrame,
-                cold_consumption: pd.DataFrame, pv_production: pd.DataFrame, excess_heat: pd.DataFrame,
-                battery_efficiency: float = 0.95,
+                external_elec_sell_price: pd.Series, external_heat_buy_price: float, battery_capacity: float,
+                battery_charge_rate: float, battery_discharge_rate: float, SOCBES0: float, HP_Cproduct_active: bool,
+                heatpump_COP: float, heatpump_max_power: float, heatpump_max_heat: float, booster_heatpump_COP: float,
+                booster_heatpump_max_power: float, booster_heatpump_max_heat: float, build_area: float, SOCTES0: float,
+                thermalstorage_max_temp: float, thermalstorage_volume: float, BITES_Eshallow0: float,
+                BITES_Edeep0: float, borehole: bool, elec_consumption: pd.Series, hot_water_heatdem: pd.Series,
+                space_heating_heatdem: pd.Series, cold_consumption: pd.Series, pv_production: pd.Series,
+                excess_heat: pd.Series, battery_efficiency: float = 0.95,
                 max_elec_transfer_between_agents: float = 500, max_elec_transfer_to_external: float = 1000,
                 max_heat_transfer_between_agents: float = 500, max_heat_transfer_to_external: float = 1000,
                 chiller_COP: float = 1.5, Pccmax: float = 100, thermalstorage_efficiency: float = 0.98,
@@ -52,30 +51,15 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, agent: int, ex
     # 1000 should be removed from the following formulation:
     kwh_per_deg = thermalstorage_volume * 4182 * 998 / 3600000
 
-    # All hot water is covered by discharging the accumulator tank. So hot water demand cannot be greater than the
-    # maximum discharge capability, or we won't be able to find a solution (the TerminationCondition will be
-    # 'infeasible'). Easier to raise this error straight away, so that the user knows specifically what went wrong.
-    # TODO: Update this if/when max_HTES_dis is modified. The max discharge is equal to the max capacity plus the max
-    #  input...
-    max_tank_discharge = kwh_per_deg * thermalstorage_max_temp
-    too_big_hot_water_demand = hot_water_heatdem.gt(max_tank_discharge, axis=0)
-    problems = [tbhwd for tbhwd in too_big_hot_water_demand.tolist()]
-    if sum(problems) > 0:
-        raise RuntimeError(f'Unfillable hot water demand for agent indices: {agent}')
-
-    # Similarly, check the maximum cooling produced vs the cooling demand
-    max_cooling_produced_for_1_hour = Pccmax * chiller_COP \
-                                      + sum([(hp_cop - 1) * max_php if hpc_active else
-                                             np.inf if has_bh and month not in [6, 7, 8] else 0
-                                             for hp_cop, max_php, hpc_active, has_bh in
-                                             zip([heatpump_COP], [heatpump_max_power], [HP_Cproduct_active], [borehole])])
+    # Check the maximum cooling produced vs the cooling demand
+    max_cooling_produced_for_1_hour = (heatpump_COP - 1) * heatpump_max_power if HP_Cproduct_active else \
+        np.inf if borehole and month not in [6, 7, 8] else 0
     too_big_cool_demand = cold_consumption.gt(max_cooling_produced_for_1_hour)
     if too_big_cool_demand.any():
-        raise RuntimeError(f'Unfillable cooling demand in LEC for hour(s) {agent}!')
-
-    # This share of high-temp heat need can be covered by low-temp heat (source: BDAB). The rest needs to be covered by
-    # a booster heat pump.
-    PERC_OF_HT_COVERABLE_BY_LT = 0.6
+        problematic_hours = [i for i, x in enumerate(too_big_cool_demand) if x]
+        raise CEMSError(message='Unfillable cooling demand for agent index {}'.format(agent),
+                        agent_indices=[agent],
+                        hour_indices=problematic_hours)
 
     # Build model for each agent
     model = pyo.ConcreteModel(name=f"Agent{agent}")
@@ -87,10 +71,8 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, agent: int, ex
     model.price_sell = pyo.Param(model.T, initialize=external_elec_sell_price)
     model.Hprice_energy = pyo.Param(initialize=external_heat_buy_price)
     # Grid data
-    model.Pmax_grid = pyo.Param(initialize=max_elec_transfer_between_agents)
-    model.Hmax_grid = pyo.Param(initialize=max_heat_transfer_between_agents)
-    model.Pmax_market = pyo.Param(initialize=max_elec_transfer_to_external)
-    model.Hmax_market = pyo.Param(initialize=max_heat_transfer_to_external)
+    model.Pmax_grid = pyo.Param(initialize=max_elec_transfer_to_external)
+    model.Hmax_grid = pyo.Param(initialize=max_heat_transfer_to_external)
     # Demand data of agents
     model.Pdem = pyo.Param(model.T, initialize=lambda m, t: elec_consumption.iloc[t])
     model.Hhw = pyo.Param(model.T, initialize=lambda m, t: hot_water_heatdem.iloc[t])

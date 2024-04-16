@@ -2,8 +2,7 @@
     "LocalMarketEnabled": {
         "display": "Local market for energy trades",
         "default": true,
-        "help": "If a local market for trading of energy should be used in simulation.",
-        "disabled": true
+        "help": "If a local market for trading of energy should be used in simulation."
     },
     "AllowDistrictHeating": {
         "display": "Allow district heating",
