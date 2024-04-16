@@ -104,14 +104,18 @@ def calculate_results_and_save(job_id: str, agents: List[IAgent], grid_agents: D
     result_dict[ResultsKey.MAX_NET_IMPORT] = {
         Resource.ELECTRICITY.name: max_dict_value(agg_elec_trades.monthly_max_net_import),
         Resource.HIGH_TEMP_HEAT.name: max_dict_value(agg_heat_trades.monthly_max_net_import)}
-    result_dict[ResultsKey.MONTHLY_SUM_IMPORT_ELEC] = agg_elec_trades.monthly_sum_import
-    result_dict[ResultsKey.MONTHLY_SUM_EXPORT_ELEC] = agg_elec_trades.monthly_sum_export
-    result_dict[ResultsKey.MONTHLY_SUM_NET_IMPORT_ELEC] = agg_elec_trades.monthly_sum_net_import
-    result_dict[ResultsKey.MONTHLY_MAX_NET_IMPORT_ELEC] = agg_elec_trades.monthly_max_net_import
-    result_dict[ResultsKey.MONTHLY_SUM_IMPORT_HEAT] = agg_heat_trades.monthly_sum_import
-    result_dict[ResultsKey.MONTHLY_SUM_EXPORT_HEAT] = agg_heat_trades.monthly_sum_export
-    result_dict[ResultsKey.MONTHLY_SUM_NET_IMPORT_HEAT] = agg_heat_trades.monthly_sum_net_import
-    result_dict[ResultsKey.MONTHLY_MAX_NET_IMPORT_HEAT] = agg_heat_trades.monthly_max_net_import
+    result_dict[ResultsKey.MONTHLY_SUM_IMPORT] = {
+        Resource.ELECTRICITY.name: agg_elec_trades.monthly_sum_import,
+        Resource.HIGH_TEMP_HEAT.name: agg_heat_trades.monthly_sum_import}
+    result_dict[ResultsKey.MONTHLY_SUM_EXPORT] = {
+        Resource.ELECTRICITY.name: agg_elec_trades.monthly_sum_export,
+        Resource.HIGH_TEMP_HEAT.name: agg_heat_trades.monthly_sum_export}
+    result_dict[ResultsKey.MONTHLY_SUM_NET_IMPORT] = {
+        Resource.ELECTRICITY.name: agg_elec_trades.monthly_sum_net_import,
+        Resource.HIGH_TEMP_HEAT.name: agg_heat_trades.monthly_sum_net_import}
+    result_dict[ResultsKey.MONTHLY_MAX_NET_IMPORT] = {
+        Resource.ELECTRICITY.name: agg_elec_trades.monthly_max_net_import,
+        Resource.HIGH_TEMP_HEAT.name: agg_heat_trades.monthly_max_net_import}
     # Aggregated import/export, split on period/temperature
     result_dict[ResultsKey.SUM_IMPORT_JAN_FEB] = {Resource.ELECTRICITY.name: agg_elec_trades.sum_import_jan_feb,
                                                   Resource.HIGH_TEMP_HEAT.name: agg_heat_trades.sum_import_jan_feb}

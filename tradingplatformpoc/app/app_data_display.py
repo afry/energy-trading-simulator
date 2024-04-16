@@ -1,3 +1,4 @@
+import calendar
 import datetime
 import logging
 from time import strptime
@@ -318,3 +319,28 @@ def build_leaderboard_df(list_of_dicts: List[dict]) -> pd.DataFrame:
             logger.warning("Column '{}' not found in pre-calculated results".format(wanted_column))
             df_to_display[wanted_column] = None
     return df_to_display[wanted_columns].round(decimals=0)
+
+
+def build_monthly_stats_df(pre_calculated_results: Dict[str, Any], resource: Resource) -> pd.DataFrame:
+    columns = [ResultsKey.MONTHLY_MAX_NET_IMPORT,
+               ResultsKey.MONTHLY_SUM_NET_IMPORT,
+               ResultsKey.MONTHLY_SUM_IMPORT,
+               ResultsKey.MONTHLY_SUM_EXPORT]
+    df = pd.DataFrame([pre_calculated_results[key][resource.name] for key in columns]).transpose()
+    # Format column names.
+    df.columns = [ResultsKey.format_results_key_name(key, resource) for key in columns]
+    if (df[ResultsKey.format_results_key_name(ResultsKey.MONTHLY_SUM_NET_IMPORT, resource)]
+            == df[ResultsKey.format_results_key_name(ResultsKey.MONTHLY_SUM_IMPORT, resource)]).all():
+        # Will happen if the LEC cannot export the given resource
+        df.drop(labels=[ResultsKey.format_results_key_name(ResultsKey.MONTHLY_SUM_NET_IMPORT, resource),
+                        ResultsKey.format_results_key_name(ResultsKey.MONTHLY_SUM_EXPORT, resource)],
+                axis=1, inplace=True)
+
+    # Some formatting: First, change indices to show month names instead of integers
+    df.index = df.index.map(lambda x: calendar.month_name[int(x)])
+    # Now, the 'monthly' bit in column headers is superfluous when listed in a table like this
+    df.columns = [c.replace('monthly ', '') for c in df.columns]
+    # Finally, decrease the number of decimals a little (defaults to 4)
+    df = df.style.format(precision=2)
+    # noinspection PyTypeChecker
+    return df

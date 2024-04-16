@@ -8,7 +8,7 @@ from tradingplatformpoc.app import footer
 from tradingplatformpoc.app.app_charts import construct_avg_day_elec_chart, construct_cooling_machine_chart, \
     construct_price_chart, construct_reservoir_chart
 from tradingplatformpoc.app.app_data_display import aggregated_net_elec_import_results_df_split_on_period, \
-    combine_trades_dfs, construct_combined_price_df, values_by_resource_to_mwh
+    build_monthly_stats_df, combine_trades_dfs, construct_combined_price_df, values_by_resource_to_mwh
 from tradingplatformpoc.market.trade import Action, Resource, TradeMetadataKey
 from tradingplatformpoc.sql.config.crud import get_all_finished_job_config_id_pairs_in_db, read_config
 from tradingplatformpoc.sql.results.crud import get_results_for_job
@@ -41,6 +41,11 @@ if len(ids) > 0:
         total_elec_import = pre_calculated_results[ResultsKey.SUM_NET_IMPORT][Resource.ELECTRICITY.name]
         st.metric(label="Total net electricity imported",
                   value="{:,.2f} MWh".format(total_elec_import / 1000))
+
+        peak_elec_import = pre_calculated_results[ResultsKey.MAX_NET_IMPORT][Resource.ELECTRICITY.name]
+        st.metric(label="Peak net electricity imported",
+                  value="{:,.2f} MW".format(peak_elec_import / 1000))
+
         total_tax_paid = pre_calculated_results[ResultsKey.TAX_PAID]
         st.metric(label="Total tax paid",
                   value="{:,.2f} SEK".format(total_tax_paid),
@@ -50,6 +55,11 @@ if len(ids) > 0:
         total_heat_import = pre_calculated_results[ResultsKey.SUM_NET_IMPORT][Resource.HIGH_TEMP_HEAT.name]
         st.metric(label="Total net heating imported",
                   value="{:,.2f} MWh".format(total_heat_import / 1000))
+
+        peak_heat_import = pre_calculated_results[ResultsKey.MAX_NET_IMPORT][Resource.HIGH_TEMP_HEAT.name]
+        st.metric(label="Peak net heating imported",
+                  value="{:,.2f} MW".format(peak_heat_import / 1000))
+
         total_grid_fees_paid = pre_calculated_results[ResultsKey.GRID_FEES_PAID]
         st.metric(label="Total grid fees paid",
                   value="{:,.2f} SEK".format(total_grid_fees_paid))
@@ -111,8 +121,13 @@ if len(ids) > 0:
 
             st.caption("The quantities in the table are before losses.")
 
+            if resource in [Resource.HIGH_TEMP_HEAT, Resource.ELECTRICITY]:
+                st.subheader("Monthly stats")
+                monthly_df = build_monthly_stats_df(pre_calculated_results, resource)
+                st.dataframe(monthly_df)
+
             if resource == Resource.ELECTRICITY:
-                # TODO: Make it possible to choose ex. Dec-Jan
+                st.subheader("Hourly stats")
                 time_period = st.select_slider('Select which months to view',
                                                options=['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                                                         'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
