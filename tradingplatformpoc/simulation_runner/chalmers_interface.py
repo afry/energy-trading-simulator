@@ -19,8 +19,8 @@ from tradingplatformpoc.market.trade import Action, Market, Resource, Trade, Tra
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
 from tradingplatformpoc.price.iprice import IPrice
-from tradingplatformpoc.simulation_runner import CEMS_function
-from tradingplatformpoc.simulation_runner.CEMS_function import CEMSError
+from tradingplatformpoc.simulation_runner.chalmers import CEMS_function
+from tradingplatformpoc.simulation_runner.chalmers.CEMS_function import CEMSError
 from tradingplatformpoc.trading_platform_utils import add_to_nested_dict
 
 VERY_SMALL_NUMBER = 0.000001  # to avoid trades with quantity 1e-7, for example
