@@ -51,7 +51,7 @@ if len(ids) > 0:
         st.metric(label="Total net heating imported",
                   value="{:,.2f} MWh".format(total_heat_import / 1000))
         total_grid_fees_paid = pre_calculated_results[ResultsKey.GRID_FEES_PAID]
-        st.metric(label="Total grid fees paid on internal trades",
+        st.metric(label="Total grid fees paid",
                   value="{:,.2f} SEK".format(total_grid_fees_paid))
 
     with st.expander('Total imported and exported electricity and heating:'):
