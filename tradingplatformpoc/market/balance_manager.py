@@ -57,7 +57,7 @@ def correct_for_exact_heating_price(trading_periods: pd.DatetimeIndex,
                 heating_trades = heating_trades_for_month[period]
             external_trade = get_external_trade_on_local_market(heating_trades)
             if external_trade is not None:
-                external_trade_quantity = external_trade.quantity_post_loss
+                external_trade_quantity = external_trade.quantity_pre_loss
                 if external_trade.action == Action.SELL:
                     internal_buy_trades = [x for x in heating_trades if (not x.by_external) & (x.action == Action.BUY)]
                     total_internal_usage = sum([x.quantity_pre_loss for x in internal_buy_trades])
@@ -74,14 +74,14 @@ def correct_for_exact_heating_price(trading_periods: pd.DatetimeIndex,
                 else:
                     internal_sell_trades = [x for x in heating_trades if (not x.by_external)
                                             & (x.action == Action.SELL)]
-                    total_internal_prod = sum([x.quantity_post_loss for x in internal_sell_trades])
+                    total_internal_prod = sum([x.quantity_pre_loss for x in internal_sell_trades])
                     total_debt = (est_ext_wholesale_price - exact_ext_wholesale_price) * external_trade_quantity
 
                     extra_costs.append(ExtraCost(period, external_trade.source, ExtraCostType.HEAT_EXT_COST_CORR,
                                                  -total_debt))
 
                     for internal_trade in internal_sell_trades:
-                        net_prod = internal_trade.quantity_post_loss
+                        net_prod = internal_trade.quantity_pre_loss
                         share_of_debt = net_prod / total_internal_prod
                         extra_costs.append(ExtraCost(period, internal_trade.source, ExtraCostType.HEAT_EXT_COST_CORR,
                                                      share_of_debt * total_debt))

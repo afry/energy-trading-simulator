@@ -13,7 +13,7 @@ from tradingplatformpoc.sql.input_data.crud import read_input_column_df_from_db
 from tradingplatformpoc.sql.level.crud import sum_levels
 from tradingplatformpoc.sql.results.crud import save_results
 from tradingplatformpoc.sql.results.models import PreCalculatedResults, ResultsKey
-from tradingplatformpoc.sql.trade.crud import get_external_trades_df, get_total_grid_fee_paid_on_internal_trades, \
+from tradingplatformpoc.sql.trade.crud import get_external_trades_df, get_total_grid_fee_paid, \
     get_total_tax_paid
 
 logger = logging.getLogger(__name__)
@@ -123,7 +123,7 @@ def calculate_results_and_save(job_id: str, agents: List[IAgent], grid_agents: D
     result_dict[ResultsKey.LOCALLY_PRODUCED_RESOURCES] = local_prod_dict
     # Taxes and grid fees
     result_dict[ResultsKey.TAX_PAID] = get_total_tax_paid(job_id=job_id)
-    result_dict[ResultsKey.GRID_FEES_PAID] = get_total_grid_fee_paid_on_internal_trades(job_id=job_id)
+    result_dict[ResultsKey.GRID_FEES_PAID] = get_total_grid_fee_paid(job_id=job_id)
     # Resources dumped into reservoir
     result_dict[ResultsKey.HEAT_DUMPED] = sum_levels(job_id, TradeMetadataKey.HEAT_DUMP.name)
     result_dict[ResultsKey.COOL_DUMPED] = sum_levels(job_id, TradeMetadataKey.COOL_DUMP.name)

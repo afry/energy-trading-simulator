@@ -84,19 +84,19 @@ class Trade(SQLModel, table=True):
 
     @declared_attr
     def tax_paid_for_quantity(self):
-        return column_property(self.quantity_post_loss * self.tax_paid)
+        return column_property(self.quantity_pre_loss * self.tax_paid)
     
     @declared_attr
     def grid_fee_paid_for_quantity(self):
-        return column_property(self.quantity_post_loss * self.grid_fee_paid)
-    
+        return column_property(self.quantity_pre_loss * self.grid_fee_paid)
+
     @declared_attr
     def bought_for(self):
         return column_property(self.quantity_pre_loss * self.price)
-    
+
     @declared_attr
     def sold_for(self):
-        return column_property(self.quantity_post_loss * self.price)
+        return column_property(self.quantity_pre_loss * self.price)
 
     @declared_attr
     def month(self):

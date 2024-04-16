@@ -409,7 +409,7 @@ def add_external_trade(trade_list: List[Trade], bought_from_external_name: str, 
                                 action=Action.SELL, resource=resource, quantity=-external_quantity,
                                 price=price, source=grid_agent_guid, by_external=True, market=Market.LOCAL,
                                 loss=loss,
-                                tax_paid=resource_price_data.tax))
+                                tax_paid=resource_price_data.tax, grid_fee_paid=resource_price_data.grid_fee))
         if isinstance(resource_price_data, HeatingPrice):
             resource_price_data.add_external_heating_sell(period, -external_quantity)
 
