@@ -121,9 +121,8 @@ def construct_traded_amount_by_agent_chart(agent_chosen_guid: str,
         mask = (agent_trade_df.resource.values == elem['resource'].name) \
             & (agent_trade_df.action.values == elem['action'].name)
         if not agent_trade_df.loc[mask].empty:
-            
             df = pd.concat((df, pd.DataFrame({'period': agent_trade_df.loc[mask].index,
-                                              'value': agent_trade_df.loc[mask].quantity_post_loss,
+                                              'value': agent_trade_df.loc[mask].quantity_pre_loss,
                                               'variable': elem['title']})))
 
             domain.append(elem['title'])

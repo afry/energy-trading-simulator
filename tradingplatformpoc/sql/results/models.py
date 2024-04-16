@@ -29,6 +29,7 @@ class ResultsKey:
     SUM_IMPORT = '{} import [kWh]'
     SUM_EXPORT = '{} export [kWh]'
     SUM_NET_IMPORT = 'Net {} import [kWh]'
+    MAX_NET_IMPORT = '{} peak import [kW]'
     MONTHLY_SUM_IMPORT_ELEC = 'MONTHLY_SUM_IMPORT_ELEC'
     MONTHLY_SUM_EXPORT_ELEC = 'MONTHLY_SUM_EXPORT_ELEC'
     MONTHLY_SUM_NET_IMPORT_ELEC = 'MONTHLY_SUM_NET_IMPORT_ELEC'

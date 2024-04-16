@@ -1,6 +1,6 @@
 import datetime
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
 import pandas as pd
 
@@ -101,6 +101,9 @@ def calculate_results_and_save(job_id: str, agents: List[IAgent], grid_agents: D
                                           Resource.HIGH_TEMP_HEAT.name: agg_heat_trades.sum_import}
     result_dict[ResultsKey.SUM_EXPORT] = {Resource.ELECTRICITY.name: agg_elec_trades.sum_export,
                                           Resource.HIGH_TEMP_HEAT.name: agg_heat_trades.sum_export}
+    result_dict[ResultsKey.MAX_NET_IMPORT] = {
+        Resource.ELECTRICITY.name: max_dict_value(agg_elec_trades.monthly_max_net_import),
+        Resource.HIGH_TEMP_HEAT.name: max_dict_value(agg_heat_trades.monthly_max_net_import)}
     result_dict[ResultsKey.MONTHLY_SUM_IMPORT_ELEC] = agg_elec_trades.monthly_sum_import
     result_dict[ResultsKey.MONTHLY_SUM_EXPORT_ELEC] = agg_elec_trades.monthly_sum_export
     result_dict[ResultsKey.MONTHLY_SUM_NET_IMPORT_ELEC] = agg_elec_trades.monthly_sum_net_import
@@ -129,6 +132,11 @@ def calculate_results_and_save(job_id: str, agents: List[IAgent], grid_agents: D
     result_dict[ResultsKey.COOL_DUMPED] = sum_levels(job_id, TradeMetadataKey.COOL_DUMP.name)
 
     save_results(PreCalculatedResults(job_id=job_id, result_dict=result_dict))
+
+
+def max_dict_value(some_dict: Dict[Any, Union[int, float]]) -> Union[int, float]:
+    """Returns the maximum value, if there are any values present, else returns 0."""
+    return max(some_dict.values()) if some_dict else 0
 
 
 def get_extra_costs_sum(grid_agents: Dict[Resource, GridAgent], job_id: str) -> float:
