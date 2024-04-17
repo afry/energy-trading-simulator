@@ -85,7 +85,7 @@ if delete_config_button:
     if deleted:
         st.success('Configuration deleted!')
     else:
-        st.error('Could not delete configuration.')
+        st.error('Could not delete configuration - delete associated jobs first!')
     sleep(5)
     st.experimental_rerun()
 

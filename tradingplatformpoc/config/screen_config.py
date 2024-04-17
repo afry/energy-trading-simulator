@@ -169,7 +169,7 @@ def config_data_feasibility_screening(config_data: dict) -> Optional[str]:
     has_cooling_need = any([agent['Type'] == 'BlockAgent'
                             and (agent['FractionCommercial'] + agent['FractionOffice'] > 0)
                             for agent in non_grid_agents_w_atemp])
-    central_cool_prod = area_info['CompChillerMaxInput'] * area_info['CompChillerCOP']
+    central_cool_prod = area_info['CompChillerMaxInput'] * area_info['CompChillerCOP'] * area_info['LocalMarketEnabled']
     worst_case_max_cool_prod_agent = [
         (min(area_info['COPHeatPumpsHighTemp'], area_info['COPHeatPumpsLowTemp']) - 1) * agent['HeatPumpMaxOutput']
         if agent['HeatPumpForCooling'] else 0
