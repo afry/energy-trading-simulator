@@ -28,7 +28,7 @@ class Test(TestCase):
 
     def test_get_power_transfers(self):
         transfers = get_power_transfers(self.mod, datetime.datetime(2024, 2, 1), 'ElecGridAgent', self.agent_guids,
-                                        self.electricity_pricing)
+                                        self.electricity_pricing, True)
         expected_length = len(self.mod.T) * (len(self.mod.I) + 1)  # One for each agent, plus one for external
         self.assertEqual(expected_length, len(transfers))
 

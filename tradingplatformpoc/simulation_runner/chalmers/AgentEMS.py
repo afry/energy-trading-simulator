@@ -4,7 +4,7 @@ import pandas as pd
 import pyomo.environ as pyo
 from pyomo.opt import OptSolver, SolverResults
 
-from tradingplatformpoc.simulation_runner.chalmers.CEMS_function import CEMSError, PERC_OF_HT_COVERABLE_BY_LT
+from tradingplatformpoc.simulation_runner.chalmers.domain import CEMSError, PERC_OF_HT_COVERABLE_BY_LT
 
 
 def solve_model(solver: OptSolver, summer_mode: bool, month: int, agent: int, external_elec_buy_price: pd.Series,
@@ -57,7 +57,7 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, agent: int, ex
     too_big_cool_demand = cold_consumption.gt(max_cooling_produced_for_1_hour)
     if too_big_cool_demand.any():
         problematic_hours = [i for i, x in enumerate(too_big_cool_demand) if x]
-        raise CEMSError(message='Unfillable cooling demand for agent index {}'.format(agent),
+        raise CEMSError(message='Unfillable cooling demand for agent',
                         agent_indices=[agent],
                         hour_indices=problematic_hours)
 

@@ -224,9 +224,10 @@ class HeatingPrice(IPrice):
         """
         if period in self.all_external_heating_sells.index:
             existing_value = self.all_external_heating_sells[period]
-            logger.warning('Already had a value for external heating sell for period {}. Was {}, will overwrite it '
-                           'with new value {}.'.format(period, existing_value, external_heating_sell_quantity))
-            self.all_external_heating_sells[period] = external_heating_sell_quantity
+            logger.debug('Adding values for period {}. Was {}, will add {}.'.
+                         format(period, existing_value, external_heating_sell_quantity))
+            self.all_external_heating_sells[period] = self.all_external_heating_sells[period] + \
+                external_heating_sell_quantity
         else:
             to_add_in = pd.Series(external_heating_sell_quantity, index=[period])
             self.all_external_heating_sells = pd.concat([self.all_external_heating_sells, to_add_in])

@@ -93,5 +93,5 @@ def sum_levels(job_id: str, level_type: str,
     with session_generator() as db:
         rows = db.query(func.sum(Level.level)).filter(Level.job_id == job_id, Level.type == level_type).all()
         if len(rows) > 0 and len(rows[0]) > 0:
-            return rows[0][0]
+            return rows[0][0] if rows[0][0] is not None else 0.0
         return 0.0

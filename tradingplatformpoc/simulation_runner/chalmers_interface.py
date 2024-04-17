@@ -1,6 +1,6 @@
 import datetime
 import logging
-from typing import Any, Callable, Dict, List, Set, Tuple, Union, Optional
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 import numpy as np
 
@@ -16,12 +16,12 @@ from tradingplatformpoc import constants
 from tradingplatformpoc.agent.block_agent import BlockAgent
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
-from tradingplatformpoc.market.trade import Action, Market, Resource, Trade, TradeMetadataKey
+from tradingplatformpoc.market.trade import Action, Market, Resource, Trade, TradeMetadataKey, combine_trades
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
 from tradingplatformpoc.price.iprice import IPrice
 from tradingplatformpoc.simulation_runner.chalmers import AgentEMS, CEMS_function
-from tradingplatformpoc.simulation_runner.chalmers.CEMS_function import CEMSError
+from tradingplatformpoc.simulation_runner.chalmers.domain import CEMSError
 from tradingplatformpoc.trading_platform_utils import add_to_nested_dict
 
 VERY_SMALL_NUMBER = 0.000001  # to avoid trades with quantity 1e-7, for example
@@ -158,12 +158,14 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
                                    elec_pricing, heat_pricing,
                                    agent_guids)
         else:
+            all_trades: List[Trade] = []
+            all_metadata: Dict[str, Dict[TradeMetadataKey, Dict[datetime.datetime, float]]] = {}
             for i_agent in range(len(block_agents)):
                 optimized_model, results = AgentEMS.solve_model(
                     solver=solver,
                     summer_mode=summer_mode,
                     month=start_datetime.month,
-                    agent=n_agents,
+                    agent=i_agent,
                     external_elec_buy_price=elec_retail_prices,
                     external_elec_sell_price=elec_wholesale_prices,
                     external_heat_buy_price=heat_retail_price,
@@ -205,11 +207,27 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
                 )
                 handle_infeasibility(optimized_model, results, start_datetime, trading_horizon,
                                      [block_agents[i_agent].guid])
-                agent_outputs = extract_outputs_for_agent(optimized_model, start_datetime,
-                                                          elec_grid_agent_guid, heat_grid_agent_guid,
-                                                          elec_pricing, heat_pricing,
-                                                          agent_guids[i_agent])
-                # TODO Combine agent_outputs into a ChalmersOutput (remember to aggregate heat_dump)
+                trades, metadata = extract_outputs_for_agent(optimized_model, start_datetime,
+                                                             elec_grid_agent_guid, heat_grid_agent_guid,
+                                                             elec_pricing, heat_pricing,
+                                                             agent_guids[i_agent])
+                all_trades.extend(trades)  # Do we need to combine external trades into one per resource?
+                all_metadata[agent_guids[i_agent]] = metadata
+
+        agent_trades = [t for t in all_trades if not t.by_external]
+        external_trades = [t for t in all_trades if t.by_external]
+        mod_trade_list = agent_trades
+        for dt in set([trade.period for trade in external_trades]):
+            for r in set([trade.resource for trade in external_trades if trade.period == dt]):
+                combined = combine_trades([trade for trade in external_trades
+                                           if trade.period == dt and trade.resource == r])
+                mod_trade_list.append(combined)
+
+        metadata_per_agent_and_period = flip_dict_keys(all_metadata)
+        metadata_per_period: Dict[TradeMetadataKey, Dict[datetime.datetime, float]] = {
+            TradeMetadataKey.HEAT_DUMP: sum_for_all_agents(metadata_per_agent_and_period[TradeMetadataKey.HEAT_DUMP])
+        }
+        return ChalmersOutputs(all_trades, metadata_per_agent_and_period, metadata_per_period)
     except CEMSError as e:
         raise InfeasibilityError(message=e.message,
                                  agent_names=[agent_guids[i] for i in e.agent_indices],
@@ -217,6 +235,23 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
                                  horizon_start=start_datetime,
                                  horizon_end=start_datetime + datetime.timedelta(hours=trading_horizon),
                                  constraints=set())
+
+
+def sum_for_all_agents(dict_per_agent_and_period: Dict[str, Dict[datetime.datetime, float]]) \
+        -> Dict[datetime.datetime, float]:
+    return {date: sum(inner_dict[date] for inner_dict in dict_per_agent_and_period.values() if date in inner_dict)
+            for date in set(date for inner_dict in dict_per_agent_and_period.values() for date in inner_dict)}
+
+
+def flip_dict_keys(all_metadata: Dict[str, Dict[TradeMetadataKey, Dict[datetime.datetime, float]]]) \
+        -> Dict[TradeMetadataKey, Dict[str, Dict[datetime.datetime, float]]]:
+    metadata_per_agent: Dict[TradeMetadataKey, Dict[str, Dict[datetime.datetime, float]]] = {}
+    for agent_name, inner_dict in all_metadata.items():
+        for metadata_key, date_value_dict in inner_dict.items():
+            if metadata_key not in metadata_per_agent:
+                metadata_per_agent[metadata_key] = {}
+            metadata_per_agent[metadata_key][agent_name] = date_value_dict
+    return metadata_per_agent
 
 
 def handle_infeasibility(optimized_model: pyo.ConcreteModel, results: SolverResults, start_datetime: datetime.datetime,
