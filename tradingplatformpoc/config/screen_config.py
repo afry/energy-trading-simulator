@@ -282,17 +282,17 @@ def round_if_float(value):
     return round(value, 5) if isinstance(value, float) else value
 
 
-def modify_some_fields(config: Dict[str, Any]) -> Dict[str, Any]:
+def modify_some_fields(config: Dict[str, Any], area_info_param_specs: Dict[str, Any]) -> Dict[str, Any]:
     """
-    If LocalMarketEnabled is False, we will set some values (which won't be used in this case) to 0s.
+    If LocalMarketEnabled is False, we will set some values (which won't be used in this case) to their defaults.
     We do this so that the subsequent "check_if_config_in_db" call will return True, if the only parameters which would
     differ are those that do not apply, with LocalMarketEnabled False.
     """
-    # TODO: Get the default values, use those
     if not config['AreaInfo']['LocalMarketEnabled']:
-        config['AreaInfo']['InterAgentElectricityTransferCapacity'] = 0.0
-        config['AreaInfo']['InterAgentHeatTransferCapacity'] = 0.0
-        config['AreaInfo']['CompChillerMaxInput'] = 0.0
-        config['AreaInfo']['CompChillerCOP'] = 4.0
-        config['AreaInfo']['CoolingTransferLoss'] = 0.05
+        for key in ['InterAgentElectricityTransferCapacity',
+                    'InterAgentHeatTransferCapacity',
+                    'CompChillerMaxInput',
+                    'CompChillerCOP',
+                    'CoolingTransferLoss']:
+            config['AreaInfo'][key] = area_info_param_specs[key]['default']
     return config

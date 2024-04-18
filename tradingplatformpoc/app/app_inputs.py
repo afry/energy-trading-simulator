@@ -12,7 +12,7 @@ def add_params_to_form(form, param_spec_dict: dict, info_type: str, exclude_keys
     "disabled_cond" are used to disable (and in some cases, set values of) fields based on values of other fields.
     """
     current_config = st.session_state.config_data
-    for key, val in param_spec_dict[info_type].items():
+    for key, val in param_spec_dict.items():
         if key not in exclude_keys:
             kwargs = {k: v for k, v in val.items() if k not in ['display', 'default', 'disabled_cond']}
 

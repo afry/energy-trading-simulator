@@ -96,6 +96,8 @@ config_container = st.container()
 
 st.markdown('#')
 
+area_info_param_specs = read_param_specs(['AreaInfo'])['AreaInfo']
+
 if option_chosen == options[0]:
     with st.expander("General parameters"):
         st.markdown('Change parameter values by filling out the following forms. **Save** '
@@ -105,7 +107,7 @@ if option_chosen == options[0]:
 
         # The LocalMarketEnabled is really important, so we separate it out here.
         st.session_state.config_data['AreaInfo']['LocalMarketEnabled'] = st.radio(
-            label=read_param_specs(['AreaInfo'])['AreaInfo']['LocalMarketEnabled']['display'],
+            label=area_info_param_specs['LocalMarketEnabled']['display'],
             options=BOOL_OPTIONS,
             index=BOOL_OPTIONS.index(st.session_state.config_data['AreaInfo']['LocalMarketEnabled'])
         )
@@ -115,14 +117,15 @@ if option_chosen == options[0]:
 
         with area_info_tab:
             area_form = st.form(key="AreaInfoForm")
-            add_params_to_form(area_form, read_param_specs(['AreaInfo']), 'AreaInfo', ['LocalMarketEnabled'])
+            add_params_to_form(area_form, area_info_param_specs, 'AreaInfo', ['LocalMarketEnabled'])
             submit_area_form = area_form.form_submit_button("Save area info")
             if submit_area_form:
                 submit_area_form = False
 
         with mock_data_constants_tab:
             mdc_form = st.form(key="MockDataConstantsForm")
-            add_params_to_form(mdc_form, read_param_specs(['MockDataConstants']), 'MockDataConstants', [])
+            add_params_to_form(mdc_form, read_param_specs(['MockDataConstants'])['MockDataConstants'],
+                               'MockDataConstants', [])
             submit_mdc_form = mdc_form.form_submit_button("Save mock data generation constants")
             if submit_mdc_form:
                 submit_mdc_form = False
@@ -267,7 +270,7 @@ if config_submit:
         if problems:
             st.error(problems)
         else:
-            modified_config = modify_some_fields(st.session_state.config_data)
+            modified_config = modify_some_fields(st.session_state.config_data, area_info_param_specs)
             config_name = cleanup_config_name(config_name)
             config_created = create_config_if_not_in_db(modified_config, config_name, description)
             if config_created['created']:
