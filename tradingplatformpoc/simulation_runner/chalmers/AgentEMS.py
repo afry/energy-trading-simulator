@@ -226,11 +226,13 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, agent: int, ex
         # Only used in months [1 to 5, 9 to 12]
         # with free cooling from borehole (model.borehole[i] == 1)
         # without free cooling from borehole (model.borehole[i] == 0)
+        # FIXME: remove Cbuy_grid?
         return model.Cbuy_grid[t] + model.Chp[t] == 0 +\
                + model.Cld[t] * (1 - model.borehole)
 
     def agent_Cbalance_summer(model, t):
         # Only used in months [6, 7, 8]
+        # FIXME: remove Cbuy_grid?
         return model.Cbuy_grid[t] + model.Chp[t] == 0 + model.Cld[t]
 
     # (eq. 5 and 6 of the report)
