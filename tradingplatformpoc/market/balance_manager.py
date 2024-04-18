@@ -1,20 +1,24 @@
-from typing import Collection, List, Union
+from typing import List, Optional, Tuple
 
 import pandas as pd
 
 from tradingplatformpoc.market.extra_cost import ExtraCost, ExtraCostType
-from tradingplatformpoc.market.trade import Action, Market, Trade
+from tradingplatformpoc.market.trade import Action, Trade
 from tradingplatformpoc.sql.trade.crud import heat_trades_from_db_for_periods
 
 
-def get_external_trade_on_local_market(trades: Collection[Trade]) -> Union[Trade, None]:
-    external_trades_on_local_market = [x for x in trades if x.by_external and x.market == Market.LOCAL]
-    if len(external_trades_on_local_market) == 0:
-        return None
-    elif len(external_trades_on_local_market) > 1:
-        raise RuntimeError("Unexpected state: More than 1 external grid trade for a single trading period")
+def get_external_heat_trade(trades: List[Trade]) -> Tuple[Optional[float], Optional[Action], Optional[str]]:
+    external_trades = [x for x in trades if x.by_external]
+    if len(external_trades) == 0:
+        return None, None, None
+    elif len(external_trades) > 1:
+        if len(set([x.action for x in external_trades])) > 1:
+            raise RuntimeError("Unexpected state: External grid both bought and sold in the same trading period")
+        else:
+            summed_quantity = sum([t.quantity_pre_loss for t in external_trades])
+            return summed_quantity, external_trades[0].action, external_trades[0].source
     else:
-        return external_trades_on_local_market[0]
+        return external_trades[0].quantity_pre_loss, external_trades[0].action, external_trades[0].source
 
 
 def correct_for_exact_heating_price(trading_periods: pd.DatetimeIndex,
@@ -55,15 +59,14 @@ def correct_for_exact_heating_price(trading_periods: pd.DatetimeIndex,
                 heating_trades = []
             else:
                 heating_trades = heating_trades_for_month[period]
-            external_trade = get_external_trade_on_local_market(heating_trades)
-            if external_trade is not None:
-                external_trade_quantity = external_trade.quantity_pre_loss
-                if external_trade.action == Action.SELL:
+            ext_trade_quantity, ext_trade_action, ext_trade_source = get_external_heat_trade(heating_trades)
+            if ext_trade_quantity is not None and ext_trade_action is not None and ext_trade_source is not None:
+                if ext_trade_action == Action.SELL:
                     internal_buy_trades = [x for x in heating_trades if (not x.by_external) & (x.action == Action.BUY)]
                     total_internal_usage = sum([x.quantity_pre_loss for x in internal_buy_trades])
-                    total_debt = (exact_ext_retail_price - est_ext_retail_price) * external_trade_quantity
+                    total_debt = (exact_ext_retail_price - est_ext_retail_price) * ext_trade_quantity
 
-                    extra_costs.append(ExtraCost(period, external_trade.source, ExtraCostType.HEAT_EXT_COST_CORR,
+                    extra_costs.append(ExtraCost(period, ext_trade_source, ExtraCostType.HEAT_EXT_COST_CORR,
                                                  -total_debt))
 
                     for internal_trade in internal_buy_trades:
@@ -75,9 +78,9 @@ def correct_for_exact_heating_price(trading_periods: pd.DatetimeIndex,
                     internal_sell_trades = [x for x in heating_trades if (not x.by_external)
                                             & (x.action == Action.SELL)]
                     total_internal_prod = sum([x.quantity_pre_loss for x in internal_sell_trades])
-                    total_debt = (est_ext_wholesale_price - exact_ext_wholesale_price) * external_trade_quantity
+                    total_debt = (est_ext_wholesale_price - exact_ext_wholesale_price) * ext_trade_quantity
 
-                    extra_costs.append(ExtraCost(period, external_trade.source, ExtraCostType.HEAT_EXT_COST_CORR,
+                    extra_costs.append(ExtraCost(period, ext_trade_source, ExtraCostType.HEAT_EXT_COST_CORR,
                                                  -total_debt))
 
                     for internal_trade in internal_sell_trades:
