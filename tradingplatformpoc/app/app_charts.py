@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import altair as alt
 
@@ -121,8 +121,11 @@ def construct_traded_amount_by_agent_chart(agent_chosen_guid: str,
         mask = (agent_trade_df.resource.values == elem['resource'].name) \
             & (agent_trade_df.action.values == elem['action'].name)
         if not agent_trade_df.loc[mask].empty:
-            df = pd.concat((df, pd.DataFrame({'period': agent_trade_df.loc[mask].index,
-                                              'value': agent_trade_df.loc[mask].quantity_pre_loss,
+            # Can have multiple trades for the same period (for grid agents in the no-LEC case)
+            quantity_series = agent_trade_df.loc[mask]['quantity_pre_loss']
+            summed_quantities = quantity_series.groupby(quantity_series.index).sum()
+            df = pd.concat((df, pd.DataFrame({'period': summed_quantities.index,
+                                              'value': summed_quantities.values,
                                               'variable': elem['title']})))
 
             domain.append(elem['title'])
@@ -243,8 +246,10 @@ def construct_avg_day_elec_chart(elec_use_df: pd.DataFrame, period: tuple) -> al
     return combined_chart.add_selection(selection).interactive(bind_y=False)
 
 
-def construct_reservoir_chart(job_id: str, tmk: TradeMetadataKey, resource_name: str) -> alt.Chart:
+def construct_reservoir_chart(job_id: str, tmk: TradeMetadataKey, resource_name: str) -> Optional[alt.Chart]:
     df = db_to_viewable_level_df(job_id, tmk.name)
+    if len(df.index) == 0:
+        return None
     df = df.reset_index().rename(columns={'index': 'period', 'level': 'value'})
     name = 'Unused ' + resource_name.lower()
     df['variable'] = name

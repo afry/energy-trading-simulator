@@ -16,7 +16,7 @@ from tradingplatformpoc import constants
 from tradingplatformpoc.agent.block_agent import BlockAgent
 from tradingplatformpoc.agent.grid_agent import GridAgent
 from tradingplatformpoc.agent.iagent import IAgent
-from tradingplatformpoc.market.trade import Action, Market, Resource, Trade, TradeMetadataKey, combine_trades
+from tradingplatformpoc.market.trade import Action, Market, Resource, Trade, TradeMetadataKey
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
 from tradingplatformpoc.price.iprice import IPrice
@@ -211,17 +211,8 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
                                                              elec_grid_agent_guid, heat_grid_agent_guid,
                                                              elec_pricing, heat_pricing,
                                                              agent_guids[i_agent])
-                all_trades.extend(trades)  # Do we need to combine external trades into one per resource?
+                all_trades.extend(trades)
                 all_metadata[agent_guids[i_agent]] = metadata
-
-        agent_trades = [t for t in all_trades if not t.by_external]
-        external_trades = [t for t in all_trades if t.by_external]
-        mod_trade_list = agent_trades
-        for dt in set([trade.period for trade in external_trades]):
-            for r in set([trade.resource for trade in external_trades if trade.period == dt]):
-                combined = combine_trades([trade for trade in external_trades
-                                           if trade.period == dt and trade.resource == r])
-                mod_trade_list.append(combined)
 
         metadata_per_agent_and_period = flip_dict_keys(all_metadata)
         metadata_per_period: Dict[TradeMetadataKey, Dict[datetime.datetime, float]] = {
@@ -530,7 +521,7 @@ def get_agent_transfers_with_lec(optimized_model: pyo.ConcreteModel, start_datet
     for hour in optimized_model.T:
         for i_agent in optimized_model.I:
             add_agent_trade(transfers, bought_internal_name, sold_internal_name, hour, i_agent, optimized_model,
-                            start_datetime, resource, agent_guids[i_agent], loss, Market.LOCAL)
+                            start_datetime, resource, agent_guids, loss, Market.LOCAL)
     return transfers
 
 

@@ -85,7 +85,7 @@ def db_to_viewable_level_df(job_id: str, level_type: str,
                                                'level': level.level
                                                } for level in levels], index='period')
         else:
-            return pd.DataFrame(columns=['period', 'level'])
+            return pd.DataFrame(columns=['level'])
 
 
 def sum_levels(job_id: str, level_type: str,

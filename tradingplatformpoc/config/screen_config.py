@@ -288,10 +288,11 @@ def modify_some_fields(config: Dict[str, Any]) -> Dict[str, Any]:
     We do this so that the subsequent "check_if_config_in_db" call will return True, if the only parameters which would
     differ are those that do not apply, with LocalMarketEnabled False.
     """
+    # TODO: Get the default values, use those
     if not config['AreaInfo']['LocalMarketEnabled']:
         config['AreaInfo']['InterAgentElectricityTransferCapacity'] = 0.0
         config['AreaInfo']['InterAgentHeatTransferCapacity'] = 0.0
         config['AreaInfo']['CompChillerMaxInput'] = 0.0
-        config['AreaInfo']['CompChillerCOP'] = 0.0
-        config['AreaInfo']['CoolingTransferLoss'] = 0.0
+        config['AreaInfo']['CompChillerCOP'] = 4.0
+        config['AreaInfo']['CoolingTransferLoss'] = 0.05
     return config
