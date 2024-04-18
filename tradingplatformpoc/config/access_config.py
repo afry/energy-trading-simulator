@@ -14,7 +14,7 @@ def read_agent_defaults(agent_type, agent_specs) -> dict:
     return dict((param, val["default_value"]) for param, val in agent_specs[agent_type].items())
 
 
-def read_param_specs(names):
+def read_param_specs(names) -> dict:
     """Reads and returns specified params specification from file."""
     file_dict = {'AreaInfo': AREA_INFO_SPECS,
                  'MockDataConstants': MOCK_DATA_CONSTANTS_SPECS}
@@ -25,7 +25,7 @@ def read_param_specs(names):
     return param_specs
 
 
-def read_default_params(names):
+def read_default_params(names) -> dict:
     """Returns default values of params."""
     param_specs = read_param_specs(names)
     return dict((param_type, dict((param, values['default']) for param, values in param_dict.items()))

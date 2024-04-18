@@ -45,7 +45,7 @@
         "display": "Maximum electricity transfer capacity in microgrid [kW]",
         "min_value": 0,
         "step": 10,
-        "help": "The maximum amount of electricity an agent can buy/sell from/to the local energy community, in a single trading period (i.e. an hour). For the external transfer capacity, see the external grid agent",
+        "help": "The maximum amount of electricity an agent can buy/sell from/to the local energy community, in a single trading period (i.e. an hour). Not used if the local market is disabled. For the external transfer capacity, see the external grid agent.",
         "default": 1000,
         "disabled_cond": {"disabled_when": {"LocalMarketEnabled": false}, "set_value": 0}
     },
@@ -53,7 +53,7 @@
         "display": "Maximum heating transfer capacity in microgrid [kW]",
         "min_value": 0,
         "step": 10,
-        "help": "The maximum amount of heat an agent can buy/sell from/to the local energy community, in a single trading period (i.e. an hour). For the external transfer capacity, see the external grid agent",
+        "help": "The maximum amount of heat an agent can buy/sell from/to the local energy community, in a single trading period (i.e. an hour). Not used if the local market is disabled. For the external transfer capacity, see the external grid agent.",
         "default": 500,
         "disabled_cond": {"disabled_when": {"LocalMarketEnabled": false}, "set_value": 0}
     },

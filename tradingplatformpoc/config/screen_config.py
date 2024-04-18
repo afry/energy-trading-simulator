@@ -1,5 +1,5 @@
 # ---------------------------------------- Config screening -----------------------------------
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from tradingplatformpoc.config.access_config import read_agent_specs, read_param_specs
 from tradingplatformpoc.trading_platform_utils import ALLOWED_GRID_AGENT_RESOURCES_STR
@@ -280,4 +280,18 @@ def diff_string(key: str, old_val: float, new_val: float) -> str:
 def round_if_float(value):
     """Round floats, so that we avoid printing things like 0.0000000000001"""
     return round(value, 5) if isinstance(value, float) else value
-# --------------------------------------- End diff display ------------------------------------
+
+
+def modify_some_fields(config: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    If LocalMarketEnabled is False, we will set some values (which won't be used in this case) to 0s.
+    We do this so that the subsequent "check_if_config_in_db" call will return True, if the only parameters which would
+    differ are those that do not apply, with LocalMarketEnabled False.
+    """
+    if not config['AreaInfo']['LocalMarketEnabled']:
+        config['AreaInfo']['InterAgentElectricityTransferCapacity'] = 0.0
+        config['AreaInfo']['InterAgentHeatTransferCapacity'] = 0.0
+        config['AreaInfo']['CompChillerMaxInput'] = 0.0
+        config['AreaInfo']['CompChillerCOP'] = 0.0
+        config['AreaInfo']['CoolingTransferLoss'] = 0.0
+    return config
