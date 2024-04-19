@@ -156,7 +156,8 @@ if len(ids) > 0:
             elif resource == Resource.COOLING:
                 # Show centralized cooling machine production
                 cm_chart = construct_cooling_machine_chart(job_id)
-                st.altair_chart(cm_chart, use_container_width=True, theme=None)
+                if cm_chart is not None:
+                    st.altair_chart(cm_chart, use_container_width=True, theme=None)
 
 else:
     st.markdown('No results to view yet, set up a configuration in '

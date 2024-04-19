@@ -114,14 +114,12 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, agent: int, ex
     model.kwh_per_deg = pyo.Param(initialize=kwh_per_deg)
     # Local heat network efficiency
     model.Heat_trans_loss = pyo.Param(initialize=heat_trans_loss)
-    model.cold_trans_loss = pyo.Param(initialize=cold_trans_loss)
     # Variable
     model.Pbuy_grid = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
     model.Psell_grid = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
     model.U_power_buy_sell_grid = pyo.Var(model.T, within=pyo.Binary, initialize=0)
     model.Hbuy_grid = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
     model.Hsell_grid = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
-    model.Cbuy_grid = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
     model.Pcha = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
     model.Pdis = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
     model.SOCBES = pyo.Var(model.T, bounds=(0, 1), within=pyo.NonNegativeReals,
@@ -144,6 +142,7 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, agent: int, ex
         model.HhpB = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
         model.PhpB = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
     model.heat_dump = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
+    model.cool_dump = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
 
     #        add_obj_and_constraints(model, summer_mode, month)
 
@@ -226,14 +225,11 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, agent: int, ex
         # Only used in months [1 to 5, 9 to 12]
         # with free cooling from borehole (model.borehole[i] == 1)
         # without free cooling from borehole (model.borehole[i] == 0)
-        # FIXME: remove Cbuy_grid?
-        return model.Cbuy_grid[t] + model.Chp[t] == 0 +\
-               + model.Cld[t] * (1 - model.borehole)
+        return model.Chp[t] == model.Cld[t] * (1 - model.borehole) + model.cool_dump[t]
 
     def agent_Cbalance_summer(model, t):
         # Only used in months [6, 7, 8]
-        # FIXME: remove Cbuy_grid?
-        return model.Cbuy_grid[t] + model.Chp[t] == 0 + model.Cld[t]
+        return model.Chp[t] == model.Cld[t] + model.cool_dump[t]
 
     # (eq. 5 and 6 of the report)
     def HTES_supplied_by_Bhp(model, t):

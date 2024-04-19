@@ -153,10 +153,10 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
                 trading_horizon=trading_horizon
             )
             handle_infeasibility(optimized_model, results, start_datetime, trading_horizon, [])
-            return extract_outputs(optimized_model, start_datetime,
-                                   elec_grid_agent_guid, heat_grid_agent_guid,
-                                   elec_pricing, heat_pricing,
-                                   agent_guids)
+            return extract_outputs_for_lec(optimized_model, start_datetime,
+                                           elec_grid_agent_guid, heat_grid_agent_guid,
+                                           elec_pricing, heat_pricing,
+                                           agent_guids)
         else:
             all_trades: List[Trade] = []
             all_metadata: Dict[str, Dict[TradeMetadataKey, Dict[datetime.datetime, float]]] = {}
@@ -216,7 +216,8 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
 
         metadata_per_agent_and_period = flip_dict_keys(all_metadata)
         metadata_per_period: Dict[TradeMetadataKey, Dict[datetime.datetime, float]] = {
-            TradeMetadataKey.HEAT_DUMP: sum_for_all_agents(metadata_per_agent_and_period[TradeMetadataKey.HEAT_DUMP])
+            TradeMetadataKey.HEAT_DUMP: sum_for_all_agents(metadata_per_agent_and_period[TradeMetadataKey.HEAT_DUMP]),
+            TradeMetadataKey.COOL_DUMP: sum_for_all_agents(metadata_per_agent_and_period[TradeMetadataKey.COOL_DUMP])
         }
         return ChalmersOutputs(all_trades, metadata_per_agent_and_period, metadata_per_period)
     except CEMSError as e:
@@ -290,8 +291,9 @@ def extract_outputs_for_agent(optimized_model: pyo.ConcreteModel,
         TradeMetadataKey.SHALLOW_CHARGE: get_value_per_period(optimized_model, start_datetime, 'Hcha_shallow'),
         TradeMetadataKey.FLOW_SHALLOW_TO_DEEP: get_value_per_period(optimized_model, start_datetime, 'Flow'),
         TradeMetadataKey.HP_COOL_PROD: get_value_per_period(optimized_model, start_datetime, 'Chp'),
-        # Heat dump will have to be aggregated later
-        TradeMetadataKey.HEAT_DUMP: get_value_per_period(optimized_model, start_datetime, 'heat_dump')
+        # Heat dump and cool dump will have to be aggregated later
+        TradeMetadataKey.HEAT_DUMP: get_value_per_period(optimized_model, start_datetime, 'heat_dump'),
+        TradeMetadataKey.COOL_DUMP: get_value_per_period(optimized_model, start_datetime, 'cool_dump')
     }
     if should_use_summer_mode(start_datetime):
         metadata[TradeMetadataKey.HP_LOW_HEAT_PROD] = \
@@ -305,13 +307,13 @@ def extract_outputs_for_agent(optimized_model: pyo.ConcreteModel,
     return elec_trades + heat_trades, metadata
 
 
-def extract_outputs(optimized_model: pyo.ConcreteModel,
-                    start_datetime: datetime.datetime,
-                    elec_grid_agent_guid: str,
-                    heat_grid_agent_guid: str,
-                    electricity_price_data: ElectricityPrice,
-                    heating_price_data: HeatingPrice,
-                    agent_guids: List[str]) -> ChalmersOutputs:
+def extract_outputs_for_lec(optimized_model: pyo.ConcreteModel,
+                            start_datetime: datetime.datetime,
+                            elec_grid_agent_guid: str,
+                            heat_grid_agent_guid: str,
+                            electricity_price_data: ElectricityPrice,
+                            heating_price_data: HeatingPrice,
+                            agent_guids: List[str]) -> ChalmersOutputs:
     elec_trades = get_power_transfers(optimized_model, start_datetime, elec_grid_agent_guid, agent_guids,
                                       electricity_price_data, local_market_enabled=True)
     heat_trades = get_heat_transfers(optimized_model, start_datetime, heat_grid_agent_guid, agent_guids,

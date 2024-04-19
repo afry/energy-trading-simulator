@@ -257,8 +257,10 @@ def construct_reservoir_chart(job_id: str, tmk: TradeMetadataKey, resource_name:
                              resource_name + ' [kWh]', name, legend=False)
 
 
-def construct_cooling_machine_chart(job_id: str) -> alt.Chart:
+def construct_cooling_machine_chart(job_id: str) -> Optional[alt.Chart]:
     df_cool = db_to_viewable_level_df(job_id, TradeMetadataKey.CM_COOL_PROD.name)
+    if len(df_cool.index) == 0:
+        return None
     df_cool = df_cool.reset_index().rename(columns={'index': 'period', 'level': 'value'})
     cooling_produced = 'Cooling produced'
     df_cool['variable'] = cooling_produced
