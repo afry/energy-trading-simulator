@@ -19,7 +19,7 @@ from tradingplatformpoc.market.trade import Action, Resource, TradeMetadataKey
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.sql.input_data.crud import get_periods_from_db, read_input_column_df_from_db, \
     read_inputs_df_for_agent_creation
-from tradingplatformpoc.sql.input_electricity_price.crud import electricity_price_series_from_db
+from tradingplatformpoc.sql.input_electricity_price.crud import get_nordpool_data
 from tradingplatformpoc.sql.level.crud import db_to_viewable_level_df_by_agent
 from tradingplatformpoc.sql.mock_data.crud import db_to_mock_data_df, get_mock_data_agent_pairs_in_db
 from tradingplatformpoc.sql.results.models import ResultsKey
@@ -89,21 +89,20 @@ def reconstruct_grocery_store_static_digital_twin(agent_config: Dict[str, Any]) 
 
 # maybe we should move this to simulation_runner/trading_simulator
 def construct_combined_price_df(config_data: dict, local_price_df: Optional[pd.DataFrame] = None) -> pd.DataFrame:
-
-    # TODO: Improve this
+    nordpool_data = get_nordpool_data(config_data['AreaInfo']['ElectricityPriceYear'],
+                                      get_periods_from_db().sort_values())
     elec_pricing: ElectricityPrice = ElectricityPrice(
         elec_wholesale_offset=config_data['AreaInfo']['ExternalElectricityWholesalePriceOffset'],
         elec_tax=config_data['AreaInfo']["ElectricityTax"],
         elec_grid_fee=config_data['AreaInfo']["ElectricityGridFee"],
         elec_tax_internal=config_data['AreaInfo']["ElectricityTaxInternal"],
         elec_grid_fee_internal=config_data['AreaInfo']["ElectricityGridFeeInternal"],
-        nordpool_data=electricity_price_series_from_db())
+        nordpool_data=nordpool_data)
 
-    nordpool_data = elec_pricing.nordpool_data
     nordpool_data.name = 'value'
     nordpool_data = nordpool_data.to_frame().reset_index()
     nordpool_data['Resource'] = Resource.ELECTRICITY
-    nordpool_data.rename({'datetime': 'period'}, axis=1, inplace=True)
+    nordpool_data.rename({'datetime': 'period', 'index': 'period'}, axis=1, inplace=True)
     nordpool_data['period'] = pd.to_datetime(nordpool_data['period'])
     retail_df = nordpool_data.copy()
     gross_prices = elec_pricing.get_electricity_gross_retail_price_from_nordpool_price(retail_df['value'])

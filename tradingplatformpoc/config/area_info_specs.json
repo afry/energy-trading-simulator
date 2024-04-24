@@ -151,7 +151,7 @@
     "ElectricityPriceYear": {
         "display": "Electricity prices for year",
         "options":[2019, 2022, 2023],
-        "default": 2019,
+        "default": 2023,
         "help": "Simulations are carried out using heating consumption data and temperature data collected during 2019. Thus, one might want to use electricity price data from the same period, since there is a correlation between temperature and electricity price. Later years have seen drastic changes to the electricity market though, therefore the option is available to use electricity prices for some later years as well."
     },
     "ElectricityTaxInternal": {
