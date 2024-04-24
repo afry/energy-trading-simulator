@@ -148,6 +148,12 @@
         "default": 0.1,
         "help": "A number specifying the charge level for batteries and accumulator tanks at the end of each trading horizon. If this is 0, all such storages will be completely discharged at the end of each trading horizon. If it is 1, they will be fully charged. If running a 24 hour trading horizon, starting at midnight, one probably wants to keep this low, since electricity is often cheap 00:00-05:00 or so."
     },
+    "ElectricityPriceYear": {
+        "display": "Electricity prices for year",
+        "options":[2019, 2022, 2023],
+        "default": 2019,
+        "help": "Simulations are carried out using heating consumption data and temperature data collected during 2019. Thus, one might want to use electricity price data from the same period, since there is a correlation between temperature and electricity price. Later years have seen drastic changes to the electricity market though, therefore the option is available to use electricity prices for some later years as well."
+    },
     "ElectricityTaxInternal": {
         "display": "Electricity tax (internal):",
         "min_value": 0.0,

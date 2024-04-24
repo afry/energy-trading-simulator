@@ -183,3 +183,9 @@ def energy_to_water_volume(energy_kwh: float, temperature_c: float = 65) -> floa
     # Specific heat of water is 4182 J/(kg C)
     # Density of water is 998 kg/m3
     return energy_kwh / (temperature_c * 4182 * 998 / 3600000)
+
+
+def weekdays_diff(from_year: int, to_year: int) -> int:
+    jan1_weekday_1 = pd.Timestamp(str(from_year) + "-01-01").dayofweek
+    jan1_weekday_2 = pd.Timestamp(str(to_year) + "-01-01").dayofweek
+    return (jan1_weekday_1 - jan1_weekday_2) % 7
