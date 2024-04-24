@@ -35,7 +35,7 @@ electricity_pricing: ElectricityPrice = ElectricityPrice(
     nordpool_data=external_price_data)
 
 
-class TestIPrice(TestCase):
+class TestElectricityPrice(TestCase):
 
     def test_get_nordpool_price_for_period(self):
         """Test that what we put into data_store is the same as we get out"""
@@ -81,6 +81,9 @@ class TestIPrice(TestCase):
         data = read_electricitymap_data()
         self.assertTrue(data.shape[0] > 0)
         self.assertIsInstance(data.index, DatetimeIndex)
+
+
+class TestHeatingPrice(TestCase):
 
     def test_add_external_heating_sell(self):
         ds = HeatingPrice(

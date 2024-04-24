@@ -47,19 +47,24 @@ def read_irradiation_data(data_path: str = "tradingplatformpoc.data",
     return irradiation_data
 
 
-def read_nordpool_data(data_path: str = "tradingplatformpoc.data",
-                       external_price_file: str = "nordpool_area_grid_el_price.csv"
-                       ) -> pd.DataFrame:
-    external_price_csv_path = resource_filename(data_path, external_price_file)
-    price_data = pd.read_csv(external_price_csv_path, index_col=0)
-    price_data = price_data.squeeze()
-    if price_data.mean() > 100:
-        # convert price from SEK per MWh to SEK per kWh
-        price_data = price_data / 1000
-    price_data.index = pd.to_datetime(price_data.index, utc=True)
-    price_df = pd.DataFrame(price_data).reset_index()
-    price_df = price_df.rename(columns={'dayahead_SE3_el_price': 'dayahead_se3_el_price'})
-    return price_df
+def read_nordpool_data(data_path: str = "tradingplatformpoc.data") -> pd.DataFrame:
+    price_dfs = []
+    for external_price_file, utc in zip(["nordpool_area_grid_el_price.csv", "nordpool_2022-2024.csv"], [True, False]):
+        external_price_csv_path = resource_filename(data_path, external_price_file)
+        price_data = pd.read_csv(external_price_csv_path, index_col=0)
+        price_data = price_data.squeeze()
+        if price_data.mean() > 100:
+            # convert price from SEK per MWh to SEK per kWh
+            price_data = price_data / 1000
+        price_data.index = pd.to_datetime(price_data.index, utc=utc)
+        if not utc:
+            price_data.index = price_data.index.tz_localize('CET', nonexistent='NaT', ambiguous='infer')
+            # There will be some NaT with NA prices, remove those:
+            price_data = price_data.dropna()
+        price_df = pd.DataFrame(price_data).reset_index()
+        price_df = price_df.rename(columns={'dayahead_SE3_el_price': 'dayahead_se3_el_price'})
+        price_dfs.append(price_df)
+    return pd.concat(price_dfs)
 
 
 def read_energy_data(data_path: str = "tradingplatformpoc.data",

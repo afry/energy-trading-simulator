@@ -9,7 +9,7 @@ from sqlalchemy import func
 from sqlmodel import Session
 
 from tradingplatformpoc.connection import session_scope
-from tradingplatformpoc.data.preprocessing import clean, read_nordpool_data
+from tradingplatformpoc.data.preprocessing import read_nordpool_data
 from tradingplatformpoc.sql.input_data.models import InputData
 from tradingplatformpoc.sql.input_electricity_price.models import InputElectricityPrice
 
@@ -24,9 +24,7 @@ def insert_input_electricity_price_to_db_if_empty(session_generator: Callable[[]
         if res is None:
             logger.info('Populating input electricity price table.')
             electricity_price_df = read_nordpool_data()
-            electricity_price_df = clean(electricity_price_df).reset_index()
-            electricity_price_df = electricity_price_df.rename(
-                columns={'datetime': 'period'})
+            electricity_price_df = electricity_price_df.rename(columns={'datetime': 'period'})
             
             # Check that the nordpool data contains enough periods
             period_range = db.query(func.max(InputData.period).label('max'),

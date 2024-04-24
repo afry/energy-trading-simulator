@@ -71,20 +71,23 @@ class TradingSimulator:
                 delete_job(self.job_id)
 
     def initialize_data(self):
+        self.trading_periods = get_periods_from_db().sort_values()
+
         self.local_market_enabled = self.config_data['AreaInfo']['LocalMarketEnabled']
 
         self.heat_pricing: HeatingPrice = HeatingPrice(
             heating_wholesale_price_fraction=self.config_data['AreaInfo']['ExternalHeatingWholesalePriceFraction'],
             heat_transfer_loss=self.config_data['AreaInfo']["HeatTransferLoss"])
+        all_nordpool_data = electricity_price_series_from_db()
+        # TODO: Get which year to use from AreaInfo
+        # corresponding_nordpool_data = all_nordpool_data[self.trading_periods + pd.DateOffset(years=year_offset)]
         self.electricity_pricing: ElectricityPrice = ElectricityPrice(
             elec_wholesale_offset=self.config_data['AreaInfo']['ExternalElectricityWholesalePriceOffset'],
             elec_tax=self.config_data['AreaInfo']["ElectricityTax"],
             elec_grid_fee=self.config_data['AreaInfo']["ElectricityGridFee"],
             elec_tax_internal=self.config_data['AreaInfo']["ElectricityTaxInternal"],
             elec_grid_fee_internal=self.config_data['AreaInfo']["ElectricityGridFeeInternal"],
-            nordpool_data=electricity_price_series_from_db())
-
-        self.trading_periods = get_periods_from_db().sort_values()
+            nordpool_data=all_nordpool_data)
         # FIXME: Remove
         self.trading_periods = self.trading_periods.take(list(range(24))  # 02-01
                                                          + list(range(4008, 4032))  # 07-18
