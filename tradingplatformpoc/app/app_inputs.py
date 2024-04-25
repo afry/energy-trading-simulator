@@ -8,11 +8,12 @@ BOOL_OPTIONS = [True, False]
 
 def add_params_to_form(form, param_spec_dict: dict, info_type: str, exclude_keys: list):
     """
-    Populate parameter forms. Will use radio buttons for booleans, number inputs for all others.
+    Populate parameter forms. Will use radio buttons for booleans, select-boxes if "options" is specified, and
+    number inputs for all others.
     "disabled_cond" are used to disable (and in some cases, set values of) fields based on values of other fields.
     """
     current_config = st.session_state.config_data
-    for key, val in param_spec_dict.items():
+    for key, val in param_spec_dict[info_type].items():
         if key not in exclude_keys:
             kwargs = {k: v for k, v in val.items() if k not in ['display', 'default', 'disabled_cond']}
 
@@ -27,6 +28,11 @@ def add_params_to_form(form, param_spec_dict: dict, info_type: str, exclude_keys
                 st.session_state.config_data[info_type][key] = form.radio(
                     label=val['display'], options=BOOL_OPTIONS,
                     index=BOOL_OPTIONS.index(current_config[info_type][key]),
+                    **kwargs)
+            elif 'options' in val.keys():
+                st.session_state.config_data[info_type][key] = form.selectbox(
+                    label=val['display'],
+                    index=val['options'].index(current_config[info_type][key]),
                     **kwargs)
             else:
                 st.session_state.config_data[info_type][key] = form.number_input(

@@ -6,7 +6,6 @@ import pandas as pd
 
 from tradingplatformpoc.market.trade import Market, Resource
 from tradingplatformpoc.price.iprice import IPrice
-from tradingplatformpoc.trading_platform_utils import minus_n_hours
 
 
 logger = logging.getLogger(__name__)
@@ -133,20 +132,6 @@ class ElectricityPrice(IPrice):
         start_index = self.nordpool_data.index.get_loc(start_period)
         end_index = start_index + length
         return self.nordpool_data.iloc[start_index:end_index]
-    
-    def get_nordpool_prices_last_n_hours_dict(self, period: datetime.datetime, go_back_n_hours: int):
-        mask = (self.nordpool_data.index < period) & \
-            (self.nordpool_data.index >= minus_n_hours(period, go_back_n_hours))
-        nordpool_prices_last_n_hours = self.nordpool_data.loc[mask]
-        if len(nordpool_prices_last_n_hours.index) != go_back_n_hours:
-            logger.info('No Nordpool data before {}. Returning get_nordpool_prices_last_n_hours_dict with {} '
-                        'entries instead of the desired {}'.
-                        format(nordpool_prices_last_n_hours.index.min(), len(nordpool_prices_last_n_hours.index),
-                               go_back_n_hours))
-        return nordpool_prices_last_n_hours.to_dict()
-
-    def get_external_price_data_datetimes(self):
-        return self.nordpool_data.index.tolist()
 
     def get_tax(self, market: Market) -> float:
         return self.elec_tax_internal if market == Market.LOCAL else self.tax
