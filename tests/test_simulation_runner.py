@@ -48,7 +48,9 @@ class Test(TestCase):
               mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.get_generated_mock_data',
                          return_value=pd.DataFrame(columns=[bid for sublist in mock_data_columns for bid in sublist])),
               mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.read_inputs_df_for_agent_creation',
-                         return_value=input_data)):
+                         return_value=input_data),
+              mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.get_nordpool_data',
+                         return_value=pd.Series())):
             simulator = TradingSimulator('fake_job_id')
             simulator.initialize_data()
             with self.assertRaises(RuntimeError):
