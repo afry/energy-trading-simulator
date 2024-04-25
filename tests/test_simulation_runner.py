@@ -84,11 +84,15 @@ class Test(TestCase):
         input_data = read_and_process_input_data()[[
             'datetime', 'irradiation', 'coop_electricity_consumed', 'coop_hot_tap_water_consumed',
             'coop_space_heating_consumed', 'coop_space_heating_produced']].rename(columns={'datetime': 'period'})
+        agent_specs = {agent['Name']: uuid_as_str_generator() for agent in fake_config['Agents'][:]
+                       if agent['Type'] == 'BlockAgent'}
 
         with (mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.get_config_id_for_job_id',
                          return_value='fake_config_id'),
               mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.read_config',
                          return_value=fake_config),
+              mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.get_all_agent_name_id_pairs_in_config',
+                         return_value=agent_specs),
               mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.get_periods_from_db',
                          return_value=pd.DatetimeIndex(input_data.period))):
             simulator = TradingSimulator('fake_job_id')
