@@ -49,9 +49,9 @@ class Test(TestCase):
                          return_value=pd.DataFrame(columns=[bid for sublist in mock_data_columns for bid in sublist])),
               mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.read_inputs_df_for_agent_creation',
                          return_value=input_data)):
+            simulator = TradingSimulator('fake_job_id')
+            simulator.initialize_data()
             with self.assertRaises(RuntimeError):
-                simulator = TradingSimulator('fake_job_id')
-                simulator.initialize_data()
                 simulator.initialize_agents()
 
     def test_get_external_heating_prices_from_empty_data_store(self):
