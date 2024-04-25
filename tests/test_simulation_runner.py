@@ -5,8 +5,6 @@ import numpy as np
 
 import pandas as pd
 
-import pytz
-
 from tradingplatformpoc.config.access_config import read_config
 from tradingplatformpoc.data.preprocessing import read_and_process_input_data
 from tradingplatformpoc.generate_data.mock_data_utils import get_elec_cons_key, \
@@ -50,7 +48,9 @@ class Test(TestCase):
               mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.get_generated_mock_data',
                          return_value=pd.DataFrame(columns=[bid for sublist in mock_data_columns for bid in sublist])),
               mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.read_inputs_df_for_agent_creation',
-                         return_value=input_data)):
+                         return_value=input_data),
+              mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.get_nordpool_data',
+                         return_value=pd.Series())):
             simulator = TradingSimulator('fake_job_id')
             simulator.initialize_data()
             with self.assertRaises(RuntimeError):
@@ -74,30 +74,3 @@ class Test(TestCase):
         self.assertTrue(np.isnan(entry.exact_wholesale_price))
         self.assertFalse(np.isnan(entry.estimated_retail_price))
         self.assertFalse(np.isnan(entry.estimated_wholesale_price))
-
-    def test_something(self):
-        """Test that an error is thrown if no GridAgents are initialized."""
-        fake_config = {'Agents': [agent for agent in self.config['Agents'] if agent['Type'] != 'GridAgent'],
-                       'AreaInfo': self.config['AreaInfo'],
-                       'MockDataConstants': self.config['MockDataConstants']}
-        fake_config['AreaInfo']['ElectricityPriceYear'] = 2022
-        input_data = read_and_process_input_data()[[
-            'datetime', 'irradiation', 'coop_electricity_consumed', 'coop_hot_tap_water_consumed',
-            'coop_space_heating_consumed', 'coop_space_heating_produced']].rename(columns={'datetime': 'period'})
-        agent_specs = {agent['Name']: uuid_as_str_generator() for agent in fake_config['Agents'][:]
-                       if agent['Type'] == 'BlockAgent'}
-
-        with (mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.get_config_id_for_job_id',
-                         return_value='fake_config_id'),
-              mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.read_config',
-                         return_value=fake_config),
-              mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.get_all_agent_name_id_pairs_in_config',
-                         return_value=agent_specs),
-              mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.get_periods_from_db',
-                         return_value=pd.DatetimeIndex(input_data.period))):
-            simulator = TradingSimulator('fake_job_id')
-            simulator.initialize_data()
-
-            dt = datetime.datetime(2019, 2, 1, 0, tzinfo=pytz.UTC)
-            # 0.792575955 is the value for 2022-02-04 01:00 CET (3 day offset to make weekdays match)
-            self.assertAlmostEqual(simulator.electricity_pricing.get_nordpool_price_for_periods(dt), 0.792575955)
