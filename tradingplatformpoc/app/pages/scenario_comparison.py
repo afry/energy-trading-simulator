@@ -7,6 +7,7 @@ import streamlit as st
 from tradingplatformpoc.app import footer
 from tradingplatformpoc.app.app_comparison import ComparisonIds, construct_dump_comparison_chart, \
     construct_level_comparison_chart, get_keys_with_x_first, import_export_calculations, show_key_figures
+from tradingplatformpoc.app.app_constants import AGGREGATION_LEVELS
 from tradingplatformpoc.market.trade import TradeMetadataKey
 from tradingplatformpoc.sql.agent.crud import get_agent_type
 from tradingplatformpoc.sql.config.crud import get_all_agent_name_id_pairs_in_config, \
@@ -43,7 +44,8 @@ if len(job_id_per_config_id) >= 2:
         # Import export graph
         logger.info("Constructing import/export graph")
         with st.spinner("Constructing import/export graph"):
-            imp_exp_chart = import_export_calculations(comparison_ids)
+            aggregation_type = st.radio('Aggregation:', AGGREGATION_LEVELS, horizontal=True)
+            imp_exp_chart = import_export_calculations(comparison_ids, aggregation_type[:1], 'sum')
             st.caption("Hold *Shift* and click on multiple variables in the legend to highlight them in the graph.")
             st.altair_chart(imp_exp_chart, use_container_width=True, theme=None)
 
