@@ -102,9 +102,11 @@ if len(ids) > 0:
 
     with st.expander('Unused resources:'):
         heat_dump_chart = construct_reservoir_chart(job_id, TradeMetadataKey.HEAT_DUMP, "Heat")
-        st.altair_chart(heat_dump_chart, use_container_width=True, theme=None)
+        if heat_dump_chart is not None:
+            st.altair_chart(heat_dump_chart, use_container_width=True, theme=None)
         cool_dump_chart = construct_reservoir_chart(job_id, TradeMetadataKey.COOL_DUMP, "Cooling")
-        st.altair_chart(cool_dump_chart, use_container_width=True, theme=None)
+        if cool_dump_chart is not None:
+            st.altair_chart(cool_dump_chart, use_container_width=True, theme=None)
 
     # Resource tabs
     resources = [Resource.ELECTRICITY, Resource.HIGH_TEMP_HEAT, Resource.LOW_TEMP_HEAT, Resource.COOLING]
@@ -154,7 +156,8 @@ if len(ids) > 0:
             elif resource == Resource.COOLING:
                 # Show centralized cooling machine production
                 cm_chart = construct_cooling_machine_chart(job_id)
-                st.altair_chart(cm_chart, use_container_width=True, theme=None)
+                if cm_chart is not None:
+                    st.altair_chart(cm_chart, use_container_width=True, theme=None)
 
 else:
     st.markdown('No results to view yet, set up a configuration in '

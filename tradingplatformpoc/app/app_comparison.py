@@ -63,10 +63,9 @@ def import_export_calculations(ids: ComparisonIds) -> alt.Chart:
         resource = k[1]
         for job_id in pd.unique(df.job_id):
             subset = df[(df.resource == resource) & (df.job_id == job_id) & (df.action == action)][[
-                'period', 'quantity_pre_loss']]
+                'period', 'quantity_pre_loss']].groupby('period').sum()
 
             if not subset.empty:
-                subset = subset.set_index('period')
                 datetime_range = pd.date_range(start=subset.index.min(), end=subset.index.max(),
                                                freq="1h", tz='utc')
                 subset = subset.reindex(datetime_range).fillna(0)

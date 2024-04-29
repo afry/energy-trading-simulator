@@ -2,21 +2,14 @@
     "LocalMarketEnabled": {
         "display": "Local market for energy trades",
         "default": true,
-        "help": "If a local market for trading of energy should be used in simulation.",
-        "disabled": true
-    },
-    "AllowDistrictHeating": {
-        "display": "Allow district heating",
-        "default": true,
-        "help": "If the possibility to buy district heating should be included in simulation.",
-        "disabled": true
+        "help": "If a local market for trading of energy should be used in simulation."
     },
     "TradingHorizon": {
         "display": "Trading horizon [hours]",
         "min_value": 1,
         "max_value": 48,
         "default": 24,
-        "help": "How many trading periods (hours) in advance each energy trading process is performed over."
+        "help": "How many trading periods (hours) in advance each energy trading optimization is performed over."
     },
     "PVEfficiency": {
         "display": "Default PV efficiency:",
@@ -52,29 +45,33 @@
         "display": "Maximum electricity transfer capacity in microgrid [kW]",
         "min_value": 0,
         "step": 10,
-        "help": "The maximum amount of electricity an agent can buy/sell from/to the local energy community, in a single trading period (i.e. an hour). For the external transfer capacity, see the external grid agent",
-        "default": 1000
+        "help": "The maximum amount of electricity an agent can buy/sell from/to the local energy community, in a single trading period (i.e. an hour). Not used if the local market is disabled. For the external transfer capacity, see the external grid agent.",
+        "default": 1000,
+        "disabled_cond": {"disabled_when": {"LocalMarketEnabled": false}, "set_value": 0}
     },
     "InterAgentHeatTransferCapacity": {
         "display": "Maximum heating transfer capacity in microgrid [kW]",
         "min_value": 0,
         "step": 10,
-        "help": "The maximum amount of heat an agent can buy/sell from/to the local energy community, in a single trading period (i.e. an hour). For the external transfer capacity, see the external grid agent",
-        "default": 500
+        "help": "The maximum amount of heat an agent can buy/sell from/to the local energy community, in a single trading period (i.e. an hour). Not used if the local market is disabled. For the external transfer capacity, see the external grid agent.",
+        "default": 500,
+        "disabled_cond": {"disabled_when": {"LocalMarketEnabled": false}, "set_value": 0}
     },
     "CompChillerMaxInput": {
-        "display": "Compressor chiller max input power [kW]",
+        "display": "Centralized compressor chiller max input power [kW]",
         "min_value": 0.0,
         "step": 50.0,
-        "help": "The capacity of a centralized compressor chiller, providing cooling to the LEC. Setting this to 0 corresponds to not having a centralized chiller. The max output will be this number multiplied by the COP.",
-        "default": 100.0
+        "help": "The capacity of a centralized compressor chiller, providing cooling to the LEC. Setting this to 0 corresponds to not having a centralized chiller. The max output will be this number multiplied by the COP. Not used if the local market is disabled.",
+        "default": 100.0,
+        "disabled_cond": {"disabled_when": {"LocalMarketEnabled": false}, "set_value": 0.0}
     },
     "CompChillerCOP": {
-        "display": "Compressor chiller COP",
+        "display": "Centralized compressor chiller COP",
         "min_value": 1.0,
         "step": 0.1,
-        "help": "The relative Coefficient of Performance of any compressor chillers in the LEC",
-        "default": 4.0
+        "help": "The relative Coefficient of Performance of any compressor chillers in the LEC. Not used if the local market is disabled.",
+        "default": 4.0,
+        "disabled_cond": {"disabled_when": {"LocalMarketEnabled": false}}
     },
     "CoolingTransferLoss": {
         "display": "Cooling transfer loss:",
@@ -82,7 +79,8 @@
         "max_value": 0.99,
         "format": "%.3f",
         "default": 0.05,
-        "help": "A number specifying the loss of cooling in every transfer. Must be between 0 and 0.99, where 0 would mean no losses at all, and 0.99 would mean that almost all energy is lost when trying to transfer cooling from one agent to another. A reasonable number would be in the 0-0.10 range."
+        "help": "A number specifying the loss of cooling in every transfer. Must be between 0 and 0.99, where 0 would mean no losses at all, and 0.99 would mean that almost all energy is lost when trying to transfer cooling from one agent to another. A reasonable number would be in the 0-0.10 range. Not used if the local market is disabled.",
+        "disabled_cond": {"disabled_when": {"LocalMarketEnabled": false}}
     },
     "HeatTransferLoss": {
         "display": "Heat transfer loss:",
@@ -153,6 +151,12 @@
         "options":[2019, 2022, 2023],
         "default": 2023,
         "help": "Simulations are carried out using heating consumption data and temperature data collected during 2019. Thus, one might want to use electricity price data from the same period, since there is a correlation between temperature and electricity price. Later years have seen drastic changes to the electricity market though, therefore the option is available to use electricity prices for some later years as well."
+    },
+    "AllowDistrictHeating": {
+        "display": "Allow district heating",
+        "default": true,
+        "help": "If the possibility to buy district heating should be included in simulation.",
+        "disabled": true
     },
     "ElectricityTaxInternal": {
         "display": "Electricity tax (internal):",

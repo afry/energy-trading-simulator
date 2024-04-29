@@ -1,5 +1,5 @@
 # ---------------------------------------- Config screening -----------------------------------
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from tradingplatformpoc.config.access_config import read_agent_specs, read_param_specs
 from tradingplatformpoc.trading_platform_utils import ALLOWED_GRID_AGENT_RESOURCES_STR
@@ -169,7 +169,7 @@ def config_data_feasibility_screening(config_data: dict) -> Optional[str]:
     has_cooling_need = any([agent['Type'] == 'BlockAgent'
                             and (agent['FractionCommercial'] + agent['FractionOffice'] > 0)
                             for agent in non_grid_agents_w_atemp])
-    central_cool_prod = area_info['CompChillerMaxInput'] * area_info['CompChillerCOP']
+    central_cool_prod = area_info['CompChillerMaxInput'] * area_info['CompChillerCOP'] * area_info['LocalMarketEnabled']
     worst_case_max_cool_prod_agent = [
         (min(area_info['COPHeatPumpsHighTemp'], area_info['COPHeatPumpsLowTemp']) - 1) * agent['HeatPumpMaxOutput']
         if agent['HeatPumpForCooling'] else 0
@@ -280,4 +280,19 @@ def diff_string(key: str, old_val: float, new_val: float) -> str:
 def round_if_float(value):
     """Round floats, so that we avoid printing things like 0.0000000000001"""
     return round(value, 5) if isinstance(value, float) else value
-# --------------------------------------- End diff display ------------------------------------
+
+
+def modify_some_fields(config: Dict[str, Any], area_info_param_specs: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    If LocalMarketEnabled is False, we will set some values (which won't be used in this case) to their defaults.
+    We do this so that the subsequent "check_if_config_in_db" call will return True, if the only parameters which would
+    differ are those that do not apply, with LocalMarketEnabled False.
+    """
+    if not config['AreaInfo']['LocalMarketEnabled']:
+        for key in ['InterAgentElectricityTransferCapacity',
+                    'InterAgentHeatTransferCapacity',
+                    'CompChillerMaxInput',
+                    'CompChillerCOP',
+                    'CoolingTransferLoss']:
+            config['AreaInfo'][key] = area_info_param_specs[key]['default']
+    return config
