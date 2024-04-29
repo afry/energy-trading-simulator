@@ -41,7 +41,8 @@ if len(ids) > 0:
             st.dataframe(trades_df.replace(float('inf'), 'inf'), height=height)
             download_df_as_csv_button(trades_df, "all_trades_for_agent_" + agent_chosen_guid,
                                       include_index=True)
-            trades_chart = construct_traded_amount_by_agent_chart(agent_chosen_guid, trades_df)
+            aggregation_type = st.radio('Aggregation:', ['Hourly', 'Daily', 'Monthly'], horizontal=True)
+            trades_chart = construct_traded_amount_by_agent_chart(agent_chosen_guid, trades_df, aggregation_type[:1])
             st.altair_chart(trades_chart, use_container_width=True, theme=None)
             st.write("Click on a variable to highlight it.")
 

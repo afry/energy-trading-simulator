@@ -11,15 +11,17 @@ from tradingplatformpoc.sql.level.crud import db_to_viewable_level_df
 
 
 def altair_base_chart(df: pd.DataFrame, domain: List[str], range_color: List[str],
-                      y_label: str, title_str: str, legend: bool) -> alt.Chart:
+                      y_label: str, title_str: str, legend: bool, freq: str = 'H') -> alt.Chart:
     """Altair chart for one or more variables over period, without specified mark."""
     selection = alt.selection_multi(fields=['variable'], bind='legend')
     alt_title = alt.TitleParams(title_str, anchor='middle')
+    datetime_format = datetime_format_from_freq(freq)
+    x_encoding = encoding_shorthand_from_freq(freq)
     chart = alt.Chart(df, title=alt_title). \
-        encode(x=alt.X('period:T', axis=alt.Axis(title='Period (UTC)'), scale=alt.Scale(type="utc")),
-               y=alt.Y('value', axis=alt.Axis(title=y_label), stack=None),
+        encode(x=alt.X(x_encoding, axis=alt.Axis(title='Period (UTC)'), scale=alt.Scale(type="utc")),
+               y=alt.Y('value:Q', axis=alt.Axis(title=y_label), stack=None),
                opacity=alt.condition(selection, alt.value(0.8), alt.value(0.0)),
-               tooltip=[alt.Tooltip(field='period', title='Period', type='temporal', format='%Y-%m-%d %H:%M'),
+               tooltip=[alt.Tooltip(field='period', title='Period', type='temporal', format=datetime_format),
                         alt.Tooltip(field='variable', title='Variable'),
                         alt.Tooltip(field='value', title='Value', format='.5f')]). \
         add_selection(selection).interactive(bind_y=False)
@@ -31,9 +33,9 @@ def altair_base_chart(df: pd.DataFrame, domain: List[str], range_color: List[str
 
 def altair_line_chart(df: pd.DataFrame, domain: List[str], range_color: List[str],
                       range_dash: List[List[int]], y_label: str, title_str: str,
-                      legend: bool = True) -> alt.Chart:
+                      legend: bool = True, freq: str = 'H') -> alt.Chart:
     """Altair base chart with line mark."""
-    return altair_base_chart(df, domain, range_color, y_label, title_str, legend).encode(
+    return altair_base_chart(df, domain, range_color, y_label, title_str, legend, freq).encode(
         strokeDash=alt.StrokeDash('variable', scale=alt.Scale(domain=domain, range=range_dash))).mark_line()
 
 
@@ -96,11 +98,13 @@ def add_to_df_and_lists(df: pd.DataFrame, series: pd.Series, domain: List[str], 
 
 
 def construct_traded_amount_by_agent_chart(agent_chosen_guid: str,
-                                           agent_trade_df: pd.DataFrame) -> alt.Chart:
+                                           agent_trade_df: pd.DataFrame,
+                                           freq: str) -> alt.Chart:
     """
     Plot amount of electricity and heating sold and bought.
     @param agent_chosen_guid: Name of chosen agent
     @param agent_trade_df: All trades by agent
+    @param freq: Frequency to aggregate on. Will be passed to pd.Grouper. For example 'H' or 'h', 'M', 'D'
     @return: Altair chart with plot of sold and bought resources
     """
 
@@ -123,7 +127,7 @@ def construct_traded_amount_by_agent_chart(agent_chosen_guid: str,
         if not agent_trade_df.loc[mask].empty:
             # Can have multiple trades for the same period (for grid agents in the no-LEC case)
             quantity_series = agent_trade_df.loc[mask]['quantity_pre_loss']
-            summed_quantities = quantity_series.groupby(quantity_series.index).sum()
+            summed_quantities = quantity_series.groupby(pd.Grouper(freq=freq)).sum()
             df = pd.concat((df, pd.DataFrame({'period': summed_quantities.index,
                                               'value': summed_quantities.values,
                                               'variable': elem['title']})))
@@ -282,3 +286,25 @@ def construct_cooling_machine_chart(job_id: str) -> Optional[alt.Chart]:
                              [],
                              'Energy [kWh]',
                              'Centralized cooling machine')
+
+
+def datetime_format_from_freq(freq: str) -> str:
+    freq = freq.lower()
+    if freq == 'h':
+        return '%Y-%m-%d %H:%M'
+    if freq == 'd':
+        return '%Y-%m-%d'
+    if freq == 'm':
+        return '%Y-%m'
+    raise ValueError('Unexpected freq: ' + freq)
+
+
+def encoding_shorthand_from_freq(freq: str) -> str:
+    freq = freq.lower()
+    if freq == 'h':
+        return 'period:T'
+    if freq == 'd':
+        return 'date(period):T'
+    if freq == 'm':
+        return 'month(period):T'
+    raise ValueError('Unexpected freq: ' + freq)
