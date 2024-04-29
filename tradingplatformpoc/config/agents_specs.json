@@ -62,7 +62,7 @@
             "display": "Booster pump max input power (kW)",
             "min_value": 0.0,
             "step": 1.0,
-            "help": "Booster pumps allow the block agent to create high-temperature heating, which is needed to cover hot water demand, in scenarios where the local distribution network operates at a low temperature. This number indicates the maximum total power input, summed over all booster heat pumps at the agent's disposal",
+            "help": "Booster pumps allow the block agent to create high-temperature heating, which is needed to cover hot water demand, in scenarios where the local distribution network operates at a low temperature. This number indicates the maximum total power input, summed over all booster heat pumps at the agent's disposal. Will be unused in scenarios without a LEC.",
             "default_value": 0.0,
             "type": "float"
         },
@@ -70,7 +70,7 @@
             "display": "Booster pump max output power (kW)",
             "min_value": 0.0,
             "step": 1.0,
-            "help": "Booster pumps allow the block agent to create high-temperature heating, which is needed to cover hot water demand, in scenarios where the local distribution network operates at a low temperature. This number indicates the maximum total power output, summed over all booster heat pumps at the agent's disposal",
+            "help": "Booster pumps allow the block agent to create high-temperature heating, which is needed to cover hot water demand, in scenarios where the local distribution network operates at a low temperature. This number indicates the maximum total power output, summed over all booster heat pumps at the agent's disposal. Will be unused in scenarios without a LEC.",
             "default_value": 0.0,
             "type": "float"
         },
@@ -175,7 +175,7 @@
             "display": "Booster pump max input power (kW)",
             "min_value": 0.0,
             "step": 1.0,
-            "help": "Booster pumps allow the block agent to create high-temperature heating, which is needed to cover hot water demand, in scenarios where the local distribution network operates at a low temperature. This number indicates the maximum total power input, summed over all booster heat pumps at the agent's disposal",
+            "help": "Booster pumps allow the block agent to create high-temperature heating, which is needed to cover hot water demand, in scenarios where the local distribution network operates at a low temperature. This number indicates the maximum total power input, summed over all booster heat pumps at the agent's disposal. Will be unused in scenarios without a LEC.",
             "default_value": 1.5,
             "type": "float"
         },
@@ -183,7 +183,7 @@
             "display": "Booster pump max output power (kW)",
             "min_value": 0.0,
             "step": 1.0,
-            "help": "Booster pumps allow the block agent to create high-temperature heating, which is needed to cover hot water demand, in scenarios where the local distribution network operates at a low temperature. This number indicates the maximum total power output, summed over all booster heat pumps at the agent's disposal",
+            "help": "Booster pumps allow the block agent to create high-temperature heating, which is needed to cover hot water demand, in scenarios where the local distribution network operates at a low temperature. This number indicates the maximum total power output, summed over all booster heat pumps at the agent's disposal. Will be unused in scenarios without a LEC.",
             "default_value": 6.0,
             "type": "float"
         },

@@ -178,9 +178,6 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
                     heatpump_max_heat=heatpump_max_heat[i_agent],
                     HP_Cproduct_active=hp_produce_cooling[i_agent],
                     borehole=hp_produce_cooling[i_agent],
-                    booster_heatpump_COP=area_info['COPBoosterPumps'],
-                    booster_heatpump_max_power=booster_max_power[i_agent],
-                    booster_heatpump_max_heat=booster_max_heat[i_agent],
                     build_area=atemp_for_bites[i_agent],
                     SOCTES0=area_info['StorageEndChargeLevel'],
                     thermalstorage_max_temp=constants.ACC_TANK_TEMPERATURE,
@@ -195,13 +192,8 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
                     excess_heat=low_heat_supply_df.iloc[i_agent, :],
                     battery_efficiency=area_info['BatteryEfficiency'],
                     thermalstorage_efficiency=area_info['AccTankEfficiency'],
-                    max_elec_transfer_between_agents=area_info['InterAgentElectricityTransferCapacity'],
                     max_elec_transfer_to_external=grid_agents[Resource.ELECTRICITY].max_transfer_per_hour,
-                    max_heat_transfer_between_agents=area_info['InterAgentHeatTransferCapacity'],
                     max_heat_transfer_to_external=grid_agents[Resource.HIGH_TEMP_HEAT].max_transfer_per_hour,
-                    chiller_COP=area_info['CompChillerCOP'],
-                    Pccmax=area_info['CompChillerMaxInput'],
-                    cold_trans_loss=area_info['CoolingTransferLoss'],
                     heat_trans_loss=area_info['HeatTransferLoss'],
                     trading_horizon=trading_horizon
                 )
@@ -291,19 +283,11 @@ def extract_outputs_for_agent(optimized_model: pyo.ConcreteModel,
         TradeMetadataKey.SHALLOW_CHARGE: get_value_per_period(optimized_model, start_datetime, 'Hcha_shallow'),
         TradeMetadataKey.FLOW_SHALLOW_TO_DEEP: get_value_per_period(optimized_model, start_datetime, 'Flow'),
         TradeMetadataKey.HP_COOL_PROD: get_value_per_period(optimized_model, start_datetime, 'Chp'),
+        TradeMetadataKey.HP_HIGH_HEAT_PROD: get_value_per_period(optimized_model, start_datetime, 'Hhp'),
         # Heat dump and cool dump will have to be aggregated later
         TradeMetadataKey.HEAT_DUMP: get_value_per_period(optimized_model, start_datetime, 'heat_dump'),
         TradeMetadataKey.COOL_DUMP: get_value_per_period(optimized_model, start_datetime, 'cool_dump')
     }
-    if should_use_summer_mode(start_datetime):
-        metadata[TradeMetadataKey.HP_LOW_HEAT_PROD] = \
-            get_value_per_period(optimized_model, start_datetime, 'Hhp')
-        metadata[TradeMetadataKey.HP_HIGH_HEAT_PROD] = \
-            get_value_per_period(optimized_model, start_datetime, 'HhpB')
-    else:
-        metadata[TradeMetadataKey.HP_LOW_HEAT_PROD] = {}
-        metadata[TradeMetadataKey.HP_HIGH_HEAT_PROD] = \
-            get_value_per_period(optimized_model, start_datetime, 'Hhp')
     return elec_trades + heat_trades, metadata
 
 
@@ -452,13 +436,12 @@ def get_power_transfers(optimized_model: pyo.ConcreteModel, start_datetime: date
                                                  loss=0.0, resource_price_data=resource_price_data,
                                                  market=Market.LOCAL)
     else:
-        # The meaning of 'Psell_grid' is inverted here, annoyingly
         agent_trades = get_agent_transfers_no_lec(optimized_model, start_datetime,
-                                                  sold_internal_name='Psell_grid', bought_internal_name='Pbuy_grid',
+                                                  sold_internal_name='Psell_market', bought_internal_name='Pbuy_market',
                                                   resource=Resource.ELECTRICITY, agent_guid=agent_guids[0], loss=0.0)
         external_trades = get_external_transfers(optimized_model, start_datetime,
-                                                 sold_to_external_name='Psell_grid',
-                                                 bought_from_external_name='Pbuy_grid',
+                                                 sold_to_external_name='Psell_market',
+                                                 bought_from_external_name='Pbuy_market',
                                                  retail_price_name='price_buy', wholesale_price_name='price_sell',
                                                  resource=Resource.ELECTRICITY, grid_agent_guid=grid_agent_guid,
                                                  loss=0.0, resource_price_data=resource_price_data,
@@ -483,11 +466,11 @@ def get_heat_transfers(optimized_model: pyo.ConcreteModel, start_datetime: datet
                                                  resource_price_data=resource_price_data, market=Market.LOCAL)
     else:
         agent_trades = get_agent_transfers_no_lec(optimized_model, start_datetime,
-                                                  sold_internal_name='NA', bought_internal_name='Hbuy_grid',
+                                                  sold_internal_name='NA', bought_internal_name='Hbuy_market',
                                                   resource=resource, agent_guid=agent_guids[0],
                                                   loss=optimized_model.Heat_trans_loss)
         external_trades = get_external_transfers(optimized_model, start_datetime,
-                                                 sold_to_external_name='NA', bought_from_external_name='Hbuy_grid',
+                                                 sold_to_external_name='NA', bought_from_external_name='Hbuy_market',
                                                  retail_price_name='Hprice_energy', wholesale_price_name='NA',
                                                  resource=Resource.HIGH_TEMP_HEAT, grid_agent_guid=grid_agent_guid,
                                                  loss=optimized_model.Heat_trans_loss,

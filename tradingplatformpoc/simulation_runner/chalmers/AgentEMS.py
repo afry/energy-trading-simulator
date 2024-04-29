@@ -10,26 +10,19 @@ from tradingplatformpoc.simulation_runner.chalmers.domain import CEMSError, PERC
 def solve_model(solver: OptSolver, summer_mode: bool, month: int, agent: int, external_elec_buy_price: pd.Series,
                 external_elec_sell_price: pd.Series, external_heat_buy_price: float, battery_capacity: float,
                 battery_charge_rate: float, battery_discharge_rate: float, SOCBES0: float, HP_Cproduct_active: bool,
-                heatpump_COP: float, heatpump_max_power: float, heatpump_max_heat: float, booster_heatpump_COP: float,
-                booster_heatpump_max_power: float, booster_heatpump_max_heat: float, build_area: float, SOCTES0: float,
+                heatpump_COP: float, heatpump_max_power: float, heatpump_max_heat: float,
+                build_area: float, SOCTES0: float,
                 thermalstorage_max_temp: float, thermalstorage_volume: float, BITES_Eshallow0: float,
                 BITES_Edeep0: float, borehole: bool, elec_consumption: pd.Series, hot_water_heatdem: pd.Series,
                 space_heating_heatdem: pd.Series, cold_consumption: pd.Series, pv_production: pd.Series,
                 excess_heat: pd.Series, battery_efficiency: float = 0.95,
-                max_elec_transfer_between_agents: float = 500, max_elec_transfer_to_external: float = 1000,
-                max_heat_transfer_between_agents: float = 500, max_heat_transfer_to_external: float = 1000,
-                chiller_COP: float = 1.5, Pccmax: float = 100, thermalstorage_efficiency: float = 0.98,
-                heat_trans_loss: float = 0.05, cold_trans_loss: float = 0.05, trading_horizon: int = 24) \
+                max_elec_transfer_to_external: float = 1000, max_heat_transfer_to_external: float = 1000,
+                thermalstorage_efficiency: float = 0.98,
+                heat_trans_loss: float = 0.05, trading_horizon: int = 24) \
         -> Tuple[pyo.ConcreteModel, SolverResults]:
     """
     This function should be exposed to AFRY's trading simulator in some way.
     Which solver to use should be left to the user, so we'll request it as an argument, rather than defining it here.
-
-    Things we'll want to return:
-    * The energy flows
-    * Whether the solver found a solution
-    * Perhaps things like how much heat that was generated from heat pumps
-    Perhaps the best way is to do as this is coded at the moment: returning the model object and the solver results
     """
     # Some validation (should probably raise specific exceptions rather than use assert)
     assert len(elec_consumption) >= trading_horizon
@@ -47,8 +40,7 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, agent: int, ex
     # Energy per degree C in each agent's tank
     # Specific heat of Water is 4182 J/(kg C)
     # Density of water is 998 kg/m3
-    # This assumes that HTESdis and HTEScha are in kW. If they are in watt,
-    # 1000 should be removed from the following formulation:
+    # This assumes that HTESdis and HTEScha are in kW.
     kwh_per_deg = thermalstorage_volume * 4182 * 998 / 3600000
 
     # Check the maximum cooling produced vs the cooling demand
@@ -71,8 +63,8 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, agent: int, ex
     model.price_sell = pyo.Param(model.T, initialize=external_elec_sell_price)
     model.Hprice_energy = pyo.Param(initialize=external_heat_buy_price)
     # Grid data
-    model.Pmax_grid = pyo.Param(initialize=max_elec_transfer_to_external)
-    model.Hmax_grid = pyo.Param(initialize=max_heat_transfer_to_external)
+    model.Pmax_market = pyo.Param(initialize=max_elec_transfer_to_external)
+    model.Hmax_market = pyo.Param(initialize=max_heat_transfer_to_external)
     # Demand data of agents
     model.Pdem = pyo.Param(model.T, initialize=lambda m, t: elec_consumption.iloc[t])
     model.Hhw = pyo.Param(model.T, initialize=lambda m, t: hot_water_heatdem.iloc[t])
@@ -88,25 +80,25 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, agent: int, ex
     model.Pmax_BES_Cha = pyo.Param(initialize=battery_charge_rate)
     model.Pmax_BES_Dis = pyo.Param(initialize=battery_discharge_rate)
     # Building inertia as thermal energy storage
-    model.BITES_Eshallow0 = pyo.Param(initialize=lambda m: BITES_Eshallow0)
-    model.BITES_Edeep0 = pyo.Param(initialize=lambda m: BITES_Edeep0)
-    model.Energy_shallow_cap = pyo.Param(initialize=lambda m: 0.046 * build_area)
-    model.Energy_deep_cap = pyo.Param(initialize=lambda m: 0.291 * build_area)
-    model.Heat_rate_shallow = pyo.Param(initialize=lambda m: 0.023 * build_area)
-    model.Kval = pyo.Param(initialize=lambda m: 0.03 * build_area)
+    model.BITES_Eshallow0 = pyo.Param(initialize=BITES_Eshallow0)
+    model.BITES_Edeep0 = pyo.Param(initialize=BITES_Edeep0)
+    model.Energy_shallow_cap = pyo.Param(initialize=0.046*build_area)
+    model.Energy_deep_cap = pyo.Param(initialize=0.291*build_area)
+    model.Heat_rate_shallow = pyo.Param(initialize=0.023*build_area)
+    model.Kval = pyo.Param(initialize=0.03*build_area)
     model.Kloss_shallow = pyo.Param(initialize=0.9913)
     model.Kloss_deep = pyo.Param(initialize=0.9963)
     # Heat pump data
     model.COPhp = pyo.Param(initialize=heatpump_COP)
     model.Phpmax = pyo.Param(initialize=heatpump_max_power)
     model.Hhpmax = pyo.Param(initialize=heatpump_max_heat)
-    model.HP_Cproduct_active = pyo.Param(initialize=lambda m: HP_Cproduct_active)
+    model.HP_Cproduct_active = pyo.Param(initialize=HP_Cproduct_active)
     # Booster heat pump data
-    model.COPhpB = pyo.Param(initialize=booster_heatpump_COP)
-    model.PhpBmax = pyo.Param(initialize=booster_heatpump_max_power)
-    model.HhpBmax = pyo.Param(initialize=booster_heatpump_max_heat)
+    # model.COPhpB = pyo.Param(initialize=booster_heatpump_COP)
+    # model.PhpBmax = pyo.Param(initialize=booster_heatpump_max_power)
+    # model.HhpBmax = pyo.Param(initialize=booster_heatpump_max_heat)
     # Borehole
-    model.borehole = pyo.Param(initialize=lambda m: borehole)
+    model.borehole = pyo.Param(initialize=borehole)
     # Thermal energy storage data
     model.efft = pyo.Param(initialize=thermalstorage_efficiency)
     model.SOCTES0 = pyo.Param(initialize=SOCTES0)
@@ -115,11 +107,10 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, agent: int, ex
     # Local heat network efficiency
     model.Heat_trans_loss = pyo.Param(initialize=heat_trans_loss)
     # Variable
-    model.Pbuy_grid = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
-    model.Psell_grid = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
-    model.U_power_buy_sell_grid = pyo.Var(model.T, within=pyo.Binary, initialize=0)
-    model.Hbuy_grid = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
-    model.Hsell_grid = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
+    model.Pbuy_market = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
+    model.Psell_market = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
+    model.U_power_buy_sell_market = pyo.Var(model.T, within=pyo.Binary, initialize=0)
+    model.Hbuy_market = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
     model.Pcha = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
     model.Pdis = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
     model.SOCBES = pyo.Var(model.T, bounds=(0, 1), within=pyo.NonNegativeReals,
@@ -138,88 +129,71 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, agent: int, ex
     model.Loss_shallow = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
     model.Energy_deep = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
     model.Loss_deep = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
-    if summer_mode:
-        model.HhpB = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
-        model.PhpB = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
+    # if summer_mode:
+    #     model.HhpB = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
+    #     model.PhpB = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
+    # Heat_dump is used to consume extera heat production
     model.heat_dump = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
     model.cool_dump = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
-
-    #        add_obj_and_constraints(model, summer_mode, month)
-
-    #        print(j)
-    # Solve!
-    #        results = solver.solve(model)
-    #    return model, results
-
-    # def add_obj_and_constraints(model: pyo.ConcreteModel, summer_mode: bool, month: int):
-    # Objective function:
 
     # Objective function: minimize the total charging cost (eq. 1 of the report)
     def obj_rule(model):
         return sum(
-            model.Pbuy_grid[t] * model.price_buy[t] - model.Psell_grid[t] * model.price_sell[t]
-            + model.Hbuy_grid[t] * model.Hprice_energy
+            model.Pbuy_market[t] * model.price_buy[t] - model.Psell_market[t] * model.price_sell[t]
+            + model.Hbuy_market[t] * model.Hprice_energy
             + model.heat_dump[t] * model.penalty
             for t in model.T)
 
     # Constraints:
     # Buying and selling heat/electricity from agents cannot happen at the same time
     # and should be restricted to its maximum value (Pmax_grid) (eqs. 10 to 15 of the report)
-    def max_Pbuy_grid(model, t):
-        return model.Pbuy_grid[t] <= model.Pmax_grid * model.U_power_buy_sell_grid[t]
+    def max_Pbuy_market(model, t):
+        return model.Pbuy_market[t] <= model.Pmax_market * model.U_power_buy_sell_market[t]
 
-    def max_Hbuy_grid(model, t):
-        return model.Hbuy_grid[t] <= model.Hmax_grid  # * model.U_heat_buy_sell_grid[i, t]
+    def max_Hbuy_market(model, t):
+        return model.Hbuy_market[t] <= model.Hmax_market  # * model.U_heat_buy_sell_market[i, t]
 
-    def max_Psell_grid(model, t):
-        return model.Psell_grid[t] <= model.Pmax_grid * (1 - model.U_power_buy_sell_grid[t])
-
-    def max_Hsell_grid_winter(model, t):
-        # Only used in winter mode : Due to high temperature of district heating (60 deg. C),
-        # it is not possible to export heat from building to the district heating
-        return model.Hsell_grid[t] <= 0
-
-    def max_Hsell_grid_summer(model, t):
-        # Only used in summer mode
-        return model.Hsell_grid[t] <= model.Hmax_grid  # * (1 - model.U_heat_buy_sell_grid[i, t])
+    def max_Psell_market(model, t):
+        return model.Psell_market[t] <= model.Pmax_market * (1 - model.U_power_buy_sell_market[t])
 
     # (eq. 2 and 3 of the report)
     # Electrical/heat/cool power balance equation for agents
-    def agent_Pbalance_winter(model, t):
+#    def agent_Pbalance_winter(model, t):
         # Only used in winter mode
-        return model.Ppv[t] + model.Pdis[t] + model.Pbuy_grid[t] == \
-               model.Pdem[t] + model.Php[t] + model.Pcha[t] + model.Psell_grid[t]
+    def agent_Pbalance(model, t):
+        return model.Ppv[t] + model.Pdis[t] + model.Pbuy_market[t] == \
+               model.Pdem[t] + model.Php[t] + model.Pcha[t] + model.Psell_market[t]
 
-    def agent_Pbalance_summer(model, t):
-        # Only used in summer mode
-        return model.Ppv[t] + model.Pdis[t] + model.Pbuy_grid[t] == \
-               model.Pdem[t] + model.Php[t] + model.PhpB[t] + model.Pcha[t] + model.Psell_grid[t]
+    # def agent_Pbalance_summer(model, t):
+    #     # Only used in summer mode
+    #     return model.Ppv[t] + model.Pdis[t] + model.Pbuy_market[t] == \
+    #            model.Pdem[t] + model.Php[t] + model.PhpB[t] + model.Pcha[t] + model.Psell_market[t]
 
-    def agent_Hbalance_winter(model, t):
+#    def agent_Hbalance_winter(model, t):
         # Only used in winter mode
+    def agent_Hbalance(model, t):
         # with TES
         if model.kwh_per_deg != 0:
-            return model.Hbuy_grid[t] + model.Hhp[t] == \
-                   model.Hsell_grid[t] + model.Hcha_shallow[t] + model.Hsh[t] \
-                   + model.HTEScha[t] + model.heat_dump[t]
+            return model.Hbuy_market[t] + model.Hhp[t] == \
+                   model.Hcha_shallow[t] + model.Hsh[t] + model.HTEScha[t] + model.heat_dump[t]
         # without TES
         else:
-            return model.Hbuy_grid[t] + model.Hhp[t] == \
-                   model.Hsell_grid[t] + model.Hcha_shallow[t] + model.Hsh[t] \
+            return model.Hbuy_market[t] + model.Hhp[t] == \
+                   model.Hcha_shallow[t] + model.Hsh[t] \
                    + model.Hhw[t] + model.heat_dump[t]
 
-    def agent_Hbalance_summer(model, t):
-        # Only used in summer mode
-        # with TES
-        if model.kwh_per_deg != 0:
-            return model.Hbuy_grid[t] + model.Hhp[t] \
-                   + model.Hsh_excess[t] == model.Hsell_grid[t] + model.Hcha_shallow[t] \
-                   + model.Hsh[t] + PERC_OF_HT_COVERABLE_BY_LT * model.HTEScha[t] + model.heat_dump[t]
-        # without TES
-        else:
-            return model.Hbuy_grid[t] + model.Hhp[t] \
-                   + model.Hsh_excess[t] == model.Hsell_grid[t] + model.Hcha_shallow[t] \
-                   + model.Hsh[t] + PERC_OF_HT_COVERABLE_BY_LT * model.Hhw[t] + model.heat_dump[t]
+    # def agent_Hbalance_summer(model, t):
+    #     # Only used in summer mode
+    #     # with TES
+    #     if model.kwh_per_deg != 0:
+    #         return model.Hbuy_market[t] + model.Hhp[t] \
+    #                + model.Hsh_excess[t] == model.Hcha_shallow[t] \
+    #                + model.Hsh[t] + PERC_OF_HT_COVERABLE_BY_LT * model.HTEScha[t] + model.heat_dump[t]
+    #     # without TES
+    #     else:
+    #         return model.Hbuy_market[t] + model.Hhp[t] \
+    #                + model.Hsh_excess[t] == model.Hcha_shallow[t] \
+    #                + model.Hsh[t] + PERC_OF_HT_COVERABLE_BY_LT * model.Hhw[t] + model.heat_dump[t]
 
     def agent_Cbalance_winter(model, t):
         # Only used in months [1 to 5, 9 to 12]
@@ -232,14 +206,14 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, agent: int, ex
         return model.Chp[t] == model.Cld[t] + model.cool_dump[t]
 
     # (eq. 5 and 6 of the report)
-    def HTES_supplied_by_Bhp(model, t):
-        # Only used in summer mode
-        # with TES
-        if model.kwh_per_deg != 0:
-            return model.HhpB[t] == (1 - PERC_OF_HT_COVERABLE_BY_LT) * model.HTEScha[t]
-        # without TES
-        else:
-            return model.HhpB[t] == (1 - PERC_OF_HT_COVERABLE_BY_LT) * model.Hhw[t]
+    # def HTES_supplied_by_Bhp(model, t):
+    #     # Only used in summer mode
+    #     # with TES
+    #     if model.kwh_per_deg != 0:
+    #         return model.HhpB[t] == (1 - PERC_OF_HT_COVERABLE_BY_LT) * model.HTEScha[t]
+    #     # without TES
+    #     else:
+    #         return model.HhpB[t] == (1 - PERC_OF_HT_COVERABLE_BY_LT) * model.Hhw[t]
 
     def Hhw_supplied_by_HTES(model, t):
         # with TES
@@ -300,7 +274,7 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, agent: int, ex
         return -model.Hcha_shallow[t] <= model.Hsh[t]
 
     def BITES_max_Hcha_shallow(model, t):
-        return model.Hcha_shallow[t] <= model.Hhpmax + model.Hmax_grid - model.Hsh[t]
+        return model.Hcha_shallow[t] <= model.Hhpmax + model.Hmax_market - model.Hsh[t]
 
     # Battery energy storage model (eqs. 16 to 19 of the report)
     # Maximum charging/discharging power limitations
@@ -352,13 +326,13 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, agent: int, ex
         return model.Php[t] <= model.Phpmax
 
     # Booster heat pump model (eq. 20 of the report)
-    def booster_HP_Hproduct(model, t):
-        # Only used in summer mode
-        return model.HhpB[t] == model.COPhpB * model.PhpB[t]
-
-    def max_booster_HP_Hproduct_summer(model, t):
-        # Only used in summer mode
-        return model.HhpB[t] <= model.HhpBmax
+    # def booster_HP_Hproduct(model, t):
+    #     # Only used in summer mode
+    #     return model.HhpB[t] == model.COPhpB * model.PhpB[t]
+    #
+    # def max_booster_HP_Hproduct_summer(model, t):
+    #     # Only used in summer mode
+    #     return model.HhpB[t] <= model.HhpBmax
 
     # Thermal energy storage model (eqs. 32 to 25 of the report)
     # Maximum/minimum temperature limitations of hot water inside TES
@@ -386,18 +360,18 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, agent: int, ex
         return model.SOCTES[len(model.T) - 1] == model.SOCTES0
 
     model.obj = pyo.Objective(rule=obj_rule, sense=pyo.minimize)
-    model.con_max_Pbuy_grid = pyo.Constraint(model.T, rule=max_Pbuy_grid)
-    model.con_max_Hbuy_grid = pyo.Constraint(model.T, rule=max_Hbuy_grid)
-    model.con_max_Psell_grid = pyo.Constraint(model.T, rule=max_Psell_grid)
-    if summer_mode:
-        model.con_max_Hsell_grid_summer = pyo.Constraint(model.T, rule=max_Hsell_grid_summer)
-        model.con_agent_Pbalance_summer = pyo.Constraint(model.T, rule=agent_Pbalance_summer)
-        model.con_agent_Hbalance_summer = pyo.Constraint(model.T, rule=agent_Hbalance_summer)
-        model.con_HTES_supplied_by_Bhp = pyo.Constraint(model.T, rule=HTES_supplied_by_Bhp)
-    else:
-        model.con_max_Hsell_grid_winter = pyo.Constraint(model.T, rule=max_Hsell_grid_winter)
-        model.con_agent_Pbalance_winter = pyo.Constraint(model.T, rule=agent_Pbalance_winter)
-        model.con_agent_Hbalance_winter = pyo.Constraint(model.T, rule=agent_Hbalance_winter)
+    model.con_max_Pbuy_market = pyo.Constraint(model.T, rule=max_Pbuy_market)
+    model.con_max_Hbuy_market = pyo.Constraint(model.T, rule=max_Hbuy_market)
+    model.con_max_Psell_market = pyo.Constraint(model.T, rule=max_Psell_market)
+    # if summer_mode:
+    #     model.con_agent_Pbalance_summer = pyo.Constraint(model.T, rule=agent_Pbalance_summer)
+    #     model.con_agent_Hbalance_summer = pyo.Constraint(model.T, rule=agent_Hbalance_summer)
+    #     model.con_HTES_supplied_by_Bhp = pyo.Constraint(model.T, rule=HTES_supplied_by_Bhp)
+    # else:
+    #     model.con_agent_Pbalance_winter = pyo.Constraint(model.T, rule=agent_Pbalance_winter)
+    #     model.con_agent_Hbalance_winter = pyo.Constraint(model.T, rule=agent_Hbalance_winter)
+    model.con_agent_Pbalance = pyo.Constraint(model.T, rule=agent_Pbalance)
+    model.con_agent_Hbalance = pyo.Constraint(model.T, rule=agent_Hbalance)
 
     if month in [6, 7, 8]:
         model.con_agent_Cbalance_summer = pyo.Constraint(model.T, rule=agent_Cbalance_summer)
@@ -424,9 +398,6 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, agent: int, ex
     model.con_HP_Cproduct = pyo.Constraint(model.T, rule=HP_Cproduct)
     model.con_max_HP_Hproduct = pyo.Constraint(model.T, rule=max_HP_Hproduct)
     model.con_max_HP_Pconsumption = pyo.Constraint(model.T, rule=max_HP_Pconsumption)
-    if summer_mode:
-        model.con_max_booster_HP_Hproduct_summer = pyo.Constraint(model.T,
-                                                                  rule=max_booster_HP_Hproduct_summer)
     model.con_max_HTES_dis = pyo.Constraint(model.T, rule=max_HTES_dis)
     model.con_max_HTES_cha = pyo.Constraint(model.T, rule=max_HTES_cha)
     model.con_HTES_Ebalance = pyo.Constraint(model.T, rule=HTES_Ebalance)
