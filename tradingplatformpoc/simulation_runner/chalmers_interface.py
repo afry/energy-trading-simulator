@@ -99,8 +99,10 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
 
     retail_prices: pd.Series = elec_pricing.get_exact_retail_prices(start_datetime, trading_horizon, True)
     wholesale_prices: pd.Series = elec_pricing.get_exact_wholesale_prices(start_datetime, trading_horizon)
+    nordpool_prices: pd.Series = elec_pricing.get_nordpool_price_for_periods(start_datetime, trading_horizon)
     elec_retail_prices = retail_prices.reset_index(drop=True)
     elec_wholesale_prices = wholesale_prices.reset_index(drop=True)
+    nordpool_prices = nordpool_prices.reset_index(drop=True)
     heat_retail_price = heat_pricing.get_estimated_retail_price(start_datetime, True)
 
     n_agents = len(block_agents)
@@ -163,11 +165,10 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
             for i_agent in range(len(block_agents)):
                 optimized_model, results = AgentEMS.solve_model(
                     solver=solver,
-                    summer_mode=summer_mode,
                     month=start_datetime.month,
                     agent=i_agent,
-                    external_elec_buy_price=elec_retail_prices,
-                    external_elec_sell_price=elec_wholesale_prices,
+                    external_elec_buy_price=nordpool_prices,
+                    external_elec_sell_price=nordpool_prices,
                     external_heat_buy_price=heat_retail_price,
                     battery_capacity=battery_capacities[i_agent],
                     battery_charge_rate=battery_max_charge[i_agent],
@@ -195,7 +196,14 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
                     max_elec_transfer_to_external=grid_agents[Resource.ELECTRICITY].max_transfer_per_hour,
                     max_heat_transfer_to_external=grid_agents[Resource.HIGH_TEMP_HEAT].max_transfer_per_hour,
                     heat_trans_loss=area_info['HeatTransferLoss'],
-                    trading_horizon=trading_horizon
+                    trading_horizon=trading_horizon,
+                    elec_tax_fee=elec_pricing.tax,
+                    elec_trans_fee=elec_pricing.transmission_fee,
+                    elec_peak_load_fee=elec_pricing.effect_fee,
+                    heat_peak_load_fee=heat_pricing.effect_fee,
+                    incentive_fee=elec_pricing.wholesale_offset,
+                    hist_monthly_elec_peak_load=10000.0,  # TODO
+                    hist_monthly_heat_peak_energy=10000.0,  # TODO
                 )
                 handle_infeasibility(optimized_model, results, start_datetime, trading_horizon,
                                      [block_agents[i_agent].guid])

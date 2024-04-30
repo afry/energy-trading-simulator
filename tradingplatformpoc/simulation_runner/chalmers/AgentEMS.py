@@ -7,7 +7,7 @@ from pyomo.opt import OptSolver, SolverResults
 from tradingplatformpoc.simulation_runner.chalmers.domain import CEMSError, PERC_OF_HT_COVERABLE_BY_LT
 
 
-def solve_model(solver: OptSolver, summer_mode: bool, month: int, agent: int, external_elec_buy_price: pd.Series,
+def solve_model(solver: OptSolver, month: int, agent: int, external_elec_buy_price: pd.Series,
                 external_elec_sell_price: pd.Series, external_heat_buy_price: float, battery_capacity: float,
                 battery_charge_rate: float, battery_discharge_rate: float, SOCBES0: float, HP_Cproduct_active: bool,
                 heatpump_COP: float, heatpump_max_power: float, heatpump_max_heat: float,
@@ -15,7 +15,11 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, agent: int, ex
                 thermalstorage_max_temp: float, thermalstorage_volume: float, BITES_Eshallow0: float,
                 BITES_Edeep0: float, borehole: bool, elec_consumption: pd.Series, hot_water_heatdem: pd.Series,
                 space_heating_heatdem: pd.Series, cold_consumption: pd.Series, pv_production: pd.Series,
-                excess_heat: pd.Series, battery_efficiency: float = 0.95,
+                excess_heat: pd.Series,
+                elec_trans_fee: float, elec_tax_fee: float, incentive_fee: float,
+                hist_monthly_elec_peak_load: float, elec_peak_load_fee: float,
+                hist_monthly_heat_peak_energy: float, heat_peak_load_fee: float,
+                battery_efficiency: float = 0.95,
                 max_elec_transfer_to_external: float = 1000, max_heat_transfer_to_external: float = 1000,
                 thermalstorage_efficiency: float = 0.98,
                 heat_trans_loss: float = 0.05, trading_horizon: int = 24) \
@@ -59,12 +63,19 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, agent: int, ex
     model.T = pyo.Set(initialize=range(int(trading_horizon)))  # index of time intervals
     # Parameters
     model.penalty = pyo.Param(initialize=1000)
+    model.Big_M = pyo.Param(initialize=1000)
     model.price_buy = pyo.Param(model.T, initialize=external_elec_buy_price)
     model.price_sell = pyo.Param(model.T, initialize=external_elec_sell_price)
+    model.elec_peak_load_fee = pyo.Param(initialize=elec_peak_load_fee)
+    model.elec_trans_fee = pyo.Param(initialize=elec_trans_fee)
+    model.elec_tax_fee = pyo.Param(initialize=elec_tax_fee)
     model.Hprice_energy = pyo.Param(initialize=external_heat_buy_price)
+    model.heat_peak_load_fee = pyo.Param(initialize=heat_peak_load_fee)
     # Grid data
     model.Pmax_market = pyo.Param(initialize=max_elec_transfer_to_external)
     model.Hmax_market = pyo.Param(initialize=max_heat_transfer_to_external)
+    model.Hist_monthly_elec_peak_load = pyo.Param(initialize=hist_monthly_elec_peak_load)
+    model.Hist_monthly_heat_peak_energy = pyo.Param(initialize=hist_monthly_heat_peak_energy)
     # Demand data of agents
     model.Pdem = pyo.Param(model.T, initialize=lambda m, t: elec_consumption.iloc[t])
     model.Hhw = pyo.Param(model.T, initialize=lambda m, t: hot_water_heatdem.iloc[t])
@@ -132,16 +143,31 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, agent: int, ex
     # if summer_mode:
     #     model.HhpB = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
     #     model.PhpB = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
-    # Heat_dump is used to consume extera heat production
+    # heat/cool_dump is used to consume extera heating/cooling power production
     model.heat_dump = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
     model.cool_dump = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
+    # Cool_curtail is used to determine cooling power curtailment
+    model.cool_curtail = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
+    # Electrical and heat load peaks
+    model.daily_elec_peak_load = pyo.Var(within=pyo.NonNegativeReals, initialize=0)
+    model.monthly_elec_peak_load = pyo.Var(within=pyo.NonNegativeReals, initialize=0)
+    model.U_elec_peak_load = pyo.Var(within=pyo.Binary, initialize=0)
+    model.daily_heat_peak_energy = pyo.Var(within=pyo.NonNegativeReals, initialize=0)
+    model.monthly_heat_peak_energy = pyo.Var(within=pyo.NonNegativeReals, initialize=0)
+    model.U_heat_peak_energy = pyo.Var(within=pyo.Binary, initialize=0)
 
     # Objective function: minimize the total charging cost (eq. 1 of the report)
     def obj_rule(model):
         return sum(
-            model.Pbuy_market[t] * model.price_buy[t] - model.Psell_market[t] * model.price_sell[t]
-            + model.Hbuy_market[t] * model.Hprice_energy
-            + model.heat_dump[t] * model.penalty
+            # Electricity cost terms:
+            model.Pbuy_market[t] * (model.price_buy[t]+model.elec_trans_fee+model.elec_tax_fee)  # Purchasing cost
+            - model.Psell_market[t] * (model.price_sell[t]+incentive_fee)  # Selling cost
+            + model.monthly_elec_peak_load * model.elec_peak_load_fee  # Peak load cost
+            # Heat cost terms:
+            + model.Hbuy_market[t] * model.Hprice_energy  # Purchasing cost
+            + (model.monthly_heat_peak_energy/24) * model.heat_peak_load_fee  # Peak load cost
+            + model.heat_dump[t] * model.penalty  # Extra heating power generation dumping
+            + model.cool_curtail[t] * model.penalty  # shortage cooling generation curtailment
             for t in model.T)
 
     # Constraints:
@@ -199,11 +225,11 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, agent: int, ex
         # Only used in months [1 to 5, 9 to 12]
         # with free cooling from borehole (model.borehole[i] == 1)
         # without free cooling from borehole (model.borehole[i] == 0)
-        return model.Chp[t] == model.Cld[t] * (1 - model.borehole) + model.cool_dump[t]
+        return model.Chp[t] == model.Cld[t] * (1 - model.borehole) + model.cool_dump[t] - model.cool_curtail[t]
 
     def agent_Cbalance_summer(model, t):
         # Only used in months [6, 7, 8]
-        return model.Chp[t] == model.Cld[t] + model.cool_dump[t]
+        return model.Chp[t] == model.Cld[t] + model.cool_dump[t] - model.cool_curtail[t]
 
     # (eq. 5 and 6 of the report)
     # def HTES_supplied_by_Bhp(model, t):
@@ -214,6 +240,41 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, agent: int, ex
     #     # without TES
     #     else:
     #         return model.HhpB[t] == (1 - PERC_OF_HT_COVERABLE_BY_LT) * model.Hhw[t]
+    def elec_peak_load1(model, t):
+        return model.daily_elec_peak_load >= model.Pbuy_market[t] - model.Psell_market[t]
+
+    def elec_peak_load2(model):
+        return model.monthly_elec_peak_load >= -model.Big_M*model.U_elec_peak_load
+
+    def elec_peak_load3(model):
+        return model.monthly_elec_peak_load <= model.Big_M*model.U_elec_peak_load
+
+    def elec_peak_load4(model):
+        return model.monthly_elec_peak_load >= model.daily_elec_peak_load - model.Big_M*(1-model.U_elec_peak_load)
+
+    def elec_peak_load5(model):
+        return model.monthly_elec_peak_load <= model.daily_elec_peak_load + model.Big_M*(1-model.U_elec_peak_load)
+
+    def elec_peak_load6(model):
+        return model.U_elec_peak_load >= model.daily_elec_peak_load/model.Hist_monthly_elec_peak_load - 1
+
+    def heat_peak_load1(model):
+        return model.daily_heat_peak_energy >= sum(model.Hbuy_market[t] for t in model.T)
+
+    def heat_peak_load2(model):
+        return model.monthly_heat_peak_energy >= -model.Big_M*model.U_heat_peak_energy
+
+    def heat_peak_load3(model):
+        return model.monthly_heat_peak_energy <= model.Big_M*model.U_heat_peak_energy
+
+    def heat_peak_load4(model):
+        return model.monthly_heat_peak_energy >= model.daily_heat_peak_energy - model.Big_M*(1-model.U_heat_peak_energy)
+
+    def heat_peak_load5(model):
+        return model.monthly_heat_peak_energy <= model.daily_heat_peak_energy + model.Big_M*(1-model.U_heat_peak_energy)
+
+    def heat_peak_load6(model):
+        return model.U_heat_peak_energy >= model.daily_heat_peak_energy/model.Hist_monthly_heat_peak_energy - 1
 
     def Hhw_supplied_by_HTES(model, t):
         # with TES
@@ -363,6 +424,18 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, agent: int, ex
     model.con_max_Pbuy_market = pyo.Constraint(model.T, rule=max_Pbuy_market)
     model.con_max_Hbuy_market = pyo.Constraint(model.T, rule=max_Hbuy_market)
     model.con_max_Psell_market = pyo.Constraint(model.T, rule=max_Psell_market)
+    model.con_elec_peak_load1 = pyo.Constraint(model.T, rule=elec_peak_load1)
+    model.con_elec_peak_load2 = pyo.Constraint(rule=elec_peak_load2)
+    model.con_elec_peak_load3 = pyo.Constraint(rule=elec_peak_load3)
+    model.con_elec_peak_load4 = pyo.Constraint(rule=elec_peak_load4)
+    model.con_elec_peak_load5 = pyo.Constraint(rule=elec_peak_load5)
+    model.con_elec_peak_load6 = pyo.Constraint(rule=elec_peak_load6)
+    model.con_heat_peak_load1 = pyo.Constraint(rule=heat_peak_load1)
+    model.con_heat_peak_load2 = pyo.Constraint(rule=heat_peak_load2)
+    model.con_heat_peak_load3 = pyo.Constraint(rule=heat_peak_load3)
+    model.con_heat_peak_load4 = pyo.Constraint(rule=heat_peak_load4)
+    model.con_heat_peak_load5 = pyo.Constraint(rule=heat_peak_load5)
+    model.con_heat_peak_load6 = pyo.Constraint(rule=heat_peak_load6)
     # if summer_mode:
     #     model.con_agent_Pbalance_summer = pyo.Constraint(model.T, rule=agent_Pbalance_summer)
     #     model.con_agent_Hbalance_summer = pyo.Constraint(model.T, rule=agent_Hbalance_summer)
