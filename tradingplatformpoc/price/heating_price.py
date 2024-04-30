@@ -1,6 +1,7 @@
 import datetime
 import logging
 from calendar import isleap, monthrange
+from typing import Dict, Optional
 
 import numpy as np
 
@@ -8,6 +9,8 @@ import pandas as pd
 
 from tradingplatformpoc.market.trade import Resource
 from tradingplatformpoc.price.iprice import IPrice
+
+EMPTY_DATETIME_INDEXED_SERIES = pd.Series([], dtype=float, index=pd.to_datetime([], utc=True))
 
 logger = logging.getLogger(__name__)
 
@@ -35,10 +38,10 @@ class HeatingPrice(IPrice):
     https://doc.afdrift.se/display/RPJ/District+heating+Varberg%3A+Pricing
     """
     all_external_heating_sells: pd.Series
+    external_heating_sells_by_agent: Dict[str, pd.Series]
     heating_wholesale_price_fraction: float
     heat_transfer_loss_per_side: float
 
-    EFFECT_PRICE: int = 68
     GRID_FEE_MARGINAL_SUB_50: int = 1116
     GRID_FEE_FIXED_SUB_50: int = 1152
     GRID_FEE_MARGINAL_50_100: int = 1068
@@ -52,12 +55,14 @@ class HeatingPrice(IPrice):
     MARGINAL_PRICE_WINTER: float = 0.5
     MARGINAL_PRICE_SUMMER: float = 0.3
 
-    def __init__(self, heating_wholesale_price_fraction: float, heat_transfer_loss: float):
+    def __init__(self, heating_wholesale_price_fraction: float, heat_transfer_loss: float, effect_fee: float = 68.0):
         super().__init__(Resource.HIGH_TEMP_HEAT)
-        self.all_external_heating_sells = pd.Series([], dtype=float, index=pd.to_datetime([], utc=True))
+        self.all_external_heating_sells = EMPTY_DATETIME_INDEXED_SERIES.copy()
+        self.external_heating_sells_by_agent: Dict[str, pd.Series] = {}
         self.heating_wholesale_price_fraction = heating_wholesale_price_fraction
         # Square root since it is added both to the BUY and the SELL side
         self.heat_transfer_loss_per_side = 1 - np.sqrt(1 - heat_transfer_loss)
+        self.effect_fee = effect_fee
 
     def expected_effect_fee(self, period: datetime.datetime) -> float:
         """
@@ -67,7 +72,7 @@ class HeatingPrice(IPrice):
                 = P(day is peak day) * EFFECT_PRICE/24
         """
         p = probability_day_is_peak_day(period)
-        return (self.EFFECT_PRICE / 24) * p
+        return (self.effect_fee / 24) * p
     
     def marginal_grid_fee_assuming_top_bracket(self, year: int) -> float:
         """
@@ -121,7 +126,7 @@ class HeatingPrice(IPrice):
         @param monthly_peak_day_avg_consumption_kw Calculated by taking the day during the month which has the highest
             heating energy use, and taking the average hourly heating use that day.
         """
-        return self.EFFECT_PRICE * monthly_peak_day_avg_consumption_kw
+        return self.effect_fee * monthly_peak_day_avg_consumption_kw
     
     def get_yearly_grid_fee(self, jan_feb_hourly_avg_consumption_kw: float) -> float:
         """Based on Jan-Feb average hourly heating use."""
@@ -169,77 +174,87 @@ class HeatingPrice(IPrice):
         grid_fee = self.get_grid_fee_for_month(jan_feb_avg_consumption_kw, year, month)
         base_marginal_price = self.get_base_marginal_price(month)
         return base_marginal_price * consumption_this_month_kwh + effect_fee + grid_fee
-    
-    def calculate_peak_day_avg_cons_kw(self, year: int, month: int) -> float:
-        subset = (self.all_external_heating_sells.index.year == year) & \
-                 (self.all_external_heating_sells.index.month == month)
-        heating_sells_this_month = self.all_external_heating_sells[subset].copy()
-        sold_by_day = heating_sells_this_month.groupby(heating_sells_this_month.index.day).sum()
-        peak_day_avg_consumption = sold_by_day.max() / 24
-        return peak_day_avg_consumption
 
-    def get_exact_retail_price(self, period: datetime.datetime, include_tax: bool) -> float:
+    def get_exact_retail_price(self, period: datetime.datetime, include_tax: bool, agent: Optional[str] = None) \
+            -> float:
         """Returns the price at which the external grid operator is willing to sell energy, in SEK/kWh"""
-
         # District heating is not taxed
-        consumption_this_month_kwh = self.calculate_consumption_this_month(period.year, period.month)
+        sells_series = self.get_sells(agent)
+        consumption_this_month_kwh = calculate_consumption_this_month(sells_series, period.year, period.month)
         if consumption_this_month_kwh == 0:
             return handle_no_consumption_when_calculating_heating_price(period)
-        jan_feb_avg_consumption_kw = self.calculate_jan_feb_avg_heating_sold(period)
-        prev_month_peak_day_avg_consumption_kw = self.calculate_peak_day_avg_cons_kw(
-            period.year, period.month)
+        jan_feb_avg_consumption_kw = calculate_jan_feb_avg_heating_sold(sells_series, period)
+        prev_month_peak_day_avg_consumption_kw = calculate_peak_day_avg_cons_kw(sells_series, period.year, period.month)
         total_cost_for_month = self.exact_district_heating_price_for_month(
             period.month, period.year, consumption_this_month_kwh, jan_feb_avg_consumption_kw,
             prev_month_peak_day_avg_consumption_kw)
         return total_cost_for_month / consumption_this_month_kwh
     
-    def get_exact_wholesale_price(self, period: datetime.datetime) -> float:
+    def get_exact_wholesale_price(self, period: datetime.datetime, agent: Optional[str] = None) -> float:
         """Returns the price at which the external grid operator is willing to buy energy, in SEK/kWh"""
+        return self.get_exact_retail_price(period, False, agent) * self.heating_wholesale_price_fraction
 
-        consumption_this_month_kwh = self.calculate_consumption_this_month(period.year, period.month)
-        if consumption_this_month_kwh == 0:
-            return handle_no_consumption_when_calculating_heating_price(period)
-        jan_feb_avg_consumption_kw = self.calculate_jan_feb_avg_heating_sold(period)
-        prev_month_peak_day_avg_consumption_kw = self.calculate_peak_day_avg_cons_kw(
-            period.year, period.month)
-        total_cost_for_month = self.exact_district_heating_price_for_month(
-            period.month, period.year, consumption_this_month_kwh, jan_feb_avg_consumption_kw,
-            prev_month_peak_day_avg_consumption_kw)
-        return (total_cost_for_month / consumption_this_month_kwh) * self.heating_wholesale_price_fraction
-
-    def calculate_consumption_this_month(self, year: int, month: int) -> float:
-        """
-        Calculate the sum of all external heating sells for the specified year-month combination.
-        Returns a float with the unit kWh.
-        """
-        subset = (self.all_external_heating_sells.index.year == year) & \
-                 (self.all_external_heating_sells.index.month == month)
-        return sum(self.all_external_heating_sells[subset])
-    
     def add_external_heating_sell(self, period: datetime.datetime, external_heating_sell_quantity: float):
         """
-        The data_store needs this information to be able to calculate the exact district heating cost.
-        Note: When there is 0 heating sold, this still needs to be added as a value - if there are values "missing" in
-        self.all_external_heating_sells, then some methods will break (calculate_jan_feb_avg_heating_sold for example)
+        We need this information to be able to calculate the exact district heating cost.
         """
-        if period in self.all_external_heating_sells.index:
-            existing_value = self.all_external_heating_sells[period]
-            logger.debug('Adding values for period {}. Was {}, will add {}.'.
-                         format(period, existing_value, external_heating_sell_quantity))
-            self.all_external_heating_sells[period] = self.all_external_heating_sells[period] + \
-                external_heating_sell_quantity
-        else:
-            to_add_in = pd.Series(external_heating_sell_quantity, index=[period])
-            self.all_external_heating_sells = pd.concat([self.all_external_heating_sells, to_add_in])
+        self.all_external_heating_sells = add_to_series(
+            self.all_external_heating_sells, period, external_heating_sell_quantity)
 
-    def calculate_jan_feb_avg_heating_sold(self, period: datetime.datetime) -> float:
+    def add_external_heating_sell_for_agent(self, period: datetime.datetime, external_heating_sell_quantity: float,
+                                            agent_id: str):
         """
-        Calculates the average effect (in kW) of heating sold in the previous January-February.
+        We need this information to be able to calculate the exact district heating cost.
         """
-        year_we_are_interested_in = period.year - 1 if period.month <= 2 else period.year
-        subset = (self.all_external_heating_sells.index.year == year_we_are_interested_in) & \
-                 (self.all_external_heating_sells.index.month <= 2)
-        if not any(subset):
-            logger.warning("No data to base grid fee on, will 'cheat' and use future data")
-            subset = (self.all_external_heating_sells.index.month <= 2)
-        return self.all_external_heating_sells[subset].mean()
+        if agent_id not in self.external_heating_sells_by_agent.keys():
+            self.external_heating_sells_by_agent[agent_id] = EMPTY_DATETIME_INDEXED_SERIES.copy()
+        self.external_heating_sells_by_agent[agent_id] = add_to_series(
+            self.external_heating_sells_by_agent[agent_id], period, external_heating_sell_quantity)
+
+    def get_sells(self, agent: Optional[str] = None) -> pd.Series:
+        if agent is not None:
+            return self.external_heating_sells_by_agent[agent]
+        return self.all_external_heating_sells
+
+
+def add_to_series(dt_series: pd.Series, period: datetime.datetime, external_heating_sell_quantity: float) -> pd.Series:
+    """
+    Add to a datetime-indexed series.
+    Note: When there is 0 heating sold, this still needs to be added as a value - if there are values "missing" in
+    self.all_external_heating_sells, then some methods will break (calculate_jan_feb_avg_heating_sold for example)
+    """
+    if period in dt_series.index:
+        dt_series[period] = dt_series[period] + external_heating_sell_quantity
+    else:
+        to_add_in = pd.Series(external_heating_sell_quantity, index=[period])
+        dt_series = pd.concat([dt_series, to_add_in])
+    return dt_series
+
+
+def calculate_consumption_this_month(dt_series: pd.Series, year: int, month: int) -> float:
+    """
+    Calculate the sum of all external heating sells for the specified year-month combination.
+    Returns a float with the unit kWh.
+    """
+    subset = (dt_series.index.year == year) & (dt_series.index.month == month)
+    return sum(dt_series[subset])
+
+
+def calculate_jan_feb_avg_heating_sold(dt_series: pd.Series, period: datetime.datetime) -> float:
+    """
+    Calculates the average effect (in kW) of heating sold in the previous January-February.
+    """
+    year_we_are_interested_in = period.year - 1 if period.month <= 2 else period.year
+    subset = (dt_series.index.year == year_we_are_interested_in) & (dt_series.index.month <= 2)
+    if not any(subset):
+        logger.warning("No data to base grid fee on, will 'cheat' and use future data")
+        subset = (dt_series.index.month <= 2)
+    return dt_series[subset].mean()
+
+
+def calculate_peak_day_avg_cons_kw(dt_series: pd.Series, year: int, month: int) -> float:
+    subset = (dt_series.index.year == year) & (dt_series.index.month == month)
+    heating_sells_this_month = dt_series[subset].copy()
+    sold_by_day = heating_sells_this_month.groupby(heating_sells_this_month.index.day).sum()
+    peak_day_avg_consumption = sold_by_day.max() / 24
+    return peak_day_avg_consumption

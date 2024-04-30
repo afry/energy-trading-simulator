@@ -9,11 +9,9 @@ class IAgent(ABC):
     """Interface for agents to implement"""
 
     guid: str
-    local_market_enabled: bool
 
-    def __init__(self, guid: str, local_market_enabled: bool):
+    def __init__(self, guid: str):
         self.guid = guid
-        self.local_market_enabled = local_market_enabled
 
     @abstractmethod
     def get_actual_usage_for_resource(self, period: datetime.datetime, resource: Resource) -> float:

@@ -10,7 +10,7 @@ from tests import utility_test_objects
 
 from tradingplatformpoc.data.preprocessing import read_electricitymap_data
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
-from tradingplatformpoc.price.heating_price import HeatingPrice
+from tradingplatformpoc.price.heating_price import HeatingPrice, calculate_consumption_this_month
 from tradingplatformpoc.trading_platform_utils import hourly_datetime_array_between
 
 FEB_1_1_AM = datetime(2019, 2, 1, 1, 0, 0, tzinfo=timezone.utc)
@@ -29,9 +29,11 @@ heat_pricing: HeatingPrice = HeatingPrice(
 electricity_pricing: ElectricityPrice = ElectricityPrice(
     elec_wholesale_offset=area_info['ExternalElectricityWholesalePriceOffset'],
     elec_tax=area_info["ElectricityTax"],
-    elec_grid_fee=area_info["ElectricityGridFee"],
+    elec_transmission_fee=area_info["ElectricityTransmissionFee"],
+    elec_effect_fee=area_info["ElectricityEffectFee"],
     elec_tax_internal=area_info["ElectricityTaxInternal"],
-    elec_grid_fee_internal=area_info["ElectricityGridFeeInternal"],
+    elec_transmission_fee_internal=area_info["ElectricityTransmissionFeeInternal"],
+    elec_effect_fee_internal=area_info["ElectricityEffectFeeInternal"],
     nordpool_data=external_price_data)
 
 
@@ -62,9 +64,11 @@ class TestElectricityPrice(TestCase):
         electricity_pricing_2: ElectricityPrice = ElectricityPrice(
             elec_wholesale_offset=0.05,
             elec_tax=1.5,
-            elec_grid_fee=0.5,
+            elec_transmission_fee=0.5,
+            elec_effect_fee=0,
             elec_tax_internal=0,
-            elec_grid_fee_internal=0,
+            elec_transmission_fee_internal=0,
+            elec_effect_fee_internal=0,
             nordpool_data=external_price_data)
 
         # Comparing gross prices
@@ -114,8 +118,8 @@ class TestHeatingPrice(TestCase):
             heat_transfer_loss=area_info["HeatTransferLoss"])
         ds.add_external_heating_sell(FEB_1_1_AM, 50)
         ds.add_external_heating_sell(datetime(2019, 3, 1, 1, tzinfo=timezone.utc), 100)
-        self.assertAlmostEqual(50.0, ds.calculate_consumption_this_month(2019, 2))
-        self.assertAlmostEqual(0.0, ds.calculate_consumption_this_month(2019, 4))
+        self.assertAlmostEqual(50.0, calculate_consumption_this_month(ds.all_external_heating_sells, 2019, 2))
+        self.assertAlmostEqual(0.0, calculate_consumption_this_month(ds.all_external_heating_sells, 2019, 4))
 
     def test_get_exact_retail_price_heating(self):
         """Test basic functionality of get_exact_retail_price for HIGH_TEMP_HEAT"""

@@ -21,9 +21,11 @@ class Test(TestCase):
     electricity_pricing = ElectricityPrice(
         elec_wholesale_offset=0.05,
         elec_tax=1.5,
-        elec_grid_fee=0.5,
+        elec_transmission_fee=0.5,
+        elec_effect_fee=800,
         elec_tax_internal=0,
-        elec_grid_fee_internal=0,
+        elec_transmission_fee_internal=0,
+        elec_effect_fee_internal=0,
         nordpool_data=pd.Series())
 
     def test_get_power_transfers(self):

@@ -102,14 +102,26 @@
         "min_value": 0.0,
         "format": "%.3f",
         "default": 0.428,
-        "help": "The electricity tax in SEK/kWh, for trades not inside the local market. For 2024, this is 0.428, but here it can be set to any (non-negative) number"
+        "help": "The electricity tax in SEK/kWh, when buying electricity from the external grid. For 2024, this is 0.428, but here it can be set to any (non-negative) number"
     },
-    "ElectricityGridFee": {
-        "display": "Electricity grid fee:",
+    "ElectricityTransmissionFee": {
+        "display": "Electricity transmission fee:",
         "min_value": 0.0,
         "format": "%.3f",
-        "default": 0.168,
-        "help": "The electricity grid fee in SEK/kWh, for trades not inside the local market. The price at which electricity can be imported into the microgrid will be set to the Nordpool spot price, plus the electricity tax, plus this number. In reality it is quite complicated to calculate, since it depends on the average effect used for the three months with highest consumption over the year, but here we approximate it with a flat SEK/kWh rate. For Varberg Energi in 2024 this approximation is roughly equal to 0.16778, but here it can be set to any (non-negative) number"
+        "default": 0.076,
+        "help": "The electricity transmission fee in SEK/kWh, when buying electricity from the external grid. The price at which electricity can be imported into the microgrid will be set to the Nordpool spot price, plus the electricity tax, plus this number, plus the effect fee. For Varberg Energi in 2024 this is equal to 0.076, but here it can be set to any (non-negative) number"
+    },
+    "ElectricityEffectFee": {
+        "display": "Electricity effect fee:",
+        "min_value": 0,
+        "default": 804,
+        "help": "The electricity effect fee in SEK/kW, when buying electricity from the external grid."
+    },
+    "HeatingEffectFee": {
+        "display": "Heating effect fee:",
+        "min_value": 0,
+        "default": 68,
+        "help": "The heating effect fee in SEK/kW, when buying heating from the external grid. The amount in SEK is equal to this number multiplied by the highest outtake for a single day within the given month, divided by 24 (hours). For Varberg Energi in 2024 this number is 68 SEK/kW, but it can be varied here. A high number will penalize high peak usage more."
     },
     "BatteryChargeRate": {
         "display": "Battery charge rate",
@@ -166,12 +178,19 @@
         "help": "The electricity tax in SEK/kWh, paid on internal trades in the local market. Should be between 0 and the 'external'/'normal' tax. Not yet implemented!",
         "disabled": true
     },
-    "ElectricityGridFeeInternal": {
-        "display": "Electricity grid fee (internal):",
+    "ElectricityTransmissionFeeInternal": {
+        "display": "Electricity transmission fee (internal):",
         "min_value": 0.0,
         "format": "%.3f",
         "default": 0.0,
-        "help": "The grid fee, in SEK/kWh, paid on internal trades in the local market. Should be between 0 and the 'external'/'normal' grid fee. Not yet implemented!",
+        "help": "The electricity transmission fee in SEK/kWh, when buying electricity in the local market. Should be between 0 and the 'external'/'normal' transmission fee. Not yet implemented!",
+        "disabled": true
+    },
+    "ElectricityEffectFeeInternal": {
+        "display": "Electricity effect fee (internal):",
+        "min_value": 0,
+        "default": 0,
+        "help": "The electricity effect fee in SEK/kW, when buying electricity in the local market. Should be between 0 and the 'external'/'normal' effect fee. Not yet implemented!",
         "disabled": true
     },
     "ExternalHeatingWholesalePriceFraction": {

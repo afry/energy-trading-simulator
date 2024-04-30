@@ -13,19 +13,29 @@ logger = logging.getLogger(__name__)
 
 class ElectricityPrice(IPrice):
     nordpool_data: pd.Series
+    transmission_fee: float  # SEK/kWh
+    effect_fee: float  # SEK/kW
     elec_tax_internal: float  # SEK/kWh
-    elec_grid_fee_internal: float  # SEK/kWh
+    elec_transmission_fee_internal: float  # SEK/kWh
+    elec_effect_fee_internal: float  # SEK/kW
 
-    def __init__(self, elec_wholesale_offset: float, elec_tax: float, elec_grid_fee: float,
-                 elec_tax_internal: float, elec_grid_fee_internal: float, nordpool_data: pd.Series):
+    def __init__(self, elec_wholesale_offset: float,
+                 elec_tax: float, elec_transmission_fee: float, elec_effect_fee: float,
+                 elec_tax_internal: float, elec_transmission_fee_internal: float, elec_effect_fee_internal: float,
+                 nordpool_data: pd.Series):
         super().__init__(Resource.ELECTRICITY)
         self.nordpool_data = nordpool_data
         self.wholesale_offset = elec_wholesale_offset
         self.tax = elec_tax
-        self.grid_fee = elec_grid_fee
+        self.transmission_fee = elec_transmission_fee
+        self.effect_fee = elec_effect_fee
         self.elec_tax_internal = elec_tax_internal
-        self.elec_grid_fee_internal = elec_grid_fee_internal
-    
+        self.elec_transmission_fee_internal = elec_transmission_fee_internal
+        self.elec_effect_fee_internal = elec_effect_fee_internal
+
+        self.grid_fee = self.transmission_fee + self.effect_fee / 8766.0
+        self.elec_grid_fee_internal = self.elec_transmission_fee_internal + self.elec_effect_fee_internal / 8766.0
+
     def get_estimated_retail_price(self, period: datetime.datetime, include_tax: bool) -> float:
         """
         Returns the price at which the external grid operator is believed to be willing to sell energy, in SEK/kWh.
@@ -89,6 +99,7 @@ class ElectricityPrice(IPrice):
         The external grid sells at the Nordpool spot price, plus the "grid fee".
         See also https://doc.afdrift.se/pages/viewpage.action?pageId=17072325
         """
+        # TODO: Will not be needed anymore when Chalmers' optimizer uses the effect fee "properly"
         return nordpool_price + self.grid_fee
 
     def get_electricity_net_external_price(self, gross_price: Union[float, pd.Series]) -> Union[float, pd.Series]:
