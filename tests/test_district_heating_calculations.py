@@ -3,7 +3,8 @@ from unittest import TestCase
 
 import pytz
 
-from tradingplatformpoc.price.heating_price import HeatingPrice
+from tradingplatformpoc.price.heating_price import HeatingPrice, calculate_jan_feb_avg_heating_sold, \
+    calculate_peak_day_avg_cons_kw
 
 
 class Test(TestCase):
@@ -26,19 +27,19 @@ class Test(TestCase):
         """Test basic functionality of calculate_jan_feb_avg_heating_sold"""
         dhp = HeatingPrice(0, 0)
         dhp.add_external_heating_sell(datetime.datetime(2019, 2, 1, 1, tzinfo=pytz.utc), 50)
-        dhp.add_external_heating_sell(datetime.datetime(2019, 3, 1, 1, tzinfo=pytz.utc), 100)
-        self.assertAlmostEqual(50.0, dhp.calculate_jan_feb_avg_heating_sold(
-            datetime.datetime(2019, 3, 1, 1, tzinfo=pytz.utc)))
+        march_1st = datetime.datetime(2019, 3, 1, 1, tzinfo=pytz.utc)
+        dhp.add_external_heating_sell(march_1st, 100)
+        self.assertAlmostEqual(50.0, calculate_jan_feb_avg_heating_sold(dhp.all_external_heating_sells, march_1st))
 
     def test_calculate_jan_feb_avg_heating_sold_when_no_data(self):
         """Test that calculate_jan_feb_avg_heating_sold logs a warning when there is no data to properly do the
         calculation."""
         dhp = HeatingPrice(0, 0)
-        dhp.add_external_heating_sell(datetime.datetime(2019, 2, 1, 1, tzinfo=pytz.utc), 50)
+        feb_1st = datetime.datetime(2019, 2, 1, 1, tzinfo=pytz.utc)
+        dhp.add_external_heating_sell(feb_1st, 50)
         dhp.add_external_heating_sell(datetime.datetime(2019, 3, 1, 1, tzinfo=pytz.utc), 100)
         with self.assertLogs() as captured:
-            self.assertAlmostEqual(50.0, dhp.calculate_jan_feb_avg_heating_sold(
-                datetime.datetime(2019, 2, 1, 1, tzinfo=pytz.utc)))
+            self.assertAlmostEqual(50.0, calculate_jan_feb_avg_heating_sold(dhp.all_external_heating_sells, feb_1st))
         self.assertEqual(len(captured.records), 1)
         self.assertEqual(captured.records[0].levelname, 'WARNING')
 
@@ -50,8 +51,7 @@ class Test(TestCase):
         dhp.add_external_heating_sell(datetime.datetime(2019, 3, 2, 1, tzinfo=pytz.utc), 50)
         dhp.add_external_heating_sell(datetime.datetime(2019, 3, 2, 2, tzinfo=pytz.utc), 50)
         dhp.add_external_heating_sell(datetime.datetime(2019, 3, 2, 3, tzinfo=pytz.utc), 50)
-        self.assertAlmostEqual(10.0, dhp.calculate_peak_day_avg_cons_kw(
-            2019, 3))
+        self.assertAlmostEqual(10.0, calculate_peak_day_avg_cons_kw(dhp.all_external_heating_sells, 2019, 3))
 
     def test_get_base_marginal_price(self):
         """Test marginal price for summer/winter periods: summer should be lower than winter."""

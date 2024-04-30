@@ -57,6 +57,7 @@ class TradingSimulator:
                 update_job_with_time(self.job_id, 'start_time')
                 self.initialize_data()
                 self.agents, self.grid_agents = self.initialize_agents()
+                self.block_agents: List[BlockAgent] = [agent for agent in self.agents if isinstance(agent, BlockAgent)]
                 self.run()
                 self.extract_heating_price()
                 update_job_with_time(self.job_id, 'end_time')
@@ -142,18 +143,12 @@ class TradingSimulator:
                                                discharging_efficiency=area_info["BatteryEfficiency"])
 
                 agents.append(
-                    BlockAgent(self.local_market_enabled,
-                               heat_pricing=self.heat_pricing,
-                               electricity_pricing=self.electricity_pricing,
-                               digital_twin=block_digital_twin,
-                               can_sell_heat_to_external=LEC_CAN_SELL_HEAT_TO_EXTERNAL,
-                               heat_pump_max_input=agent["HeatPumpMaxInput"],
+                    BlockAgent(digital_twin=block_digital_twin, heat_pump_max_input=agent["HeatPumpMaxInput"],
                                heat_pump_max_output=agent["HeatPumpMaxOutput"],
                                booster_pump_max_input=agent["BoosterPumpMaxInput"],
                                booster_pump_max_output=agent["BoosterPumpMaxOutput"],
                                acc_tank_capacity=agent["AccumulatorTankCapacity"],
-                               frac_for_bites=agent["FractionUsedForBITES"],
-                               battery=storage_digital_twin,
+                               frac_for_bites=agent["FractionUsedForBITES"], battery=storage_digital_twin,
                                guid=agent_name))
 
             elif agent_type == "GroceryStoreAgent":
@@ -171,28 +166,22 @@ class TradingSimulator:
                                                                # Cooling is handled "internally", so this is False:
                                                                hp_produce_cooling=False)
                 agents.append(
-                    BlockAgent(self.local_market_enabled,
-                               heat_pricing=self.heat_pricing,
-                               electricity_pricing=self.electricity_pricing, digital_twin=grocery_store_digital_twin,
-                               can_sell_heat_to_external=LEC_CAN_SELL_HEAT_TO_EXTERNAL,
-                               heat_pump_max_input=agent["HeatPumpMaxInput"],
+                    BlockAgent(digital_twin=grocery_store_digital_twin, heat_pump_max_input=agent["HeatPumpMaxInput"],
                                heat_pump_max_output=agent["HeatPumpMaxOutput"],
                                booster_pump_max_input=agent["BoosterPumpMaxInput"],
                                booster_pump_max_output=agent["BoosterPumpMaxOutput"],
                                acc_tank_capacity=agent["AccumulatorTankCapacity"],
-                               frac_for_bites=agent["FractionUsedForBITES"],
-                               guid=agent_name))
+                               frac_for_bites=agent["FractionUsedForBITES"], guid=agent_name))
             elif agent_type == "GridAgent":
-                if Resource[agent["Resource"]] == Resource.ELECTRICITY:
-                    grid_agent = GridAgent(self.local_market_enabled, self.electricity_pricing,
-                                           Resource[agent["Resource"]], can_buy=True,
+                resource = Resource[agent["Resource"]]
+                if resource == Resource.ELECTRICITY:
+                    grid_agent = GridAgent(resource, can_buy=True,
                                            max_transfer_per_hour=agent["TransferRate"], guid=agent_name)
-                elif Resource[agent["Resource"]] == Resource.HIGH_TEMP_HEAT:
-                    grid_agent = GridAgent(self.local_market_enabled, self.heat_pricing, Resource[agent["Resource"]],
-                                           can_buy=LEC_CAN_SELL_HEAT_TO_EXTERNAL,
+                elif resource == Resource.HIGH_TEMP_HEAT:
+                    grid_agent = GridAgent(resource, can_buy=LEC_CAN_SELL_HEAT_TO_EXTERNAL,
                                            max_transfer_per_hour=agent["TransferRate"], guid=agent_name)
                 agents.append(grid_agent)
-                grid_agents[Resource[agent["Resource"]]] = grid_agent
+                grid_agents[resource] = grid_agent
 
         # Verify that we have a Grid Agent
         if not any(isinstance(agent, GridAgent) for agent in agents):
@@ -235,16 +224,9 @@ class TradingSimulator:
             # ------- NEW --------
             for horizon_start in thsps_in_this_batch:
                 logger.info("Simulating {:%Y-%m-%d}".format(horizon_start))
-                # if horizon_start.day == horizon_start.hour == 1:
-                #     info_string = "Simulations entering {:%B}".format(horizon_start)
-                #     logger.info(info_string)
-                # for i in range(10, len(self.agents) - len(self.grid_agents.keys())):
-                #     print('Adding ' + self.agents[i-1].guid)
-                #     chalmers_outputs = optimize(self.solver, self.agents[:i], self.grid_agents,
-                #                                 self.config_data['AreaInfo'], horizon_start,
-                #                                 self.electricity_pricing, self.heat_pricing)
-                chalmers_outputs = optimize(self.solver, self.agents, self.grid_agents, self.config_data['AreaInfo'],
-                                            horizon_start, self.electricity_pricing, self.heat_pricing,
+                chalmers_outputs = optimize(self.solver, self.block_agents, self.grid_agents,
+                                            self.config_data['AreaInfo'], horizon_start,
+                                            self.electricity_pricing, self.heat_pricing,
                                             shallow_storage_end, deep_storage_end)
                 all_trades_list_batch.append(chalmers_outputs.trades)
                 shallow_storage_end = get_final_storage_level(
@@ -280,15 +262,21 @@ class TradingSimulator:
         Simulations finished. Now, we need to go through and calculate the exact district heating price for each month
         """
         logger.info('Calculating external_heating_prices')
-        heating_price_list = get_external_heating_prices(self.heat_pricing, self.job_id,
-                                                         self.trading_periods)
+        agent_guids: List[str] = [a.guid for a in self.block_agents]
+        heating_price_list = get_external_heating_prices(self.heat_pricing,
+                                                         self.job_id,
+                                                         self.trading_periods,
+                                                         agent_guids,
+                                                         self.local_market_enabled)
         bulk_insert(TableHeatingPrice, heating_price_list)
 
         logger.info('Calculating heat_cost_discrepancy_corrections')
         heating_prices = pd.DataFrame.from_records(heating_price_list)
         heat_cost_discrepancy_corrections = correct_for_exact_heating_price(self.trading_periods,
                                                                             heating_prices,
-                                                                            self.job_id)
+                                                                            self.job_id,
+                                                                            self.local_market_enabled,
+                                                                            agent_guids)
         logger.info('Saving extra costs to db...')
         extra_cost_dict = extra_costs_to_db_dict(heat_cost_discrepancy_corrections, self.job_id)
         bulk_insert(TableExtraCost, extra_cost_dict)

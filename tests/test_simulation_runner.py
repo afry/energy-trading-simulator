@@ -61,10 +61,10 @@ class Test(TestCase):
         When trying to calculate external heating prices using an empty DataStore, NaNs should be returned for exact
         prices, and warnings should be logged.
         """
+        datetime_index = pd.DatetimeIndex([datetime.datetime(2019, 2, 1), datetime.datetime(2019, 2, 2)])
         with self.assertLogs() as captured:
             heating_price_list = get_external_heating_prices(self.heat_pricing, self.fake_job_id,
-                                                             pd.DatetimeIndex([datetime.datetime(2019, 2, 1),
-                                                                              datetime.datetime(2019, 2, 2)]))
+                                                             datetime_index, ['abc'], True)
         heating_prices = pd.DataFrame.from_records(heating_price_list)
         self.assertTrue(len(captured.records) > 0)
         log_levels_captured = [rec.levelname for rec in captured.records]
