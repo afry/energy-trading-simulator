@@ -23,11 +23,10 @@ class BlockAgent(IAgent):
     acc_tank_volume: float
     frac_for_bites: float
 
-    def __init__(self, local_market_enabled: bool, digital_twin: StaticDigitalTwin, heat_pump_max_input: float = 0,
-                 heat_pump_max_output: float = 0, booster_pump_max_input: float = 0, booster_pump_max_output: float = 0,
-                 acc_tank_capacity: float = 0, frac_for_bites: float = 0, battery: Optional[Battery] = None,
-                 guid: str = "BlockAgent"):
-        super().__init__(guid, local_market_enabled)
+    def __init__(self, digital_twin: StaticDigitalTwin, heat_pump_max_input: float = 0, heat_pump_max_output: float = 0,
+                 booster_pump_max_input: float = 0, booster_pump_max_output: float = 0, acc_tank_capacity: float = 0,
+                 frac_for_bites: float = 0, battery: Optional[Battery] = None, guid: str = "BlockAgent"):
+        super().__init__(guid)
         self.digital_twin = digital_twin
         self.heat_pump_max_input = heat_pump_max_input
         self.heat_pump_max_output = heat_pump_max_output

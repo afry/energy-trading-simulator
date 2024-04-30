@@ -7,6 +7,7 @@ AREA_INFO = {
     "ElectricityTaxInternal": 0.0,
     "ElectricityTransmissionFeeInternal": 0.0,
     "ElectricityEffectFeeInternal": 0.0,
+    "HeatingEffectFee": 0.0,
     "ExternalElectricityWholesalePriceOffset": 0.05,
     "ExternalHeatingWholesalePriceFraction": 0.5
 }

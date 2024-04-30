@@ -117,17 +117,18 @@ def correct_for_exact_heating_price_no_lec(trading_periods: pd.DatetimeIndex,
         heating_trades_for_month: Dict[datetime.datetime, List] = \
             heat_trades_from_db_for_periods(trading_periods_in_this_month, job_id)
         external_heat_trades = [t.source for vals in heating_trades_for_month.values() for t in vals if t.by_external]
+        heating_prices_for_month = heating_prices[(heating_prices.month == month) & (heating_prices.year == year)]
+
         if len(external_heat_trades) > 0:
             external_grid_agent_id = external_heat_trades[0]
 
             for agent in block_agent_ids:
-                heating_prices_for_year_and_month = heating_prices[(heating_prices.month == month)
-                                                                   & (heating_prices.year == year)
-                                                                   & (heating_prices.agent == agent)].iloc[0]
-                exact_ext_retail_price = heating_prices_for_year_and_month.exact_retail_price
-                exact_ext_wholesale_price = heating_prices_for_year_and_month.exact_wholesale_price
-                est_ext_retail_price = heating_prices_for_year_and_month.estimated_retail_price
-                est_ext_wholesale_price = heating_prices_for_year_and_month.estimated_wholesale_price
+                heating_prices_for_month_agent = heating_prices_for_month[heating_prices_for_month.agent == agent].\
+                    iloc[0]
+                exact_ext_retail_price = heating_prices_for_month_agent.exact_retail_price
+                exact_ext_wholesale_price = heating_prices_for_month_agent.exact_wholesale_price
+                est_ext_retail_price = heating_prices_for_month_agent.estimated_retail_price
+                est_ext_wholesale_price = heating_prices_for_month_agent.estimated_wholesale_price
 
                 heating_trades_for_agent = [t for vals in heating_trades_for_month.values() for t in vals
                                             if t.source == agent]

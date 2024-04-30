@@ -179,12 +179,12 @@ class HeatingPrice(IPrice):
             -> float:
         """Returns the price at which the external grid operator is willing to sell energy, in SEK/kWh"""
         # District heating is not taxed
-        consumption_this_month_kwh = calculate_consumption_this_month(self.get_sells(agent), period.year, period.month)
+        sells_series = self.get_sells(agent)
+        consumption_this_month_kwh = calculate_consumption_this_month(sells_series, period.year, period.month)
         if consumption_this_month_kwh == 0:
             return handle_no_consumption_when_calculating_heating_price(period)
-        jan_feb_avg_consumption_kw = calculate_jan_feb_avg_heating_sold(self.get_sells(agent), period)
-        prev_month_peak_day_avg_consumption_kw = calculate_peak_day_avg_cons_kw(
-            self.get_sells(agent), period.year, period.month)
+        jan_feb_avg_consumption_kw = calculate_jan_feb_avg_heating_sold(sells_series, period)
+        prev_month_peak_day_avg_consumption_kw = calculate_peak_day_avg_cons_kw(sells_series, period.year, period.month)
         total_cost_for_month = self.exact_district_heating_price_for_month(
             period.month, period.year, consumption_this_month_kwh, jan_feb_avg_consumption_kw,
             prev_month_peak_day_avg_consumption_kw)
@@ -192,17 +192,7 @@ class HeatingPrice(IPrice):
     
     def get_exact_wholesale_price(self, period: datetime.datetime, agent: Optional[str] = None) -> float:
         """Returns the price at which the external grid operator is willing to buy energy, in SEK/kWh"""
-
-        consumption_this_month_kwh = calculate_consumption_this_month(self.get_sells(agent), period.year, period.month)
-        if consumption_this_month_kwh == 0:
-            return handle_no_consumption_when_calculating_heating_price(period)
-        jan_feb_avg_consumption_kw = calculate_jan_feb_avg_heating_sold(self.get_sells(agent), period)
-        prev_month_peak_day_avg_consumption_kw = calculate_peak_day_avg_cons_kw(
-            self.get_sells(agent), period.year, period.month)
-        total_cost_for_month = self.exact_district_heating_price_for_month(
-            period.month, period.year, consumption_this_month_kwh, jan_feb_avg_consumption_kw,
-            prev_month_peak_day_avg_consumption_kw)
-        return (total_cost_for_month / consumption_this_month_kwh) * self.heating_wholesale_price_fraction
+        return self.get_exact_retail_price(period, False, agent) * self.heating_wholesale_price_fraction
 
     def add_external_heating_sell(self, period: datetime.datetime, external_heating_sell_quantity: float):
         """

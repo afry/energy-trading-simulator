@@ -574,17 +574,20 @@ def add_external_trade(trade_list: List[Trade], bought_from_external_name: str, 
                                 price=price, source=grid_agent_guid, by_external=True, market=market,
                                 loss=loss))
     else:
-        # Add to HeatingPrice - needs to be done even if quantity is 0
-        if isinstance(resource_price_data, HeatingPrice):
-            resource_price_data.add_external_heating_sell(period, -external_quantity)
         if external_quantity < -VERY_SMALL_NUMBER:
+            trade_quantity = -external_quantity
             retail_prices = getattr(optimized_model, retail_price_name)
             price = get_value_from_param(retail_prices, hour)
             trade_list.append(Trade(period=period,
-                                    action=Action.SELL, resource=resource, quantity=-external_quantity,
+                                    action=Action.SELL, resource=resource, quantity=trade_quantity,
                                     price=price, source=grid_agent_guid, by_external=True, market=market,
                                     loss=loss,
                                     tax_paid=resource_price_data.tax, grid_fee_paid=resource_price_data.grid_fee))
+        else:
+            trade_quantity = 0.0
+        # Add to HeatingPrice - needs to be done even if quantity is 0
+        if isinstance(resource_price_data, HeatingPrice):
+            resource_price_data.add_external_heating_sell(period, trade_quantity)
 
 
 def get_value_from_param(maybe_indexed_param: Union[IndexedParam, ScalarParam], index: int) -> float:

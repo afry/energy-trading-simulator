@@ -143,8 +143,7 @@ class TradingSimulator:
                                                discharging_efficiency=area_info["BatteryEfficiency"])
 
                 agents.append(
-                    BlockAgent(self.local_market_enabled, digital_twin=block_digital_twin,
-                               heat_pump_max_input=agent["HeatPumpMaxInput"],
+                    BlockAgent(digital_twin=block_digital_twin, heat_pump_max_input=agent["HeatPumpMaxInput"],
                                heat_pump_max_output=agent["HeatPumpMaxOutput"],
                                booster_pump_max_input=agent["BoosterPumpMaxInput"],
                                booster_pump_max_output=agent["BoosterPumpMaxOutput"],
@@ -167,24 +166,22 @@ class TradingSimulator:
                                                                # Cooling is handled "internally", so this is False:
                                                                hp_produce_cooling=False)
                 agents.append(
-                    BlockAgent(self.local_market_enabled, digital_twin=grocery_store_digital_twin,
-                               heat_pump_max_input=agent["HeatPumpMaxInput"],
+                    BlockAgent(digital_twin=grocery_store_digital_twin, heat_pump_max_input=agent["HeatPumpMaxInput"],
                                heat_pump_max_output=agent["HeatPumpMaxOutput"],
                                booster_pump_max_input=agent["BoosterPumpMaxInput"],
                                booster_pump_max_output=agent["BoosterPumpMaxOutput"],
                                acc_tank_capacity=agent["AccumulatorTankCapacity"],
                                frac_for_bites=agent["FractionUsedForBITES"], guid=agent_name))
             elif agent_type == "GridAgent":
-                if Resource[agent["Resource"]] == Resource.ELECTRICITY:
-                    grid_agent = GridAgent(self.local_market_enabled, self.electricity_pricing,
-                                           Resource[agent["Resource"]], can_buy=True,
+                resource = Resource[agent["Resource"]]
+                if resource == Resource.ELECTRICITY:
+                    grid_agent = GridAgent(resource, can_buy=True,
                                            max_transfer_per_hour=agent["TransferRate"], guid=agent_name)
-                elif Resource[agent["Resource"]] == Resource.HIGH_TEMP_HEAT:
-                    grid_agent = GridAgent(self.local_market_enabled, self.heat_pricing, Resource[agent["Resource"]],
-                                           can_buy=LEC_CAN_SELL_HEAT_TO_EXTERNAL,
+                elif resource == Resource.HIGH_TEMP_HEAT:
+                    grid_agent = GridAgent(resource, can_buy=LEC_CAN_SELL_HEAT_TO_EXTERNAL,
                                            max_transfer_per_hour=agent["TransferRate"], guid=agent_name)
                 agents.append(grid_agent)
-                grid_agents[Resource[agent["Resource"]]] = grid_agent
+                grid_agents[resource] = grid_agent
 
         # Verify that we have a Grid Agent
         if not any(isinstance(agent, GridAgent) for agent in agents):
