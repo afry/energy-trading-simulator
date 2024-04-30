@@ -1,13 +1,14 @@
-from typing import List, Optional, Tuple
+import datetime
+from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
 
 from tradingplatformpoc.market.extra_cost import ExtraCost, ExtraCostType
-from tradingplatformpoc.market.trade import Action, Trade
+from tradingplatformpoc.market.trade import Action
 from tradingplatformpoc.sql.trade.crud import heat_trades_from_db_for_periods
 
 
-def get_external_heat_trade(trades: List[Trade]) -> Tuple[Optional[float], Optional[Action], Optional[str]]:
+def get_external_heat_trade(trades: List) -> Tuple[Optional[float], Optional[Action], Optional[str]]:
     external_trades = [x for x in trades if x.by_external]
     if len(external_trades) == 0:
         return None, None, None
@@ -22,7 +23,8 @@ def get_external_heat_trade(trades: List[Trade]) -> Tuple[Optional[float], Optio
 
 
 def correct_for_exact_heating_price(trading_periods: pd.DatetimeIndex,
-                                    heating_prices: pd.DataFrame, job_id: str) -> List[ExtraCost]:
+                                    heating_prices: pd.DataFrame, job_id: str,
+                                    local_market_enabled: bool, block_agent_ids: List[str]) -> List[ExtraCost]:
     """
     The price of external heating isn't known when making trades - it is only known after the month has concluded.
     If we for simplicity regard only the retail prices (external grid selling, and not buying), and we define:
@@ -37,6 +39,13 @@ def correct_for_exact_heating_price(trading_periods: pd.DatetimeIndex,
         "ExtraCostType" always being equal to "HEAT_EXT_COST_CORR", and a "cost" value, where a negative value means the
         agent is owed money for the period, rather than owing the money to someone else.
     """
+    if local_market_enabled:
+        return correct_for_exact_heating_price_for_lec(trading_periods, heating_prices, job_id)
+    return correct_for_exact_heating_price_no_lec(trading_periods, heating_prices, job_id, block_agent_ids)
+
+
+def correct_for_exact_heating_price_for_lec(trading_periods: pd.DatetimeIndex,
+                                            heating_prices: pd.DataFrame, job_id: str) -> List[ExtraCost]:
 
     extra_costs: List[ExtraCost] = []
     for year, month in pd.unique(trading_periods.map(lambda x: (x.year, x.month))):
@@ -88,5 +97,53 @@ def correct_for_exact_heating_price(trading_periods: pd.DatetimeIndex,
                         share_of_debt = net_prod / total_internal_prod
                         extra_costs.append(ExtraCost(period, internal_trade.source, ExtraCostType.HEAT_EXT_COST_CORR,
                                                      share_of_debt * total_debt))
+
+    return extra_costs
+
+
+def correct_for_exact_heating_price_no_lec(trading_periods: pd.DatetimeIndex,
+                                           heating_prices: pd.DataFrame,
+                                           job_id: str,
+                                           block_agent_ids: List[str]) -> List[ExtraCost]:
+    """
+    Without a LEC, this calculation needs to be made separately for each agent.
+    """
+
+    extra_costs: List[ExtraCost] = []
+    for year, month in pd.unique(trading_periods.map(lambda x: (x.year, x.month))):
+        trading_periods_in_this_month = trading_periods[(trading_periods.year == year)
+                                                        & (trading_periods.month == month)]
+
+        heating_trades_for_month: Dict[datetime.datetime, List] = \
+            heat_trades_from_db_for_periods(trading_periods_in_this_month, job_id)
+        external_heat_trades = [t.source for vals in heating_trades_for_month.values() for t in vals if t.by_external]
+        if len(external_heat_trades) > 0:
+            external_grid_agent_id = external_heat_trades[0]
+
+            for agent in block_agent_ids:
+                heating_prices_for_year_and_month = heating_prices[(heating_prices.month == month)
+                                                                   & (heating_prices.year == year)
+                                                                   & (heating_prices.agent == agent)].iloc[0]
+                exact_ext_retail_price = heating_prices_for_year_and_month.exact_retail_price
+                exact_ext_wholesale_price = heating_prices_for_year_and_month.exact_wholesale_price
+                est_ext_retail_price = heating_prices_for_year_and_month.estimated_retail_price
+                est_ext_wholesale_price = heating_prices_for_year_and_month.estimated_wholesale_price
+
+                heating_trades_for_agent = [t for vals in heating_trades_for_month.values() for t in vals
+                                            if t.source == agent]
+
+                for trade in heating_trades_for_agent:
+                    if trade.action == Action.BUY:
+                        total_debt = (exact_ext_retail_price - est_ext_retail_price) * trade.quantity_pre_loss
+                        extra_costs.append(ExtraCost(trade.period, external_grid_agent_id,
+                                                     ExtraCostType.HEAT_EXT_COST_CORR, -total_debt))
+                        extra_costs.append(ExtraCost(trade.period, agent, ExtraCostType.HEAT_EXT_COST_CORR,
+                                                     total_debt))
+                    else:
+                        total_debt = (est_ext_wholesale_price - exact_ext_wholesale_price) * trade.quantity_pre_loss
+                        extra_costs.append(ExtraCost(trade.period, external_grid_agent_id,
+                                                     ExtraCostType.HEAT_EXT_COST_CORR, -total_debt))
+                        extra_costs.append(ExtraCost(trade.period, agent, ExtraCostType.HEAT_EXT_COST_CORR,
+                                                     total_debt))
 
     return extra_costs

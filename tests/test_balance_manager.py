@@ -7,7 +7,7 @@ import pandas as pd
 
 import pytz
 
-from tradingplatformpoc.market.balance_manager import correct_for_exact_heating_price
+from tradingplatformpoc.market.balance_manager import correct_for_exact_heating_price_for_lec
 from tradingplatformpoc.market.trade import Action, Market, Resource, Trade
 
 
@@ -42,7 +42,7 @@ class TestBalanceManager(TestCase):
         # Here we use trades, but what is really returned is List[RowProxy]. Fix this?
         with mock.patch('tradingplatformpoc.market.balance_manager.heat_trades_from_db_for_periods',
                         return_value={self.some_datetime: trades}):
-            extra_costs = correct_for_exact_heating_price(
+            extra_costs = correct_for_exact_heating_price_for_lec(
                 pd.DatetimeIndex([self.some_datetime]), heating_prices, "job_id")
         self.assertEqual(1.5, [x.cost for x in extra_costs if x.agent == "Buyer1"][0])
         self.assertEqual(1.0, [x.cost for x in extra_costs if x.agent == "Buyer2"][0])
@@ -74,7 +74,7 @@ class TestBalanceManager(TestCase):
         
         with mock.patch('tradingplatformpoc.market.balance_manager.heat_trades_from_db_for_periods',
                         return_value={self.some_datetime: trades}):
-            extra_costs = correct_for_exact_heating_price(
+            extra_costs = correct_for_exact_heating_price_for_lec(
                 pd.DatetimeIndex([self.some_datetime]), heating_prices, "job_id")
         self.assertEqual(1.5, [x.cost for x in extra_costs if x.agent == "Seller1"][0])
         self.assertEqual(1.0, [x.cost for x in extra_costs if x.agent == "Seller2"][0])
@@ -106,7 +106,7 @@ class TestBalanceManager(TestCase):
         
         with mock.patch('tradingplatformpoc.market.balance_manager.heat_trades_from_db_for_periods',
                         return_value={self.some_datetime: trades}):
-            extra_costs = correct_for_exact_heating_price(
+            extra_costs = correct_for_exact_heating_price_for_lec(
                 pd.DatetimeIndex([self.some_datetime]), heating_prices, "job_id")
         self.assertEqual(-1.5, [x.cost for x in extra_costs if x.agent == "Buyer1"][0])
         self.assertEqual(-1.0, [x.cost for x in extra_costs if x.agent == "Buyer2"][0])
@@ -143,7 +143,7 @@ class TestBalanceManager(TestCase):
         # Here we use trades, but what is really returned is List[RowProxy]. Fix this?
         with mock.patch('tradingplatformpoc.market.balance_manager.heat_trades_from_db_for_periods',
                         return_value={self.some_datetime: trades}):
-            extra_costs = correct_for_exact_heating_price(
+            extra_costs = correct_for_exact_heating_price_for_lec(
                 pd.DatetimeIndex([self.some_datetime]), heating_prices, "job_id")
         self.assertEqual(187.5, [x.cost for x in extra_costs if x.agent == "Buyer1"][0])
         self.assertEqual(62.5, [x.cost for x in extra_costs if x.agent == "Buyer2"][0])

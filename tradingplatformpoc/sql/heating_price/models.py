@@ -18,6 +18,12 @@ class HeatingPrice(SQLModel, table=True):
         title='Unique job ID',
         nullable=False
     )
+    agent: str = Field(
+        primary_key=False,
+        default=None,
+        title="Agent ID",
+        nullable=True,
+    )
     year: int = Field(
         primary_key=False,
         default=None,
