@@ -38,7 +38,6 @@ class HeatingPrice(IPrice):
     heating_wholesale_price_fraction: float
     heat_transfer_loss_per_side: float
 
-    EFFECT_PRICE: int = 68
     GRID_FEE_MARGINAL_SUB_50: int = 1116
     GRID_FEE_FIXED_SUB_50: int = 1152
     GRID_FEE_MARGINAL_50_100: int = 1068
@@ -52,12 +51,13 @@ class HeatingPrice(IPrice):
     MARGINAL_PRICE_WINTER: float = 0.5
     MARGINAL_PRICE_SUMMER: float = 0.3
 
-    def __init__(self, heating_wholesale_price_fraction: float, heat_transfer_loss: float):
+    def __init__(self, heating_wholesale_price_fraction: float, heat_transfer_loss: float, effect_fee: float = 68.0):
         super().__init__(Resource.HIGH_TEMP_HEAT)
         self.all_external_heating_sells = pd.Series([], dtype=float, index=pd.to_datetime([], utc=True))
         self.heating_wholesale_price_fraction = heating_wholesale_price_fraction
         # Square root since it is added both to the BUY and the SELL side
         self.heat_transfer_loss_per_side = 1 - np.sqrt(1 - heat_transfer_loss)
+        self.effect_fee = effect_fee
 
     def expected_effect_fee(self, period: datetime.datetime) -> float:
         """
@@ -67,7 +67,7 @@ class HeatingPrice(IPrice):
                 = P(day is peak day) * EFFECT_PRICE/24
         """
         p = probability_day_is_peak_day(period)
-        return (self.EFFECT_PRICE / 24) * p
+        return (self.effect_fee / 24) * p
     
     def marginal_grid_fee_assuming_top_bracket(self, year: int) -> float:
         """
@@ -121,7 +121,7 @@ class HeatingPrice(IPrice):
         @param monthly_peak_day_avg_consumption_kw Calculated by taking the day during the month which has the highest
             heating energy use, and taking the average hourly heating use that day.
         """
-        return self.EFFECT_PRICE * monthly_peak_day_avg_consumption_kw
+        return self.effect_fee * monthly_peak_day_avg_consumption_kw
     
     def get_yearly_grid_fee(self, jan_feb_hourly_avg_consumption_kw: float) -> float:
         """Based on Jan-Feb average hourly heating use."""

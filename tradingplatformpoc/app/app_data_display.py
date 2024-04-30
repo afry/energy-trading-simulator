@@ -94,9 +94,11 @@ def construct_combined_price_df(config_data: dict, local_price_df: Optional[pd.D
     elec_pricing: ElectricityPrice = ElectricityPrice(
         elec_wholesale_offset=config_data['AreaInfo']['ExternalElectricityWholesalePriceOffset'],
         elec_tax=config_data['AreaInfo']["ElectricityTax"],
-        elec_grid_fee=config_data['AreaInfo']["ElectricityGridFee"],
+        elec_transmission_fee=config_data['AreaInfo']["ElectricityTransmissionFee"],
+        elec_effect_fee=config_data['AreaInfo']["ElectricityEffectFee"],
         elec_tax_internal=config_data['AreaInfo']["ElectricityTaxInternal"],
-        elec_grid_fee_internal=config_data['AreaInfo']["ElectricityGridFeeInternal"],
+        elec_transmission_fee_internal=config_data['AreaInfo']["ElectricityTransmissionFeeInternal"],
+        elec_effect_fee_internal=config_data['AreaInfo']["ElectricityEffectFeeInternal"],
         nordpool_data=nordpool_data)
 
     nordpool_data.name = 'value'

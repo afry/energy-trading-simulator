@@ -29,9 +29,11 @@ heat_pricing: HeatingPrice = HeatingPrice(
 electricity_pricing: ElectricityPrice = ElectricityPrice(
     elec_wholesale_offset=area_info['ExternalElectricityWholesalePriceOffset'],
     elec_tax=area_info["ElectricityTax"],
-    elec_grid_fee=area_info["ElectricityGridFee"],
+    elec_transmission_fee=area_info["ElectricityTransmissionFee"],
+    elec_effect_fee=area_info["ElectricityEffectFee"],
     elec_tax_internal=area_info["ElectricityTaxInternal"],
-    elec_grid_fee_internal=area_info["ElectricityGridFeeInternal"],
+    elec_transmission_fee_internal=area_info["ElectricityTransmissionFeeInternal"],
+    elec_effect_fee_internal=area_info["ElectricityEffectFeeInternal"],
     nordpool_data=external_price_data)
 
 
@@ -62,9 +64,11 @@ class TestElectricityPrice(TestCase):
         electricity_pricing_2: ElectricityPrice = ElectricityPrice(
             elec_wholesale_offset=0.05,
             elec_tax=1.5,
-            elec_grid_fee=0.5,
+            elec_transmission_fee=0.5,
+            elec_effect_fee=0,
             elec_tax_internal=0,
-            elec_grid_fee_internal=0,
+            elec_transmission_fee_internal=0,
+            elec_effect_fee_internal=0,
             nordpool_data=external_price_data)
 
         # Comparing gross prices

@@ -77,15 +77,18 @@ class TradingSimulator:
 
         self.heat_pricing: HeatingPrice = HeatingPrice(
             heating_wholesale_price_fraction=self.config_data['AreaInfo']['ExternalHeatingWholesalePriceFraction'],
-            heat_transfer_loss=self.config_data['AreaInfo']["HeatTransferLoss"])
+            heat_transfer_loss=self.config_data['AreaInfo']["HeatTransferLoss"],
+            effect_fee=self.config_data['AreaInfo']["HeatingEffectFee"])
         corresponding_nordpool_data = get_nordpool_data(self.config_data['AreaInfo']['ElectricityPriceYear'],
                                                         self.trading_periods)
         self.electricity_pricing: ElectricityPrice = ElectricityPrice(
             elec_wholesale_offset=self.config_data['AreaInfo']['ExternalElectricityWholesalePriceOffset'],
             elec_tax=self.config_data['AreaInfo']["ElectricityTax"],
-            elec_grid_fee=self.config_data['AreaInfo']["ElectricityGridFee"],
+            elec_transmission_fee=self.config_data['AreaInfo']["ElectricityTransmissionFee"],
+            elec_effect_fee=self.config_data['AreaInfo']["ElectricityEffectFee"],
             elec_tax_internal=self.config_data['AreaInfo']["ElectricityTaxInternal"],
-            elec_grid_fee_internal=self.config_data['AreaInfo']["ElectricityGridFeeInternal"],
+            elec_transmission_fee_internal=self.config_data['AreaInfo']["ElectricityTransmissionFeeInternal"],
+            elec_effect_fee_internal=self.config_data['AreaInfo']["ElectricityEffectFeeInternal"],
             nordpool_data=corresponding_nordpool_data)
         # FIXME: Remove
         self.trading_periods = self.trading_periods.take(list(range(24))  # 02-01
