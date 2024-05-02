@@ -144,18 +144,23 @@ def get_glpk_solver() -> OptSolver:
 
 
 def get_external_heating_prices(heat_pricing: HeatingPrice, job_id: str,
-                                trading_periods: Collection[datetime]) -> List[Dict[str, Any]]:
+                                trading_periods: Collection[datetime], block_agent_ids: List[str],
+                                local_market_enabled: bool) -> List[Dict[str, Any]]:
     heating_price_by_ym_list: List[Dict[str, Any]] = []
+    agent_ids = [None] if local_market_enabled else block_agent_ids
     for (year, month) in set([(dt.year, dt.month) for dt in trading_periods]):
-        first_day_of_month = datetime(year, month, 1)  # Which day it is doesn't matter
-        heating_price_by_ym_list.append({
-            'job_id': job_id,
-            'year': year,
-            'month': month,
-            'exact_retail_price': heat_pricing.get_exact_retail_price(first_day_of_month, include_tax=True),
-            'exact_wholesale_price': heat_pricing.get_exact_wholesale_price(first_day_of_month),
-            'estimated_retail_price': heat_pricing.get_estimated_retail_price(first_day_of_month, include_tax=True),
-            'estimated_wholesale_price': heat_pricing.get_estimated_wholesale_price(first_day_of_month)})
+        for agent_id in agent_ids:  # type: ignore
+            first_day_of_month = datetime(year, month, 1)  # Which day it is doesn't matter
+            heating_price_by_ym_list.append({
+                'job_id': job_id,
+                'year': year,
+                'month': month,
+                'agent': agent_id,
+                'exact_retail_price': heat_pricing.get_exact_retail_price(
+                    first_day_of_month, include_tax=True, agent=agent_id),
+                'exact_wholesale_price': heat_pricing.get_exact_wholesale_price(first_day_of_month, agent=agent_id),
+                'estimated_retail_price': heat_pricing.get_estimated_retail_price(first_day_of_month, include_tax=True),
+                'estimated_wholesale_price': heat_pricing.get_estimated_wholesale_price(first_day_of_month)})
     return heating_price_by_ym_list
 
 
@@ -183,3 +188,9 @@ def energy_to_water_volume(energy_kwh: float, temperature_c: float = 65) -> floa
     # Specific heat of water is 4182 J/(kg C)
     # Density of water is 998 kg/m3
     return energy_kwh / (temperature_c * 4182 * 998 / 3600000)
+
+
+def weekdays_diff(from_year: int, to_year: int) -> int:
+    jan1_weekday_1 = pd.Timestamp(str(from_year) + "-01-01").dayofweek
+    jan1_weekday_2 = pd.Timestamp(str(to_year) + "-01-01").dayofweek
+    return (jan1_weekday_1 - jan1_weekday_2) % 7

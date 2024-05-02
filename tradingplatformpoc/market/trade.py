@@ -71,17 +71,12 @@ class TradeMetadataKey(Enum):
 class Trade:
     """
     The Trade class is used to keep track of energy trades that have taken place
-
-    These fields are used to calculate the cost of a trade:
-    quantity_pre_loss: Amount in kWh, before any losses are taken into account
-    quantity_post_loss: Amount in kWh, after losses are taken into account
-    For BUY-trades, the buyer pays for the quantity before losses.
-    For SELL-trades, the seller gets paid for the quantity after losses.
+    Costs are calculated on the quantity before losses (see objective function in Chalmers' code).
 
     Parameters:
         action: Buy or sell
         resource: Electricity or heating
-        quantity: Amount in kWh (before any losses are taken into account)
+        quantity: Amount in kWh (before any losses)
         price: The _net_ price in SEK/kWh (i.e. after including tax and grid fees, if applicable)
         source: String specifying which entity that did the trade (used for debugging)
         by_external: True if trade is made by an external grid agent, False otherwise. Needed for example when
@@ -138,46 +133,3 @@ class Trade:
                                                          self.price,
                                                          self.tax_paid,
                                                          self.grid_fee_paid)
-
-    def to_dict(self) -> dict:
-        """Same function name as the one in BidWithAcceptanceStatus, so that the same method can be reused."""
-        return {'period': self.period,
-                'source': self.source,
-                'by_external': self.by_external,
-                'action': self.action,
-                'resource': self.resource,
-                'market': self.market,
-                'quantity_pre_loss': self.quantity_pre_loss,
-                'quantity_post_loss': self.quantity_post_loss,
-                'price': self.price,
-                'tax_paid': self.tax_paid,
-                'grid_fee_paid': self.grid_fee_paid}
-
-    def get_cost_of_trade(self) -> float:
-        """
-        Negative if it is an income, i.e. if the trade is a SELL.
-        For BUY-trades, the buyer pays for the quantity before losses.
-        For SELL-trades, the seller gets paid for the quantity after losses.
-        """
-        if self.action == Action.BUY:
-            return self.quantity_pre_loss * self.price
-        else:
-            return -self.quantity_post_loss * self.price
-
-    def get_total_grid_fee_paid(self) -> float:
-        """
-        Paid by seller, and the seller gets paid for the quantity after losses
-        """
-        if self.action == Action.BUY:
-            return 0.0
-        else:
-            return self.quantity_post_loss * self.grid_fee_paid
-
-    def get_total_tax_paid(self) -> float:
-        """
-        Paid by seller, and the seller gets paid for the quantity after losses
-        """
-        if self.action == Action.BUY:
-            return 0.0
-        else:
-            return self.quantity_post_loss * self.tax_paid

@@ -1,6 +1,6 @@
 import datetime
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
 import pandas as pd
 
@@ -13,7 +13,7 @@ from tradingplatformpoc.sql.input_data.crud import read_input_column_df_from_db
 from tradingplatformpoc.sql.level.crud import sum_levels
 from tradingplatformpoc.sql.results.crud import save_results
 from tradingplatformpoc.sql.results.models import PreCalculatedResults, ResultsKey
-from tradingplatformpoc.sql.trade.crud import get_external_trades_df, get_total_grid_fee_paid_on_internal_trades, \
+from tradingplatformpoc.sql.trade.crud import get_external_trades_df, get_total_grid_fee_paid, \
     get_total_tax_paid
 
 logger = logging.getLogger(__name__)
@@ -101,14 +101,21 @@ def calculate_results_and_save(job_id: str, agents: List[IAgent], grid_agents: D
                                           Resource.HIGH_TEMP_HEAT.name: agg_heat_trades.sum_import}
     result_dict[ResultsKey.SUM_EXPORT] = {Resource.ELECTRICITY.name: agg_elec_trades.sum_export,
                                           Resource.HIGH_TEMP_HEAT.name: agg_heat_trades.sum_export}
-    result_dict[ResultsKey.MONTHLY_SUM_IMPORT_ELEC] = agg_elec_trades.monthly_sum_import
-    result_dict[ResultsKey.MONTHLY_SUM_EXPORT_ELEC] = agg_elec_trades.monthly_sum_export
-    result_dict[ResultsKey.MONTHLY_SUM_NET_IMPORT_ELEC] = agg_elec_trades.monthly_sum_net_import
-    result_dict[ResultsKey.MONTHLY_MAX_NET_IMPORT_ELEC] = agg_elec_trades.monthly_max_net_import
-    result_dict[ResultsKey.MONTHLY_SUM_IMPORT_HEAT] = agg_heat_trades.monthly_sum_import
-    result_dict[ResultsKey.MONTHLY_SUM_EXPORT_HEAT] = agg_heat_trades.monthly_sum_export
-    result_dict[ResultsKey.MONTHLY_SUM_NET_IMPORT_HEAT] = agg_heat_trades.monthly_sum_net_import
-    result_dict[ResultsKey.MONTHLY_MAX_NET_IMPORT_HEAT] = agg_heat_trades.monthly_max_net_import
+    result_dict[ResultsKey.MAX_NET_IMPORT] = {
+        Resource.ELECTRICITY.name: max_dict_value(agg_elec_trades.monthly_max_net_import),
+        Resource.HIGH_TEMP_HEAT.name: max_dict_value(agg_heat_trades.monthly_max_net_import)}
+    result_dict[ResultsKey.MONTHLY_SUM_IMPORT] = {
+        Resource.ELECTRICITY.name: agg_elec_trades.monthly_sum_import,
+        Resource.HIGH_TEMP_HEAT.name: agg_heat_trades.monthly_sum_import}
+    result_dict[ResultsKey.MONTHLY_SUM_EXPORT] = {
+        Resource.ELECTRICITY.name: agg_elec_trades.monthly_sum_export,
+        Resource.HIGH_TEMP_HEAT.name: agg_heat_trades.monthly_sum_export}
+    result_dict[ResultsKey.MONTHLY_SUM_NET_IMPORT] = {
+        Resource.ELECTRICITY.name: agg_elec_trades.monthly_sum_net_import,
+        Resource.HIGH_TEMP_HEAT.name: agg_heat_trades.monthly_sum_net_import}
+    result_dict[ResultsKey.MONTHLY_MAX_NET_IMPORT] = {
+        Resource.ELECTRICITY.name: agg_elec_trades.monthly_max_net_import,
+        Resource.HIGH_TEMP_HEAT.name: agg_heat_trades.monthly_max_net_import}
     # Aggregated import/export, split on period/temperature
     result_dict[ResultsKey.SUM_IMPORT_JAN_FEB] = {Resource.ELECTRICITY.name: agg_elec_trades.sum_import_jan_feb,
                                                   Resource.HIGH_TEMP_HEAT.name: agg_heat_trades.sum_import_jan_feb}
@@ -123,12 +130,17 @@ def calculate_results_and_save(job_id: str, agents: List[IAgent], grid_agents: D
     result_dict[ResultsKey.LOCALLY_PRODUCED_RESOURCES] = local_prod_dict
     # Taxes and grid fees
     result_dict[ResultsKey.TAX_PAID] = get_total_tax_paid(job_id=job_id)
-    result_dict[ResultsKey.GRID_FEES_PAID] = get_total_grid_fee_paid_on_internal_trades(job_id=job_id)
+    result_dict[ResultsKey.GRID_FEES_PAID] = get_total_grid_fee_paid(job_id=job_id)
     # Resources dumped into reservoir
     result_dict[ResultsKey.HEAT_DUMPED] = sum_levels(job_id, TradeMetadataKey.HEAT_DUMP.name)
     result_dict[ResultsKey.COOL_DUMPED] = sum_levels(job_id, TradeMetadataKey.COOL_DUMP.name)
 
     save_results(PreCalculatedResults(job_id=job_id, result_dict=result_dict))
+
+
+def max_dict_value(some_dict: Dict[Any, Union[int, float]]) -> Union[int, float]:
+    """Returns the maximum value, if there are any values present, else returns 0."""
+    return max(some_dict.values()) if some_dict else 0
 
 
 def get_extra_costs_sum(grid_agents: Dict[Resource, GridAgent], job_id: str) -> float:

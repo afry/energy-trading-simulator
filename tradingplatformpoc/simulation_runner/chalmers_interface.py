@@ -1,6 +1,6 @@
 import datetime
 import logging
-from typing import Any, Callable, Dict, List, Set, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 import numpy as np
 
@@ -8,19 +8,19 @@ import pandas as pd
 
 import pyomo.environ as pyo
 from pyomo.core.base.param import IndexedParam, ScalarParam
+from pyomo.core.base.var import IndexedVar
 from pyomo.opt import OptSolver, SolverResults, TerminationCondition
 from pyomo.util.infeasible import find_infeasible_constraints, log_infeasible_constraints
 
 from tradingplatformpoc import constants
 from tradingplatformpoc.agent.block_agent import BlockAgent
 from tradingplatformpoc.agent.grid_agent import GridAgent
-from tradingplatformpoc.agent.iagent import IAgent
 from tradingplatformpoc.market.trade import Action, Market, Resource, Trade, TradeMetadataKey
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
 from tradingplatformpoc.price.iprice import IPrice
-from tradingplatformpoc.simulation_runner import CEMS_function
-from tradingplatformpoc.simulation_runner.CEMS_function import CEMSError
+from tradingplatformpoc.simulation_runner.chalmers import AgentEMS, CEMS_function
+from tradingplatformpoc.simulation_runner.chalmers.domain import CEMSError
 from tradingplatformpoc.trading_platform_utils import add_to_nested_dict
 
 VERY_SMALL_NUMBER = 0.000001  # to avoid trades with quantity 1e-7, for example
@@ -66,11 +66,13 @@ class InfeasibilityError(CEMSError):
         self.constraints = constraints
 
 
-def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource, GridAgent], area_info: Dict[str, Any],
-             start_datetime: datetime.datetime, elec_pricing: ElectricityPrice, heat_pricing: HeatingPrice,
+def optimize(solver: OptSolver, block_agents: List[BlockAgent], grid_agents: Dict[Resource, GridAgent],
+             area_info: Dict[str, Any], start_datetime: datetime.datetime,
+             elec_pricing: ElectricityPrice, heat_pricing: HeatingPrice,
              shallow_storage_start_dict: Dict[str, float], deep_storage_start_dict: Dict[str, float]) \
         -> ChalmersOutputs:
-    block_agents: List[BlockAgent] = [agent for agent in agents if isinstance(agent, BlockAgent)]
+    elec_grid_agent_guid = grid_agents[Resource.ELECTRICITY].guid
+    heat_grid_agent_guid = grid_agents[Resource.HIGH_TEMP_HEAT].guid
     agent_guids = [agent.guid for agent in block_agents]
     # The order specified in "agents" will be used throughout
     trading_horizon = area_info['TradingHorizon']
@@ -104,50 +106,111 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
     summer_mode = should_use_summer_mode(start_datetime)
     heat_pump_cop = area_info['COPHeatPumpsLowTemp'] if summer_mode else area_info['COPHeatPumpsHighTemp']
     try:
-        optimized_model, results = CEMS_function.solve_model(
-            solver=solver,
-            summer_mode=summer_mode,
-            month=start_datetime.month,
-            n_agents=n_agents,
-            external_elec_buy_price=elec_retail_prices,
-            external_elec_sell_price=elec_wholesale_prices,
-            external_heat_buy_price=heat_retail_price,
-            battery_capacity=battery_capacities,
-            battery_charge_rate=battery_max_charge,
-            battery_discharge_rate=battery_max_discharge,
-            SOCBES0=[area_info['StorageEndChargeLevel']] * n_agents,
-            heatpump_COP=[heat_pump_cop] * n_agents,
-            heatpump_max_power=heatpump_max_power,
-            heatpump_max_heat=heatpump_max_heat,
-            HP_Cproduct_active=hp_produce_cooling,
-            borehole=hp_produce_cooling,
-            booster_heatpump_COP=[area_info['COPBoosterPumps']] * n_agents,
-            booster_heatpump_max_power=booster_max_power,
-            booster_heatpump_max_heat=booster_max_heat,
-            build_area=atemp_for_bites,
-            SOCTES0=[area_info['StorageEndChargeLevel']] * n_agents,
-            thermalstorage_max_temp=[constants.ACC_TANK_TEMPERATURE] * n_agents,
-            thermalstorage_volume=acc_tank_volumes,
-            BITES_Eshallow0=shallow_storage_start,
-            BITES_Edeep0=deep_storage_start,
-            elec_consumption=elec_demand_df,
-            hot_water_heatdem=high_heat_demand_df,
-            space_heating_heatdem=low_heat_demand_df,
-            cold_consumption=cooling_demand_df,
-            pv_production=elec_supply_df,
-            excess_heat=low_heat_supply_df,
-            battery_efficiency=area_info['BatteryEfficiency'],
-            thermalstorage_efficiency=area_info['AccTankEfficiency'],
-            max_elec_transfer_between_agents=area_info['InterAgentElectricityTransferCapacity'],
-            max_elec_transfer_to_external=grid_agents[Resource.ELECTRICITY].max_transfer_per_hour,
-            max_heat_transfer_between_agents=area_info['InterAgentHeatTransferCapacity'],
-            max_heat_transfer_to_external=grid_agents[Resource.HIGH_TEMP_HEAT].max_transfer_per_hour,
-            chiller_COP=area_info['CompChillerCOP'],
-            Pccmax=area_info['CompChillerMaxInput'],
-            cold_trans_loss=area_info['CoolingTransferLoss'],
-            heat_trans_loss=area_info['HeatTransferLoss'],
-            trading_horizon=trading_horizon
-        )
+        if area_info['LocalMarketEnabled']:
+            optimized_model, results = CEMS_function.solve_model(
+                solver=solver,
+                summer_mode=summer_mode,
+                month=start_datetime.month,
+                n_agents=n_agents,
+                external_elec_buy_price=elec_retail_prices,
+                external_elec_sell_price=elec_wholesale_prices,
+                external_heat_buy_price=heat_retail_price,
+                battery_capacity=battery_capacities,
+                battery_charge_rate=battery_max_charge,
+                battery_discharge_rate=battery_max_discharge,
+                SOCBES0=[area_info['StorageEndChargeLevel']] * n_agents,
+                heatpump_COP=[heat_pump_cop] * n_agents,
+                heatpump_max_power=heatpump_max_power,
+                heatpump_max_heat=heatpump_max_heat,
+                HP_Cproduct_active=hp_produce_cooling,
+                borehole=hp_produce_cooling,
+                booster_heatpump_COP=[area_info['COPBoosterPumps']] * n_agents,
+                booster_heatpump_max_power=booster_max_power,
+                booster_heatpump_max_heat=booster_max_heat,
+                build_area=atemp_for_bites,
+                SOCTES0=[area_info['StorageEndChargeLevel']] * n_agents,
+                thermalstorage_max_temp=[constants.ACC_TANK_TEMPERATURE] * n_agents,
+                thermalstorage_volume=acc_tank_volumes,
+                BITES_Eshallow0=shallow_storage_start,
+                BITES_Edeep0=deep_storage_start,
+                elec_consumption=elec_demand_df,
+                hot_water_heatdem=high_heat_demand_df,
+                space_heating_heatdem=low_heat_demand_df,
+                cold_consumption=cooling_demand_df,
+                pv_production=elec_supply_df,
+                excess_heat=low_heat_supply_df,
+                battery_efficiency=area_info['BatteryEfficiency'],
+                thermalstorage_efficiency=area_info['AccTankEfficiency'],
+                max_elec_transfer_between_agents=area_info['InterAgentElectricityTransferCapacity'],
+                max_elec_transfer_to_external=grid_agents[Resource.ELECTRICITY].max_transfer_per_hour,
+                max_heat_transfer_between_agents=area_info['InterAgentHeatTransferCapacity'],
+                max_heat_transfer_to_external=grid_agents[Resource.HIGH_TEMP_HEAT].max_transfer_per_hour,
+                chiller_COP=area_info['CompChillerCOP'],
+                Pccmax=area_info['CompChillerMaxInput'],
+                cold_trans_loss=area_info['CoolingTransferLoss'],
+                heat_trans_loss=area_info['HeatTransferLoss'],
+                trading_horizon=trading_horizon
+            )
+            handle_infeasibility(optimized_model, results, start_datetime, trading_horizon, [])
+            return extract_outputs_for_lec(optimized_model, start_datetime,
+                                           elec_grid_agent_guid, heat_grid_agent_guid,
+                                           elec_pricing, heat_pricing,
+                                           agent_guids)
+        else:
+            all_trades: List[Trade] = []
+            all_metadata: Dict[str, Dict[TradeMetadataKey, Dict[datetime.datetime, float]]] = {}
+            for i_agent in range(len(block_agents)):
+                optimized_model, results = AgentEMS.solve_model(
+                    solver=solver,
+                    summer_mode=summer_mode,
+                    month=start_datetime.month,
+                    agent=i_agent,
+                    external_elec_buy_price=elec_retail_prices,
+                    external_elec_sell_price=elec_wholesale_prices,
+                    external_heat_buy_price=heat_retail_price,
+                    battery_capacity=battery_capacities[i_agent],
+                    battery_charge_rate=battery_max_charge[i_agent],
+                    battery_discharge_rate=battery_max_discharge[i_agent],
+                    SOCBES0=area_info['StorageEndChargeLevel'],
+                    heatpump_COP=heat_pump_cop,
+                    heatpump_max_power=heatpump_max_power[i_agent],
+                    heatpump_max_heat=heatpump_max_heat[i_agent],
+                    HP_Cproduct_active=hp_produce_cooling[i_agent],
+                    borehole=hp_produce_cooling[i_agent],
+                    build_area=atemp_for_bites[i_agent],
+                    SOCTES0=area_info['StorageEndChargeLevel'],
+                    thermalstorage_max_temp=constants.ACC_TANK_TEMPERATURE,
+                    thermalstorage_volume=acc_tank_volumes[i_agent],
+                    BITES_Eshallow0=shallow_storage_start[i_agent],
+                    BITES_Edeep0=deep_storage_start[i_agent],
+                    elec_consumption=elec_demand_df.iloc[i_agent, :],
+                    hot_water_heatdem=high_heat_demand_df.iloc[i_agent, :],
+                    space_heating_heatdem=low_heat_demand_df.iloc[i_agent, :],
+                    cold_consumption=cooling_demand_df.iloc[i_agent, :],
+                    pv_production=elec_supply_df.iloc[i_agent, :],
+                    excess_heat=low_heat_supply_df.iloc[i_agent, :],
+                    battery_efficiency=area_info['BatteryEfficiency'],
+                    thermalstorage_efficiency=area_info['AccTankEfficiency'],
+                    max_elec_transfer_to_external=grid_agents[Resource.ELECTRICITY].max_transfer_per_hour,
+                    max_heat_transfer_to_external=grid_agents[Resource.HIGH_TEMP_HEAT].max_transfer_per_hour,
+                    heat_trans_loss=area_info['HeatTransferLoss'],
+                    trading_horizon=trading_horizon
+                )
+                handle_infeasibility(optimized_model, results, start_datetime, trading_horizon,
+                                     [block_agents[i_agent].guid])
+                trades, metadata = extract_outputs_for_agent(optimized_model, start_datetime,
+                                                             elec_grid_agent_guid, heat_grid_agent_guid,
+                                                             elec_pricing, heat_pricing,
+                                                             agent_guids[i_agent])
+                all_trades.extend(trades)
+                all_metadata[agent_guids[i_agent]] = metadata
+
+        metadata_per_agent_and_period = flip_dict_keys(all_metadata)
+        metadata_per_period: Dict[TradeMetadataKey, Dict[datetime.datetime, float]] = {
+            TradeMetadataKey.HEAT_DUMP: sum_for_all_agents(metadata_per_agent_and_period[TradeMetadataKey.HEAT_DUMP]),
+            TradeMetadataKey.COOL_DUMP: sum_for_all_agents(metadata_per_agent_and_period[TradeMetadataKey.COOL_DUMP])
+        }
+        return ChalmersOutputs(all_trades, metadata_per_agent_and_period, metadata_per_period)
     except CEMSError as e:
         raise InfeasibilityError(message=e.message,
                                  agent_names=[agent_guids[i] for i in e.agent_indices],
@@ -156,24 +219,38 @@ def optimize(solver: OptSolver, agents: List[IAgent], grid_agents: Dict[Resource
                                  horizon_end=start_datetime + datetime.timedelta(hours=trading_horizon),
                                  constraints=set())
 
+
+def sum_for_all_agents(dict_per_agent_and_period: Dict[str, Dict[datetime.datetime, float]]) \
+        -> Dict[datetime.datetime, float]:
+    return {date: sum(inner_dict[date] for inner_dict in dict_per_agent_and_period.values() if date in inner_dict)
+            for date in set(date for inner_dict in dict_per_agent_and_period.values() for date in inner_dict)}
+
+
+def flip_dict_keys(all_metadata: Dict[str, Dict[TradeMetadataKey, Dict[datetime.datetime, float]]]) \
+        -> Dict[TradeMetadataKey, Dict[str, Dict[datetime.datetime, float]]]:
+    metadata_per_agent: Dict[TradeMetadataKey, Dict[str, Dict[datetime.datetime, float]]] = {}
+    for agent_name, inner_dict in all_metadata.items():
+        for metadata_key, date_value_dict in inner_dict.items():
+            if metadata_key not in metadata_per_agent:
+                metadata_per_agent[metadata_key] = {}
+            metadata_per_agent[metadata_key][agent_name] = date_value_dict
+    return metadata_per_agent
+
+
+def handle_infeasibility(optimized_model: pyo.ConcreteModel, results: SolverResults, start_datetime: datetime.datetime,
+                         trading_horizon: int, agent_names: List[str]):
+    """If the solver exits with infeasibility, log this, and raise an informative error."""
     if results.solver.termination_condition != TerminationCondition.optimal:
         constraint_names_no_index: Set[str] = set()
         for constraint, _body_value, _infeasible in find_infeasible_constraints(optimized_model):
             constraint_names_no_index.add(constraint.name.split('[')[0])
         log_infeasible_constraints(optimized_model)
         raise InfeasibilityError(message='Infeasible optimization problem',
-                                 agent_names=[],
+                                 agent_names=agent_names,
                                  hour_indices=[],
                                  horizon_start=start_datetime,
                                  horizon_end=start_datetime + datetime.timedelta(hours=trading_horizon),
                                  constraints=constraint_names_no_index)
-
-    elec_grid_agent_guid = grid_agents[Resource.ELECTRICITY].guid
-    heat_grid_agent_guid = grid_agents[Resource.HIGH_TEMP_HEAT].guid
-    return extract_outputs(optimized_model, results, start_datetime,
-                           elec_grid_agent_guid, heat_grid_agent_guid,
-                           elec_pricing, heat_pricing,
-                           agent_guids)
 
 
 def should_use_summer_mode(start_datetime: datetime.datetime) -> bool:
@@ -181,18 +258,49 @@ def should_use_summer_mode(start_datetime: datetime.datetime) -> bool:
     return start_datetime.month in constants.SUMMER_MODE_MONTHS
 
 
-def extract_outputs(optimized_model: pyo.ConcreteModel,
-                    solver_results: SolverResults,
-                    start_datetime: datetime.datetime,
-                    elec_grid_agent_guid: str,
-                    heat_grid_agent_guid: str,
-                    electricity_price_data: ElectricityPrice,
-                    heating_price_data: HeatingPrice,
-                    agent_guids: List[str]) -> ChalmersOutputs:
+def extract_outputs_for_agent(optimized_model: pyo.ConcreteModel,
+                              start_datetime: datetime.datetime,
+                              elec_grid_agent_guid: str,
+                              heat_grid_agent_guid: str,
+                              electricity_price_data: ElectricityPrice,
+                              heating_price_data: HeatingPrice,
+                              agent_guid: str) -> \
+        Tuple[List[Trade], Dict[TradeMetadataKey, Dict[datetime.datetime, float]]]:
+    elec_trades = get_power_transfers(optimized_model, start_datetime, elec_grid_agent_guid, [agent_guid],
+                                      electricity_price_data, local_market_enabled=False)
+    heat_trades = get_heat_transfers(optimized_model, start_datetime, heat_grid_agent_guid, [agent_guid],
+                                     heating_price_data, local_market_enabled=False)
+    metadata = {
+        TradeMetadataKey.BATTERY_LEVEL: get_value_per_period(optimized_model, start_datetime, 'SOCBES'),
+        TradeMetadataKey.ACC_TANK_LEVEL: get_value_per_period(optimized_model, start_datetime, 'SOCTES'),
+        TradeMetadataKey.SHALLOW_STORAGE_REL: get_value_per_period(optimized_model, start_datetime, 'Energy_shallow'),
+        TradeMetadataKey.DEEP_STORAGE_REL: get_value_per_period(optimized_model, start_datetime, 'Energy_deep'),
+        TradeMetadataKey.SHALLOW_STORAGE_ABS: get_value_per_period(optimized_model, start_datetime, 'Energy_shallow'),
+        TradeMetadataKey.DEEP_STORAGE_ABS: get_value_per_period(optimized_model, start_datetime, 'Energy_deep'),
+        TradeMetadataKey.SHALLOW_LOSS: get_value_per_period(optimized_model, start_datetime, 'Loss_shallow'),
+        TradeMetadataKey.DEEP_LOSS: get_value_per_period(optimized_model, start_datetime, 'Loss_deep'),
+        TradeMetadataKey.SHALLOW_CHARGE: get_value_per_period(optimized_model, start_datetime, 'Hcha_shallow'),
+        TradeMetadataKey.FLOW_SHALLOW_TO_DEEP: get_value_per_period(optimized_model, start_datetime, 'Flow'),
+        TradeMetadataKey.HP_COOL_PROD: get_value_per_period(optimized_model, start_datetime, 'Chp'),
+        TradeMetadataKey.HP_HIGH_HEAT_PROD: get_value_per_period(optimized_model, start_datetime, 'Hhp'),
+        # Heat dump and cool dump will have to be aggregated later
+        TradeMetadataKey.HEAT_DUMP: get_value_per_period(optimized_model, start_datetime, 'heat_dump'),
+        TradeMetadataKey.COOL_DUMP: get_value_per_period(optimized_model, start_datetime, 'cool_dump')
+    }
+    return elec_trades + heat_trades, metadata
+
+
+def extract_outputs_for_lec(optimized_model: pyo.ConcreteModel,
+                            start_datetime: datetime.datetime,
+                            elec_grid_agent_guid: str,
+                            heat_grid_agent_guid: str,
+                            electricity_price_data: ElectricityPrice,
+                            heating_price_data: HeatingPrice,
+                            agent_guids: List[str]) -> ChalmersOutputs:
     elec_trades = get_power_transfers(optimized_model, start_datetime, elec_grid_agent_guid, agent_guids,
-                                      electricity_price_data)
+                                      electricity_price_data, local_market_enabled=True)
     heat_trades = get_heat_transfers(optimized_model, start_datetime, heat_grid_agent_guid, agent_guids,
-                                     heating_price_data)
+                                     heating_price_data, local_market_enabled=True)
     cool_trades = get_cool_transfers(optimized_model, start_datetime, agent_guids)
     metadata_per_agent_and_period = {
         TradeMetadataKey.BATTERY_LEVEL: get_value_per_agent(optimized_model, start_datetime, 'SOCBES', agent_guids,
@@ -312,86 +420,149 @@ def add_usage_to_supply_list(agent_list: List[float], usage_of_resource: float):
 
 
 def get_power_transfers(optimized_model: pyo.ConcreteModel, start_datetime: datetime.datetime, grid_agent_guid: str,
-                        agent_guids: List[str], resource_price_data: ElectricityPrice) -> List[Trade]:
-    # For example: Pbuy_market is how much the LEC bought from the external grid operator
-    inter_agent_trades = get_agent_transfers(optimized_model, start_datetime,
-                                             sold_internal_name='Psell_grid', bought_internal_name='Pbuy_grid',
-                                             resource=Resource.ELECTRICITY, agent_guids=agent_guids, loss=0.0)
-    external_trades = get_external_transfers(optimized_model, start_datetime,
-                                             sold_to_external_name='Psell_market',
-                                             bought_from_external_name='Pbuy_market',
-                                             retail_price_name='price_buy', wholesale_price_name='price_sell',
-                                             resource=Resource.ELECTRICITY, grid_agent_guid=grid_agent_guid,
-                                             loss=0.0, resource_price_data=resource_price_data)
-    return inter_agent_trades + external_trades
+                        agent_guids: List[str], resource_price_data: ElectricityPrice, local_market_enabled: bool) \
+        -> List[Trade]:
+    if local_market_enabled:
+        # For example: Pbuy_market is how much the LEC bought from the external grid operator
+        agent_trades = get_agent_transfers_with_lec(optimized_model, start_datetime,
+                                                    sold_internal_name='Psell_grid', bought_internal_name='Pbuy_grid',
+                                                    resource=Resource.ELECTRICITY, agent_guids=agent_guids, loss=0.0,
+                                                    resource_price_data=resource_price_data)
+        external_trades = get_external_transfers(optimized_model, start_datetime,
+                                                 sold_to_external_name='Psell_market',
+                                                 bought_from_external_name='Pbuy_market',
+                                                 retail_price_name='price_buy', wholesale_price_name='price_sell',
+                                                 resource=Resource.ELECTRICITY, grid_agent_guid=grid_agent_guid,
+                                                 loss=0.0, resource_price_data=resource_price_data,
+                                                 market=Market.LOCAL)
+    else:
+        agent_trades = get_agent_transfers_no_lec(optimized_model, start_datetime,
+                                                  sold_internal_name='Psell_market', bought_internal_name='Pbuy_market',
+                                                  resource=Resource.ELECTRICITY, agent_guid=agent_guids[0], loss=0.0,
+                                                  resource_price_data=resource_price_data)
+        external_trades = get_external_transfers(optimized_model, start_datetime,
+                                                 sold_to_external_name='Psell_market',
+                                                 bought_from_external_name='Pbuy_market',
+                                                 retail_price_name='price_buy', wholesale_price_name='price_sell',
+                                                 resource=Resource.ELECTRICITY, grid_agent_guid=grid_agent_guid,
+                                                 loss=0.0, resource_price_data=resource_price_data,
+                                                 market=Market.EXTERNAL)
+    return agent_trades + external_trades
 
 
 def get_heat_transfers(optimized_model: pyo.ConcreteModel, start_datetime: datetime.datetime, grid_agent_guid: str,
-                       agent_guids: List[str], resource_price_data: HeatingPrice) -> List[Trade]:
+                       agent_guids: List[str], resource_price_data: HeatingPrice, local_market_enabled: bool) \
+        -> List[Trade]:
     resource = Resource.LOW_TEMP_HEAT if should_use_summer_mode(start_datetime) else Resource.HIGH_TEMP_HEAT
-    inter_agent_trades = get_agent_transfers(optimized_model, start_datetime,
-                                             sold_internal_name='Hsell_grid', bought_internal_name='Hbuy_grid',
-                                             resource=resource, agent_guids=agent_guids,
-                                             loss=optimized_model.Heat_trans_loss)
-    external_trades = get_external_transfers(optimized_model, start_datetime,
-                                             sold_to_external_name='NA', bought_from_external_name='Hbuy_market',
-                                             retail_price_name='Hprice_energy', wholesale_price_name='NA',
-                                             resource=Resource.HIGH_TEMP_HEAT, grid_agent_guid=grid_agent_guid,
-                                             loss=optimized_model.Heat_trans_loss,
-                                             resource_price_data=resource_price_data)
-    return inter_agent_trades + external_trades
+    if local_market_enabled:
+        agent_trades = get_agent_transfers_with_lec(optimized_model, start_datetime,
+                                                    sold_internal_name='Hsell_grid', bought_internal_name='Hbuy_grid',
+                                                    resource=resource, agent_guids=agent_guids,
+                                                    loss=optimized_model.Heat_trans_loss,
+                                                    resource_price_data=resource_price_data)
+        external_trades = get_external_transfers(optimized_model, start_datetime,
+                                                 sold_to_external_name='NA', bought_from_external_name='Hbuy_market',
+                                                 retail_price_name='Hprice_energy', wholesale_price_name='NA',
+                                                 resource=Resource.HIGH_TEMP_HEAT, grid_agent_guid=grid_agent_guid,
+                                                 loss=optimized_model.Heat_trans_loss,
+                                                 resource_price_data=resource_price_data, market=Market.LOCAL)
+    else:
+        agent_trades = get_agent_transfers_no_lec(optimized_model, start_datetime,
+                                                  sold_internal_name='NA', bought_internal_name='Hbuy_market',
+                                                  resource=resource, agent_guid=agent_guids[0],
+                                                  loss=optimized_model.Heat_trans_loss,
+                                                  resource_price_data=resource_price_data)
+        external_trades = get_external_transfers(optimized_model, start_datetime,
+                                                 sold_to_external_name='NA', bought_from_external_name='Hbuy_market',
+                                                 retail_price_name='Hprice_energy', wholesale_price_name='NA',
+                                                 resource=Resource.HIGH_TEMP_HEAT, grid_agent_guid=grid_agent_guid,
+                                                 loss=optimized_model.Heat_trans_loss,
+                                                 resource_price_data=resource_price_data, market=Market.EXTERNAL)
+    return agent_trades + external_trades
 
 
 def get_cool_transfers(optimized_model: pyo.ConcreteModel, start_datetime: datetime.datetime, agent_guids: List[str]) \
         -> List[Trade]:
-    return get_agent_transfers(optimized_model, start_datetime,
-                               sold_internal_name='Csell_grid', bought_internal_name='Cbuy_grid',
-                               resource=Resource.COOLING, agent_guids=agent_guids,
-                               loss=optimized_model.cold_trans_loss)
+    return get_agent_transfers_with_lec(optimized_model, start_datetime,
+                                        sold_internal_name='Csell_grid', bought_internal_name='Cbuy_grid',
+                                        resource=Resource.COOLING, agent_guids=agent_guids,
+                                        loss=optimized_model.cold_trans_loss, resource_price_data=None)
 
 
 def get_external_transfers(optimized_model: pyo.ConcreteModel, start_datetime: datetime.datetime,
                            sold_to_external_name: str, bought_from_external_name: str,
                            retail_price_name: str, wholesale_price_name: str,
                            resource: Resource, grid_agent_guid: str, loss: float,
-                           resource_price_data: IPrice) -> List[Trade]:
+                           resource_price_data: IPrice, market: Market) -> List[Trade]:
     transfers: List[Trade] = []
     for hour in optimized_model.T:
         add_external_trade(transfers, bought_from_external_name, hour, optimized_model, sold_to_external_name,
                            retail_price_name, wholesale_price_name, start_datetime, grid_agent_guid, resource, loss,
-                           resource_price_data)
+                           resource_price_data, market)
     return transfers
 
 
-def get_agent_transfers(optimized_model: pyo.ConcreteModel, start_datetime: datetime.datetime,
-                        sold_internal_name: str, bought_internal_name: str,
-                        resource: Resource, agent_guids: List[str], loss: float) -> List[Trade]:
+def get_agent_transfers_with_lec(optimized_model: pyo.ConcreteModel, start_datetime: datetime.datetime,
+                                 sold_internal_name: str, bought_internal_name: str,
+                                 resource: Resource, agent_guids: List[str], loss: float,
+                                 resource_price_data: Optional[IPrice]) -> List[Trade]:
     transfers: List[Trade] = []
     for hour in optimized_model.T:
         for i_agent in optimized_model.I:
             add_agent_trade(transfers, bought_internal_name, sold_internal_name, hour, i_agent, optimized_model,
-                            start_datetime, resource, agent_guids, loss)
+                            start_datetime, resource, agent_guids, loss, Market.LOCAL, resource_price_data)
+    return transfers
+
+
+def get_agent_transfers_no_lec(optimized_model: pyo.ConcreteModel, start_datetime: datetime.datetime,
+                               sold_internal_name: str, bought_internal_name: str,
+                               resource: Resource, agent_guid: str, loss: float,
+                               resource_price_data: IPrice) -> List[Trade]:
+    transfers: List[Trade] = []
+    for hour in optimized_model.T:
+        add_agent_trade(transfers, bought_internal_name, sold_internal_name, hour, None, optimized_model,
+                        start_datetime, resource, [agent_guid], loss, Market.EXTERNAL, resource_price_data)
     return transfers
 
 
 def add_agent_trade(trade_list: List[Trade], bought_internal_name: str, sold_internal_name: str, hour: int,
-                    i_agent: int, optimized_model: pyo.ConcreteModel, start_datetime: datetime.datetime,
-                    resource: Resource, agent_guids: List[str], loss: float):
-    quantity = pyo.value(getattr(optimized_model, bought_internal_name)[i_agent, hour]
-                         - getattr(optimized_model, sold_internal_name)[i_agent, hour])
-    agent_name = agent_guids[i_agent]
+                    i_agent: Optional[int], optimized_model: pyo.ConcreteModel, start_datetime: datetime.datetime,
+                    resource: Resource, agent_guids: List[str], loss: float, market: Market,
+                    resource_price_data: Optional[IPrice]):
+    bought_internal: IndexedVar = getattr(optimized_model, bought_internal_name)
+    sold_internal: Optional[IndexedVar] = getattr(optimized_model, sold_internal_name) \
+        if hasattr(optimized_model, sold_internal_name) else None
+    if i_agent is not None:
+        net = bought_internal[i_agent, hour] - sold_internal[i_agent, hour] \
+            if sold_internal is not None else bought_internal[i_agent, hour]
+        agent_name = agent_guids[i_agent]
+    else:
+        net = bought_internal[hour] - sold_internal[hour] \
+            if sold_internal is not None else bought_internal[hour]
+        agent_name = agent_guids[0]
+    quantity = pyo.value(net)
+    period = start_datetime + datetime.timedelta(hours=hour)
     if quantity > VERY_SMALL_NUMBER or quantity < -VERY_SMALL_NUMBER:
         quantity_pre_loss = quantity / (1 - loss)
-        trade_list.append(Trade(period=start_datetime + datetime.timedelta(hours=hour),
+        trade_quantity = abs(quantity_pre_loss if quantity > 0 else quantity)
+        trade_list.append(Trade(period=period,
                                 action=Action.BUY if quantity > 0 else Action.SELL, resource=resource,
-                                quantity=abs(quantity_pre_loss if quantity > 0 else quantity), price=np.nan,
-                                source=agent_name, by_external=False, market=Market.LOCAL, loss=loss))
+                                quantity=trade_quantity, price=np.nan,
+                                source=agent_name, by_external=False, market=market, loss=loss))
+    else:
+        trade_quantity = 0.0
+
+    # Add to HeatingPrice - needs to be done even if quantity is 0
+    if market == Market.EXTERNAL and \
+            resource_price_data is not None and \
+            isinstance(resource_price_data, HeatingPrice):
+        resource_price_data.add_external_heating_sell_for_agent(period, trade_quantity, agent_name)
 
 
 def add_external_trade(trade_list: List[Trade], bought_from_external_name: str, hour: int,
                        optimized_model: pyo.ConcreteModel, sold_to_external_name: str, retail_price_name: str,
                        wholesale_price_name: str, start_datetime: datetime.datetime, grid_agent_guid: str,
-                       resource: Resource, loss: float, resource_price_data: IPrice):
+                       resource: Resource, loss: float, resource_price_data: IPrice, market: Market):
     external_quantity = pyo.value(get_variable_value_or_else(optimized_model, sold_to_external_name, hour)
                                   - get_variable_value_or_else(optimized_model, bought_from_external_name, hour))
     period = start_datetime + datetime.timedelta(hours=hour)
@@ -400,18 +571,23 @@ def add_external_trade(trade_list: List[Trade], bought_from_external_name: str, 
         price = get_value_from_param(wholesale_prices, hour)
         trade_list.append(Trade(period=period,
                                 action=Action.BUY, resource=resource, quantity=external_quantity / (1 - loss),
-                                price=price, source=grid_agent_guid, by_external=True, market=Market.LOCAL,
+                                price=price, source=grid_agent_guid, by_external=True, market=market,
                                 loss=loss))
-    elif external_quantity < -VERY_SMALL_NUMBER:
-        retail_prices = getattr(optimized_model, retail_price_name)
-        price = get_value_from_param(retail_prices, hour)
-        trade_list.append(Trade(period=period,
-                                action=Action.SELL, resource=resource, quantity=-external_quantity,
-                                price=price, source=grid_agent_guid, by_external=True, market=Market.LOCAL,
-                                loss=loss,
-                                tax_paid=resource_price_data.tax))
+    else:
+        if external_quantity < -VERY_SMALL_NUMBER:
+            trade_quantity = -external_quantity
+            retail_prices = getattr(optimized_model, retail_price_name)
+            price = get_value_from_param(retail_prices, hour)
+            trade_list.append(Trade(period=period,
+                                    action=Action.SELL, resource=resource, quantity=trade_quantity,
+                                    price=price, source=grid_agent_guid, by_external=True, market=market,
+                                    loss=loss,
+                                    tax_paid=resource_price_data.tax, grid_fee_paid=resource_price_data.grid_fee))
+        else:
+            trade_quantity = 0.0
+        # Add to HeatingPrice - needs to be done even if quantity is 0
         if isinstance(resource_price_data, HeatingPrice):
-            resource_price_data.add_external_heating_sell(period, -external_quantity)
+            resource_price_data.add_external_heating_sell(period, trade_quantity)
 
 
 def get_value_from_param(maybe_indexed_param: Union[IndexedParam, ScalarParam], index: int) -> float:

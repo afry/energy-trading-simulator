@@ -159,7 +159,8 @@ class TestAppFunctions(TestCase):
                        'AreaInfo': {'CompChillerMaxInput': 0.0,
                                     'CompChillerCOP': 0.0,
                                     'COPHeatPumpsHighTemp': 3.0,
-                                    'COPHeatPumpsLowTemp': 2.0}}
+                                    'COPHeatPumpsLowTemp': 2.0,
+                                    'LocalMarketEnabled': True}}
         self.assertIsNone(config_data_feasibility_screening(config_data))
 
         config_data = {'Agents': [self.mock_grid_el, self.mock_grid_he, self.mock_pv,
@@ -181,5 +182,6 @@ class TestAppFunctions(TestCase):
                        'AreaInfo': {'CompChillerMaxInput': 0.0,
                                     'CompChillerCOP': 0.0,
                                     'COPHeatPumpsHighTemp': 3.0,
-                                    'COPHeatPumpsLowTemp': 2.0}}
+                                    'COPHeatPumpsLowTemp': 2.0,
+                                    'LocalMarketEnabled': True}}
         self.assertIsNotNone(config_data_feasibility_screening(config_data))

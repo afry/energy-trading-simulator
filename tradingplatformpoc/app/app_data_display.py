@@ -1,3 +1,4 @@
+import calendar
 import datetime
 import logging
 from time import strptime
@@ -18,7 +19,7 @@ from tradingplatformpoc.market.trade import Action, Resource, TradeMetadataKey
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.sql.input_data.crud import get_periods_from_db, read_input_column_df_from_db, \
     read_inputs_df_for_agent_creation
-from tradingplatformpoc.sql.input_electricity_price.crud import electricity_price_series_from_db
+from tradingplatformpoc.sql.input_electricity_price.crud import get_nordpool_data
 from tradingplatformpoc.sql.level.crud import db_to_viewable_level_df_by_agent
 from tradingplatformpoc.sql.mock_data.crud import db_to_mock_data_df, get_mock_data_agent_pairs_in_db
 from tradingplatformpoc.sql.results.models import ResultsKey
@@ -88,21 +89,22 @@ def reconstruct_grocery_store_static_digital_twin(agent_config: Dict[str, Any]) 
 
 # maybe we should move this to simulation_runner/trading_simulator
 def construct_combined_price_df(config_data: dict, local_price_df: Optional[pd.DataFrame] = None) -> pd.DataFrame:
-
-    # TODO: Improve this
+    nordpool_data = get_nordpool_data(config_data['AreaInfo']['ElectricityPriceYear'],
+                                      get_periods_from_db().sort_values())
     elec_pricing: ElectricityPrice = ElectricityPrice(
         elec_wholesale_offset=config_data['AreaInfo']['ExternalElectricityWholesalePriceOffset'],
         elec_tax=config_data['AreaInfo']["ElectricityTax"],
-        elec_grid_fee=config_data['AreaInfo']["ElectricityGridFee"],
+        elec_transmission_fee=config_data['AreaInfo']["ElectricityTransmissionFee"],
+        elec_effect_fee=config_data['AreaInfo']["ElectricityEffectFee"],
         elec_tax_internal=config_data['AreaInfo']["ElectricityTaxInternal"],
-        elec_grid_fee_internal=config_data['AreaInfo']["ElectricityGridFeeInternal"],
-        nordpool_data=electricity_price_series_from_db())
+        elec_transmission_fee_internal=config_data['AreaInfo']["ElectricityTransmissionFeeInternal"],
+        elec_effect_fee_internal=config_data['AreaInfo']["ElectricityEffectFeeInternal"],
+        nordpool_data=nordpool_data)
 
-    nordpool_data = elec_pricing.nordpool_data
     nordpool_data.name = 'value'
     nordpool_data = nordpool_data.to_frame().reset_index()
     nordpool_data['Resource'] = Resource.ELECTRICITY
-    nordpool_data.rename({'datetime': 'period'}, axis=1, inplace=True)
+    nordpool_data.rename({'datetime': 'period', 'index': 'period'}, axis=1, inplace=True)
     nordpool_data['period'] = pd.to_datetime(nordpool_data['period'])
     retail_df = nordpool_data.copy()
     gross_prices = elec_pricing.get_electricity_gross_retail_price_from_nordpool_price(retail_df['value'])
@@ -299,6 +301,8 @@ def build_leaderboard_df(list_of_dicts: List[dict]) -> pd.DataFrame:
                       ResultsKey.NET_ENERGY_SPEND,
                       ResultsKey.format_results_key_name(ResultsKey.SUM_NET_IMPORT, Resource.ELECTRICITY),
                       ResultsKey.format_results_key_name(ResultsKey.SUM_NET_IMPORT, Resource.HIGH_TEMP_HEAT),
+                      ResultsKey.format_results_key_name(ResultsKey.MAX_NET_IMPORT, Resource.ELECTRICITY),
+                      ResultsKey.format_results_key_name(ResultsKey.MAX_NET_IMPORT, Resource.HIGH_TEMP_HEAT),
                       ResultsKey.format_results_key_name(ResultsKey.LOCALLY_PRODUCED_RESOURCES, Resource.ELECTRICITY),
                       ResultsKey.format_results_key_name(ResultsKey.LOCALLY_PRODUCED_RESOURCES,
                                                          Resource.HIGH_TEMP_HEAT),
@@ -316,3 +320,28 @@ def build_leaderboard_df(list_of_dicts: List[dict]) -> pd.DataFrame:
             logger.warning("Column '{}' not found in pre-calculated results".format(wanted_column))
             df_to_display[wanted_column] = None
     return df_to_display[wanted_columns].round(decimals=0)
+
+
+def build_monthly_stats_df(pre_calculated_results: Dict[str, Any], resource: Resource) -> pd.DataFrame:
+    columns = [ResultsKey.MONTHLY_MAX_NET_IMPORT,
+               ResultsKey.MONTHLY_SUM_NET_IMPORT,
+               ResultsKey.MONTHLY_SUM_IMPORT,
+               ResultsKey.MONTHLY_SUM_EXPORT]
+    df = pd.DataFrame([pre_calculated_results[key][resource.name] for key in columns]).transpose()
+    # Format column names.
+    df.columns = [ResultsKey.format_results_key_name(key, resource) for key in columns]
+    if (df[ResultsKey.format_results_key_name(ResultsKey.MONTHLY_SUM_NET_IMPORT, resource)]
+            == df[ResultsKey.format_results_key_name(ResultsKey.MONTHLY_SUM_IMPORT, resource)]).all():
+        # Will happen if the LEC cannot export the given resource
+        df.drop(labels=[ResultsKey.format_results_key_name(ResultsKey.MONTHLY_SUM_NET_IMPORT, resource),
+                        ResultsKey.format_results_key_name(ResultsKey.MONTHLY_SUM_EXPORT, resource)],
+                axis=1, inplace=True)
+
+    # Some formatting: First, change indices to show month names instead of integers
+    df.index = df.index.map(lambda x: calendar.month_name[int(x)])
+    # Now, the 'monthly' bit in column headers is superfluous when listed in a table like this
+    df.columns = [c.replace('monthly ', '') for c in df.columns]
+    # Finally, decrease the number of decimals a little (defaults to 4)
+    df = df.style.format(precision=2)
+    # noinspection PyTypeChecker
+    return df

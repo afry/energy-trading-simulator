@@ -1,24 +1,30 @@
-from typing import Collection, List, Union
+import datetime
+from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
 
 from tradingplatformpoc.market.extra_cost import ExtraCost, ExtraCostType
-from tradingplatformpoc.market.trade import Action, Market, Trade
+from tradingplatformpoc.market.trade import Action
 from tradingplatformpoc.sql.trade.crud import heat_trades_from_db_for_periods
 
 
-def get_external_trade_on_local_market(trades: Collection[Trade]) -> Union[Trade, None]:
-    external_trades_on_local_market = [x for x in trades if x.by_external and x.market == Market.LOCAL]
-    if len(external_trades_on_local_market) == 0:
-        return None
-    elif len(external_trades_on_local_market) > 1:
-        raise RuntimeError("Unexpected state: More than 1 external grid trade for a single trading period")
+def get_external_heat_trade(trades: List) -> Tuple[Optional[float], Optional[Action], Optional[str]]:
+    external_trades = [x for x in trades if x.by_external]
+    if len(external_trades) == 0:
+        return None, None, None
+    elif len(external_trades) > 1:
+        if len(set([x.action for x in external_trades])) > 1:
+            raise RuntimeError("Unexpected state: External grid both bought and sold in the same trading period")
+        else:
+            summed_quantity = sum([t.quantity_pre_loss for t in external_trades])
+            return summed_quantity, external_trades[0].action, external_trades[0].source
     else:
-        return external_trades_on_local_market[0]
+        return external_trades[0].quantity_pre_loss, external_trades[0].action, external_trades[0].source
 
 
 def correct_for_exact_heating_price(trading_periods: pd.DatetimeIndex,
-                                    heating_prices: pd.DataFrame, job_id: str) -> List[ExtraCost]:
+                                    heating_prices: pd.DataFrame, job_id: str,
+                                    local_market_enabled: bool, block_agent_ids: List[str]) -> List[ExtraCost]:
     """
     The price of external heating isn't known when making trades - it is only known after the month has concluded.
     If we for simplicity regard only the retail prices (external grid selling, and not buying), and we define:
@@ -33,6 +39,13 @@ def correct_for_exact_heating_price(trading_periods: pd.DatetimeIndex,
         "ExtraCostType" always being equal to "HEAT_EXT_COST_CORR", and a "cost" value, where a negative value means the
         agent is owed money for the period, rather than owing the money to someone else.
     """
+    if local_market_enabled:
+        return correct_for_exact_heating_price_for_lec(trading_periods, heating_prices, job_id)
+    return correct_for_exact_heating_price_no_lec(trading_periods, heating_prices, job_id, block_agent_ids)
+
+
+def correct_for_exact_heating_price_for_lec(trading_periods: pd.DatetimeIndex,
+                                            heating_prices: pd.DataFrame, job_id: str) -> List[ExtraCost]:
 
     extra_costs: List[ExtraCost] = []
     for year, month in pd.unique(trading_periods.map(lambda x: (x.year, x.month))):
@@ -55,15 +68,14 @@ def correct_for_exact_heating_price(trading_periods: pd.DatetimeIndex,
                 heating_trades = []
             else:
                 heating_trades = heating_trades_for_month[period]
-            external_trade = get_external_trade_on_local_market(heating_trades)
-            if external_trade is not None:
-                external_trade_quantity = external_trade.quantity_post_loss
-                if external_trade.action == Action.SELL:
+            ext_trade_quantity, ext_trade_action, ext_trade_source = get_external_heat_trade(heating_trades)
+            if ext_trade_quantity is not None and ext_trade_action is not None and ext_trade_source is not None:
+                if ext_trade_action == Action.SELL:
                     internal_buy_trades = [x for x in heating_trades if (not x.by_external) & (x.action == Action.BUY)]
                     total_internal_usage = sum([x.quantity_pre_loss for x in internal_buy_trades])
-                    total_debt = (exact_ext_retail_price - est_ext_retail_price) * external_trade_quantity
+                    total_debt = (exact_ext_retail_price - est_ext_retail_price) * ext_trade_quantity
 
-                    extra_costs.append(ExtraCost(period, external_trade.source, ExtraCostType.HEAT_EXT_COST_CORR,
+                    extra_costs.append(ExtraCost(period, ext_trade_source, ExtraCostType.HEAT_EXT_COST_CORR,
                                                  -total_debt))
 
                     for internal_trade in internal_buy_trades:
@@ -74,16 +86,65 @@ def correct_for_exact_heating_price(trading_periods: pd.DatetimeIndex,
                 else:
                     internal_sell_trades = [x for x in heating_trades if (not x.by_external)
                                             & (x.action == Action.SELL)]
-                    total_internal_prod = sum([x.quantity_post_loss for x in internal_sell_trades])
-                    total_debt = (est_ext_wholesale_price - exact_ext_wholesale_price) * external_trade_quantity
+                    total_internal_prod = sum([x.quantity_pre_loss for x in internal_sell_trades])
+                    total_debt = (est_ext_wholesale_price - exact_ext_wholesale_price) * ext_trade_quantity
 
-                    extra_costs.append(ExtraCost(period, external_trade.source, ExtraCostType.HEAT_EXT_COST_CORR,
+                    extra_costs.append(ExtraCost(period, ext_trade_source, ExtraCostType.HEAT_EXT_COST_CORR,
                                                  -total_debt))
 
                     for internal_trade in internal_sell_trades:
-                        net_prod = internal_trade.quantity_post_loss
+                        net_prod = internal_trade.quantity_pre_loss
                         share_of_debt = net_prod / total_internal_prod
                         extra_costs.append(ExtraCost(period, internal_trade.source, ExtraCostType.HEAT_EXT_COST_CORR,
                                                      share_of_debt * total_debt))
+
+    return extra_costs
+
+
+def correct_for_exact_heating_price_no_lec(trading_periods: pd.DatetimeIndex,
+                                           heating_prices: pd.DataFrame,
+                                           job_id: str,
+                                           block_agent_ids: List[str]) -> List[ExtraCost]:
+    """
+    Without a LEC, this calculation needs to be made separately for each agent.
+    """
+
+    extra_costs: List[ExtraCost] = []
+    for year, month in pd.unique(trading_periods.map(lambda x: (x.year, x.month))):
+        trading_periods_in_this_month = trading_periods[(trading_periods.year == year)
+                                                        & (trading_periods.month == month)]
+
+        heating_trades_for_month: Dict[datetime.datetime, List] = \
+            heat_trades_from_db_for_periods(trading_periods_in_this_month, job_id)
+        external_heat_trades = [t.source for vals in heating_trades_for_month.values() for t in vals if t.by_external]
+        heating_prices_for_month = heating_prices[(heating_prices.month == month) & (heating_prices.year == year)]
+
+        if len(external_heat_trades) > 0:
+            external_grid_agent_id = external_heat_trades[0]
+
+            for agent in block_agent_ids:
+                heating_prices_for_month_agent = heating_prices_for_month[heating_prices_for_month.agent == agent].\
+                    iloc[0]
+                exact_ext_retail_price = heating_prices_for_month_agent.exact_retail_price
+                exact_ext_wholesale_price = heating_prices_for_month_agent.exact_wholesale_price
+                est_ext_retail_price = heating_prices_for_month_agent.estimated_retail_price
+                est_ext_wholesale_price = heating_prices_for_month_agent.estimated_wholesale_price
+
+                heating_trades_for_agent = [t for vals in heating_trades_for_month.values() for t in vals
+                                            if t.source == agent]
+
+                for trade in heating_trades_for_agent:
+                    if trade.action == Action.BUY:
+                        total_debt = (exact_ext_retail_price - est_ext_retail_price) * trade.quantity_pre_loss
+                        extra_costs.append(ExtraCost(trade.period, external_grid_agent_id,
+                                                     ExtraCostType.HEAT_EXT_COST_CORR, -total_debt))
+                        extra_costs.append(ExtraCost(trade.period, agent, ExtraCostType.HEAT_EXT_COST_CORR,
+                                                     total_debt))
+                    else:
+                        total_debt = (est_ext_wholesale_price - exact_ext_wholesale_price) * trade.quantity_pre_loss
+                        extra_costs.append(ExtraCost(trade.period, external_grid_agent_id,
+                                                     ExtraCostType.HEAT_EXT_COST_CORR, -total_debt))
+                        extra_costs.append(ExtraCost(trade.period, agent, ExtraCostType.HEAT_EXT_COST_CORR,
+                                                     total_debt))
 
     return extra_costs

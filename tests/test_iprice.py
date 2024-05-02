@@ -10,7 +10,7 @@ from tests import utility_test_objects
 
 from tradingplatformpoc.data.preprocessing import read_electricitymap_data
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
-from tradingplatformpoc.price.heating_price import HeatingPrice
+from tradingplatformpoc.price.heating_price import HeatingPrice, calculate_consumption_this_month
 from tradingplatformpoc.trading_platform_utils import hourly_datetime_array_between
 
 FEB_1_1_AM = datetime(2019, 2, 1, 1, 0, 0, tzinfo=timezone.utc)
@@ -29,13 +29,15 @@ heat_pricing: HeatingPrice = HeatingPrice(
 electricity_pricing: ElectricityPrice = ElectricityPrice(
     elec_wholesale_offset=area_info['ExternalElectricityWholesalePriceOffset'],
     elec_tax=area_info["ElectricityTax"],
-    elec_grid_fee=area_info["ElectricityGridFee"],
+    elec_transmission_fee=area_info["ElectricityTransmissionFee"],
+    elec_effect_fee=area_info["ElectricityEffectFee"],
     elec_tax_internal=area_info["ElectricityTaxInternal"],
-    elec_grid_fee_internal=area_info["ElectricityGridFeeInternal"],
+    elec_transmission_fee_internal=area_info["ElectricityTransmissionFeeInternal"],
+    elec_effect_fee_internal=area_info["ElectricityEffectFeeInternal"],
     nordpool_data=external_price_data)
 
 
-class TestIPrice(TestCase):
+class TestElectricityPrice(TestCase):
 
     def test_get_nordpool_price_for_period(self):
         """Test that what we put into data_store is the same as we get out"""
@@ -62,9 +64,11 @@ class TestIPrice(TestCase):
         electricity_pricing_2: ElectricityPrice = ElectricityPrice(
             elec_wholesale_offset=0.05,
             elec_tax=1.5,
-            elec_grid_fee=0.5,
+            elec_transmission_fee=0.5,
+            elec_effect_fee=0,
             elec_tax_internal=0,
-            elec_grid_fee_internal=0,
+            elec_transmission_fee_internal=0,
+            elec_effect_fee_internal=0,
             nordpool_data=external_price_data)
 
         # Comparing gross prices
@@ -82,6 +86,9 @@ class TestIPrice(TestCase):
         self.assertTrue(data.shape[0] > 0)
         self.assertIsInstance(data.index, DatetimeIndex)
 
+
+class TestHeatingPrice(TestCase):
+
     def test_add_external_heating_sell(self):
         ds = HeatingPrice(
             heating_wholesale_price_fraction=area_info['ExternalHeatingWholesalePriceFraction'],
@@ -98,15 +105,11 @@ class TestIPrice(TestCase):
         ds.add_external_heating_sell(FEB_1_1_AM, 50.0)
         self.assertEqual(1, len(ds.all_external_heating_sells))
         self.assertAlmostEqual(50.0, ds.all_external_heating_sells[FEB_1_1_AM])
-        # Now add again for the same period, with different value
-        # First test that this logs as expected
-        with self.assertLogs() as captured:
-            ds.add_external_heating_sell(FEB_1_1_AM, 70.0)
-        self.assertEqual(len(captured.records), 1)
-        self.assertEqual(captured.records[0].levelname, 'WARNING')
+        # Now add more for the same period
+        ds.add_external_heating_sell(FEB_1_1_AM, 70.0)
         # Then test that the result of the operation is expected
         self.assertEqual(1, len(ds.all_external_heating_sells))
-        self.assertAlmostEqual(70.0, ds.all_external_heating_sells[FEB_1_1_AM])
+        self.assertAlmostEqual(120.0, ds.all_external_heating_sells[FEB_1_1_AM])
 
     def test_calculate_consumption_this_month(self):
         """Test basic functionality of calculate_consumption_this_month"""
@@ -115,8 +118,8 @@ class TestIPrice(TestCase):
             heat_transfer_loss=area_info["HeatTransferLoss"])
         ds.add_external_heating_sell(FEB_1_1_AM, 50)
         ds.add_external_heating_sell(datetime(2019, 3, 1, 1, tzinfo=timezone.utc), 100)
-        self.assertAlmostEqual(50.0, ds.calculate_consumption_this_month(2019, 2))
-        self.assertAlmostEqual(0.0, ds.calculate_consumption_this_month(2019, 4))
+        self.assertAlmostEqual(50.0, calculate_consumption_this_month(ds.all_external_heating_sells, 2019, 2))
+        self.assertAlmostEqual(0.0, calculate_consumption_this_month(ds.all_external_heating_sells, 2019, 4))
 
     def test_get_exact_retail_price_heating(self):
         """Test basic functionality of get_exact_retail_price for HIGH_TEMP_HEAT"""
@@ -135,3 +138,10 @@ class TestIPrice(TestCase):
     def test_heating_tax(self):
         """Test that unless anything else is specified, the tax is 0."""
         self.assertEqual(0, heat_pricing.tax)
+
+    def test_approx_heat_price(self):
+        """Test the estimated price for different months."""
+        self.assertEqual(1.252414798614908, heat_pricing.estimate_district_heating_price(datetime(2019, 1, 1)))
+        # Small difference Jan-Feb due to Feb having less days, thus P(today is peak day) is slightly higher
+        self.assertEqual(1.2622074253430187, heat_pricing.estimate_district_heating_price(datetime(2019, 2, 1)))
+        self.assertEqual(0.5913978494623656, heat_pricing.estimate_district_heating_price(datetime(2019, 3, 1)))

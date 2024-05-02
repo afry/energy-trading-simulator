@@ -6,7 +6,6 @@ import pandas as pd
 
 from tradingplatformpoc.market.trade import Market, Resource
 from tradingplatformpoc.price.iprice import IPrice
-from tradingplatformpoc.trading_platform_utils import minus_n_hours
 
 
 logger = logging.getLogger(__name__)
@@ -14,19 +13,29 @@ logger = logging.getLogger(__name__)
 
 class ElectricityPrice(IPrice):
     nordpool_data: pd.Series
+    transmission_fee: float  # SEK/kWh
+    effect_fee: float  # SEK/kW
     elec_tax_internal: float  # SEK/kWh
-    elec_grid_fee_internal: float  # SEK/kWh
+    elec_transmission_fee_internal: float  # SEK/kWh
+    elec_effect_fee_internal: float  # SEK/kW
 
-    def __init__(self, elec_wholesale_offset: float, elec_tax: float, elec_grid_fee: float,
-                 elec_tax_internal: float, elec_grid_fee_internal: float, nordpool_data: pd.Series):
+    def __init__(self, elec_wholesale_offset: float,
+                 elec_tax: float, elec_transmission_fee: float, elec_effect_fee: float,
+                 elec_tax_internal: float, elec_transmission_fee_internal: float, elec_effect_fee_internal: float,
+                 nordpool_data: pd.Series):
         super().__init__(Resource.ELECTRICITY)
         self.nordpool_data = nordpool_data
         self.wholesale_offset = elec_wholesale_offset
         self.tax = elec_tax
-        self.grid_fee = elec_grid_fee
+        self.transmission_fee = elec_transmission_fee
+        self.effect_fee = elec_effect_fee
         self.elec_tax_internal = elec_tax_internal
-        self.elec_grid_fee_internal = elec_grid_fee_internal
-    
+        self.elec_transmission_fee_internal = elec_transmission_fee_internal
+        self.elec_effect_fee_internal = elec_effect_fee_internal
+
+        self.grid_fee = self.transmission_fee + self.effect_fee / 8766.0
+        self.elec_grid_fee_internal = self.elec_transmission_fee_internal + self.elec_effect_fee_internal / 8766.0
+
     def get_estimated_retail_price(self, period: datetime.datetime, include_tax: bool) -> float:
         """
         Returns the price at which the external grid operator is believed to be willing to sell energy, in SEK/kWh.
@@ -90,6 +99,7 @@ class ElectricityPrice(IPrice):
         The external grid sells at the Nordpool spot price, plus the "grid fee".
         See also https://doc.afdrift.se/pages/viewpage.action?pageId=17072325
         """
+        # TODO: Will not be needed anymore when Chalmers' optimizer uses the effect fee "properly"
         return nordpool_price + self.grid_fee
 
     def get_electricity_net_external_price(self, gross_price: Union[float, pd.Series]) -> Union[float, pd.Series]:
@@ -133,20 +143,6 @@ class ElectricityPrice(IPrice):
         start_index = self.nordpool_data.index.get_loc(start_period)
         end_index = start_index + length
         return self.nordpool_data.iloc[start_index:end_index]
-    
-    def get_nordpool_prices_last_n_hours_dict(self, period: datetime.datetime, go_back_n_hours: int):
-        mask = (self.nordpool_data.index < period) & \
-            (self.nordpool_data.index >= minus_n_hours(period, go_back_n_hours))
-        nordpool_prices_last_n_hours = self.nordpool_data.loc[mask]
-        if len(nordpool_prices_last_n_hours.index) != go_back_n_hours:
-            logger.info('No Nordpool data before {}. Returning get_nordpool_prices_last_n_hours_dict with {} '
-                        'entries instead of the desired {}'.
-                        format(nordpool_prices_last_n_hours.index.min(), len(nordpool_prices_last_n_hours.index),
-                               go_back_n_hours))
-        return nordpool_prices_last_n_hours.to_dict()
-
-    def get_external_price_data_datetimes(self):
-        return self.nordpool_data.index.tolist()
 
     def get_tax(self, market: Market) -> float:
         return self.elec_tax_internal if market == Market.LOCAL else self.tax

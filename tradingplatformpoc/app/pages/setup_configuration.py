@@ -12,11 +12,11 @@ import streamlit as st
 from tradingplatformpoc.app import app_constants, footer
 from tradingplatformpoc.app.app_functions import calculate_height_for_no_scroll_up_to, cleanup_config_name, \
     config_naming_is_valid, make_room_for_menu_in_sidebar, set_max_width
-from tradingplatformpoc.app.app_inputs import add_params_to_form, column_config_for_agent_type
+from tradingplatformpoc.app.app_inputs import BOOL_OPTIONS, add_params_to_form, column_config_for_agent_type
 from tradingplatformpoc.config.access_config import fill_agents_with_defaults, fill_with_default_params, \
     read_agent_specs, read_param_specs
 from tradingplatformpoc.config.screen_config import config_data_feasibility_screening, config_data_json_screening, \
-    display_diff_in_config
+    display_diff_in_config, modify_some_fields
 from tradingplatformpoc.sql.config.crud import create_config_if_not_in_db, delete_config_if_no_jobs_exist, \
     get_all_config_ids_in_db, get_all_configs_in_db_df, read_description, update_description
 from tradingplatformpoc.sql.config.crud import read_config
@@ -85,7 +85,7 @@ if delete_config_button:
     if deleted:
         st.success('Configuration deleted!')
     else:
-        st.error('Could not delete configuration.')
+        st.error('Could not delete configuration - delete associated jobs first!')
     sleep(5)
     st.experimental_rerun()
 
@@ -96,6 +96,8 @@ config_container = st.container()
 
 st.markdown('#')
 
+area_info_param_specs = read_param_specs(['AreaInfo'])['AreaInfo']
+
 if option_chosen == options[0]:
     with st.expander("General parameters"):
         st.markdown('Change parameter values by filling out the following forms. **Save** '
@@ -103,21 +105,27 @@ if option_chosen == options[0]:
                     'verified against the configuration under the '
                     '*Current configuration in JSON format*-expander.')
 
+        # The LocalMarketEnabled is really important, so we separate it out here.
+        st.session_state.config_data['AreaInfo']['LocalMarketEnabled'] = st.radio(
+            label=area_info_param_specs['LocalMarketEnabled']['display'],
+            options=BOOL_OPTIONS,
+            index=BOOL_OPTIONS.index(st.session_state.config_data['AreaInfo']['LocalMarketEnabled'])
+        )
+
         area_info_tab, mock_data_constants_tab = st.tabs(["General area parameters",
                                                           "Data simulation parameters for digital twin"])
 
         with area_info_tab:
-            # st.markdown("**General area parameters:**")  # ---------------
             area_form = st.form(key="AreaInfoForm")
-            add_params_to_form(area_form, read_param_specs(['AreaInfo']), 'AreaInfo')
+            add_params_to_form(area_form, area_info_param_specs, 'AreaInfo', ['LocalMarketEnabled'])
             submit_area_form = area_form.form_submit_button("Save area info")
             if submit_area_form:
                 submit_area_form = False
 
         with mock_data_constants_tab:
-            # st.markdown("**Data simulation parameters for digital twin:**")  # ---------------
             mdc_form = st.form(key="MockDataConstantsForm")
-            add_params_to_form(mdc_form, read_param_specs(['MockDataConstants']), 'MockDataConstants')
+            add_params_to_form(mdc_form, read_param_specs(['MockDataConstants'])['MockDataConstants'],
+                               'MockDataConstants', [])
             submit_mdc_form = mdc_form.form_submit_button("Save mock data generation constants")
             if submit_mdc_form:
                 submit_mdc_form = False
@@ -262,8 +270,9 @@ if config_submit:
         if problems:
             st.error(problems)
         else:
+            modified_config = modify_some_fields(st.session_state.config_data, area_info_param_specs)
             config_name = cleanup_config_name(config_name)
-            config_created = create_config_if_not_in_db(st.session_state.config_data, config_name, description)
+            config_created = create_config_if_not_in_db(modified_config, config_name, description)
             if config_created['created']:
                 st.success(config_created['message'])
             else:

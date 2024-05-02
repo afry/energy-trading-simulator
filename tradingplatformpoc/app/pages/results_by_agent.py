@@ -5,6 +5,7 @@ import streamlit as st
 from tradingplatformpoc.app import footer
 from tradingplatformpoc.app.app_charts import construct_agent_energy_chart, construct_bites_chart, \
     construct_storage_level_chart, construct_traded_amount_by_agent_chart
+from tradingplatformpoc.app.app_constants import AGGREGATION_LEVELS
 from tradingplatformpoc.app.app_data_display import build_heat_pump_prod_df, get_bites_dfs, get_storage_dfs, \
     reconstruct_static_digital_twin
 from tradingplatformpoc.app.app_functions import IdPair, calculate_max_table_height, download_df_as_csv_button, \
@@ -41,7 +42,8 @@ if len(ids) > 0:
             st.dataframe(trades_df.replace(float('inf'), 'inf'), height=height)
             download_df_as_csv_button(trades_df, "all_trades_for_agent_" + agent_chosen_guid,
                                       include_index=True)
-            trades_chart = construct_traded_amount_by_agent_chart(agent_chosen_guid, trades_df)
+            aggregation_type = st.radio('Aggregation:', AGGREGATION_LEVELS, horizontal=True)
+            trades_chart = construct_traded_amount_by_agent_chart(agent_chosen_guid, trades_df, aggregation_type[:1])
             st.altair_chart(trades_chart, use_container_width=True, theme=None)
             st.write("Click on a variable to highlight it.")
 

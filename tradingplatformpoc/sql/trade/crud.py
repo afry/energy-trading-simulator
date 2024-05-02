@@ -11,7 +11,7 @@ from sqlalchemy import func, select
 from sqlmodel import Session
 
 from tradingplatformpoc.connection import session_scope
-from tradingplatformpoc.market.trade import Action, Market, Resource, Trade
+from tradingplatformpoc.market.trade import Action, Resource, Trade
 from tradingplatformpoc.sql.trade.models import Trade as TableTrade
 
 
@@ -210,14 +210,13 @@ def get_total_tax_paid(job_id: str, agent_guid: Optional[str] = None,
         return res.sum_tax_paid_for_quantities if res.sum_tax_paid_for_quantities is not None else 0.0
 
 
-def get_total_grid_fee_paid_on_internal_trades(job_id: str, agent_guid: Optional[str] = None,
-                                               session_generator: Callable[[], _GeneratorContextManager[Session]]
-                                               = session_scope) -> float:
+def get_total_grid_fee_paid(job_id: str, agent_guid: Optional[str] = None,
+                            session_generator: Callable[[], _GeneratorContextManager[Session]]
+                            = session_scope) -> float:
     with session_generator() as db:
         query = db.query(
             func.sum(TableTrade.grid_fee_paid_for_quantity).label('sum_grid_fee_paid_for_quantities'),
-        ).filter(TableTrade.action == Action.SELL, TableTrade.by_external.is_(False),
-                 TableTrade.market == Market.LOCAL, TableTrade.job_id == job_id)
+        ).filter(TableTrade.action == Action.SELL, TableTrade.job_id == job_id)
         if agent_guid is not None:
             query = query.filter(TableTrade.source == agent_guid)
         res = query.first()

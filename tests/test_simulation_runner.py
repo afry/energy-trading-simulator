@@ -48,10 +48,12 @@ class Test(TestCase):
               mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.get_generated_mock_data',
                          return_value=pd.DataFrame(columns=[bid for sublist in mock_data_columns for bid in sublist])),
               mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.read_inputs_df_for_agent_creation',
-                         return_value=input_data)):
+                         return_value=input_data),
+              mock.patch('tradingplatformpoc.simulation_runner.trading_simulator.get_nordpool_data',
+                         return_value=pd.Series())):
+            simulator = TradingSimulator('fake_job_id')
+            simulator.initialize_data()
             with self.assertRaises(RuntimeError):
-                simulator = TradingSimulator('fake_job_id')
-                simulator.initialize_data()
                 simulator.initialize_agents()
 
     def test_get_external_heating_prices_from_empty_data_store(self):
@@ -59,10 +61,10 @@ class Test(TestCase):
         When trying to calculate external heating prices using an empty DataStore, NaNs should be returned for exact
         prices, and warnings should be logged.
         """
+        datetime_index = pd.DatetimeIndex([datetime.datetime(2019, 2, 1), datetime.datetime(2019, 2, 2)])
         with self.assertLogs() as captured:
             heating_price_list = get_external_heating_prices(self.heat_pricing, self.fake_job_id,
-                                                             pd.DatetimeIndex([datetime.datetime(2019, 2, 1),
-                                                                              datetime.datetime(2019, 2, 2)]))
+                                                             datetime_index, ['abc'], True)
         heating_prices = pd.DataFrame.from_records(heating_price_list)
         self.assertTrue(len(captured.records) > 0)
         log_levels_captured = [rec.levelname for rec in captured.records]

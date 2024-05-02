@@ -14,7 +14,6 @@ from tradingplatformpoc.sql.level.crud import db_to_viewable_level_df, db_to_vie
 from tradingplatformpoc.sql.results.models import ResultsKey
 from tradingplatformpoc.sql.trade.crud import get_external_trades_df
 
-
 """
 This file holds functions used in scenario_comparison.py
 """
@@ -39,7 +38,7 @@ class ComparisonIds:
         return [elem.config_id for elem in self.id_pairs if elem.job_id == job_id][0]
 
 
-def import_export_calculations(ids: ComparisonIds) -> alt.Chart:
+def import_export_calculations(ids: ComparisonIds, freq: str, agg_type: str) -> alt.Chart:
 
     # Get data from database
     df = get_external_trades_df(ids.get_job_ids())
@@ -63,14 +62,10 @@ def import_export_calculations(ids: ComparisonIds) -> alt.Chart:
         resource = k[1]
         for job_id in pd.unique(df.job_id):
             subset = df[(df.resource == resource) & (df.job_id == job_id) & (df.action == action)][[
-                'period', 'quantity_pre_loss']]
+                'period', 'quantity_pre_loss']].set_index('period').groupby(pd.Grouper(freq=freq)).agg(agg_type)
 
             if not subset.empty:
-                subset = subset.set_index('period')
-                datetime_range = pd.date_range(start=subset.index.min(), end=subset.index.max(),
-                                               freq="1h", tz='utc')
-                subset = subset.reindex(datetime_range).fillna(0)
-                subset = subset.reset_index().rename(columns={'index': 'period'})
+                subset = subset.reset_index()
                 variable = title + ' - ' + ids.get_config_id(job_id)
                 subset['variable'] = variable
                 subset = subset.rename(columns={'quantity_pre_loss': 'value'})
@@ -82,7 +77,8 @@ def import_export_calculations(ids: ComparisonIds) -> alt.Chart:
                 new_df = pd.concat((new_df, subset))
             j = j + 1
     chart = altair_line_chart(new_df, domain, range_color, range_dash, "Energy [kWh]",
-                              'Import and export of resources through trades with grid agents')
+                              'Import and export of resources through trades with grid agents',
+                              freq=freq)
     return chart
 
 

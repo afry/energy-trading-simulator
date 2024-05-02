@@ -2,21 +2,14 @@
     "LocalMarketEnabled": {
         "display": "Local market for energy trades",
         "default": true,
-        "help": "If a local market for trading of energy should be used in simulation.",
-        "disabled": true
-    },
-    "AllowDistrictHeating": {
-        "display": "Allow district heating",
-        "default": true,
-        "help": "If the possibility to buy district heating should be included in simulation.",
-        "disabled": true
+        "help": "If a local market for trading of energy should be used in simulation."
     },
     "TradingHorizon": {
         "display": "Trading horizon [hours]",
         "min_value": 1,
         "max_value": 48,
         "default": 24,
-        "help": "How many trading periods (hours) in advance each energy trading process is performed over."
+        "help": "How many trading periods (hours) in advance each energy trading optimization is performed over."
     },
     "PVEfficiency": {
         "display": "Default PV efficiency:",
@@ -52,29 +45,33 @@
         "display": "Maximum electricity transfer capacity in microgrid [kW]",
         "min_value": 0,
         "step": 10,
-        "help": "The maximum amount of electricity an agent can buy/sell from/to the local energy community, in a single trading period (i.e. an hour). For the external transfer capacity, see the external grid agent",
-        "default": 1000
+        "help": "The maximum amount of electricity an agent can buy/sell from/to the local energy community, in a single trading period (i.e. an hour). Not used if the local market is disabled. For the external transfer capacity, see the external grid agent.",
+        "default": 1000,
+        "disabled_cond": {"disabled_when": {"LocalMarketEnabled": false}, "set_value": 0}
     },
     "InterAgentHeatTransferCapacity": {
         "display": "Maximum heating transfer capacity in microgrid [kW]",
         "min_value": 0,
         "step": 10,
-        "help": "The maximum amount of heat an agent can buy/sell from/to the local energy community, in a single trading period (i.e. an hour). For the external transfer capacity, see the external grid agent",
-        "default": 500
+        "help": "The maximum amount of heat an agent can buy/sell from/to the local energy community, in a single trading period (i.e. an hour). Not used if the local market is disabled. For the external transfer capacity, see the external grid agent.",
+        "default": 500,
+        "disabled_cond": {"disabled_when": {"LocalMarketEnabled": false}, "set_value": 0}
     },
     "CompChillerMaxInput": {
-        "display": "Compressor chiller max input power [kW]",
+        "display": "Centralized compressor chiller max input power [kW]",
         "min_value": 0.0,
         "step": 50.0,
-        "help": "The capacity of a centralized compressor chiller, providing cooling to the LEC. Setting this to 0 corresponds to not having a centralized chiller. The max output will be this number multiplied by the COP.",
-        "default": 100.0
+        "help": "The capacity of a centralized compressor chiller, providing cooling to the LEC. Setting this to 0 corresponds to not having a centralized chiller. The max output will be this number multiplied by the COP. Not used if the local market is disabled.",
+        "default": 100.0,
+        "disabled_cond": {"disabled_when": {"LocalMarketEnabled": false}, "set_value": 0.0}
     },
     "CompChillerCOP": {
-        "display": "Compressor chiller COP",
+        "display": "Centralized compressor chiller COP",
         "min_value": 1.0,
         "step": 0.1,
-        "help": "The relative Coefficient of Performance of any compressor chillers in the LEC",
-        "default": 4.0
+        "help": "The relative Coefficient of Performance of any compressor chillers in the LEC. Not used if the local market is disabled.",
+        "default": 4.0,
+        "disabled_cond": {"disabled_when": {"LocalMarketEnabled": false}}
     },
     "CoolingTransferLoss": {
         "display": "Cooling transfer loss:",
@@ -82,7 +79,8 @@
         "max_value": 0.99,
         "format": "%.3f",
         "default": 0.05,
-        "help": "A number specifying the loss of cooling in every transfer. Must be between 0 and 0.99, where 0 would mean no losses at all, and 0.99 would mean that almost all energy is lost when trying to transfer cooling from one agent to another. A reasonable number would be in the 0-0.10 range."
+        "help": "A number specifying the loss of cooling in every transfer. Must be between 0 and 0.99, where 0 would mean no losses at all, and 0.99 would mean that almost all energy is lost when trying to transfer cooling from one agent to another. A reasonable number would be in the 0-0.10 range. Not used if the local market is disabled.",
+        "disabled_cond": {"disabled_when": {"LocalMarketEnabled": false}}
     },
     "HeatTransferLoss": {
         "display": "Heat transfer loss:",
@@ -103,15 +101,27 @@
         "display": "Electricity tax:",
         "min_value": 0.0,
         "format": "%.3f",
-        "default": 0.392,
-        "help": "The electricity tax in SEK/kWh, for trades not inside the local market. For 2022, this is 0.392, but here it can be set to any (non-negative) number"
+        "default": 0.428,
+        "help": "The electricity tax in SEK/kWh, when buying electricity from the external grid. For 2024, this is 0.428, but here it can be set to any (non-negative) number"
     },
-    "ElectricityGridFee": {
-        "display": "Electricity grid fee:",
+    "ElectricityTransmissionFee": {
+        "display": "Electricity transmission fee:",
         "min_value": 0.0,
         "format": "%.3f",
-        "default": 0.148,
-        "help": "The electricity grid fee in SEK/kWh, for trades not inside the local market. The price at which electricity can be imported into the microgrid will be set to the Nordpool spot price, plus the electricity tax, plus this number. In reality it is quite complicated to calculate, since it depends on the average effect used for the three months with highest consumption over the year, but here we approximate it with a flat SEK/kWh rate. For Varberg Energi in 2023 this approximation is roughly equal to 0.148, but here it can be set to any (non-negative) number"
+        "default": 0.076,
+        "help": "The electricity transmission fee in SEK/kWh, when buying electricity from the external grid. The price at which electricity can be imported into the microgrid will be set to the Nordpool spot price, plus the electricity tax, plus this number, plus the effect fee. For Varberg Energi in 2024 this is equal to 0.076, but here it can be set to any (non-negative) number"
+    },
+    "ElectricityEffectFee": {
+        "display": "Electricity effect fee:",
+        "min_value": 0,
+        "default": 804,
+        "help": "The electricity effect fee in SEK/kW, when buying electricity from the external grid."
+    },
+    "HeatingEffectFee": {
+        "display": "Heating effect fee:",
+        "min_value": 0,
+        "default": 68,
+        "help": "The heating effect fee in SEK/kW, when buying heating from the external grid. The amount in SEK is equal to this number multiplied by the highest outtake for a single day within the given month, divided by 24 (hours). For Varberg Energi in 2024 this number is 68 SEK/kW, but it can be varied here. A high number will penalize high peak usage more."
     },
     "BatteryChargeRate": {
         "display": "Battery charge rate",
@@ -148,6 +158,18 @@
         "default": 0.1,
         "help": "A number specifying the charge level for batteries and accumulator tanks at the end of each trading horizon. If this is 0, all such storages will be completely discharged at the end of each trading horizon. If it is 1, they will be fully charged. If running a 24 hour trading horizon, starting at midnight, one probably wants to keep this low, since electricity is often cheap 00:00-05:00 or so."
     },
+    "ElectricityPriceYear": {
+        "display": "Electricity prices for year",
+        "options":[2019, 2022, 2023],
+        "default": 2023,
+        "help": "Simulations are carried out using heating consumption data and temperature data collected during 2019. Thus, one might want to use electricity price data from the same period, since there is a correlation between temperature and electricity price. Later years have seen drastic changes to the electricity market though, therefore the option is available to use electricity prices for some later years as well."
+    },
+    "AllowDistrictHeating": {
+        "display": "Allow district heating",
+        "default": true,
+        "help": "If the possibility to buy district heating should be included in simulation.",
+        "disabled": true
+    },
     "ElectricityTaxInternal": {
         "display": "Electricity tax (internal):",
         "min_value": 0.0,
@@ -156,12 +178,19 @@
         "help": "The electricity tax in SEK/kWh, paid on internal trades in the local market. Should be between 0 and the 'external'/'normal' tax. Not yet implemented!",
         "disabled": true
     },
-    "ElectricityGridFeeInternal": {
-        "display": "Electricity grid fee (internal):",
+    "ElectricityTransmissionFeeInternal": {
+        "display": "Electricity transmission fee (internal):",
         "min_value": 0.0,
         "format": "%.3f",
         "default": 0.0,
-        "help": "The grid fee, in SEK/kWh, paid on internal trades in the local market. Should be between 0 and the 'external'/'normal' grid fee. Not yet implemented!",
+        "help": "The electricity transmission fee in SEK/kWh, when buying electricity in the local market. Should be between 0 and the 'external'/'normal' transmission fee. Not yet implemented!",
+        "disabled": true
+    },
+    "ElectricityEffectFeeInternal": {
+        "display": "Electricity effect fee (internal):",
+        "min_value": 0,
+        "default": 0,
+        "help": "The electricity effect fee in SEK/kW, when buying electricity in the local market. Should be between 0 and the 'external'/'normal' effect fee. Not yet implemented!",
         "disabled": true
     },
     "ExternalHeatingWholesalePriceFraction": {

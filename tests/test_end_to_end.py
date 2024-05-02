@@ -75,19 +75,17 @@ class TestEndToEnd(TestCase):
 
 
 def get_costs_of_trades_for_agent(trades_for_agent):
-    return trades_for_agent.apply(lambda x: get_cost_of_trade(x.action, x.quantity_pre_loss, x.quantity_post_loss,
-                                                              x.price), axis=1)
+    return trades_for_agent.apply(lambda x: get_cost_of_trade(x.action, x.quantity_pre_loss, x.price), axis=1)
 
 
-def get_cost_of_trade(action: Action, quantity_pre_loss: float, quantity_post_loss: float, price: float) -> float:
+def get_cost_of_trade(action: Action, quantity_pre_loss: float, price: float) -> float:
     """
     Negative if it is an income, i.e. if the trade is a SELL.
-    For BUY-trades, the buyer pays for the quantity before losses.
-    For SELL-trades, the seller gets paid for the quantity after losses.
+    Costs are calculated on the quantity before losses (see objective function in Chalmers' code).
     """
     if action == Action.BUY:
         return quantity_pre_loss * price
     elif action == Action.SELL:
-        return -quantity_post_loss * price
+        return -quantity_pre_loss * price
     else:
         raise RuntimeError('Unrecognized action: ' + action.name)
