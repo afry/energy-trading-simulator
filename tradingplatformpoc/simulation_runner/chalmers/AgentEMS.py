@@ -7,8 +7,8 @@ from pyomo.opt import OptSolver, SolverResults
 from tradingplatformpoc.simulation_runner.chalmers.domain import CEMSError, PERC_OF_HT_COVERABLE_BY_LT
 
 
-def solve_model(solver: OptSolver, month: int, agent: int, external_elec_buy_price: pd.Series,
-                external_elec_sell_price: pd.Series, external_heat_buy_price: float, battery_capacity: float,
+def solve_model(solver: OptSolver, month: int, agent: int, nordpool_price: pd.Series,
+                external_heat_buy_price: float, battery_capacity: float,
                 battery_charge_rate: float, battery_discharge_rate: float, SOCBES0: float, HP_Cproduct_active: bool,
                 heatpump_COP: float, heatpump_max_power: float, heatpump_max_heat: float,
                 build_area: float, SOCTES0: float,
@@ -35,8 +35,7 @@ def solve_model(solver: OptSolver, month: int, agent: int, external_elec_buy_pri
     assert len(cold_consumption) >= trading_horizon
     assert len(pv_production) >= trading_horizon
     assert len(excess_heat) >= trading_horizon
-    assert len(external_elec_buy_price) >= trading_horizon
-    assert len(external_elec_sell_price) >= trading_horizon
+    assert len(nordpool_price) >= trading_horizon
     assert battery_efficiency > 0  # Otherwise we'll get division by zero
     assert thermalstorage_efficiency > 0  # Otherwise we'll get division by zero
     assert heat_trans_loss > 0  # Otherwise we may get simultaneous buying and selling of heat
@@ -64,8 +63,7 @@ def solve_model(solver: OptSolver, month: int, agent: int, external_elec_buy_pri
     # Parameters
     model.penalty = pyo.Param(initialize=1000)
     model.Big_M = pyo.Param(initialize=1000)
-    model.price_buy = pyo.Param(model.T, initialize=external_elec_buy_price)
-    model.price_sell = pyo.Param(model.T, initialize=external_elec_sell_price)
+    model.nordpool_price = pyo.Param(model.T, initialize=nordpool_price)
     model.elec_peak_load_fee = pyo.Param(initialize=elec_peak_load_fee)
     model.elec_trans_fee = pyo.Param(initialize=elec_trans_fee)
     model.elec_tax_fee = pyo.Param(initialize=elec_tax_fee)
@@ -160,8 +158,8 @@ def solve_model(solver: OptSolver, month: int, agent: int, external_elec_buy_pri
     def obj_rule(model):
         return sum(
             # Electricity cost terms:
-            model.Pbuy_market[t] * (model.price_buy[t]+model.elec_trans_fee+model.elec_tax_fee)  # Purchasing cost
-            - model.Psell_market[t] * (model.price_sell[t]+incentive_fee)  # Selling cost
+            model.Pbuy_market[t] * (model.nordpool_price[t]+model.elec_trans_fee+model.elec_tax_fee)  # Purchasing cost
+            - model.Psell_market[t] * (model.nordpool_price[t]+incentive_fee)  # Selling cost
             + model.monthly_elec_peak_load * model.elec_peak_load_fee  # Peak load cost
             # Heat cost terms:
             + model.Hbuy_market[t] * model.Hprice_energy  # Purchasing cost
@@ -256,7 +254,7 @@ def solve_model(solver: OptSolver, month: int, agent: int, external_elec_buy_pri
         return model.monthly_elec_peak_load <= model.daily_elec_peak_load + model.Big_M*(1-model.U_elec_peak_load)
 
     def elec_peak_load6(model):
-        return model.U_elec_peak_load >= model.daily_elec_peak_load/model.Hist_monthly_elec_peak_load - 1
+        return model.U_elec_peak_load >= (model.daily_elec_peak_load-model.Hist_monthly_elec_peak_load)/model.Big_M
 
     def heat_peak_load1(model):
         return model.daily_heat_peak_energy >= sum(model.Hbuy_market[t] for t in model.T)
@@ -274,7 +272,7 @@ def solve_model(solver: OptSolver, month: int, agent: int, external_elec_buy_pri
         return model.monthly_heat_peak_energy <= model.daily_heat_peak_energy + model.Big_M*(1-model.U_heat_peak_energy)
 
     def heat_peak_load6(model):
-        return model.U_heat_peak_energy >= model.daily_heat_peak_energy/model.Hist_monthly_heat_peak_energy - 1
+        return model.U_heat_peak_energy >= (model.daily_heat_peak_energy-model.Hist_monthly_heat_peak_energy)/model.Big_M
 
     def Hhw_supplied_by_HTES(model, t):
         # with TES
