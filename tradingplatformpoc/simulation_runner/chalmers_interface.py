@@ -96,7 +96,7 @@ def optimize(solver: OptSolver, block_agents: List[BlockAgent], grid_agents: Dic
     deep_storage_start = [(deep_storage_start_dict[agent] if agent in shallow_storage_start_dict.keys() else 0.0)
                           for agent in agent_guids]
 
-    retail_prices: pd.Series = elec_pricing.get_exact_retail_prices(start_datetime, trading_horizon, True)
+    retail_prices: pd.Series = elec_pricing.get_exact_retail_prices(start_datetime, trading_horizon, True, 0.0)
     wholesale_prices: pd.Series = elec_pricing.get_exact_wholesale_prices(start_datetime, trading_horizon)
     elec_retail_prices = retail_prices.reset_index(drop=True)
     elec_wholesale_prices = wholesale_prices.reset_index(drop=True)
