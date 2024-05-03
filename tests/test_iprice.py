@@ -86,6 +86,11 @@ class TestElectricityPrice(TestCase):
         self.assertTrue(data.shape[0] > 0)
         self.assertIsInstance(data.index, DatetimeIndex)
 
+    def test_very_negative_nordpool_price(self):
+        """Test what happens when the Nordpool price is very negative"""
+        electricity_pricing.nordpool_data[DATETIME_ARRAY[0]] = -10.0
+        self.assertEqual(-9.51, electricity_pricing.get_exact_retail_price(DATETIME_ARRAY[0], True))
+
 
 class TestHeatingPrice(TestCase):
 
