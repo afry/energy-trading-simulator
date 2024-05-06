@@ -92,12 +92,12 @@ class TradingSimulator:
             elec_effect_fee_internal=self.config_data['AreaInfo']["ElectricityEffectFeeInternal"],
             nordpool_data=corresponding_nordpool_data)
         # FIXME: Remove
-        self.trading_periods = self.trading_periods.take(list(range(24))  # 02-01
-                                                         + list(range(3912, 3936))  # 07-14
-                                                         + list(range(5664, 5688))  # 09-25
-                                                         + list(range(5952, 5976))  # 10-07
-                                                         + list(range(6120, 6144))  # 10-14
-                                                         )
+        # self.trading_periods = self.trading_periods.take(list(range(24))  # 02-01
+        #                                                  + list(range(3912, 3936))  # 07-14
+        #                                                  + list(range(5664, 5688))  # 09-25
+        #                                                  + list(range(5952, 5976))  # 10-07
+        #                                                  + list(range(6120, 6144))  # 10-14
+        #                                                  )
         self.trading_horizon = self.config_data['AreaInfo']['TradingHorizon']
 
     def initialize_agents(self) -> Tuple[List[IAgent], Dict[Resource, GridAgent]]:
