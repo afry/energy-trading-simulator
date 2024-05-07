@@ -83,6 +83,8 @@ def calculate_results_and_save(job_id: str, agents: List[IAgent], grid_agents: D
     result_dict: Dict[str, Any] = {}
     external_trades = get_external_trades_df([job_id])
 
+    external_trades = sum_external_trades(external_trades)
+
     extra_costs_sum = get_extra_costs_sum(grid_agents, job_id)
 
     temperature_df = read_input_column_df_from_db('temperature')
@@ -136,6 +138,20 @@ def calculate_results_and_save(job_id: str, agents: List[IAgent], grid_agents: D
     result_dict[ResultsKey.COOL_DUMPED] = sum_levels(job_id, TradeMetadataKey.COOL_DUMP.name)
 
     save_results(PreCalculatedResults(job_id=job_id, result_dict=result_dict))
+
+
+def sum_external_trades(trades: pd.DataFrame) -> pd.DataFrame:
+    """
+    If no LEC, there will be multiple external trades for each trading period and resource. Sum these, to make
+    analysis easier.
+    """
+    trades['action'] = trades['action'].astype(str)
+    trades['resource'] = trades['resource'].astype(str)
+    trades = trades.groupby([c for c in trades.columns if c != 'quantity_pre_loss'])[
+        'quantity_pre_loss'].sum().reset_index()
+    trades['action'] = trades['action'].apply(lambda x: Action[x.replace('Action.', '')])
+    trades['resource'] = trades['resource'].apply(lambda x: Resource[x.replace('Resource.', '')])
+    return trades
 
 
 def max_dict_value(some_dict: Dict[Any, Union[int, float]]) -> Union[int, float]:

@@ -66,17 +66,20 @@ class ElectricityPrice(IPrice):
         """Returns the price at which the external grid operator is willing to buy energy, in SEK/kWh"""
         return self.get_exact_wholesale_prices(period, 1)
 
-    def get_exact_retail_prices(self, period: datetime.datetime, length: int, include_tax: bool) \
-            -> Union[float, pd.Series]:
+    def get_exact_retail_prices(self, period: datetime.datetime, length: int, include_tax: bool,
+                                lower_bound: float = -999.0) -> Union[float, pd.Series]:
         """
         Returns the price at which the external grid operator is willing to sell energy, in SEK/kWh, for the
         start_period and length periods forwards.
         """
         gross_price = self.get_electricity_gross_retail_price(period, length)
         if include_tax:
-            return self.get_electricity_net_external_price(gross_price)
+            retail_price = self.get_electricity_net_external_price(gross_price)
         else:
-            return gross_price
+            retail_price = gross_price
+        if isinstance(retail_price, float):
+            return max(lower_bound, retail_price)
+        return retail_price.clip(lower_bound)
 
     def get_exact_wholesale_prices(self, period: datetime.datetime, length: int) -> Union[float, pd.Series]:
         """
