@@ -1,6 +1,7 @@
 
 import datetime
 from abc import ABC, abstractmethod
+from calendar import monthrange
 
 from tradingplatformpoc.market.trade import Resource
 
@@ -55,3 +56,7 @@ class IPrice(ABC):
         remuneration_modifier = 0
 
         return wholesale_price + remuneration_modifier
+
+
+def get_days_in_month(month_of_year: int, year: int) -> int:
+    return monthrange(year, month_of_year)[1]

@@ -108,14 +108,14 @@
         "display": "Electricity transmission fee:",
         "min_value": 0.0,
         "format": "%.3f",
-        "default": 0.076,
-        "help": "The electricity transmission fee in SEK/kWh, when buying electricity from the external grid. The price at which electricity can be imported into the microgrid will be set to the Nordpool spot price, plus the electricity tax, plus this number, plus the effect fee. For Varberg Energi in 2024 this is equal to 0.076, but here it can be set to any (non-negative) number"
+        "default": 0.204,
+        "help": "The electricity transmission fee in SEK/kWh, when buying electricity from the external grid. The price at which electricity can be imported into the microgrid will be set to the Nordpool spot price, plus the electricity tax, plus this number, plus the effect fee. For Goteborg Energi in 2024 this is equal to 0.204, and for Varberg Energi 0.076. We use Goteborg Energi's number in the base case, since we have implemented their effect fee structure."
     },
     "ElectricityEffectFee": {
         "display": "Electricity effect fee:",
         "min_value": 0,
-        "default": 804,
-        "help": "The electricity effect fee in SEK/kW, when buying electricity from the external grid."
+        "default": 35,
+        "help": "The electricity effect fee in SEK/kW, when buying electricity from the external grid. Applied in accordance with Goteborg Energi's pricing model: The effect tariff for the month equals this number multiplied by the average of the month's three highest hourly outtakes in kW."
     },
     "HeatingEffectFee": {
         "display": "Heating effect fee:",

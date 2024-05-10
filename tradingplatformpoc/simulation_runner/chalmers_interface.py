@@ -197,10 +197,10 @@ def optimize(solver: OptSolver, block_agents: List[BlockAgent], grid_agents: Dic
                     trading_horizon=trading_horizon,
                     elec_tax_fee=elec_pricing.tax,
                     elec_trans_fee=elec_pricing.transmission_fee,
-                    elec_peak_load_fee=elec_pricing.effect_fee,
+                    elec_peak_load_fee=elec_pricing.get_effect_fee_per_day(start_datetime),
                     heat_peak_load_fee=heat_pricing.effect_fee,
                     incentive_fee=elec_pricing.wholesale_offset,
-                    hist_monthly_elec_peak_load=10000.0,  # TODO
+                    hist_top_three_elec_peak_load=[250.0, 240.0, 130.0],  # TODO
                     hist_monthly_heat_peak_energy=10000.0,  # TODO
                 )
                 handle_infeasibility(optimized_model, results, start_datetime, trading_horizon,
@@ -220,7 +220,8 @@ def optimize(solver: OptSolver, block_agents: List[BlockAgent], grid_agents: Dic
         return ChalmersOutputs(all_trades, metadata_per_agent_and_period, metadata_per_period)
     except CEMSError as e:
         raise InfeasibilityError(message=e.message,
-                                 agent_names=[agent_guids[i] for i in e.agent_indices],
+                                 agent_names=e.agent_names if isinstance(e, InfeasibilityError) else
+                                 [agent_guids[i] for i in e.agent_indices],
                                  hour_indices=e.hour_indices,
                                  horizon_start=start_datetime,
                                  horizon_end=start_datetime + datetime.timedelta(hours=trading_horizon),
@@ -574,8 +575,9 @@ def add_external_trade(trade_list: List[Trade], bought_from_external_name: str, 
                                   - get_variable_value_or_else(optimized_model, bought_from_external_name, hour))
     period = start_datetime + datetime.timedelta(hours=hour)
     if external_quantity > VERY_SMALL_NUMBER:
-        wholesale_prices = getattr(optimized_model, wholesale_price_name)
-        price = get_value_from_param(wholesale_prices, hour)
+        # wholesale_prices = getattr(optimized_model, wholesale_price_name)
+        # price = get_value_from_param(wholesale_prices, hour)
+        price = np.nan  # TODO
         trade_list.append(Trade(period=period,
                                 action=Action.BUY, resource=resource, quantity=external_quantity / (1 - loss),
                                 price=price, source=grid_agent_guid, by_external=True, market=market,
@@ -583,8 +585,9 @@ def add_external_trade(trade_list: List[Trade], bought_from_external_name: str, 
     else:
         if external_quantity < -VERY_SMALL_NUMBER:
             trade_quantity = -external_quantity
-            retail_prices = getattr(optimized_model, retail_price_name)
-            price = get_value_from_param(retail_prices, hour)
+            # retail_prices = getattr(optimized_model, retail_price_name)
+            # price = get_value_from_param(retail_prices, hour)
+            price = np.nan  # TODO
             trade_list.append(Trade(period=period,
                                     action=Action.SELL, resource=resource, quantity=trade_quantity,
                                     price=price, source=grid_agent_guid, by_external=True, market=market,

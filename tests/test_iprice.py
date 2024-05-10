@@ -93,6 +93,14 @@ class TestElectricityPrice(TestCase):
         # Test for more than 1 period as well:
         self.assertEqual(0.0, electricity_pricing.get_exact_retail_prices(DATETIME_ARRAY[0], 2, True, 0.0).iloc[0])
 
+    def test_get_effect_fee_per_day(self):
+        """Test that get_effect_fee_per_day works as expected"""
+        effect_fee = 35
+        electricity_pricing_3: ElectricityPrice = electricity_pricing
+        electricity_pricing_3.effect_fee = effect_fee
+        fee_per_day = electricity_pricing_3.get_effect_fee_per_day(datetime(2024, 5, 1))
+        self.assertEqual(effect_fee / 31, fee_per_day)
+
 
 class TestHeatingPrice(TestCase):
 

@@ -5,8 +5,7 @@ from typing import Union
 import pandas as pd
 
 from tradingplatformpoc.market.trade import Market, Resource
-from tradingplatformpoc.price.iprice import IPrice
-
+from tradingplatformpoc.price.iprice import IPrice, get_days_in_month
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +13,7 @@ logger = logging.getLogger(__name__)
 class ElectricityPrice(IPrice):
     nordpool_data: pd.Series
     transmission_fee: float  # SEK/kWh
-    effect_fee: float  # SEK/kW
+    effect_fee: float  # SEK/kW for the month
     elec_tax_internal: float  # SEK/kWh
     elec_transmission_fee_internal: float  # SEK/kWh
     elec_effect_fee_internal: float  # SEK/kW
@@ -152,3 +151,6 @@ class ElectricityPrice(IPrice):
 
     def get_grid_fee(self, market: Market) -> float:
         return self.elec_grid_fee_internal if market == Market.LOCAL else self.grid_fee
+
+    def get_effect_fee_per_day(self, date_time: datetime.datetime) -> float:
+        return self.effect_fee / get_days_in_month(date_time.month, date_time.year)

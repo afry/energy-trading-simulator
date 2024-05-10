@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 
 from tradingplatformpoc.market.trade import Resource
-from tradingplatformpoc.price.iprice import IPrice
+from tradingplatformpoc.price.iprice import IPrice, get_days_in_month
 
 EMPTY_DATETIME_INDEXED_SERIES = pd.Series([], dtype=float, index=pd.to_datetime([], utc=True))
 
@@ -146,12 +146,12 @@ class HeatingPrice(IPrice):
         The grid fee is based on the average consumption in kW during January and February.
         This fee is then spread out evenly during the year.
         """
-        days_in_month = monthrange(year, month_of_year)[1]
+        days_in_month = get_days_in_month(month_of_year, year)
         days_in_year = 366 if isleap(year) else 365
         fraction_of_year = days_in_month / days_in_year
         yearly_fee = self.get_yearly_grid_fee(jan_feb_hourly_avg_consumption_kw)
         return yearly_fee * fraction_of_year
-    
+
     def exact_district_heating_price_for_month(self, month: int, year: int, consumption_this_month_kwh: float,
                                                jan_feb_avg_consumption_kw: float,
                                                prev_month_peak_day_avg_consumption_kw: float) -> float:
