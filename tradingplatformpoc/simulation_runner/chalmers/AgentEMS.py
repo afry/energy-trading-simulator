@@ -62,7 +62,7 @@ def solve_model(solver: OptSolver, month: int, agent: int, nordpool_price: pd.Se
     model.T = pyo.Set(initialize=range(int(trading_horizon)))  # index of time intervals
     # Parameters
     model.penalty = pyo.Param(initialize=1000)
-    model.Big_M = pyo.Param(initialize=1000)
+    model.Big_M = pyo.Param(initialize=10000)
     model.nordpool_price = pyo.Param(model.T, initialize=nordpool_price)
     model.elec_peak_load_fee = pyo.Param(initialize=elec_peak_load_fee)
     model.elec_trans_fee = pyo.Param(initialize=elec_trans_fee)
