@@ -62,7 +62,6 @@ def solve_model(solver: OptSolver, month: int, agent: int, nordpool_price: pd.Se
     model.T = pyo.Set(initialize=range(int(trading_horizon)))  # index of time intervals
     # Parameters
     model.penalty = pyo.Param(initialize=1000)
-    model.Big_M = pyo.Param(initialize=10000)
     model.nordpool_price = pyo.Param(model.T, initialize=nordpool_price)
     model.elec_peak_load_fee = pyo.Param(initialize=elec_peak_load_fee)
     model.elec_trans_fee = pyo.Param(initialize=elec_trans_fee)
@@ -153,7 +152,6 @@ def solve_model(solver: OptSolver, month: int, agent: int, nordpool_price: pd.Se
     model.avg_elec_peak_load = pyo.Var(within=pyo.NonNegativeReals, initialize=sum(hist_top_three_elec_peak_load) / 3.0)
     model.daily_heat_peak_energy = pyo.Var(within=pyo.NonNegativeReals, initialize=0)
     model.monthly_heat_peak_energy = pyo.Var(within=pyo.NonNegativeReals, initialize=0)
-    model.U_heat_peak_energy = pyo.Var(within=pyo.Binary, initialize=0)
 
     # Objective function: minimize the total charging cost (eq. 1 of the report)
     def obj_rule(model):
@@ -257,22 +255,10 @@ def solve_model(solver: OptSolver, month: int, agent: int, nordpool_price: pd.Se
         return model.daily_heat_peak_energy >= sum(model.Hbuy_market[t] for t in model.T)
 
     def heat_peak_load2(model):
-        return model.monthly_heat_peak_energy >= -model.Big_M * model.U_heat_peak_energy
+        return model.monthly_heat_peak_energy >= model.daily_heat_peak_energy
 
     def heat_peak_load3(model):
-        return model.monthly_heat_peak_energy <= model.Big_M * model.U_heat_peak_energy
-
-    def heat_peak_load4(model):
-        return model.monthly_heat_peak_energy >= model.daily_heat_peak_energy - model.Big_M * (
-                    1 - model.U_heat_peak_energy)
-
-    def heat_peak_load5(model):
-        return model.monthly_heat_peak_energy <= model.daily_heat_peak_energy + model.Big_M * (
-                    1 - model.U_heat_peak_energy)
-
-    def heat_peak_load6(model):
-        return model.U_heat_peak_energy >= (
-                    model.daily_heat_peak_energy - model.Hist_monthly_heat_peak_energy) / model.Big_M
+        return model.monthly_heat_peak_energy >= model.Hist_monthly_heat_peak_energy
 
     def Hhw_supplied_by_HTES(model, t):
         # with TES
@@ -428,9 +414,6 @@ def solve_model(solver: OptSolver, month: int, agent: int, nordpool_price: pd.Se
     model.con_heat_peak_load1 = pyo.Constraint(rule=heat_peak_load1)
     model.con_heat_peak_load2 = pyo.Constraint(rule=heat_peak_load2)
     model.con_heat_peak_load3 = pyo.Constraint(rule=heat_peak_load3)
-    model.con_heat_peak_load4 = pyo.Constraint(rule=heat_peak_load4)
-    model.con_heat_peak_load5 = pyo.Constraint(rule=heat_peak_load5)
-    model.con_heat_peak_load6 = pyo.Constraint(rule=heat_peak_load6)
 
     # if summer_mode:
     #     model.con_agent_Pbalance_summer = pyo.Constraint(model.T, rule=agent_Pbalance_summer)

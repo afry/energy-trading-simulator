@@ -1,7 +1,7 @@
 import datetime
 import logging
 from calendar import isleap, monthrange
-from typing import Dict, Optional
+from typing import Optional
 
 import numpy as np
 
@@ -9,8 +9,6 @@ import pandas as pd
 
 from tradingplatformpoc.market.trade import Resource
 from tradingplatformpoc.price.iprice import IPrice, get_days_in_month
-
-EMPTY_DATETIME_INDEXED_SERIES = pd.Series([], dtype=float, index=pd.to_datetime([], utc=True))
 
 logger = logging.getLogger(__name__)
 
@@ -37,8 +35,6 @@ class HeatingPrice(IPrice):
     For a more thorough explanation of the district heating pricing mechanism, see
     https://doc.afdrift.se/display/RPJ/District+heating+Varberg%3A+Pricing
     """
-    all_external_heating_sells: pd.Series
-    external_heating_sells_by_agent: Dict[str, pd.Series]
     heating_wholesale_price_fraction: float
     heat_transfer_loss_per_side: float
 
@@ -57,8 +53,6 @@ class HeatingPrice(IPrice):
 
     def __init__(self, heating_wholesale_price_fraction: float, heat_transfer_loss: float, effect_fee: float = 68.0):
         super().__init__(Resource.HIGH_TEMP_HEAT)
-        self.all_external_heating_sells = EMPTY_DATETIME_INDEXED_SERIES.copy()
-        self.external_heating_sells_by_agent: Dict[str, pd.Series] = {}
         self.heating_wholesale_price_fraction = heating_wholesale_price_fraction
         # Square root since it is added both to the BUY and the SELL side
         self.heat_transfer_loss_per_side = 1 - np.sqrt(1 - heat_transfer_loss)
@@ -193,42 +187,6 @@ class HeatingPrice(IPrice):
     def get_exact_wholesale_price(self, period: datetime.datetime, agent: Optional[str] = None) -> float:
         """Returns the price at which the external grid operator is willing to buy energy, in SEK/kWh"""
         return self.get_exact_retail_price(period, False, agent) * self.heating_wholesale_price_fraction
-
-    def add_external_heating_sell(self, period: datetime.datetime, external_heating_sell_quantity: float):
-        """
-        We need this information to be able to calculate the exact district heating cost.
-        """
-        self.all_external_heating_sells = add_to_series(
-            self.all_external_heating_sells, period, external_heating_sell_quantity)
-
-    def add_external_heating_sell_for_agent(self, period: datetime.datetime, external_heating_sell_quantity: float,
-                                            agent_id: str):
-        """
-        We need this information to be able to calculate the exact district heating cost.
-        """
-        if agent_id not in self.external_heating_sells_by_agent.keys():
-            self.external_heating_sells_by_agent[agent_id] = EMPTY_DATETIME_INDEXED_SERIES.copy()
-        self.external_heating_sells_by_agent[agent_id] = add_to_series(
-            self.external_heating_sells_by_agent[agent_id], period, external_heating_sell_quantity)
-
-    def get_sells(self, agent: Optional[str] = None) -> pd.Series:
-        if agent is not None:
-            return self.external_heating_sells_by_agent[agent]
-        return self.all_external_heating_sells
-
-
-def add_to_series(dt_series: pd.Series, period: datetime.datetime, external_heating_sell_quantity: float) -> pd.Series:
-    """
-    Add to a datetime-indexed series.
-    Note: When there is 0 heating sold, this still needs to be added as a value - if there are values "missing" in
-    self.all_external_heating_sells, then some methods will break (calculate_jan_feb_avg_heating_sold for example)
-    """
-    if period in dt_series.index:
-        dt_series[period] = dt_series[period] + external_heating_sell_quantity
-    else:
-        to_add_in = pd.Series(external_heating_sell_quantity, index=[period])
-        dt_series = pd.concat([dt_series, to_add_in])
-    return dt_series
 
 
 def calculate_consumption_this_month(dt_series: pd.Series, year: int, month: int) -> float:

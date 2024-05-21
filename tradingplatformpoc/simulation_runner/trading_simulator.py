@@ -60,6 +60,7 @@ class TradingSimulator:
                 self.block_agents: List[BlockAgent] = [agent for agent in self.agents if isinstance(agent, BlockAgent)]
                 self.run()
                 self.extract_heating_price()
+                # FIXME: Do the same price corrections for electricity
                 update_job_with_time(self.job_id, 'end_time')
 
             except InfeasibilityError as e:

@@ -108,45 +108,45 @@ class TestHeatingPrice(TestCase):
         ds = HeatingPrice(
             heating_wholesale_price_fraction=area_info['ExternalHeatingWholesalePriceFraction'],
             heat_transfer_loss=area_info["HeatTransferLoss"])
-        self.assertEqual(0, len(ds.all_external_heating_sells))
-        ds.add_external_heating_sell(FEB_1_1_AM, 50.0)
-        self.assertEqual(1, len(ds.all_external_heating_sells))
+        self.assertEqual(0, len(ds.all_external_sells))
+        ds.add_external_sell(FEB_1_1_AM, 50.0)
+        self.assertEqual(1, len(ds.all_external_sells))
 
     def test_add_external_heating_sell_where_already_exists(self):
         ds = HeatingPrice(
             heating_wholesale_price_fraction=area_info['ExternalHeatingWholesalePriceFraction'],
             heat_transfer_loss=area_info["HeatTransferLoss"])
-        self.assertEqual(0, len(ds.all_external_heating_sells))
-        ds.add_external_heating_sell(FEB_1_1_AM, 50.0)
-        self.assertEqual(1, len(ds.all_external_heating_sells))
-        self.assertAlmostEqual(50.0, ds.all_external_heating_sells[FEB_1_1_AM])
+        self.assertEqual(0, len(ds.all_external_sells))
+        ds.add_external_sell(FEB_1_1_AM, 50.0)
+        self.assertEqual(1, len(ds.all_external_sells))
+        self.assertAlmostEqual(50.0, ds.all_external_sells[FEB_1_1_AM])
         # Now add more for the same period
-        ds.add_external_heating_sell(FEB_1_1_AM, 70.0)
+        ds.add_external_sell(FEB_1_1_AM, 70.0)
         # Then test that the result of the operation is expected
-        self.assertEqual(1, len(ds.all_external_heating_sells))
-        self.assertAlmostEqual(120.0, ds.all_external_heating_sells[FEB_1_1_AM])
+        self.assertEqual(1, len(ds.all_external_sells))
+        self.assertAlmostEqual(120.0, ds.all_external_sells[FEB_1_1_AM])
 
     def test_calculate_consumption_this_month(self):
         """Test basic functionality of calculate_consumption_this_month"""
         ds = HeatingPrice(
             heating_wholesale_price_fraction=area_info['ExternalHeatingWholesalePriceFraction'],
             heat_transfer_loss=area_info["HeatTransferLoss"])
-        ds.add_external_heating_sell(FEB_1_1_AM, 50)
-        ds.add_external_heating_sell(datetime(2019, 3, 1, 1, tzinfo=timezone.utc), 100)
-        self.assertAlmostEqual(50.0, calculate_consumption_this_month(ds.all_external_heating_sells, 2019, 2))
-        self.assertAlmostEqual(0.0, calculate_consumption_this_month(ds.all_external_heating_sells, 2019, 4))
+        ds.add_external_sell(FEB_1_1_AM, 50)
+        ds.add_external_sell(datetime(2019, 3, 1, 1, tzinfo=timezone.utc), 100)
+        self.assertAlmostEqual(50.0, calculate_consumption_this_month(ds.all_external_sells, 2019, 2))
+        self.assertAlmostEqual(0.0, calculate_consumption_this_month(ds.all_external_sells, 2019, 4))
 
     def test_get_exact_retail_price_heating(self):
         """Test basic functionality of get_exact_retail_price for HIGH_TEMP_HEAT"""
         ds = HeatingPrice(
             heating_wholesale_price_fraction=area_info['ExternalHeatingWholesalePriceFraction'],
             heat_transfer_loss=area_info["HeatTransferLoss"])
-        ds.add_external_heating_sell(datetime(2019, 2, 1, 1, tzinfo=timezone.utc), 100)
-        ds.add_external_heating_sell(datetime(2019, 3, 1, 1, tzinfo=timezone.utc), 100)
-        ds.add_external_heating_sell(datetime(2019, 3, 1, 2, tzinfo=timezone.utc), 140)
-        ds.add_external_heating_sell(datetime(2019, 3, 2, 1, tzinfo=timezone.utc), 50)
-        ds.add_external_heating_sell(datetime(2019, 3, 2, 2, tzinfo=timezone.utc), 50)
-        ds.add_external_heating_sell(datetime(2019, 3, 2, 3, tzinfo=timezone.utc), 50)
+        ds.add_external_sell(datetime(2019, 2, 1, 1, tzinfo=timezone.utc), 100)
+        ds.add_external_sell(datetime(2019, 3, 1, 1, tzinfo=timezone.utc), 100)
+        ds.add_external_sell(datetime(2019, 3, 1, 2, tzinfo=timezone.utc), 140)
+        ds.add_external_sell(datetime(2019, 3, 2, 1, tzinfo=timezone.utc), 50)
+        ds.add_external_sell(datetime(2019, 3, 2, 2, tzinfo=timezone.utc), 50)
+        ds.add_external_sell(datetime(2019, 3, 2, 3, tzinfo=timezone.utc), 50)
         self.assertAlmostEqual(26.230860554970143,
                                ds.get_exact_retail_price(datetime(2019, 3, 2, 3), include_tax=True))
 
