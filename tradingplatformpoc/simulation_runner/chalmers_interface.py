@@ -96,11 +96,7 @@ def optimize(solver: OptSolver, block_agents: List[BlockAgent], grid_agents: Dic
     deep_storage_start = [(deep_storage_start_dict[agent] if agent in shallow_storage_start_dict.keys() else 0.0)
                           for agent in agent_guids]
 
-    retail_prices: pd.Series = elec_pricing.get_exact_retail_prices(start_datetime, trading_horizon, True, 0.0001)
-    wholesale_prices: pd.Series = elec_pricing.get_exact_wholesale_prices(start_datetime, trading_horizon)
     nordpool_prices: pd.Series = elec_pricing.get_nordpool_price_for_periods(start_datetime, trading_horizon)
-    elec_retail_prices = retail_prices.reset_index(drop=True)
-    elec_wholesale_prices = wholesale_prices.reset_index(drop=True)
     nordpool_prices = nordpool_prices.reset_index(drop=True)
     heat_retail_price = heat_pricing.get_estimated_retail_price(start_datetime, True)
 
@@ -114,8 +110,7 @@ def optimize(solver: OptSolver, block_agents: List[BlockAgent], grid_agents: Dic
                 summer_mode=summer_mode,
                 month=start_datetime.month,
                 n_agents=n_agents,
-                external_elec_buy_price=elec_retail_prices,
-                external_elec_sell_price=elec_wholesale_prices,
+                nordpool_price=nordpool_prices,
                 external_heat_buy_price=heat_retail_price,
                 battery_capacity=battery_capacities,
                 battery_charge_rate=battery_max_charge,
@@ -151,7 +146,14 @@ def optimize(solver: OptSolver, block_agents: List[BlockAgent], grid_agents: Dic
                 Pccmax=area_info['CompChillerMaxInput'],
                 cold_trans_loss=area_info['CoolingTransferLoss'],
                 heat_trans_loss=area_info['HeatTransferLoss'],
-                trading_horizon=trading_horizon
+                trading_horizon=trading_horizon,
+                elec_tax_fee=elec_pricing.tax,
+                elec_trans_fee=elec_pricing.transmission_fee,
+                elec_peak_load_fee=elec_pricing.get_effect_fee_per_day(start_datetime),
+                heat_peak_load_fee=heat_pricing.effect_fee,
+                incentive_fee=elec_pricing.wholesale_offset,
+                hist_top_three_elec_peak_load=[250.0, 240.0, 130.0],  # TODO
+                hist_monthly_heat_peak_energy=10000.0,  # TODO
             )
             handle_infeasibility(optimized_model, results, start_datetime, trading_horizon, [])
             return extract_outputs_for_lec(optimized_model, start_datetime,
