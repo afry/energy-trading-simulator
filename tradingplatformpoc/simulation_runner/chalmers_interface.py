@@ -464,7 +464,8 @@ def get_power_transfers(optimized_model: pyo.ConcreteModel, start_datetime: date
 def get_heat_transfers(optimized_model: pyo.ConcreteModel, start_datetime: datetime.datetime, grid_agent_guid: str,
                        agent_guids: List[str], resource_price_data: HeatingPrice, local_market_enabled: bool) \
         -> List[Trade]:
-    resource = Resource.LOW_TEMP_HEAT if should_use_summer_mode(start_datetime) else Resource.HIGH_TEMP_HEAT
+    resource = Resource.LOW_TEMP_HEAT if (should_use_summer_mode(start_datetime) and local_market_enabled) \
+        else Resource.HIGH_TEMP_HEAT
     total_bought = get_sum_of_param(optimized_model.Hbuy_market)
     if local_market_enabled:
         agent_trades = get_agent_transfers_with_lec(optimized_model, start_datetime,
