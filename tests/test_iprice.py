@@ -25,8 +25,7 @@ external_price_data = ONES_SERIES * CONSTANT_NORDPOOL_PRICE
 
 area_info = utility_test_objects.AREA_INFO
 heat_pricing: HeatingPrice = HeatingPrice(
-    heating_wholesale_price_fraction=area_info['ExternalHeatingWholesalePriceFraction'],
-    heat_transfer_loss=area_info["HeatTransferLoss"])
+    heating_wholesale_price_fraction=area_info['ExternalHeatingWholesalePriceFraction'])
 
 
 class TestElectricityPrice(TestCase):
@@ -108,17 +107,13 @@ class TestElectricityPrice(TestCase):
 class TestHeatingPrice(TestCase):
 
     def test_add_external_heating_sell(self):
-        ds = HeatingPrice(
-            heating_wholesale_price_fraction=area_info['ExternalHeatingWholesalePriceFraction'],
-            heat_transfer_loss=area_info["HeatTransferLoss"])
+        ds = HeatingPrice(heating_wholesale_price_fraction=area_info['ExternalHeatingWholesalePriceFraction'])
         self.assertEqual(0, len(ds.all_external_sells))
         ds.add_external_sell(FEB_1_1_AM, 50.0)
         self.assertEqual(1, len(ds.all_external_sells))
 
     def test_add_external_heating_sell_where_already_exists(self):
-        ds = HeatingPrice(
-            heating_wholesale_price_fraction=area_info['ExternalHeatingWholesalePriceFraction'],
-            heat_transfer_loss=area_info["HeatTransferLoss"])
+        ds = HeatingPrice(heating_wholesale_price_fraction=area_info['ExternalHeatingWholesalePriceFraction'])
         self.assertEqual(0, len(ds.all_external_sells))
         ds.add_external_sell(FEB_1_1_AM, 50.0)
         self.assertEqual(1, len(ds.all_external_sells))
@@ -131,9 +126,7 @@ class TestHeatingPrice(TestCase):
 
     def test_calculate_consumption_this_month(self):
         """Test basic functionality of calculate_consumption_this_month"""
-        ds = HeatingPrice(
-            heating_wholesale_price_fraction=area_info['ExternalHeatingWholesalePriceFraction'],
-            heat_transfer_loss=area_info["HeatTransferLoss"])
+        ds = HeatingPrice(heating_wholesale_price_fraction=area_info['ExternalHeatingWholesalePriceFraction'])
         ds.add_external_sell(FEB_1_1_AM, 50)
         ds.add_external_sell(datetime(2019, 3, 1, 1, tzinfo=timezone.utc), 100)
         self.assertAlmostEqual(50.0, calculate_consumption_this_month(ds.all_external_sells, 2019, 2))
@@ -141,9 +134,7 @@ class TestHeatingPrice(TestCase):
 
     def test_get_exact_retail_price_heating(self):
         """Test basic functionality of get_exact_retail_price for HIGH_TEMP_HEAT"""
-        ds = HeatingPrice(
-            heating_wholesale_price_fraction=area_info['ExternalHeatingWholesalePriceFraction'],
-            heat_transfer_loss=area_info["HeatTransferLoss"])
+        ds = HeatingPrice(heating_wholesale_price_fraction=area_info['ExternalHeatingWholesalePriceFraction'])
         ds.add_external_sell(datetime(2019, 2, 1, 1, tzinfo=timezone.utc), 100)
         ds.add_external_sell(datetime(2019, 3, 1, 1, tzinfo=timezone.utc), 100)
         ds.add_external_sell(datetime(2019, 3, 1, 2, tzinfo=timezone.utc), 140)
@@ -159,7 +150,7 @@ class TestHeatingPrice(TestCase):
 
     def test_heat_price_excl_effect_fee(self):
         """Test the price excluding effect fee, for different months."""
-        self.assertEqual(1.1610169491525424, heat_pricing.get_retail_price_excl_effect_fee(datetime(2019, 1, 1), True))
+        self.assertEqual(1.1610169491525424, heat_pricing.get_retail_price_excl_effect_fee(datetime(2019, 1, 1)))
         # Jan-Feb identical
-        self.assertEqual(1.1610169491525424, heat_pricing.get_retail_price_excl_effect_fee(datetime(2019, 2, 1), True))
-        self.assertEqual(0.5, heat_pricing.get_retail_price_excl_effect_fee(datetime(2019, 3, 1), True))
+        self.assertEqual(1.1610169491525424, heat_pricing.get_retail_price_excl_effect_fee(datetime(2019, 2, 1)))
+        self.assertEqual(0.5, heat_pricing.get_retail_price_excl_effect_fee(datetime(2019, 3, 1)))

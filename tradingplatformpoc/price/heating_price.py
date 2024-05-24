@@ -1,6 +1,6 @@
 import datetime
 import logging
-from calendar import isleap, monthrange
+from calendar import isleap
 from typing import Optional
 
 import numpy as np
@@ -11,16 +11,6 @@ from tradingplatformpoc.market.trade import Resource
 from tradingplatformpoc.price.iprice import IPrice, get_days_in_month
 
 logger = logging.getLogger(__name__)
-
-
-def probability_day_is_peak_day(period: datetime.datetime) -> float:
-    """
-    What is the likelihood that a given day, is the 'peak day' of the month? Without knowing past or future
-    consumption levels, or looking at outdoor temperature or anything like that, this is the best we can do:
-    Each day of the month has the same probability as all the others.
-    """
-    days_in_month = monthrange(period.year, period.month)[1]
-    return 1 / days_in_month
 
 
 def handle_no_consumption_when_calculating_heating_price(period):
@@ -35,10 +25,8 @@ class HeatingPrice(IPrice):
     For a more thorough explanation of the district heating pricing mechanism, see
     https://doc.afdrift.se/display/RPJ/District+heating+Varberg%3A+Pricing
     """
-    # TODO: Clean up unused methods
 
     heating_wholesale_price_fraction: float
-    heat_transfer_loss_per_side: float
 
     GRID_FEE_MARGINAL_SUB_50: int = 1116
     GRID_FEE_FIXED_SUB_50: int = 1152
@@ -53,22 +41,10 @@ class HeatingPrice(IPrice):
     MARGINAL_PRICE_WINTER: float = 0.5
     MARGINAL_PRICE_SUMMER: float = 0.3
 
-    def __init__(self, heating_wholesale_price_fraction: float, heat_transfer_loss: float, effect_fee: float = 68.0):
+    def __init__(self, heating_wholesale_price_fraction: float, effect_fee: float = 68.0):
         super().__init__(Resource.HIGH_TEMP_HEAT)
         self.heating_wholesale_price_fraction = heating_wholesale_price_fraction
-        # Square root since it is added both to the BUY and the SELL side
-        self.heat_transfer_loss_per_side = 1 - np.sqrt(1 - heat_transfer_loss)
         self.effect_fee = effect_fee
-
-    def expected_effect_fee(self, period: datetime.datetime) -> float:
-        """
-        Every consumed kWh during the peak day, increases the effect fee by EFFECT_PRICE / 24,
-        since there are 24 hours in a day. The expected fee for a given day then becomes:
-        E[fee]  = P(day is peak day) * EFFECT_PRICE/24 + P(day is not peak day) * 0
-                = P(day is peak day) * EFFECT_PRICE/24
-        """
-        p = probability_day_is_peak_day(period)
-        return (self.effect_fee / 24) * p
     
     def marginal_grid_fee_assuming_top_bracket(self, year: int) -> float:
         """
@@ -88,12 +64,11 @@ class HeatingPrice(IPrice):
         else:
             return self.MARGINAL_PRICE_WINTER
 
-    def get_retail_price_excl_effect_fee(self, period: datetime.datetime, include_tax: bool) -> float:
+    def get_retail_price_excl_effect_fee(self, period: datetime.datetime) -> float:
         """
         Returns the price at which the external grid operator is believed to be willing to sell energy, in SEK/kWh,
-        while excluding the part which depends on peak usage.
+        while excluding the part which depends on peak usage. No tax included (district heating is not taxed).
         """
-        # District heating is not taxed
         jan_feb_extra = self.marginal_grid_fee_assuming_top_bracket(period.year)
         base_marginal_price = self.get_base_marginal_price(period.month)
         return base_marginal_price + (jan_feb_extra * (period.month <= 2))

@@ -78,7 +78,6 @@ class TradingSimulator:
 
         self.heat_pricing: HeatingPrice = HeatingPrice(
             heating_wholesale_price_fraction=self.config_data['AreaInfo']['ExternalHeatingWholesalePriceFraction'],
-            heat_transfer_loss=self.config_data['AreaInfo']["HeatTransferLoss"],
             effect_fee=self.config_data['AreaInfo']["HeatingEffectFee"])
         corresponding_nordpool_data = get_nordpool_data(self.config_data['AreaInfo']['ElectricityPriceYear'],
                                                         self.trading_periods)

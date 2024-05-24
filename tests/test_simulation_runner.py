@@ -20,8 +20,7 @@ class Test(TestCase):
     fake_job_id = "111111111111"
     config = read_config()
     heat_pricing: HeatingPrice = HeatingPrice(
-        heating_wholesale_price_fraction=config['AreaInfo']['ExternalHeatingWholesalePriceFraction'],
-        heat_transfer_loss=config['AreaInfo']["HeatTransferLoss"])
+        heating_wholesale_price_fraction=config['AreaInfo']['ExternalHeatingWholesalePriceFraction'])
 
     def test_initialize_agents(self):
         """Test that an error is thrown if no GridAgents are initialized."""
@@ -59,17 +58,13 @@ class Test(TestCase):
     def test_get_external_heating_prices_from_empty_data_store(self):
         """
         When trying to calculate external heating prices using an empty DataStore, NaNs should be returned for all
-        prices, and warnings should be logged.
+        prices.
         """
         datetime_index = pd.DatetimeIndex([datetime.datetime(2019, 2, 1, tzinfo=pytz.UTC),
                                            datetime.datetime(2019, 2, 2, tzinfo=pytz.UTC)])
-        with self.assertLogs() as captured:
-            heating_price_list = get_external_prices(self.heat_pricing, self.fake_job_id,
-                                                     datetime_index, ['abc'], True)
+        heating_price_list = get_external_prices(self.heat_pricing, self.fake_job_id,
+                                                 datetime_index, ['abc'], True)
         heating_prices = pd.DataFrame.from_records(heating_price_list)
-        self.assertTrue(len(captured.records) > 0)
-        log_levels_captured = [rec.levelname for rec in captured.records]
-        self.assertTrue('WARNING' in log_levels_captured)
         self.assertTrue(heating_prices.exact_retail_price.isna().all())
         self.assertTrue(heating_prices.exact_wholesale_price.isna().all())
         self.assertTrue(heating_prices.estimated_retail_price.isna().all())

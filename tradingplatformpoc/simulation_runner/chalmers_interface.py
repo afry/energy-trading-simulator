@@ -98,7 +98,7 @@ def optimize(solver: OptSolver, block_agents: List[BlockAgent], grid_agents: Dic
 
     nordpool_prices: pd.Series = elec_pricing.get_nordpool_price_for_periods(start_datetime, trading_horizon)
     nordpool_prices = nordpool_prices.reset_index(drop=True)
-    heat_retail_price = heat_pricing.get_retail_price_excl_effect_fee(start_datetime, True)
+    heat_retail_price = heat_pricing.get_retail_price_excl_effect_fee(start_datetime)
 
     n_agents = len(block_agents)
     summer_mode = should_use_summer_mode(start_datetime)
