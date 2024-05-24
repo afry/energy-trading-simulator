@@ -20,19 +20,37 @@ class ElectricityPrice(SQLModel, table=True):
         title='Unique job ID',
         nullable=False
     )
+    agent: str = Field(
+        primary_key=False,
+        default=None,
+        title="Agent ID",
+        nullable=True,
+    )
     period: datetime.datetime = Field(
         title="Period",
         sa_column=Column(DateTime(timezone=True), primary_key=False, nullable=False)
     )
-    retail_price: Optional[float] = Field(
+    estimated_retail_price: Optional[float] = Field(
         primary_key=False,
         default=None,
-        title='Retail price',
+        title='Estimated retail price',
         nullable=True
     )
-    wholesale_price: Optional[float] = Field(
+    estimated_wholesale_price: Optional[float] = Field(
         primary_key=False,
         default=None,
-        title='Wholesale price',
+        title='Estimated wholesale price',
+        nullable=True
+    )
+    exact_retail_price: Optional[float] = Field(
+        primary_key=False,
+        default=None,
+        title='Exact retail price',
+        nullable=True
+    )
+    exact_wholesale_price: Optional[float] = Field(
+        primary_key=False,
+        default=None,
+        title='Exact wholesale price',
         nullable=True
     )

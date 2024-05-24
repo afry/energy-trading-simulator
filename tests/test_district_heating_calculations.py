@@ -15,14 +15,6 @@ class Test(TestCase):
     # Oct - Dec: 0.5 + 0.093 = 0.593 SEK / kWh
     dhp = HeatingPrice(0, 0)
 
-    def test_estimate_district_heating_price_jan(self):
-        self.assertAlmostEqual(1.252414798614908, self.dhp.estimate_district_heating_price(
-            datetime.datetime(2019, 1, 1, tzinfo=pytz.utc)))
-
-    def test_estimate_district_heating_price_aug(self):
-        self.assertAlmostEqual(0.39139784946236555, self.dhp.estimate_district_heating_price(
-            datetime.datetime(2019, 8, 1, tzinfo=pytz.utc)))
-
     def test_calculate_jan_feb_avg_heating_sold(self):
         """Test basic functionality of calculate_jan_feb_avg_heating_sold"""
         dhp = HeatingPrice(0, 0)

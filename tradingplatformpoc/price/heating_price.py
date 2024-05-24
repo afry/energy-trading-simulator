@@ -24,8 +24,8 @@ def probability_day_is_peak_day(period: datetime.datetime) -> float:
 
 
 def handle_no_consumption_when_calculating_heating_price(period):
-    logger.warning("Tried to calculate exact external heating price, in SEK/kWh, for {:%B %Y}, but had no "
-                   "consumption for this month, so returned np.nan.".format(period))
+    logger.debug("Tried to calculate exact external heating price, in SEK/kWh, for {:%B %Y}, but had no "
+                 "consumption for this month, so returned np.nan.".format(period))
     return np.nan
 
 
@@ -35,6 +35,8 @@ class HeatingPrice(IPrice):
     For a more thorough explanation of the district heating pricing mechanism, see
     https://doc.afdrift.se/display/RPJ/District+heating+Varberg%3A+Pricing
     """
+    # TODO: Clean up unused methods
+
     heating_wholesale_price_fraction: float
     heat_transfer_loss_per_side: float
 
@@ -86,34 +88,15 @@ class HeatingPrice(IPrice):
         else:
             return self.MARGINAL_PRICE_WINTER
 
-    def estimate_district_heating_price(self, period: datetime.datetime) -> float:
+    def get_retail_price_excl_effect_fee(self, period: datetime.datetime, include_tax: bool) -> float:
         """
-        Three price components:
-        * "Energy price" or "base marginal price"
-        * "Grid fee" based on consumption in January+February
-        * "Effect fee" based on the "peak day" of the month
-        """
-        effect_fee = self.expected_effect_fee(period)
-        jan_feb_extra = self.marginal_grid_fee_assuming_top_bracket(period.year)
-        base_marginal_price = self.get_base_marginal_price(period.month)
-        return base_marginal_price + effect_fee + (jan_feb_extra * (period.month <= 2))
-
-    def get_estimated_retail_price(self, period: datetime.datetime, include_tax: bool) -> float:
-        """
-        Returns the price at which the external grid operator is believed to be willing to sell energy, in SEK/kWh.
-        For some energy carriers the price may be known, but for others it may in fact be set after the fact. That is
-        why this method is named 'estimated'.
+        Returns the price at which the external grid operator is believed to be willing to sell energy, in SEK/kWh,
+        while excluding the part which depends on peak usage.
         """
         # District heating is not taxed
-        return self.estimate_district_heating_price(period)
-
-    def get_estimated_wholesale_price(self, period: datetime.datetime) -> float:
-        """
-        Returns the price at which the external grid operator is believed to be willing to buy energy, in SEK/kWh.
-        For some energy carriers the price may be known, but for others it may in fact be set after the fact. That is
-        why this method is named 'estimated'.
-        """
-        return self.estimate_district_heating_price(period) * self.heating_wholesale_price_fraction
+        jan_feb_extra = self.marginal_grid_fee_assuming_top_bracket(period.year)
+        base_marginal_price = self.get_base_marginal_price(period.month)
+        return base_marginal_price + (jan_feb_extra * (period.month <= 2))
     
     def exact_effect_fee(self, monthly_peak_day_avg_consumption_kw: float) -> float:
         """
@@ -188,6 +171,32 @@ class HeatingPrice(IPrice):
         """Returns the price at which the external grid operator is willing to buy energy, in SEK/kWh"""
         return self.get_exact_retail_price(period, False, agent) * self.heating_wholesale_price_fraction
 
+    def get_avg_peak_for_month(self, period: datetime.datetime, agent: Optional[str] = None) -> float:
+        """
+        This method will fetch the average outtake of the month's peak day - but if it is early in the month, it will
+        also look at the previous month's value.
+        """
+        sells_series = self.get_sells(agent)
+        peak_this_month = calculate_peak_day_avg_cons_kw(sells_series, period.year, period.month)
+        at_least_n_days = 5
+        if period.day < at_least_n_days:
+            # Early in the month, we'll also use last month's value, so that we don't underestimate.
+            # We will scale that value a bit though, so that we don't overestimate.
+            scale_factor_for_last_month = 0.8
+            prev_month = period - datetime.timedelta(days=at_least_n_days + 1)
+            peak_last_month = calculate_peak_day_avg_cons_kw(sells_series, prev_month.year, prev_month.month)
+            scaled_last_month = peak_last_month * scale_factor_for_last_month
+            # Return the maximum of this month's peak, and the (scaled) last month's peak
+            avg_peak = max(peak_this_month, scaled_last_month)
+        else:
+            avg_peak = peak_this_month
+        if np.isnan(avg_peak):
+            return 0.0
+        return avg_peak
+
+    def get_effect_fee_per_day(self, date_time: datetime.datetime) -> float:
+        return self.effect_fee / get_days_in_month(date_time.month, date_time.year)
+
 
 def calculate_consumption_this_month(dt_series: pd.Series, year: int, month: int) -> float:
     """
@@ -205,7 +214,7 @@ def calculate_jan_feb_avg_heating_sold(dt_series: pd.Series, period: datetime.da
     year_we_are_interested_in = period.year - 1 if period.month <= 2 else period.year
     subset = (dt_series.index.year == year_we_are_interested_in) & (dt_series.index.month <= 2)
     if not any(subset):
-        logger.warning("No data to base grid fee on, will 'cheat' and use future data")
+        logger.debug("No data to base grid fee on, will 'cheat' and use future data")
         subset = (dt_series.index.month <= 2)
     return dt_series[subset].mean()
 

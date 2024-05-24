@@ -19,17 +19,37 @@ def heat_trades_from_db_for_periods(trading_periods, job_id: str,
                                     session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope)\
         -> Dict[datetime.datetime, List]:
     with session_generator() as db:
-        trades_for_month = db.execute(select(TableTrade.period.label('period'),
-                                             TableTrade.action.label('action').label('action'),
-                                             TableTrade.quantity_pre_loss.label('quantity_pre_loss'),
-                                             TableTrade.quantity_post_loss.label('quantity_post_loss'),
-                                             TableTrade.source.label('source'),
-                                             TableTrade.by_external.label('by_external'),
-                                             TableTrade.market.label('market'))
+        trades_for_month = db.execute(select(TableTrade.period,
+                                             TableTrade.action,
+                                             TableTrade.quantity_pre_loss,
+                                             TableTrade.quantity_post_loss,
+                                             TableTrade.source,
+                                             TableTrade.by_external,
+                                             TableTrade.market)
                                       .where((TableTrade.job_id == job_id)
                                              & (TableTrade.period >= trading_periods.min())
                                              & (TableTrade.period <= trading_periods.max())
                                              & (TableTrade.resource == Resource.HIGH_TEMP_HEAT.name))
+                                      .order_by(TableTrade.period)).all()
+
+        return dict((period, list(vals)) for period, vals in
+                    itertools.groupby(trades_for_month, operator.itemgetter(0)))
+
+
+def all_trades_for_resource_from_db(job_id: str,
+                                    resource: Resource,
+                                    session_generator: Callable[[], _GeneratorContextManager[Session]] = session_scope)\
+        -> Dict[datetime.datetime, List]:
+    with session_generator() as db:
+        trades_for_month = db.execute(select(TableTrade.period,
+                                             TableTrade.action,
+                                             TableTrade.quantity_pre_loss,
+                                             TableTrade.quantity_post_loss,
+                                             TableTrade.source,
+                                             TableTrade.by_external,
+                                             TableTrade.market)
+                                      .where((TableTrade.job_id == job_id)
+                                             & (TableTrade.resource == resource.name))
                                       .order_by(TableTrade.period)).all()
 
         return dict((period, list(vals)) for period, vals in

@@ -1,6 +1,8 @@
+import datetime
+
 from pydantic.types import Optional
 
-from sqlalchemy import Column, Integer
+from sqlalchemy import Column, DateTime, Integer
 
 from sqlmodel import Field, SQLModel
 
@@ -24,17 +26,9 @@ class HeatingPrice(SQLModel, table=True):
         title="Agent ID",
         nullable=True,
     )
-    year: int = Field(
-        primary_key=False,
-        default=None,
-        title="Year",
-        nullable=False,
-    )
-    month: int = Field(
-        primary_key=False,
-        default=None,
-        title="Month",
-        nullable=False,
+    period: datetime.datetime = Field(
+        title="Period",
+        sa_column=Column(DateTime(timezone=True), primary_key=False, nullable=False)
     )
     estimated_retail_price: Optional[float] = Field(
         primary_key=False,

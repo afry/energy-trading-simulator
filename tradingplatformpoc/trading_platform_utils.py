@@ -11,7 +11,7 @@ import pyomo.environ as pyo
 from pyomo.opt import OptSolver
 
 from tradingplatformpoc.market.trade import Resource
-from tradingplatformpoc.price.heating_price import HeatingPrice
+from tradingplatformpoc.price.iprice import IPrice
 from tradingplatformpoc.settings import settings
 
 ALLOWED_GRID_AGENT_RESOURCES = [Resource.ELECTRICITY, Resource.HIGH_TEMP_HEAT]
@@ -143,25 +143,24 @@ def get_glpk_solver() -> OptSolver:
         return pyo.SolverFactory('glpk', executable=settings.GLPK_PATH)
 
 
-def get_external_heating_prices(heat_pricing: HeatingPrice, job_id: str,
-                                trading_periods: Collection[datetime], block_agent_ids: List[str],
-                                local_market_enabled: bool) -> List[Dict[str, Any]]:
-    heating_price_by_ym_list: List[Dict[str, Any]] = []
+def get_external_prices(pricing: IPrice, job_id: str,
+                        trading_periods: Collection[datetime], block_agent_ids: List[str],
+                        local_market_enabled: bool) -> List[Dict[str, Any]]:
+    prices_by_dt_list: List[Dict[str, Any]] = []
     agent_ids = [None] if local_market_enabled else block_agent_ids
-    for (year, month) in set([(dt.year, dt.month) for dt in trading_periods]):
+    for dt in trading_periods:
         for agent_id in agent_ids:  # type: ignore
-            first_day_of_month = datetime(year, month, 1)  # Which day it is doesn't matter
-            heating_price_by_ym_list.append({
+            prices_by_dt_list.append({
                 'job_id': job_id,
-                'year': year,
-                'month': month,
+                'period': dt,
                 'agent': agent_id,
-                'exact_retail_price': heat_pricing.get_exact_retail_price(
-                    first_day_of_month, include_tax=True, agent=agent_id),
-                'exact_wholesale_price': heat_pricing.get_exact_wholesale_price(first_day_of_month, agent=agent_id),
-                'estimated_retail_price': heat_pricing.get_estimated_retail_price(first_day_of_month, include_tax=True),
-                'estimated_wholesale_price': heat_pricing.get_estimated_wholesale_price(first_day_of_month)})
-    return heating_price_by_ym_list
+                'exact_retail_price': pricing.get_exact_retail_price(dt, include_tax=True, agent=agent_id),
+                'exact_wholesale_price': pricing.get_exact_wholesale_price(dt, agent=agent_id),
+                'estimated_retail_price': pricing.get_retail_price_estimate(dt, agent_id),
+                # Estimated wholesale price is known at the time, in the current implementation
+                'estimated_wholesale_price': pricing.get_exact_wholesale_price(dt, agent=agent_id)
+            })
+    return prices_by_dt_list
 
 
 def get_final_storage_level(trading_horizon: int,

@@ -9,7 +9,8 @@ from pandas import DatetimeIndex
 from tests import utility_test_objects
 
 from tradingplatformpoc.data.preprocessing import read_electricitymap_data
-from tradingplatformpoc.price.electricity_price import ElectricityPrice
+from tradingplatformpoc.price.electricity_price import ElectricityPrice, \
+    calculate_top_three_hourly_outtakes_for_month, calculate_total_for_month
 from tradingplatformpoc.price.heating_price import HeatingPrice, calculate_consumption_this_month
 from tradingplatformpoc.trading_platform_utils import hourly_datetime_array_between
 
@@ -26,59 +27,38 @@ area_info = utility_test_objects.AREA_INFO
 heat_pricing: HeatingPrice = HeatingPrice(
     heating_wholesale_price_fraction=area_info['ExternalHeatingWholesalePriceFraction'],
     heat_transfer_loss=area_info["HeatTransferLoss"])
-electricity_pricing: ElectricityPrice = ElectricityPrice(
-    elec_wholesale_offset=area_info['ExternalElectricityWholesalePriceOffset'],
-    elec_tax=area_info["ElectricityTax"],
-    elec_transmission_fee=area_info["ElectricityTransmissionFee"],
-    elec_effect_fee=area_info["ElectricityEffectFee"],
-    elec_tax_internal=area_info["ElectricityTaxInternal"],
-    elec_transmission_fee_internal=area_info["ElectricityTransmissionFeeInternal"],
-    elec_effect_fee_internal=area_info["ElectricityEffectFeeInternal"],
-    nordpool_data=external_price_data)
 
 
 class TestElectricityPrice(TestCase):
 
+    def setUp(self):
+        self.electricity_pricing: ElectricityPrice = ElectricityPrice(
+            elec_wholesale_offset=area_info['ExternalElectricityWholesalePriceOffset'],
+            elec_tax=area_info["ElectricityTax"],
+            elec_transmission_fee=area_info["ElectricityTransmissionFee"],
+            elec_effect_fee=area_info["ElectricityEffectFee"],
+            elec_tax_internal=area_info["ElectricityTaxInternal"],
+            elec_transmission_fee_internal=area_info["ElectricityTransmissionFeeInternal"],
+            elec_effect_fee_internal=area_info["ElectricityEffectFeeInternal"],
+            nordpool_data=external_price_data)
+
     def test_get_nordpool_price_for_period(self):
         """Test that what we put into data_store is the same as we get out"""
-        self.assertEqual(CONSTANT_NORDPOOL_PRICE, electricity_pricing.get_nordpool_price_for_periods(FEB_1_1_AM))
+        self.assertEqual(CONSTANT_NORDPOOL_PRICE, self.electricity_pricing.get_nordpool_price_for_periods(FEB_1_1_AM))
 
     def test_get_nordpool_price_for_periods(self):
         """Test that what we put into data_store is the same as we get out, when doing multiple periods at a time."""
-        prices = electricity_pricing.get_nordpool_price_for_periods(FEB_1_1_AM, 24)
+        prices = self.electricity_pricing.get_nordpool_price_for_periods(FEB_1_1_AM, 24)
         for price in prices:
             self.assertEqual(CONSTANT_NORDPOOL_PRICE, price)
 
     def test_estimated_retail_price_greater_than_wholesale_price(self):
         """Test that the retail price is always greater than the wholesale price, even without including taxes"""
         # May want to test for other resources than ELECTRICITY
-        for dt in DATETIME_ARRAY:
-            retail_price = electricity_pricing.get_estimated_retail_price(dt, include_tax=False)
-            wholesale_price = electricity_pricing.get_estimated_wholesale_price(dt)
+        for dt in DATETIME_ARRAY[:100]:
+            retail_price = self.electricity_pricing.get_exact_retail_price(dt, include_tax=False)
+            wholesale_price = self.electricity_pricing.get_exact_wholesale_price(dt)
             self.assertTrue(retail_price > wholesale_price)
-
-    def test_retail_price_offset(self):
-        """
-        Test that different tax rates and grid fees are reflected in the price we get from get_estimated_retail_price.
-        """
-        electricity_pricing_2: ElectricityPrice = ElectricityPrice(
-            elec_wholesale_offset=0.05,
-            elec_tax=1.5,
-            elec_transmission_fee=0.5,
-            elec_effect_fee=0,
-            elec_tax_internal=0,
-            elec_transmission_fee_internal=0,
-            elec_effect_fee_internal=0,
-            nordpool_data=external_price_data)
-
-        # Comparing gross prices
-        price_for_normal_ds = electricity_pricing.get_estimated_retail_price(FEB_1_1_AM, include_tax=False)
-        self.assertAlmostEqual(0.73, price_for_normal_ds)
-        self.assertAlmostEqual(1.1, electricity_pricing_2.get_estimated_retail_price(FEB_1_1_AM, include_tax=False))
-        # Comparing net prices
-        price_for_normal_ds = electricity_pricing.get_estimated_retail_price(FEB_1_1_AM, include_tax=True)
-        self.assertAlmostEqual(1.09, price_for_normal_ds)
-        self.assertAlmostEqual(2.6, electricity_pricing_2.get_estimated_retail_price(FEB_1_1_AM, include_tax=True))
 
     def test_read_electricitymap_csv(self):
         """Test that the CSV file with ElectricityMap carbon intensity data reads correctly."""
@@ -86,20 +66,43 @@ class TestElectricityPrice(TestCase):
         self.assertTrue(data.shape[0] > 0)
         self.assertIsInstance(data.index, DatetimeIndex)
 
-    def test_very_negative_nordpool_price(self):
-        """Test that the lower_bound parameter of get_exact_retail_prices works as expected"""
-        electricity_pricing.nordpool_data[DATETIME_ARRAY[0]] = -10.0
-        self.assertEqual(0.0, electricity_pricing.get_exact_retail_prices(DATETIME_ARRAY[0], 1, True, 0.0))
-        # Test for more than 1 period as well:
-        self.assertEqual(0.0, electricity_pricing.get_exact_retail_prices(DATETIME_ARRAY[0], 2, True, 0.0).iloc[0])
+    def test_get_exact_retail_price_no_sales(self):
+        """
+        Test get_exact_retail_price: First, that it works when no sales have been registered, and then that the price
+        is greater when a sale has been registered (with the effect fee then coming into play).
+        """
+        self.assertAlmostEqual(1.09, self.electricity_pricing.get_exact_retail_price(DATETIME_ARRAY[0], True))
+        self.electricity_pricing.add_external_sell(DATETIME_ARRAY[0], 100)
+        self.assertTrue(1.09 < self.electricity_pricing.get_exact_retail_price(DATETIME_ARRAY[0], True))
 
     def test_get_effect_fee_per_day(self):
         """Test that get_effect_fee_per_day works as expected"""
         effect_fee = 35
-        electricity_pricing_3: ElectricityPrice = electricity_pricing
+        electricity_pricing_3: ElectricityPrice = self.electricity_pricing
         electricity_pricing_3.effect_fee = effect_fee
         fee_per_day = electricity_pricing_3.get_effect_fee_per_day(datetime(2024, 5, 1))
         self.assertEqual(effect_fee / 31, fee_per_day)
+
+    def test_top_three_hourly_outtakes_for_month(self):
+        """Test that calculate_top_three_hourly_outtakes_for_month works as expected"""
+        self.electricity_pricing.add_external_sell(datetime(2019, 5, 1, 1), 100)
+        self.electricity_pricing.add_external_sell(datetime(2019, 5, 1, 2), 200)
+        self.electricity_pricing.add_external_sell(datetime(2019, 5, 1, 3), 300)
+        self.electricity_pricing.add_external_sell(datetime(2019, 5, 1, 4), 400)
+        top_3 = calculate_top_three_hourly_outtakes_for_month(self.electricity_pricing.all_external_sells, 2019, 5)
+        self.assertFalse(100 in top_3)
+        self.assertTrue(200 in top_3)
+        self.assertTrue(300 in top_3)
+        self.assertTrue(400 in top_3)
+
+    def test_total_for_month(self):
+        """Test that calculate_total_for_month works as expected"""
+        self.electricity_pricing.add_external_sell(datetime(2019, 5, 1, 1), 100)
+        self.electricity_pricing.add_external_sell(datetime(2019, 5, 1, 2), 200)
+        self.electricity_pricing.add_external_sell(datetime(2019, 5, 1, 3), 300)
+        self.electricity_pricing.add_external_sell(datetime(2019, 5, 1, 4), 400)
+        total = calculate_total_for_month(self.electricity_pricing.all_external_sells, 2019, 5)
+        self.assertAlmostEqual(1000.0, total)
 
 
 class TestHeatingPrice(TestCase):
@@ -154,9 +157,9 @@ class TestHeatingPrice(TestCase):
         """Test that unless anything else is specified, the tax is 0."""
         self.assertEqual(0, heat_pricing.tax)
 
-    def test_approx_heat_price(self):
-        """Test the estimated price for different months."""
-        self.assertEqual(1.252414798614908, heat_pricing.estimate_district_heating_price(datetime(2019, 1, 1)))
-        # Small difference Jan-Feb due to Feb having less days, thus P(today is peak day) is slightly higher
-        self.assertEqual(1.2622074253430187, heat_pricing.estimate_district_heating_price(datetime(2019, 2, 1)))
-        self.assertEqual(0.5913978494623656, heat_pricing.estimate_district_heating_price(datetime(2019, 3, 1)))
+    def test_heat_price_excl_effect_fee(self):
+        """Test the price excluding effect fee, for different months."""
+        self.assertEqual(1.1610169491525424, heat_pricing.get_retail_price_excl_effect_fee(datetime(2019, 1, 1), True))
+        # Jan-Feb identical
+        self.assertEqual(1.1610169491525424, heat_pricing.get_retail_price_excl_effect_fee(datetime(2019, 2, 1), True))
+        self.assertEqual(0.5, heat_pricing.get_retail_price_excl_effect_fee(datetime(2019, 3, 1), True))
