@@ -7,8 +7,9 @@ import pandas as pd
 
 import pytz
 
-from tradingplatformpoc.market.balance_manager import correct_for_exact_heating_price_for_lec, \
-    correct_for_exact_heating_price_no_lec
+from tradingplatformpoc.market.balance_manager import correct_for_exact_price_for_lec, \
+    correct_for_exact_price_no_lec
+from tradingplatformpoc.market.extra_cost import ExtraCostType
 from tradingplatformpoc.market.trade import Action, Market, Resource, Trade
 
 
@@ -33,17 +34,17 @@ class TestBalanceManager(TestCase):
                   Market.LOCAL)]
 
         heating_prices = pd.DataFrame.from_records([{
-            'year': self.some_datetime.year,
-            'month': self.some_datetime.month,
+            'period': self.some_datetime,
             'estimated_retail_price': est_retail_price,
             'estimated_wholesale_price': np.nan,
             'exact_retail_price': exact_retail_price,
             'exact_wholesale_price': np.nan}])
 
-        with mock.patch('tradingplatformpoc.market.balance_manager.heat_trades_from_db_for_periods',
+        with mock.patch('tradingplatformpoc.market.balance_manager.all_trades_for_resource_from_db',
                         return_value={self.some_datetime: trades}):
-            extra_costs = correct_for_exact_heating_price_for_lec(
-                pd.DatetimeIndex([self.some_datetime]), heating_prices, "job_id")
+            extra_costs = correct_for_exact_price_for_lec(pd.DatetimeIndex([self.some_datetime]), heating_prices,
+                                                          Resource.HIGH_TEMP_HEAT, ExtraCostType.HEAT_EXT_COST_CORR,
+                                                          "job_id")
         self.assertEqual(1.5, [x.cost for x in extra_costs if x.agent == "Buyer1"][0])
         self.assertEqual(1.0, [x.cost for x in extra_costs if x.agent == "Buyer2"][0])
 
@@ -65,17 +66,17 @@ class TestBalanceManager(TestCase):
                   Market.LOCAL)]
 
         heating_prices = pd.DataFrame.from_records([{
-            'year': self.some_datetime.year,
-            'month': self.some_datetime.month,
+            'period': self.some_datetime,
             'estimated_retail_price': np.nan,
             'estimated_wholesale_price': est_wholesale_price,
             'exact_retail_price': np.nan,
             'exact_wholesale_price': exact_wholesale_price}])
         
-        with mock.patch('tradingplatformpoc.market.balance_manager.heat_trades_from_db_for_periods',
+        with mock.patch('tradingplatformpoc.market.balance_manager.all_trades_for_resource_from_db',
                         return_value={self.some_datetime: trades}):
-            extra_costs = correct_for_exact_heating_price_for_lec(
-                pd.DatetimeIndex([self.some_datetime]), heating_prices, "job_id")
+            extra_costs = correct_for_exact_price_for_lec(pd.DatetimeIndex([self.some_datetime]), heating_prices,
+                                                          Resource.HIGH_TEMP_HEAT, ExtraCostType.HEAT_EXT_COST_CORR,
+                                                          "job_id")
         self.assertEqual(1.5, [x.cost for x in extra_costs if x.agent == "Seller1"][0])
         self.assertEqual(1.0, [x.cost for x in extra_costs if x.agent == "Seller2"][0])
 
@@ -97,17 +98,17 @@ class TestBalanceManager(TestCase):
                   Market.LOCAL)]
 
         heating_prices = pd.DataFrame.from_records([{
-            'year': self.some_datetime.year,
-            'month': self.some_datetime.month,
+            'period': self.some_datetime,
             'estimated_retail_price': est_retail_price,
             'estimated_wholesale_price': np.nan,
             'exact_retail_price': exact_retail_price,
             'exact_wholesale_price': np.nan}])
         
-        with mock.patch('tradingplatformpoc.market.balance_manager.heat_trades_from_db_for_periods',
+        with mock.patch('tradingplatformpoc.market.balance_manager.all_trades_for_resource_from_db',
                         return_value={self.some_datetime: trades}):
-            extra_costs = correct_for_exact_heating_price_for_lec(
-                pd.DatetimeIndex([self.some_datetime]), heating_prices, "job_id")
+            extra_costs = correct_for_exact_price_for_lec(pd.DatetimeIndex([self.some_datetime]), heating_prices,
+                                                          Resource.HIGH_TEMP_HEAT, ExtraCostType.HEAT_EXT_COST_CORR,
+                                                          "job_id")
         self.assertEqual(-1.5, [x.cost for x in extra_costs if x.agent == "Buyer1"][0])
         self.assertEqual(-1.0, [x.cost for x in extra_costs if x.agent == "Buyer2"][0])
 
@@ -133,17 +134,17 @@ class TestBalanceManager(TestCase):
                   Market.LOCAL)]
 
         heating_prices = pd.DataFrame.from_records([{
-            'year': self.some_datetime.year,
-            'month': self.some_datetime.month,
+            'period': self.some_datetime,
             'estimated_retail_price': est_retail_price,
             'estimated_wholesale_price': np.nan,
             'exact_retail_price': exact_retail_price,
             'exact_wholesale_price': np.nan}])
 
-        with mock.patch('tradingplatformpoc.market.balance_manager.heat_trades_from_db_for_periods',
+        with mock.patch('tradingplatformpoc.market.balance_manager.all_trades_for_resource_from_db',
                         return_value={self.some_datetime: trades}):
-            extra_costs = correct_for_exact_heating_price_for_lec(
-                pd.DatetimeIndex([self.some_datetime]), heating_prices, "job_id")
+            extra_costs = correct_for_exact_price_for_lec(pd.DatetimeIndex([self.some_datetime]), heating_prices,
+                                                          Resource.HIGH_TEMP_HEAT, ExtraCostType.HEAT_EXT_COST_CORR,
+                                                          "job_id")
         self.assertEqual(187.5, [x.cost for x in extra_costs if x.agent == "Buyer1"][0])
         self.assertEqual(62.5, [x.cost for x in extra_costs if x.agent == "Buyer2"][0])
 
@@ -169,16 +170,14 @@ class TestBalanceManager(TestCase):
 
         heating_prices = pd.DataFrame.from_records([
             {
-                'year': self.some_datetime.year,
-                'month': self.some_datetime.month,
+                'period': self.some_datetime,
                 'agent': "Buyer1",
                 'estimated_retail_price': est_retail_price,
                 'estimated_wholesale_price': np.nan,
                 'exact_retail_price': exact_retail_price_1,
                 'exact_wholesale_price': np.nan
             }, {
-                'year': self.some_datetime.year,
-                'month': self.some_datetime.month,
+                'period': self.some_datetime,
                 'agent': "Buyer2",
                 'estimated_retail_price': est_retail_price,
                 'estimated_wholesale_price': np.nan,
@@ -187,9 +186,11 @@ class TestBalanceManager(TestCase):
             }
         ])
 
-        with mock.patch('tradingplatformpoc.market.balance_manager.heat_trades_from_db_for_periods',
+        with mock.patch('tradingplatformpoc.market.balance_manager.all_trades_for_resource_from_db',
                         return_value={self.some_datetime: trades}):
-            extra_costs = correct_for_exact_heating_price_no_lec(
-                pd.DatetimeIndex([self.some_datetime]), heating_prices, "job_id", ["Buyer1", "Buyer2"])
+            extra_costs = correct_for_exact_price_no_lec(
+                pd.DatetimeIndex([self.some_datetime]), heating_prices,
+                Resource.HIGH_TEMP_HEAT, ExtraCostType.HEAT_EXT_COST_CORR,
+                "job_id", ["Buyer1", "Buyer2"])
         self.assertEqual(0.0, [x.cost for x in extra_costs if x.agent == "Buyer1"][0])
         self.assertEqual(1.0, [x.cost for x in extra_costs if x.agent == "Buyer2"][0])

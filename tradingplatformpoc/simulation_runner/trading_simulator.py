@@ -19,7 +19,8 @@ from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.generate_data.generate_mock_data import get_generated_mock_data
 from tradingplatformpoc.generate_data.mock_data_utils import get_cooling_cons_key, get_elec_cons_key, \
     get_hot_tap_water_cons_key, get_space_heat_cons_key
-from tradingplatformpoc.market.balance_manager import correct_for_exact_heating_price
+from tradingplatformpoc.market.balance_manager import correct_for_exact_price
+from tradingplatformpoc.market.extra_cost import ExtraCostType
 from tradingplatformpoc.market.trade import Resource, Trade, TradeMetadataKey
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
@@ -38,7 +39,7 @@ from tradingplatformpoc.sql.level.models import Level as TableLevel
 from tradingplatformpoc.sql.trade.crud import trades_to_db_dict
 from tradingplatformpoc.sql.trade.models import Trade as TableTrade
 from tradingplatformpoc.trading_platform_utils import add_all_to_nested_dict, add_all_to_twice_nested_dict, \
-    calculate_solar_prod, get_external_heating_prices, get_final_storage_level, get_glpk_solver
+    calculate_solar_prod, get_external_prices, get_final_storage_level, get_glpk_solver
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +60,6 @@ class TradingSimulator:
                 self.agents, self.grid_agents = self.initialize_agents()
                 self.block_agents: List[BlockAgent] = [agent for agent in self.agents if isinstance(agent, BlockAgent)]
                 self.run()
-                self.extract_heating_price()
                 update_job_with_time(self.job_id, 'end_time')
 
             except InfeasibilityError as e:
@@ -78,7 +78,6 @@ class TradingSimulator:
 
         self.heat_pricing: HeatingPrice = HeatingPrice(
             heating_wholesale_price_fraction=self.config_data['AreaInfo']['ExternalHeatingWholesalePriceFraction'],
-            heat_transfer_loss=self.config_data['AreaInfo']["HeatTransferLoss"],
             effect_fee=self.config_data['AreaInfo']["HeatingEffectFee"])
         corresponding_nordpool_data = get_nordpool_data(self.config_data['AreaInfo']['ElectricityPriceYear'],
                                                         self.trading_periods)
@@ -92,12 +91,12 @@ class TradingSimulator:
             elec_effect_fee_internal=self.config_data['AreaInfo']["ElectricityEffectFeeInternal"],
             nordpool_data=corresponding_nordpool_data)
         # FIXME: Remove
-        self.trading_periods = self.trading_periods.take(list(range(24))  # 02-01
-                                                         + list(range(3912, 3936))  # 07-14
-                                                         + list(range(5664, 5688))  # 09-25
-                                                         + list(range(5952, 5976))  # 10-07
-                                                         + list(range(6120, 6144))  # 10-14
-                                                         )
+        # self.trading_periods = self.trading_periods.take(list(range(24))  # 02-01
+        #                                                  + list(range(3912, 3936))  # 07-14
+        #                                                  + list(range(5664, 5688))  # 09-25
+        #                                                  + list(range(5952, 5976))  # 10-07
+        #                                                  + list(range(6120, 6144))  # 10-14
+        #                                                  )
         self.trading_horizon = self.config_data['AreaInfo']['TradingHorizon']
 
     def initialize_agents(self) -> Tuple[List[IAgent], Dict[Resource, GridAgent]]:
@@ -217,7 +216,6 @@ class TradingSimulator:
             thsps_in_this_batch = trading_horizon_start_points[
                 batch_number * new_batch_size:min((batch_number + 1) * new_batch_size, number_of_trading_horizons)]
             all_trades_list_batch: List[List[Trade]] = []
-            electricity_price_list_batch: List[dict] = []
             metadata_per_agent_and_period: Dict[TradeMetadataKey, Dict[str, Dict[datetime.datetime, float]]] = {}
             metadata_per_period: Dict[TradeMetadataKey, Dict[datetime.datetime, float]] = {}
 
@@ -244,8 +242,6 @@ class TradingSimulator:
             logger.info('Saving trades to db...')
             trade_dict = trades_to_db_dict(all_trades_list_batch, self.job_id)
             bulk_insert(TableTrade, trade_dict)
-            logger.info('Saving electricity price to db...')
-            bulk_insert(TableElectricityPrice, electricity_price_list_batch)
 
             logger.info('Saving metadata to db...')
             metadata_per_agent_and_period_dicts = tmk_levels_dict_to_db_dict(metadata_per_agent_and_period, self.job_id)
@@ -253,32 +249,61 @@ class TradingSimulator:
             bulk_insert(TableLevel, metadata_per_agent_and_period_dicts)
             bulk_insert(TableLevel, metadata_per_period_dicts)
 
-        calculate_results_and_save(self.job_id, self.agents, self.grid_agents)
-
         logger.info("Finished simulating trades, beginning calculations on district heating price...")
 
-    def extract_heating_price(self):
-        """
-        Simulations finished. Now, we need to go through and calculate the exact district heating price for each month
-        """
-        logger.info('Calculating external_heating_prices')
-        agent_guids: List[str] = [a.guid for a in self.block_agents]
-        heating_price_list = get_external_heating_prices(self.heat_pricing,
-                                                         self.job_id,
-                                                         self.trading_periods,
-                                                         agent_guids,
-                                                         self.local_market_enabled)
-        bulk_insert(TableHeatingPrice, heating_price_list)
+        self.extract_resource_prices()
 
-        logger.info('Calculating heat_cost_discrepancy_corrections')
-        heating_prices = pd.DataFrame.from_records(heating_price_list)
-        heat_cost_discrepancy_corrections = correct_for_exact_heating_price(self.trading_periods,
-                                                                            heating_prices,
-                                                                            self.job_id,
-                                                                            self.local_market_enabled,
-                                                                            agent_guids)
-        logger.info('Saving extra costs to db...')
-        extra_cost_dict = extra_costs_to_db_dict(heat_cost_discrepancy_corrections, self.job_id)
-        bulk_insert(TableExtraCost, extra_cost_dict)
+        calculate_results_and_save(self.job_id, self.agents, self.grid_agents)
 
         logger.info('Simulation finished!')
+
+    def extract_resource_prices(self):
+        """
+        Simulations finished. Now, we need to go through and calculate the exact resource prices for each month
+        """
+        agent_guids: List[str] = [a.guid for a in self.block_agents]
+
+        # First for heating
+        logger.info('Calculating heating_price_list')
+        heating_price_list = get_external_prices(self.heat_pricing,
+                                                 self.job_id,
+                                                 self.trading_periods,
+                                                 agent_guids,
+                                                 self.local_market_enabled)
+        bulk_insert(TableHeatingPrice, heating_price_list)
+        heating_prices = pd.DataFrame.from_records(heating_price_list)
+
+        logger.info('Calculating heat_cost_discrepancy_corrections')
+        heat_cost_discrepancy_corrections = correct_for_exact_price(self.trading_periods,
+                                                                    heating_prices,
+                                                                    Resource.HIGH_TEMP_HEAT,
+                                                                    ExtraCostType.HEAT_EXT_COST_CORR,
+                                                                    self.job_id,
+                                                                    self.local_market_enabled,
+                                                                    agent_guids)
+
+        # Then for electricity
+        logger.info('Calculating elec_price_list')
+        elec_price_list = get_external_prices(self.electricity_pricing,
+                                              self.job_id,
+                                              self.trading_periods,
+                                              agent_guids,
+                                              self.local_market_enabled)
+        bulk_insert(TableElectricityPrice, elec_price_list)
+        elec_prices = pd.DataFrame.from_records(elec_price_list)
+
+        logger.info('Calculating elec_cost_discrepancy_corrections')
+        elec_cost_discrepancy_corrections = correct_for_exact_price(self.trading_periods,
+                                                                    elec_prices,
+                                                                    Resource.ELECTRICITY,
+                                                                    ExtraCostType.ELEC_EXT_COST_CORR,
+                                                                    self.job_id,
+                                                                    self.local_market_enabled,
+                                                                    agent_guids)
+
+        logger.info('Saving extra costs to database...')
+        heat_extra_cost_dicts = extra_costs_to_db_dict(heat_cost_discrepancy_corrections, self.job_id)
+        elec_extra_cost_dicts = extra_costs_to_db_dict(elec_cost_discrepancy_corrections, self.job_id)
+        bulk_insert(TableExtraCost, heat_extra_cost_dicts + elec_extra_cost_dicts)
+
+        logger.info('Extra costs saved to database')

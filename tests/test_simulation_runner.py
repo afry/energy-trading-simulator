@@ -1,9 +1,9 @@
 import datetime
 from unittest import TestCase, mock
 
-import numpy as np
-
 import pandas as pd
+
+import pytz
 
 from tradingplatformpoc.config.access_config import read_config
 from tradingplatformpoc.data.preprocessing import read_and_process_input_data
@@ -12,7 +12,7 @@ from tradingplatformpoc.generate_data.mock_data_utils import get_elec_cons_key, 
 from tradingplatformpoc.price.heating_price import HeatingPrice
 from tradingplatformpoc.simulation_runner.trading_simulator import TradingSimulator
 from tradingplatformpoc.sql.job.models import uuid_as_str_generator
-from tradingplatformpoc.trading_platform_utils import get_external_heating_prices
+from tradingplatformpoc.trading_platform_utils import get_external_prices
 
 
 class Test(TestCase):
@@ -20,8 +20,7 @@ class Test(TestCase):
     fake_job_id = "111111111111"
     config = read_config()
     heat_pricing: HeatingPrice = HeatingPrice(
-        heating_wholesale_price_fraction=config['AreaInfo']['ExternalHeatingWholesalePriceFraction'],
-        heat_transfer_loss=config['AreaInfo']["HeatTransferLoss"])
+        heating_wholesale_price_fraction=config['AreaInfo']['ExternalHeatingWholesalePriceFraction'])
 
     def test_initialize_agents(self):
         """Test that an error is thrown if no GridAgents are initialized."""
@@ -58,19 +57,15 @@ class Test(TestCase):
 
     def test_get_external_heating_prices_from_empty_data_store(self):
         """
-        When trying to calculate external heating prices using an empty DataStore, NaNs should be returned for exact
-        prices, and warnings should be logged.
+        When trying to calculate external heating prices using an empty DataStore, NaNs should be returned for all
+        prices.
         """
-        datetime_index = pd.DatetimeIndex([datetime.datetime(2019, 2, 1), datetime.datetime(2019, 2, 2)])
-        with self.assertLogs() as captured:
-            heating_price_list = get_external_heating_prices(self.heat_pricing, self.fake_job_id,
-                                                             datetime_index, ['abc'], True)
+        datetime_index = pd.DatetimeIndex([datetime.datetime(2019, 2, 1, tzinfo=pytz.UTC),
+                                           datetime.datetime(2019, 2, 2, tzinfo=pytz.UTC)])
+        heating_price_list = get_external_prices(self.heat_pricing, self.fake_job_id,
+                                                 datetime_index, ['abc'], True)
         heating_prices = pd.DataFrame.from_records(heating_price_list)
-        self.assertTrue(len(captured.records) > 0)
-        log_levels_captured = [rec.levelname for rec in captured.records]
-        self.assertTrue('WARNING' in log_levels_captured)
-        entry = heating_prices[(heating_prices.year == 2019) & (heating_prices.month == 2)].iloc[0]
-        self.assertTrue(np.isnan(entry.exact_retail_price))
-        self.assertTrue(np.isnan(entry.exact_wholesale_price))
-        self.assertFalse(np.isnan(entry.estimated_retail_price))
-        self.assertFalse(np.isnan(entry.estimated_wholesale_price))
+        self.assertTrue(heating_prices.exact_retail_price.isna().all())
+        self.assertTrue(heating_prices.exact_wholesale_price.isna().all())
+        self.assertTrue(heating_prices.estimated_retail_price.isna().all())
+        self.assertTrue(heating_prices.estimated_wholesale_price.isna().all())

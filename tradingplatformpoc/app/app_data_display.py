@@ -107,7 +107,7 @@ def construct_combined_price_df(config_data: dict, local_price_df: Optional[pd.D
     nordpool_data.rename({'datetime': 'period', 'index': 'period'}, axis=1, inplace=True)
     nordpool_data['period'] = pd.to_datetime(nordpool_data['period'])
     retail_df = nordpool_data.copy()
-    gross_prices = elec_pricing.get_electricity_gross_retail_price_from_nordpool_price(retail_df['value'])
+    gross_prices = elec_pricing.get_external_gross_retail_price_excl_effect_fee(retail_df['value'])
     retail_df['value'] = elec_pricing.get_electricity_net_external_price(gross_prices)
     retail_df['variable'] = app_constants.RETAIL_PRICE_STR
     wholesale_df = nordpool_data.copy()

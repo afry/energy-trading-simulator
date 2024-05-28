@@ -4,6 +4,7 @@ from enum import Enum
 
 class ExtraCostType(Enum):
     HEAT_EXT_COST_CORR = 0
+    ELEC_EXT_COST_CORR = 1
 
 
 class ExtraCost:
