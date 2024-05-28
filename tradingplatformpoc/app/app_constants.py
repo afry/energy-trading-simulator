@@ -1,5 +1,5 @@
 WHOLESALE_PRICE_STR = 'Wholesale price'
-RETAIL_PRICE_STR = 'Retail price'
+RETAIL_PRICE_STR = 'Retail price (excl. effect fee)'
 LOCAL_PRICE_STR = 'Local price'
 DATA_PATH = "tradingplatformpoc.data"
 

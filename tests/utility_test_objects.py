@@ -3,7 +3,7 @@ AREA_INFO = {
     "HeatTransferLoss": 0.05,
     "ElectricityTax": 0.36,
     "ElectricityTransmissionFee": 0.13,
-    "ElectricityEffectFee": 0.0,
+    "ElectricityEffectFee": 35.0,
     "ElectricityTaxInternal": 0.0,
     "ElectricityTransmissionFeeInternal": 0.0,
     "ElectricityEffectFeeInternal": 0.0,
