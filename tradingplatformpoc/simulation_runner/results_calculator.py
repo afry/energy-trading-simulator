@@ -28,6 +28,7 @@ class AggregatedTrades:
     monthly_sum_export: Dict[int, float]
     monthly_sum_net_import: Dict[int, float]
     monthly_max_net_import: Dict[int, float]
+    daily_max_net_import: float
     sum_import_jan_feb: float
     sum_export_jan_feb: float
     sum_import_below_1_c: float
@@ -74,6 +75,11 @@ class AggregatedTrades:
         self.monthly_sum_net_import = grouped_by_month.sum().to_dict()
         self.monthly_max_net_import = grouped_by_month.max().to_dict()
 
+        self.daily_max_net_import = (external_trades_df['net_imported'].
+                                     groupby(external_trades_df['period'].dt.date).
+                                     sum().
+                                     max())
+
 
 def calculate_results_and_save(job_id: str, agents: List[IAgent], grid_agents: Dict[Resource, GridAgent]):
     """
@@ -106,6 +112,9 @@ def calculate_results_and_save(job_id: str, agents: List[IAgent], grid_agents: D
     result_dict[ResultsKey.MAX_NET_IMPORT] = {
         Resource.ELECTRICITY.name: max_dict_value(agg_elec_trades.monthly_max_net_import),
         Resource.HIGH_TEMP_HEAT.name: max_dict_value(agg_heat_trades.monthly_max_net_import)}
+    result_dict[ResultsKey.DAILY_MAX_NET_IMPORT] = {
+        Resource.ELECTRICITY.name: agg_elec_trades.daily_max_net_import,
+        Resource.HIGH_TEMP_HEAT.name: agg_heat_trades.daily_max_net_import}
     result_dict[ResultsKey.MONTHLY_SUM_IMPORT] = {
         Resource.ELECTRICITY.name: agg_elec_trades.monthly_sum_import,
         Resource.HIGH_TEMP_HEAT.name: agg_heat_trades.monthly_sum_import}

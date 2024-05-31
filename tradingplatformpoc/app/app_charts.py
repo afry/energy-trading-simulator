@@ -304,7 +304,7 @@ def encoding_shorthand_from_freq(freq: str) -> str:
     if freq == 'h':
         return 'period:T'
     if freq == 'd':
-        return 'date(period):T'
+        return 'yearmonthdate(period):T'
     if freq == 'm':
         return 'month(period):T'
     raise ValueError('Unexpected freq: ' + freq)
