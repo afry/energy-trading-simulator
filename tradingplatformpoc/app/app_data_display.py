@@ -302,7 +302,7 @@ def build_leaderboard_df(list_of_dicts: List[dict]) -> pd.DataFrame:
                       ResultsKey.format_results_key_name(ResultsKey.SUM_NET_IMPORT, Resource.ELECTRICITY),
                       ResultsKey.format_results_key_name(ResultsKey.SUM_NET_IMPORT, Resource.HIGH_TEMP_HEAT),
                       ResultsKey.format_results_key_name(ResultsKey.MAX_NET_IMPORT, Resource.ELECTRICITY),
-                      ResultsKey.format_results_key_name(ResultsKey.MAX_NET_IMPORT, Resource.HIGH_TEMP_HEAT),
+                      ResultsKey.format_results_key_name(ResultsKey.DAILY_MAX_NET_IMPORT, Resource.HIGH_TEMP_HEAT),
                       ResultsKey.format_results_key_name(ResultsKey.LOCALLY_PRODUCED_RESOURCES, Resource.ELECTRICITY),
                       ResultsKey.format_results_key_name(ResultsKey.LOCALLY_PRODUCED_RESOURCES,
                                                          Resource.HIGH_TEMP_HEAT),
