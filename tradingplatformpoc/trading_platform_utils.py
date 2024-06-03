@@ -10,6 +10,7 @@ import pandas as pd
 import pyomo.environ as pyo
 from pyomo.opt import OptSolver
 
+from tradingplatformpoc import constants
 from tradingplatformpoc.market.trade import Resource
 from tradingplatformpoc.price.iprice import IPrice
 from tradingplatformpoc.settings import settings
@@ -41,7 +42,7 @@ def get_intersection(collection1: Collection, collection2: Collection) -> List:
     return [value for value in collection1 if value in temp]
 
 
-def calculate_solar_prod(irradiation_data: pd.Series, pv_sqm: float, pv_efficiency: float):
+def calculate_solar_prod(irradiation_data: pd.Series, pv_sqm: float, pv_efficiency: float) -> pd.Series:
     """
     Calculates the solar energy production from some solar panels, given irradiation, total size of solar panels, and
     their efficiency.
@@ -193,3 +194,8 @@ def weekdays_diff(from_year: int, to_year: int) -> int:
     jan1_weekday_1 = pd.Timestamp(str(from_year) + "-01-01").dayofweek
     jan1_weekday_2 = pd.Timestamp(str(to_year) + "-01-01").dayofweek
     return (jan1_weekday_1 - jan1_weekday_2) % 7
+
+
+def should_use_summer_mode(start_datetime: datetime) -> bool:
+    """In the 'summer mode', heat trades within the LEC are of LOW_TEMP_HEAT, instead of HIGH_TEMP_HEAT."""
+    return start_datetime.month in constants.SUMMER_MODE_MONTHS
