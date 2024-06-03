@@ -21,7 +21,7 @@ from tradingplatformpoc.price.heating_price import HeatingPrice
 from tradingplatformpoc.price.iprice import IPrice
 from tradingplatformpoc.simulation_runner.chalmers import AgentEMS, CEMS_function
 from tradingplatformpoc.simulation_runner.chalmers.domain import CEMSError
-from tradingplatformpoc.trading_platform_utils import add_to_nested_dict
+from tradingplatformpoc.trading_platform_utils import add_to_nested_dict, should_use_summer_mode
 
 VERY_SMALL_NUMBER = 0.000001  # to avoid trades with quantity 1e-7, for example
 DECIMALS_TO_ROUND_TO = 6  # To avoid saving for example storage levels of -1e-8
@@ -263,11 +263,6 @@ def handle_infeasibility(optimized_model: pyo.ConcreteModel, results: SolverResu
                                  horizon_start=start_datetime,
                                  horizon_end=start_datetime + datetime.timedelta(hours=trading_horizon),
                                  constraints=constraint_names_no_index)
-
-
-def should_use_summer_mode(start_datetime: datetime.datetime) -> bool:
-    """In the 'summer mode', heat trades within the LEC are of LOW_TEMP_HEAT, instead of HIGH_TEMP_HEAT."""
-    return start_datetime.month in constants.SUMMER_MODE_MONTHS
 
 
 def extract_outputs_for_agent(optimized_model: pyo.ConcreteModel,

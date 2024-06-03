@@ -155,6 +155,8 @@ class TradingSimulator:
                                                       agent['PVArea'],
                                                       agent['PVEfficiency'])
                 space_heat_prod = inputs_df['coop_space_heating_produced'] if agent['SellExcessHeat'] else None
+                # Scaling here to fit BDAB's estimate (https://doc.afdrift.se/pages/viewpage.action?pageId=46203534)
+                space_heat_prod = space_heat_prod / 4.0
                 grocery_store_digital_twin = StaticDigitalTwin(atemp=agent['Atemp'],
                                                                electricity_usage=inputs_df['coop_electricity_consumed'],
                                                                space_heating_usage=inputs_df[
