@@ -1,10 +1,11 @@
-import os
 import logging
-from logging.handlers import TimedRotatingFileHandler
+import os
 import sys
+from logging.handlers import TimedRotatingFileHandler
+
+from st_pages import add_indentation, show_pages_from_config
 
 import streamlit as st
-from st_pages import show_pages_from_config, add_indentation
 
 from tradingplatformpoc.app import footer
 from tradingplatformpoc.database import create_db_and_tables, insert_default_config_into_db
@@ -18,7 +19,7 @@ from tradingplatformpoc.sql.input_electricity_price.crud import insert_input_ele
 
 # --- Read sys.argv to get logging level, if it is specified ---
 string_to_log_later = None
-if len(sys.argv) > 1 and type(sys.argv[1]) == str:
+if len(sys.argv) > 1 and isinstance(sys.argv[1], str):
     arg_to_upper = str.upper(sys.argv[1])
     try:
         log_level = getattr(logging, arg_to_upper)
@@ -36,7 +37,6 @@ FORMAT = "%(asctime)-15s | %(levelname)-7s | %(name)-35.35s | %(message)s"
 if not os.path.exists("logfiles"):
     os.makedirs("logfiles")
 file_handler = TimedRotatingFileHandler("logfiles/trading-platform-poc.log", when="midnight", interval=1)
-file_handler.suffix = "%Y-%m-%d"
 file_handler.setLevel(log_level)
 stream_handler = logging.StreamHandler()
 stream_handler.setLevel(log_level)
