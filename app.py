@@ -1,15 +1,12 @@
 import os
-import platform
-from logging.handlers import TimedRotatingFileHandler
-
-from tradingplatformpoc.app import footer
-
 import logging
+from logging.handlers import TimedRotatingFileHandler
 import sys
 
 import streamlit as st
 from st_pages import show_pages_from_config, add_indentation
 
+from tradingplatformpoc.app import footer
 from tradingplatformpoc.database import create_db_and_tables, insert_default_config_into_db
 from tradingplatformpoc.sql.input_data.crud import insert_input_data_to_db_if_empty
 from tradingplatformpoc.sql.input_electricity_price.crud import insert_input_electricity_price_to_db_if_empty

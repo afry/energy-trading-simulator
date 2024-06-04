@@ -20,9 +20,7 @@ from tradingplatformpoc.sql.job.models import Job
 logger = logging.getLogger(__name__)
 
 
-def create_config_if_not_in_db(config: dict, config_id: str, description: str,
-                               session_generator: Callable[[], _GeneratorContextManager[Session]]
-                               = session_scope) -> dict:
+def create_config_if_not_in_db(config: dict, config_id: str, description: str) -> dict:
     # TODO validate ID
     id_exists = check_if_id_in_db(config_id=config_id)
     if id_exists is not None:
