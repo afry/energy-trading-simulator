@@ -53,7 +53,8 @@ if __name__ == '__main__':
     areas['BoosterPumpMaxInput'] = hp_sizes['bhp_output'] / A_LOW_COP
     areas['BoosterPumpMaxOutput'] = hp_sizes['bhp_output'].astype(float)
     areas['HeatPumpForCooling'] = False
-    areas['BatteryCapacity'] = 100.0
+    # Battery size should be proportional to PV area. The below results roughly in battery capacity = peak PV production
+    areas['BatteryCapacity'] = (areas['PVArea'] / 7.0).round().astype(float)
     areas['AccumulatorTankCapacity'] = hp_sizes['acc_tank_litre'] * 75 / 1000
     areas['FractionUsedForBITES'] = 0.0
     print(areas.to_json(orient='records'))
