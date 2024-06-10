@@ -17,24 +17,6 @@ logger = logging.getLogger(__name__)
 # Read CSVs
 # ----------------------------------------------------------------------------------------------------------------------
 
-def read_electricitymap_data(data_path: str = "tradingplatformpoc.data",
-                             electricitymap_file: str = "electricity_co2equivalents_year2019.csv"
-                             ) -> pd.Series:
-    """
-    Reads the electricity map CSV file. Returns a pd.Series with the marginal carbon intensity.
-    """
-    electricitymap_csv_path = resource_filename(data_path, electricitymap_file)
-
-    em_data = pd.read_csv(electricitymap_csv_path, delimiter=';')
-    em_data.index = pd.to_datetime(em_data['timestamp'], unit='s')
-    # The input is in local time, with NA for the times that "don't exist" due to daylight savings time
-    em_data = em_data.tz_localize('Europe/Stockholm', nonexistent='NaT', ambiguous='NaT')
-    # Now, remove the rows where datetime is NaT (the values there are NA anyway)
-    em_data = em_data.loc[~em_data.index.isnull()]
-    # Finally, convert to UTC
-    em_data = em_data.tz_convert('UTC')
-    return em_data['marginal_carbon_intensity_avg']
-
 
 def read_irradiation_data(data_path: str = "tradingplatformpoc.data",
                           irradiation_file: str = "varberg_irradiation_W_m2_h.csv"

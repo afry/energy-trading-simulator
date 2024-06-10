@@ -59,12 +59,6 @@ class TestElectricityPrice(TestCase):
             wholesale_price = self.electricity_pricing.get_exact_wholesale_price(dt)
             self.assertTrue(retail_price > wholesale_price)
 
-    def test_read_electricitymap_csv(self):
-        """Test that the CSV file with ElectricityMap carbon intensity data reads correctly."""
-        data = read_electricitymap_data()
-        self.assertTrue(data.shape[0] > 0)
-        self.assertIsInstance(data.index, DatetimeIndex)
-
     def test_get_exact_retail_price_no_sales(self):
         """
         Test get_exact_retail_price: First, that it works when no sales have been registered, and then that the price
