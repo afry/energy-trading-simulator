@@ -4,11 +4,9 @@ from unittest import TestCase
 import numpy as np
 
 import pandas as pd
-from pandas import DatetimeIndex
 
 from tests import utility_test_objects
 
-from tradingplatformpoc.data.preprocessing import read_electricitymap_data
 from tradingplatformpoc.price.electricity_price import ElectricityPrice, \
     calculate_top_three_hourly_outtakes_for_month, calculate_total_for_month
 from tradingplatformpoc.price.heating_price import HeatingPrice, calculate_consumption_this_month
