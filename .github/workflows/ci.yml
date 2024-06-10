@@ -1,0 +1,86 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - '*'
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      PIP_CACHE_DIR: ${{ github.workspace }}/.cache/pip
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.9
+    - name: Install dependencies
+      run: |
+        python -V
+        sudo apt-get update -qy
+        sudo apt-get install -y glpk-utils
+        pip install virtualenv
+        virtualenv venv
+        source venv/bin/activate
+        sh load_env_vars.sh
+    - name: Cache pip
+      uses: actions/cache@v3
+      with:
+        path: .cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    - name: Install Python dependencies
+      run: |
+        source venv/bin/activate
+        pip install tox
+        pip install -r requirements.txt
+        pip install .
+    - name: Run tests
+      run: |
+        source venv/bin/activate
+        tox
+
+  release:
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+    - uses: actions/checkout@v3
+    - name: Create GitHub Release
+      uses: ncipollo/release-action@v1
+      with:
+        tag: ${{ github.ref_name }}
+        name: ${{ github.ref_name }}
+        body: Release ${{ github.ref_name }}
+
+  deploy:
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    services:
+      docker:
+        image: docker:19.03.12
+        options: --privileged
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+    - name: Login to Azure Container Registry
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.AZURE_APP_ID }}
+        password: ${{ secrets.AZURE_PASSWORD }}
+        registry: jonstakapoccontainerregistry.azurecr.io
+    - name: Build and push Docker image
+      run: |
+        docker build -t tppoc-app .
+        docker tag tppoc-app jonstakapoccontainerregistry.azurecr.io/tppoc-app:latest
+        docker tag tppoc-app jonstakapoccontainerregistry.azurecr.io/tppoc-app:${{ github.ref_name }}
+        docker push jonstakapoccontainerregistry.azurecr.io/tppoc-app:latest
+        docker push jonstakapoccontainerregistry.azurecr.io/tppoc-app:${{ github.ref_name }}
