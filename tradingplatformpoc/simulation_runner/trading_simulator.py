@@ -24,6 +24,7 @@ from tradingplatformpoc.market.extra_cost import ExtraCostType
 from tradingplatformpoc.market.trade import Resource, Trade, TradeMetadataKey
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
+from tradingplatformpoc.settings import settings
 from tradingplatformpoc.simulation_runner.chalmers_interface import InfeasibilityError, optimize
 from tradingplatformpoc.simulation_runner.results_calculator import calculate_results_and_save
 from tradingplatformpoc.sql.config.crud import get_all_agent_name_id_pairs_in_config, read_config
@@ -90,13 +91,14 @@ class TradingSimulator:
             elec_transmission_fee_internal=self.config_data['AreaInfo']["ElectricityTransmissionFeeInternal"],
             elec_effect_fee_internal=self.config_data['AreaInfo']["ElectricityEffectFeeInternal"],
             nordpool_data=corresponding_nordpool_data)
-        # FIXME: Remove
-        self.trading_periods = self.trading_periods.take(list(range(24))  # 02-01
-                                                         + list(range(3912, 3936))  # 07-14
-                                                         + list(range(5664, 5688))  # 09-25
-                                                         + list(range(5952, 5976))  # 10-07
-                                                         + list(range(6120, 6144))  # 10-14
-                                                         )
+        if settings.NOT_FULL_YEAR:
+            # To be used for testing only - ensure NOT_FULL_YEAR is not set (or set to False) in production environments
+            self.trading_periods = self.trading_periods.take(list(range(24))  # 02-01
+                                                             + list(range(3912, 3936))  # 07-14
+                                                             + list(range(5664, 5688))  # 09-25
+                                                             + list(range(5952, 5976))  # 10-07
+                                                             + list(range(6120, 6144))  # 10-14
+                                                             )
         self.trading_horizon = self.config_data['AreaInfo']['TradingHorizon']
 
     def initialize_agents(self) -> Tuple[List[IAgent], Dict[Resource, GridAgent]]:

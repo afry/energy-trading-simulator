@@ -1,15 +1,56 @@
 [![pipeline status](https://gitlab01.afdrift.se/futuretechnologies/tornet-jonstaka/trading-platform-poc/badges/main/pipeline.svg)](https://gitlab01.afdrift.se/futuretechnologies/tornet-jonstaka/trading-platform-poc/commits/main)
 [![coverage report](https://gitlab01.afdrift.se/futuretechnologies/tornet-jonstaka/trading-platform-poc/badges/main/coverage.svg)](https://gitlab01.afdrift.se/futuretechnologies/tornet-jonstaka/trading-platform-poc/commits/main)
 
-# Trading platform PoC
+# Energy trading simulator
 
-A POC for the trading platform system including agents and market solver.
+This projects simulates energy trades within a local energy community (LEC).
+It has been developed for a research project funded by Energimyndigheten,
+focusing on a planned development by Tornet Bostadsproduktion AB, at Jonstaka in Varberg, Sweden.
 
 To work on this code, install the dependencies necessary:
 
         pip install -r requirements.txt
         pip install -r requirements-dev.txt
         pip install -r requirements-test.txt
+
+To run the code, you also need to set up a PostgreSQL database. At AFRY, we have set up such a database in Azure.
+Wherever you host it, fill in the appropriate environment variables... ↓
+
+### Environment variables
+Several environment variables are required to make the code run properly.
+These can be set in a file named ".env", placed in the project root.
+
+    PG_USER
+    PG_HOST
+    PG_DATABASE
+    PG_DATABASE_TEST
+    PG_PASSWORD
+    GLPK_PATH
+
+#### PG_...
+The variables prefixed by "PG_" specify attributes of the associated PostgreSQL database.
+
+Examples:
+
+    PG_USER = "jonstaka_python"
+    PG_HOST = "DATABASE_NAME.postgres.database.azure.com"
+    PG_DATABASE = "jonstaka_local"
+    PG_DATABASE_TEST = "jonstaka_test"
+    PG_PASSWORD = "REDACTED, obviously"
+
+#### GLPK_PATH
+This variable is needed for the optimization stage, but only if you are **not** on a Linux system.
+If you are on Linux, you just need to install GLPK (this is done when running the project as a Docker container, too).
+
+But on other operating systems, e.g. Windows, this variable should specify the path to where you have the "glpsol.exe" file.
+
+For example:
+
+    GLPK_PATH=C:\...\glpk-4.65\w64\glpsol
+
+### Test mode
+When developing and testing, it saves a lot of time to not run the full year of simulations.
+This can be achieved by setting an environment variable named "NOT_FULL_YEAR" to "True".
 
 ## Making a release
 1. Ensure that your local main and develop branches are up-to-date
