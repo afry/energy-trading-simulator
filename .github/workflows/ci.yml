@@ -1,14 +1,12 @@
 name: CI Pipeline
 
 on:
-  push:
+  push:         # This will trigger the workflow on any push event
     branches:
-      - main
-    tags:
-      - '*'
-  pull_request:
+      - '**'    # This wildcard pattern ensures that it triggers on all branches
+  pull_request: # This will trigger the workflow on any pull request event
     branches:
-      - main
+      - '**'    # This wildcard pattern ensures that it triggers on all branches
 
 jobs:
   test:
