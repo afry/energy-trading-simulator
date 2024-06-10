@@ -52,7 +52,7 @@ For example:
 When developing and testing, it saves a lot of time to not run the full year of simulations.
 This can be achieved by setting an environment variable named "NOT_FULL_YEAR" to "True".
 
-## Making a release
+## Creating a release
 1. Ensure that your local main and develop branches are up-to-date
 2. Checkout develop branch
 3. If you haven't done any git flow operations on this project, you will have to run "git flow init" - you will be asked a bunch of questions, and you should just accept the default answers (by pressing enter)
@@ -78,6 +78,14 @@ Steps 8-9 are only relevant if you are running the app in Azure (more on that fu
 9. To apply the changes to the web app, open the App Service, click "Deployment Center", and choose the appropriate "Tag" from the dropdown. This will restart the App Service with the specified version. 
 10. On develop, you may want to change the version numbers (as you did in step 5) to a ".dev"-name. For example, if you just released version 1.0.2, the version numbers on develop should probably be "1.0.3.dev".
 
+If you would like to tag a temporary branch, just to test how something works in Azure (such as testing runtimes):
+
+1. checkout the branch you want to test
+2. git tag TAG_NAME
+3. git push origin TAG_NAME
+
+Change the tag in Azure / App Service / Deployment Center. When you are done testing, the tag can be removed by running "git push --delete origin TAG_NAME ; git tag -d TAG_NAME" (the first command deletes it from the remote, and the second command deletes it locally).
+
 ## Access Azure Database through pgAdmin
 The following guide is for using pgAdmin to access the Azure Database, but this is optional, and you can choose GUI after your liking.
 
@@ -97,16 +105,7 @@ To access the server:
 
 NOTE: Do not use admin user with python.
 
-## Run simulation without GUI
-
-From the root of the repository, run the main file:
-
-        python main.py
-
-This will populate the results folder with outputs. In addition, a [log file](logfiles/trading-platform-poc.log) is 
-generated and stored in the "logfiles" directory.
-
-## Run Streamlit GUI
+## Run the GUI
 To run the streamlit GUI, make sure streamlit and altair are installed in your environment 
 (they will be, if you installed requirements.txt)
 
@@ -124,6 +123,15 @@ https://awesome-streamlit.org/
 and the source repo:
 
 https://github.com/aliavni/awesome-data-explorer
+
+### Run simulation without GUI
+
+From the root of the repository, run the main file:
+
+        python main.py
+
+This will populate the results folder with outputs. In addition, a [log file](logfiles/trading-platform-poc.log) is 
+generated and stored in the "logfiles" directory.
 
 ### As a Docker container
 Install Docker (verify installation by running "docker run hello-world"). Navigate to the root of the trading 
@@ -163,3 +171,17 @@ and that the container registry which holds the Docker images is named "containe
    2. Click "Deployment Center" on the left
    3. Check the "Tag" dropdown. If this is set to "latest", you just need to restart the app, and the latest image will be used. If a specific image name is selected, choose the one you want. The app will restart if you change version, so no need to do so explicitly.
    4. Go to the app URL, ensure that the proper version is running by checking the page footer, where the version number should be located (but it will take a little while to start up)
+
+#### Logs
+Logs are currently (as of May 2024) being saved to a storage account named "jonstakalogstorage".
+The setup for this is handled under "Diagnostic settings" in the App Service page in the Azure portal.
+Logs are retained for 7 days.
+"AppServiceConsoleLogs" is the output from the container, i.e. the logs that we most often are interested in.
+In "AppServiceHttpLogs" we can monitor traffic to the app.
+To examine the logs in the storage account, either use the Azure portal, or install "Microsoft Azure Storage Explorer", and connect to the storage account using an access key, which you can find by navigating to the storage account in the Azure portal.
+
+You can also view the logs by clicking "Log stream" in the App Service page in Azure Portal. This works automatically: Any information written to files ending in .txt, .log, or .htm that are stored in the /logfiles directory is streamed by App Service.
+
+The best way (arguably) of viewing logs, though, is in the log analytics workspace. This is accessed through the "Logs" tab in the App Service page. Here, you can search through logs, create alerts, etcetera.
+
+For more information, see https://docs.microsoft.com/en-us/azure/app-service/troubleshoot-diagnostic-logs.
