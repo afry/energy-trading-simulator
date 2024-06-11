@@ -1,8 +1,7 @@
 import pandas as pd
 
 PERCENT_OF_BYA_TO_COVER_WITH_PV_PANELS = 0.25
-# White estimated that 50% of BYA can be covered by rooftop PV panels
-# (see https://doc.afdrift.se/display/RPJ/BDAB+data)
+# White estimated that 50% of BYA can be covered by rooftop PV panels.
 # But for our base case, we'll go with a more modest number, 20%
 DEFAULT_SHARE_COMMERCIAL_IN_BC_AREAS = 0.2
 

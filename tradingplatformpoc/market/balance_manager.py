@@ -32,7 +32,6 @@ def correct_for_exact_price(trading_periods: pd.DatetimeIndex,
         D as the total amount of the resource imported to the microgrid for the month
     The external grid will then be owed (x - p) * D SEK
     We should attribute this cost (or, if p > x, this income) based on resource usage.
-    For more on how we attribute this cost/income, see https://doc.afdrift.se/pages/viewpage.action?pageId=34766880
 
     @return A list of ExtraCost entities, containing information about what period and agent the cost is for, and a
         "cost" value, where a negative value means the agent is owed money for the period, rather than owing the money

@@ -23,7 +23,7 @@ class HeatingPrice(IPrice):
     """
     Class for calculating exact and estimated price of heating.
     For a more thorough explanation of the district heating pricing mechanism, see
-    https://doc.afdrift.se/display/RPJ/District+heating+Varberg%3A+Pricing
+    https://www.varbergenergi.se/foretag/tjanster/fjarrvarme/fjarrvarme-priser/
     """
 
     heating_wholesale_price_fraction: float
@@ -52,7 +52,7 @@ class HeatingPrice(IPrice):
         Using 1 kWh during January and February, increases the average Jan-Feb consumption by 1 / hours_in_jan_feb.
         The marginal cost depends on what "bracket" one falls into, but we'll assume
         we always end up in the top bracket.
-        More info at https://doc.afdrift.se/display/RPJ/District+heating+Varberg%3A+Pricing
+        More info at https://www.varbergenergi.se/foretag/tjanster/fjarrvarme/fjarrvarme-priser/
         """
         hours_in_jan_feb = 1416 + (24 if isleap(year) else 0)
         return self.GRID_FEE_MARGINAL_400_PLUS / hours_in_jan_feb
