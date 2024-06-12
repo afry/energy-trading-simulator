@@ -20,7 +20,6 @@ from tradingplatformpoc.config.screen_config import config_data_feasibility_scre
 from tradingplatformpoc.sql.config.crud import create_config_if_not_in_db, delete_config_if_no_jobs_exist, \
     get_all_config_ids_in_db, get_all_configs_in_db_df, read_description, update_description
 from tradingplatformpoc.sql.config.crud import read_config
-from tradingplatformpoc.trading_platform_utils import ALLOWED_GRID_AGENT_RESOURCES_STR
 
 logger = logging.getLogger(__name__)
 
@@ -182,10 +181,7 @@ if option_chosen == options[0]:
 
         # ----------- Grid agents -----------
         agent_form.caption("Grid agents:")
-        column_configs = column_config_for_agent_type({k: v for k, v in agent_specs["GridAgent"].items()
-                                                       if k != "Resource"})
-        column_configs["Resource"] = st.column_config.SelectboxColumn(options=ALLOWED_GRID_AGENT_RESOURCES_STR,
-                                                                      help=agent_specs["GridAgent"]["Resource"]["help"])
+        column_configs = column_config_for_agent_type(agent_specs["GridAgent"])
         column_order = ["Name"] + list(agent_specs["GridAgent"].keys())
         current_grid_agents: List[dict] = [agent for agent in st.session_state.config_data['Agents']
                                            if agent["Type"] == "GridAgent"]
