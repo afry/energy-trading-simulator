@@ -4,7 +4,7 @@ This projects simulates energy trades within a local energy community (LEC).
 It has been developed for a research project funded by Energimyndigheten,
 focusing on a planned development by Tornet Bostadsproduktion AB, at Jonstaka in Varberg, Sweden.
 
-To work on this code, install the dependencies necessary:
+To work on this code, ensure you are running **python 3.9**, and install the dependencies necessary:
 
         pip install -r requirements.txt
         pip install -r requirements-dev.txt
