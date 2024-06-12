@@ -17,6 +17,8 @@ from tradingplatformpoc.database import bulk_insert
 from tradingplatformpoc.digitaltwin.battery import Battery
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.generate_data.generate_mock_data import get_generated_mock_data
+from tradingplatformpoc.generate_data.generation_functions.non_residential.heat_generation import \
+    calculate_heat_production
 from tradingplatformpoc.generate_data.mock_data_utils import get_cooling_cons_key, get_elec_cons_key, \
     get_hot_tap_water_cons_key, get_space_heat_cons_key
 from tradingplatformpoc.market.balance_manager import correct_for_exact_price
@@ -153,6 +155,9 @@ class TradingSimulator:
                                guid=agent_name))
 
             elif agent_type == "GroceryStoreAgent":
+                # This is not used at the moment! Built to emulate the Coop store across the road from the Jonstaka
+                # site, which would fully participate in the LEC. The "HeatProducerAgent" grocery store profile on the
+                # other hand, only sells heating to the LEC, it doesn't participate in the LEC in any other sense.
                 pv_prod_series = calculate_solar_prod(inputs_df['irradiation'],
                                                       agent['PVArea'],
                                                       agent['PVEfficiency'])
@@ -175,6 +180,13 @@ class TradingSimulator:
                                booster_pump_max_output=agent["BoosterPumpMaxOutput"],
                                acc_tank_capacity=agent["AccumulatorTankCapacity"],
                                frac_for_bites=agent["FractionUsedForBITES"], guid=agent_name))
+
+            elif agent_type == "HeatProducerAgent":
+                low_heat_prod, high_heat_prod = calculate_heat_production(agent, inputs_df)
+                heat_prod_digital_twin = StaticDigitalTwin(atemp=0,
+                                                           space_heating_production=low_heat_prod,
+                                                           hot_water_production=high_heat_prod)
+                agents.append(BlockAgent(digital_twin=heat_prod_digital_twin, guid=agent_name))
             elif agent_type == "GridAgent":
                 resource = Resource[agent["Resource"]]
                 if resource == Resource.ELECTRICITY:

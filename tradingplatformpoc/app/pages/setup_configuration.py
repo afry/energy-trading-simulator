@@ -158,17 +158,37 @@ if option_chosen == options[0]:
                                                      )
         edited_block_agents["Type"] = "BlockAgent"  # Ensuring that newly added rows get the proper type
 
-        # ----------- Grocery store agents -----------
-        agent_form.caption("Grocery store agents:",
-                           help="This is a custom-built agent type meant to mimic the Coop grocery store next to the "
-                                "Jonstaka area. Its main characteristic is a high production of low-tempered heat, "
-                                "produced by its cooling machines, which can be transferred to the block agents during "
-                                "summer.")
-        column_configs = column_config_for_agent_type(agent_specs["GroceryStoreAgent"])
-        column_order = ["Name"] + list(agent_specs["GroceryStoreAgent"].keys())
-        current_gs_agents: List[dict] = [agent for agent in st.session_state.config_data['Agents']
-                                         if agent["Type"] == "GroceryStoreAgent"]
-        df_for_editor = pd.DataFrame(current_gs_agents, columns=column_order)
+        # # ----------- Grocery store agents (full member) -----------
+        # agent_form.caption("Grocery store agents:",
+        #                    help="This is a custom-built agent type meant to mimic the Coop grocery store next to the "
+        #                         "Jonstaka area. Its main characteristic is a high production of low-tempered heat, "
+        #                         "produced by its cooling machines, which can be transferred to the block agents "
+        #                         "during summer.")
+        # column_configs = column_config_for_agent_type(agent_specs["GroceryStoreAgent"])
+        # column_order = ["Name"] + list(agent_specs["GroceryStoreAgent"].keys())
+        # current_gs_agents: List[dict] = [agent for agent in st.session_state.config_data['Agents']
+        #                                  if agent["Type"] == "GroceryStoreAgent"]
+        # df_for_editor = pd.DataFrame(current_gs_agents, columns=column_order)
+        # n_rows = len(df_for_editor.index)
+        # edited_gs_agents = agent_form.data_editor(df_for_editor,
+        #                                           column_config=column_configs,
+        #                                           column_order=column_order,
+        #                                           hide_index=True,
+        #                                           num_rows="dynamic",
+        #                                           height=calculate_height_for_no_scroll_up_to(n_rows + 1)
+        #                                           )
+        # edited_gs_agents["Type"] = "GroceryStoreAgent"  # Ensuring that newly added rows get the proper type
+
+        # ----------- Heat producer agents -----------
+        agent_form.caption("Heat producer agents:",
+                           help="These agents provide excess heating to the Local Energy Community, but do not "
+                                "participate in the LEC in any other sense.")
+
+        column_configs = column_config_for_agent_type(agent_specs["HeatProducerAgent"])
+        column_order = ["Name"] + list(agent_specs["HeatProducerAgent"].keys())
+        current_hp_agents: List[dict] = [agent for agent in st.session_state.config_data['Agents']
+                                         if agent["Type"] == "HeatProducerAgent"]
+        df_for_editor = pd.DataFrame(current_hp_agents, columns=column_order)
         n_rows = len(df_for_editor.index)
         edited_gs_agents = agent_form.data_editor(df_for_editor,
                                                   column_config=column_configs,
