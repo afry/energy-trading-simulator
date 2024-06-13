@@ -52,5 +52,6 @@ def column_config_for_agent_type(agent_specs: Dict[str, Dict[str, Any]]) -> Dict
             config_dict[col_name] = st.column_config.NumberColumn(**this_col_config)
         if ("type", "bool") in params.items():
             config_dict[col_name] = st.column_config.CheckboxColumn(**this_col_config)
-
+        if "options" in params.keys():
+            config_dict[col_name] = st.column_config.SelectboxColumn(required=True, **this_col_config)
     return config_dict

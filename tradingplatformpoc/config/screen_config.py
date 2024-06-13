@@ -99,7 +99,7 @@ def config_data_agent_screening(config_data: dict) -> Optional[str]:
 
     # Make sure no agents are passed with unknown type
     for agent in config_data['Agents']:
-        if agent['Type'] not in ['BlockAgent', 'GridAgent', 'GroceryStoreAgent']:
+        if agent['Type'] not in ['BlockAgent', 'GridAgent', 'GroceryStoreAgent', 'HeatProducerAgent']:
             return 'Agent {} provided with unrecognized \'Type\' {}.'.format(agent['Name'], agent['Type'])
 
         # Check if resource is valid
@@ -143,6 +143,11 @@ def config_data_agent_screening(config_data: dict) -> Optional[str]:
                     return "Specified {}: {} > {}.".format(key, val, agent_specs[
                         agent['Type']][key]["max_value"])
 
+            if "options" in agent_specs[agent['Type']][key].keys():
+                if val not in agent_specs[agent['Type']][key]["options"]:
+                    return "Unrecognized {}: {}, needs to be one of {}".format(key, val, agent_specs[
+                        agent['Type']][key]["options"])
+
         for key, val in agent_specs[agent['Type']].items():
             if key not in items.keys():
                 if ('optional' not in val.keys()) or (not val['optional']):
@@ -163,7 +168,7 @@ def config_data_feasibility_screening(config_data: dict) -> Optional[str]:
     """
     area_info = config_data['AreaInfo']
     non_grid_agents_w_atemp = [agent for agent in config_data['Agents']
-                               if agent['Type'] != 'GridAgent' and agent['Atemp'] > 0]
+                               if agent['Type'] not in ['GridAgent', 'HeatProducerAgent'] and agent['Atemp'] > 0]
 
     # Check that cooling demand can be met
     has_cooling_need = any([agent['Type'] == 'BlockAgent'
