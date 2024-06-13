@@ -16,10 +16,10 @@ from tradingplatformpoc.market.trade import Action, Market, Resource, Trade
 class TestBalanceManager(TestCase):
     some_datetime = datetime.datetime(2019, 1, 2, tzinfo=pytz.utc)
 
-    def test_correct_for_exact_heating_price_external_sell(self):
+    def test_correct_for_exact_price_for_lec_external_sell(self):
         """
-        Test basic functionality of correct_with_exact_heating_price when the external grid sells heating to the
-        microgrid.
+        Test basic functionality of correct_for_exact_price_for_lec when the external grid sells heating to the
+        microgrid, and the estimated price is lower than the exact price.
         The grid will be owed 10 * (0.75 - 0.5) = 2.50 SEK.
         Should be attributed 60% to buyer 1, 40% to buyer 2.
         """
@@ -48,10 +48,10 @@ class TestBalanceManager(TestCase):
         self.assertEqual(1.5, [x.cost for x in extra_costs if x.agent == "Buyer1"][0])
         self.assertEqual(1.0, [x.cost for x in extra_costs if x.agent == "Buyer2"][0])
 
-    def test_correct_for_exact_heating_price_external_buy(self):
+    def test_correct_for_exact_price_for_lec_external_buy(self):
         """
-        Test basic functionality of correct_with_exact_heating_price when the external grid buys heating from the
-        microgrid.
+        Test basic functionality of correct_for_exact_price_for_lec when the external grid buys heating from the
+        microgrid, and the estimated price is higher than the exact price.
         The grid will be owed 10 * (0.5 - 0.25) = 2.50 SEK.
         Should be attributed 60% to seller 1, 40% to seller 2.
         """
@@ -80,11 +80,11 @@ class TestBalanceManager(TestCase):
         self.assertEqual(1.5, [x.cost for x in extra_costs if x.agent == "Seller1"][0])
         self.assertEqual(1.0, [x.cost for x in extra_costs if x.agent == "Seller2"][0])
 
-    def test_correct_for_exact_heating_price_external_sell_lower_price(self):
+    def test_correct_for_exact_price_for_lec_external_sell_lower_price(self):
         """
-        Test functionality of correct_with_exact_heating_price when the external grid sells heating to the microgrid,
-        and the exact price turns out to be lower than the estimated price.
-        The grid will be owed 10 * (0.25 - 0.5) = -2.50 SEK, i.e. grid the will owe the customer 2.50 SEK.
+        Test functionality of correct_for_exact_price_for_lec when the external grid sells heating to the microgrid,
+        and the estimated price is higher than the exact price.
+        The grid will be owed 10 * (0.25 - 0.5) = -2.50 SEK, i.e. the grid will owe the customer 2.50 SEK.
         Should be attributed 60% to buyer 1, 40% to buyer 2.
         """
         est_retail_price = 0.5
@@ -112,14 +112,13 @@ class TestBalanceManager(TestCase):
         self.assertEqual(-1.5, [x.cost for x in extra_costs if x.agent == "Buyer1"][0])
         self.assertEqual(-1.0, [x.cost for x in extra_costs if x.agent == "Buyer2"][0])
 
-    def test_correct_for_exact_heating_price_with_local_producer(self):
+    def test_correct_for_exact_price_for_lec_with_local_producer(self):
         """
-        Test basic functionality of correct_with_exact_heating_price, when there is a local producer of heating
+        Test basic functionality of correct_for_exact_price_for_lec, when there is a local producer of heating
         present, but there is a local deficit, and the exact retail price is bigger than the estimated retail price.
         The grid will be owed 1000 * (0.75 - 0.5) = 250 SEK.
         The local producer should not be affected.
         The debt should be attributed 75% to buyer 1, 25% to buyer 2.
-        See also https://doc.afdrift.se/pages/viewpage.action?pageId=34766880
         """
         est_retail_price = 0.5
         exact_retail_price = 0.75
@@ -150,7 +149,7 @@ class TestBalanceManager(TestCase):
 
     def test_no_lec(self):
         """
-        Test basic functionality of correct_with_exact_heating_price when there is no Local Energy Community, so the
+        Test basic functionality of correct_for_exact_price_no_lec, i.e. when there is no Local Energy Community, so the
         agents should be considered individually.
         The grid will be owed 4 * (0.75 - 0.5) = 1.00 SEK from Buyer2, and 0 from Buyer1 since the estimated price was
         equal to the exact.

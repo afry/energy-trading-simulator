@@ -39,7 +39,8 @@ class ElectricityPrice(IPrice):
             -> Union[float, pd.Series]:
         """
         The external grid sells at the Nordpool spot price, plus the "transmission fee", plus an effect fee.
-        See also https://doc.afdrift.se/pages/viewpage.action?pageId=17072325
+        We have decided to use Göteborg Energi's pricing model (outlined at
+        https://www.goteborgenergi.se/foretag/elnat/elnatsavgiften), since it is slightly simpler than Varberg Energi's.
         """
         return nordpool_price + self.transmission_fee
 

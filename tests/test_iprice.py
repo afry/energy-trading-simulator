@@ -4,11 +4,9 @@ from unittest import TestCase
 import numpy as np
 
 import pandas as pd
-from pandas import DatetimeIndex
 
 from tests import utility_test_objects
 
-from tradingplatformpoc.data.preprocessing import read_electricitymap_data
 from tradingplatformpoc.price.electricity_price import ElectricityPrice, \
     calculate_top_three_hourly_outtakes_for_month, calculate_total_for_month
 from tradingplatformpoc.price.heating_price import HeatingPrice, calculate_consumption_this_month
@@ -58,12 +56,6 @@ class TestElectricityPrice(TestCase):
             retail_price = self.electricity_pricing.get_exact_retail_price(dt, include_tax=False)
             wholesale_price = self.electricity_pricing.get_exact_wholesale_price(dt)
             self.assertTrue(retail_price > wholesale_price)
-
-    def test_read_electricitymap_csv(self):
-        """Test that the CSV file with ElectricityMap carbon intensity data reads correctly."""
-        data = read_electricitymap_data()
-        self.assertTrue(data.shape[0] > 0)
-        self.assertIsInstance(data.index, DatetimeIndex)
 
     def test_get_exact_retail_price_no_sales(self):
         """

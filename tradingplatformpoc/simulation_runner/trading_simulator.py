@@ -17,6 +17,8 @@ from tradingplatformpoc.database import bulk_insert
 from tradingplatformpoc.digitaltwin.battery import Battery
 from tradingplatformpoc.digitaltwin.static_digital_twin import StaticDigitalTwin
 from tradingplatformpoc.generate_data.generate_mock_data import get_generated_mock_data
+from tradingplatformpoc.generate_data.generation_functions.non_residential.heat_generation import \
+    calculate_heat_production
 from tradingplatformpoc.generate_data.mock_data_utils import get_cooling_cons_key, get_elec_cons_key, \
     get_hot_tap_water_cons_key, get_space_heat_cons_key
 from tradingplatformpoc.market.balance_manager import correct_for_exact_price
@@ -24,6 +26,7 @@ from tradingplatformpoc.market.extra_cost import ExtraCostType
 from tradingplatformpoc.market.trade import Resource, Trade, TradeMetadataKey
 from tradingplatformpoc.price.electricity_price import ElectricityPrice
 from tradingplatformpoc.price.heating_price import HeatingPrice
+from tradingplatformpoc.settings import settings
 from tradingplatformpoc.simulation_runner.chalmers_interface import InfeasibilityError, optimize
 from tradingplatformpoc.simulation_runner.results_calculator import calculate_results_and_save
 from tradingplatformpoc.sql.config.crud import get_all_agent_name_id_pairs_in_config, read_config
@@ -90,13 +93,14 @@ class TradingSimulator:
             elec_transmission_fee_internal=self.config_data['AreaInfo']["ElectricityTransmissionFeeInternal"],
             elec_effect_fee_internal=self.config_data['AreaInfo']["ElectricityEffectFeeInternal"],
             nordpool_data=corresponding_nordpool_data)
-        # FIXME: Remove
-        # self.trading_periods = self.trading_periods.take(list(range(24))  # 02-01
-        #                                                  + list(range(3912, 3936))  # 07-14
-        #                                                  + list(range(5664, 5688))  # 09-25
-        #                                                  + list(range(5952, 5976))  # 10-07
-        #                                                  + list(range(6120, 6144))  # 10-14
-        #                                                  )
+        if settings.NOT_FULL_YEAR:
+            # To be used for testing only - ensure NOT_FULL_YEAR is not set (or set to False) in production environments
+            self.trading_periods = self.trading_periods.take(list(range(24))  # 02-01
+                                                             + list(range(3912, 3936))  # 07-14
+                                                             + list(range(5664, 5688))  # 09-25
+                                                             + list(range(5952, 5976))  # 10-07
+                                                             + list(range(6120, 6144))  # 10-14
+                                                             )
         self.trading_horizon = self.config_data['AreaInfo']['TradingHorizon']
 
     def initialize_agents(self) -> Tuple[List[IAgent], Dict[Resource, GridAgent]]:
@@ -151,11 +155,14 @@ class TradingSimulator:
                                guid=agent_name))
 
             elif agent_type == "GroceryStoreAgent":
+                # This is not used at the moment! Built to emulate the Coop store across the road from the Jonstaka
+                # site, which would fully participate in the LEC. The "HeatProducerAgent" grocery store profile on the
+                # other hand, only sells heating to the LEC, it doesn't participate in the LEC in any other sense.
                 pv_prod_series = calculate_solar_prod(inputs_df['irradiation'],
                                                       agent['PVArea'],
                                                       agent['PVEfficiency'])
                 space_heat_prod = inputs_df['coop_space_heating_produced'] if agent['SellExcessHeat'] else None
-                # Scaling here to fit BDAB's estimate (https://doc.afdrift.se/pages/viewpage.action?pageId=46203534)
+                # Scaling here to fit BDAB's estimate (docs/Heat production.md)
                 space_heat_prod = space_heat_prod / 4.0
                 grocery_store_digital_twin = StaticDigitalTwin(atemp=agent['Atemp'],
                                                                electricity_usage=inputs_df['coop_electricity_consumed'],
@@ -173,6 +180,13 @@ class TradingSimulator:
                                booster_pump_max_output=agent["BoosterPumpMaxOutput"],
                                acc_tank_capacity=agent["AccumulatorTankCapacity"],
                                frac_for_bites=agent["FractionUsedForBITES"], guid=agent_name))
+
+            elif agent_type == "HeatProducerAgent":
+                low_heat_prod, high_heat_prod = calculate_heat_production(agent, inputs_df)
+                heat_prod_digital_twin = StaticDigitalTwin(atemp=0,
+                                                           space_heating_production=low_heat_prod,
+                                                           hot_water_production=high_heat_prod)
+                agents.append(BlockAgent(digital_twin=heat_prod_digital_twin, guid=agent_name))
             elif agent_type == "GridAgent":
                 resource = Resource[agent["Resource"]]
                 if resource == Resource.ELECTRICITY:

@@ -23,8 +23,8 @@ job_id_per_config_id = get_all_finished_job_config_id_pairs_in_db()
 if len(job_id_per_config_id) >= 2:
     first_col, second_col = st.columns(2)
 
-    # Ensure that 'default' goes in the leftmost column by default, if it has been run.
-    config_ids = get_keys_with_x_first(job_id_per_config_id, 'default')
+    # Ensure that 'lec_default' goes in the leftmost column by default, if it has been run.
+    config_ids = get_keys_with_x_first(job_id_per_config_id, 'lec_default')
 
     with first_col:
         chosen_config_id_to_view_1 = st.selectbox('Choose a first configuration to compare', config_ids)
@@ -60,18 +60,14 @@ if len(job_id_per_config_id) >= 2:
         # Agent comparison
         st.subheader("Agent comparison graphs")
         first_col, second_col = st.columns(2)
-        # The default "PVParkAgent" has nothing which will be shown here, so we exclude it from the lists. A bit hacky,
-        # would want to change it if we remove/change this agent at some point.
         with first_col:
             agent_1_specs = get_all_agent_name_id_pairs_in_config(comparison_ids.id_pairs[0].config_id)
-            agent_1_names = [name for name, uid in agent_1_specs.items()
-                             if get_agent_type(uid) == "BlockAgent" and 'PVParkAgent' not in name]
+            agent_1_names = [name for name, uid in agent_1_specs.items() if get_agent_type(uid) == "BlockAgent"]
             chosen_agent_name_to_view_1 = st.selectbox('Select an agent from the first configuration', agent_1_names)
             agent_1_type = get_agent_type(agent_1_specs.get(chosen_agent_name_to_view_1))
         with second_col:
             agent_2_specs = get_all_agent_name_id_pairs_in_config(comparison_ids.id_pairs[1].config_id)
-            agent_2_names = [name for name, uid in agent_2_specs.items()
-                             if get_agent_type(uid) == agent_1_type and 'PVParkAgent' not in name]
+            agent_2_names = [name for name, uid in agent_2_specs.items() if get_agent_type(uid) == agent_1_type]
             chosen_agent_name_to_view_2 = st.selectbox('Select an agent from the second configuration', agent_2_names)
 
         logger.info(f"Creating a {agent_1_type} graph")
@@ -80,7 +76,7 @@ if len(job_id_per_config_id) >= 2:
             if not agent_2_names:
                 st.markdown("There is no relevant agent in the second configuration")
             else:
-                if agent_1_type != "GridAgent":
+                if agent_1_type not in ['GridAgent', 'HeatProducerAgent']:
                     # Make a heat pump workload comparison graph
                     heat_pump_comparison_chart = construct_level_comparison_chart(
                         comparison_ids, [chosen_agent_name_to_view_1, chosen_agent_name_to_view_2],
