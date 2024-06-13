@@ -197,7 +197,7 @@ if option_chosen == options[0]:
                                                   num_rows="dynamic",
                                                   height=calculate_height_for_no_scroll_up_to(n_rows + 1)
                                                   )
-        edited_gs_agents["Type"] = "GroceryStoreAgent"  # Ensuring that newly added rows get the proper type
+        edited_gs_agents["Type"] = "HeatProducerAgent"  # Ensuring that newly added rows get the proper type
 
         # ----------- Grid agents -----------
         agent_form.caption("Grid agents:")

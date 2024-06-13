@@ -61,7 +61,7 @@ if len(ids) > 0:
             download_df_as_csv_button(extra_costs_df, "extra_costs_for_agent_" + agent_chosen_guid,
                                       include_index=True)
 
-    if agent_type != 'GridAgent':
+    if agent_type not in ['GridAgent', 'HeatProducerAgent']:
         storage_level_dfs = get_storage_dfs(job_id=chosen_id_to_view.job_id, agent_chosen_guid=agent_chosen_guid)
         if len(storage_level_dfs) > 0:
             with st.expander('Storage levels over time for ' + agent_chosen_guid + ':'):
@@ -74,6 +74,7 @@ if len(ids) > 0:
                 bites_chart = construct_bites_chart(bites_dfs)
                 st.altair_chart(bites_chart, use_container_width=True, theme=None)
 
+    if agent_type != 'GridAgent':
         with st.expander('Energy production/consumption'):
             agent_config = get_agent_config(agent_specs[agent_chosen_guid])
             st.caption("Click on a variable to highlight it.")

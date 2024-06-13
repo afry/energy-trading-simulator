@@ -80,7 +80,7 @@ if len(job_id_per_config_id) >= 2:
             if not agent_2_names:
                 st.markdown("There is no relevant agent in the second configuration")
             else:
-                if agent_1_type != "GridAgent":
+                if agent_1_type not in ['GridAgent', 'HeatProducerAgent']:
                     # Make a heat pump workload comparison graph
                     heat_pump_comparison_chart = construct_level_comparison_chart(
                         comparison_ids, [chosen_agent_name_to_view_1, chosen_agent_name_to_view_2],

@@ -1,3 +1,4 @@
+import copy
 from unittest import TestCase
 
 from tradingplatformpoc.app.app_functions import config_naming_is_valid, has_control_characters
@@ -10,6 +11,7 @@ class TestAppFunctions(TestCase):
                     "Resource": "ELECTRICITY", "TransferRate": 5.0}
     mock_grid_he = {"Type": "GridAgent", "Name": "HeatingGridAgent",
                     "Resource": "HIGH_TEMP_HEAT", "TransferRate": 5.0}
+    mock_bakery = {"Type": "HeatProducerAgent", "Name": "HPA", "Profile": "Bakery"}
     mock_pv = {"Type": "BlockAgent",
                "Name": "PVParkAgent",
                "Atemp": 0.0,
@@ -140,9 +142,16 @@ class TestAppFunctions(TestCase):
                                                                  self.mock_grid_el, self.mock_pv]}))
 
         # TransferRate of Storage Agent min value: 0.0
-        self.mock_grid_he['TransferRate'] = -0.1
+        faulty_grid_he = copy.copy(self.mock_grid_he)
+        faulty_grid_he['TransferRate'] = -0.1
         self.assertEqual("Specified TransferRate: -0.1 < 0.0.",
-                         config_data_agent_screening({'Agents': [self.mock_grid_he, self.mock_grid_el, self.mock_pv]}))
+                         config_data_agent_screening({'Agents': [faulty_grid_he, self.mock_grid_el, self.mock_pv]}))
+
+    def test_heat_producer_agent_screening(self):
+        """Test that we catch when an un-supported profile is specified for a HeatProducerAgent"""
+        agents = [self.mock_grid_el, self.mock_grid_he, self.mock_pv, self.mock_bakery]
+        self.assertEqual("Unrecognized Profile: Bakery, needs to be one of ['Grocery store']",
+                         config_data_agent_screening({'Agents': agents}))
 
     def test_config_naming_is_valid(self):
         """Test that we allow/disallow config names appropriately"""

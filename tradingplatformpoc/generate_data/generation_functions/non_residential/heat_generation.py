@@ -1,5 +1,5 @@
 import datetime
-from typing import Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import pandas as pd
 
@@ -50,11 +50,12 @@ def _bakery_heat_production(datetimes: pd.DatetimeIndex) -> pd.Series:
     """
     This will generate values without any noise, just constant values according to 'docs/Heat production.md'.
     """
-    values = [_get_grocery_store_hourly_factor(timestamp) * 300.0 for timestamp in datetimes]
+    values = [_get_bakery_hourly_factor(timestamp) * 300.0 for timestamp in datetimes]
     return pd.Series(values, index=datetimes)
 
 
-def calculate_heat_production(agent, inputs_df: pd.DataFrame) -> Tuple[Optional[pd.Series], Optional[pd.Series]]:
+def calculate_heat_production(agent: Dict[str, Any], inputs_df: pd.DataFrame) \
+        -> Tuple[Optional[pd.Series], Optional[pd.Series]]:
     """
     Returns mock data of heat production, for heat producer agents.
     In the returned tuple, the first entry will be for low-tempered heat, and the second for high-tempered heat.
