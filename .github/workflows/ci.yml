@@ -4,6 +4,8 @@ on:
   push:         # This will trigger the workflow on any push event
     branches:
       - '**'    # This wildcard pattern ensures that it triggers on all branches
+    tags:
+      - '*'     # Push events to every tag not containing /
   pull_request: # This will trigger the workflow on any pull request event
     branches:
       - '**'    # This wildcard pattern ensures that it triggers on all branches
