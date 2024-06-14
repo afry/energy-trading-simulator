@@ -6,13 +6,20 @@ import pandas as pd
 from tradingplatformpoc.trading_platform_utils import should_use_summer_mode
 
 
-def _get_grocery_store_hourly_factor(timestamp: datetime.datetime) -> float:
+def _is_grocery_store_open(timestamp: datetime.datetime) -> bool:
     """
     Assuming opening hours 8-22 every day.
     See also 'docs/Heat production.md'
     """
+    return 8 <= timestamp.hour < 22
+
+
+def _get_grocery_store_hourly_factor(timestamp: datetime.datetime) -> float:
+    """
+    See also 'docs/Heat production.md'
+    """
     if should_use_summer_mode(timestamp):
-        if 8 <= timestamp.hour < 22:
+        if _is_grocery_store_open(timestamp):
             return 1.0
         else:
             return 0.75
@@ -35,6 +42,22 @@ def _grocery_store_heat_production(datetimes: pd.DatetimeIndex, size_atemp_sqm: 
     max_prod = _get_grocery_store_max_prod(size_atemp_sqm)
     values = [_get_grocery_store_hourly_factor(timestamp) * max_prod for timestamp in datetimes]
     return pd.Series(values, index=datetimes)
+
+
+def _scale_grocery_store_heat_production(unscaled: pd.Series, scale_factor_from_config: float) -> pd.Series:
+    """
+    Scaling here to fit BDAB's estimate (docs/Heat production.md), and also using the scale factor specified in the
+    config.
+    What should the scaling factor from BDABs stuff be? This...
+    low_temp_heat[low_temp_heat.index.map(should_use_summer_mode)
+                  & low_temp_heat.index.map(_is_grocery_store_open)].mean()
+    ... works out to 278.5 kW, and this...
+    low_temp_heat[low_temp_heat.index.map(should_use_summer_mode)
+                  & ~low_temp_heat.index.map(_is_grocery_store_open)].mean()
+    ... works out to 204 kW.
+    We want 80 kW and 60 kW respectively, so we'll divide by 3.5, roughly does the job
+    """
+    return unscaled * scale_factor_from_config / 3.5
 
 
 def _get_bakery_hourly_factor(timestamp: datetime.datetime) -> float:
@@ -67,8 +90,7 @@ def calculate_heat_production(agent: Dict[str, Any], inputs_df: pd.DataFrame) \
         # the latter doesn't take outdoor temperature into account.
         low_temp_heat = (inputs_df['coop_space_heating_produced']
                          - inputs_df['coop_space_heating_consumed']).clip(0.0)
-        # Scaling here to fit BDAB's estimate (docs/Heat production.md)
-        low_temp_heat = low_temp_heat * agent['Scale'] / 4.0
+        low_temp_heat = _scale_grocery_store_heat_production(low_temp_heat, agent['Scale'])
     elif agent['Profile'] == 'Bakery':
         high_temp_heat = _bakery_heat_production(inputs_df.index)
     else:
