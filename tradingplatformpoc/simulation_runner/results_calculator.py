@@ -70,7 +70,8 @@ class AggregatedTrades:
                                                                       else -x[value_column_name],
                                                                       axis=1)
         self.net_energy_spend = (external_trades_df['net_imported'] * external_trades_df['price']).sum()
-        grouped_by_month = external_trades_df['net_imported'].groupby(external_trades_df['period'].dt.month)
+        net_import_summed = external_trades_df[['period', 'net_imported']].groupby('period', as_index=False).sum()
+        grouped_by_month = net_import_summed['net_imported'].groupby(net_import_summed['period'].dt.month)
         # These are converted to dicts, to make them JSON-serializable
         self.monthly_sum_net_import = grouped_by_month.sum().to_dict()
         self.monthly_max_net_import = grouped_by_month.max().to_dict()
