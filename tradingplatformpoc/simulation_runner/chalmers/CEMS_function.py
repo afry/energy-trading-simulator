@@ -28,7 +28,8 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, n_agents: int,
                 battery_efficiency: float = 0.95,
                 max_elec_transfer_between_agents: float = 500, max_elec_transfer_to_external: float = 1000,
                 max_heat_transfer_between_agents: float = 500, max_heat_transfer_to_external: float = 1000,
-                chiller_COP: float = 1.5, Pccmax: float = 100, thermalstorage_efficiency: float = 0.98,
+                chiller_COP: float = 1.5, chiller_heat_recovery: bool = True, Pccmax: float = 100,
+                thermalstorage_efficiency: float = 0.98,
                 heat_trans_loss: float = 0.05, cold_trans_loss: float = 0.05, trading_horizon: int = 24) \
         -> Tuple[pyo.ConcreteModel, SolverResults]:
     """
@@ -144,6 +145,7 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, n_agents: int,
     model.HhpBmax = pyo.Param(model.I, initialize=booster_heatpump_max_heat)
     # Chiller data
     model.COPcc = pyo.Param(initialize=chiller_COP)
+    model.chiller_heat_recovery = pyo.Param(initialize=chiller_heat_recovery)
     model.Pccmax = pyo.Param(initialize=Pccmax)
     # Borehole
     model.borehole = pyo.Param(model.I, initialize=lambda m, i: borehole[i])
@@ -617,7 +619,7 @@ def max_chiller_Cpower_product(model, t):
 
 def chiller_Hwaste_summer(model, t):
     # Only used in summer mode
-    return model.Hcc[t] == (1 + model.COPcc) * model.Pcc[t]
+    return model.Hcc[t] == (1 + model.COPcc) * model.Pcc[t] * model.chiller_heat_recovery
 
 
 def chiller_Hwaste_winter(model, t):

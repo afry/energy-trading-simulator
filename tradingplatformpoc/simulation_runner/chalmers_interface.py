@@ -143,6 +143,7 @@ def optimize(solver: OptSolver, block_agents: List[BlockAgent], grid_agents: Dic
                 max_heat_transfer_between_agents=area_info['InterAgentHeatTransferCapacity'],
                 max_heat_transfer_to_external=grid_agents[Resource.HIGH_TEMP_HEAT].max_transfer_per_hour,
                 chiller_COP=area_info['CompChillerCOP'],
+                chiller_heat_recovery=area_info['CompChillerHeatRecovery'],
                 Pccmax=area_info['CompChillerMaxInput'],
                 cold_trans_loss=area_info['CoolingTransferLoss'],
                 heat_trans_loss=area_info['HeatTransferLoss'],
