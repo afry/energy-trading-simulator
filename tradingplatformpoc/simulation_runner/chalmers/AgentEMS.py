@@ -15,7 +15,7 @@ def solve_model(solver: OptSolver, month: int, agent: int, nordpool_price: pd.Se
                 thermalstorage_max_temp: float, thermalstorage_volume: float, BITES_Eshallow0: float,
                 BITES_Edeep0: float, borehole: bool, elec_consumption: pd.Series, hot_water_heatdem: pd.Series,
                 space_heating_heatdem: pd.Series, cold_consumption: pd.Series, pv_production: pd.Series,
-                excess_heat: pd.Series,
+                excess_heat: pd.Series,  # TODO: Allow for high heat supply
                 elec_trans_fee: float, elec_tax_fee: float, incentive_fee: float,
                 hist_top_three_elec_peak_load: list, elec_peak_load_fee: float,
                 hist_monthly_heat_peak_energy: float, heat_peak_load_fee: float,
