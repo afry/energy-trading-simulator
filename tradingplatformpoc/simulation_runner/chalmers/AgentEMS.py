@@ -202,7 +202,7 @@ def solve_model(solver: OptSolver, month: int, agent: int, nordpool_price: pd.Se
                    model.Hcha_shallow[t] + model.Hsh[t] + model.HTEScha[t] + model.heat_dump[t]
         # without TES
         else:
-            return model.Hbuy_market[t] + model.Hhp[t] == \
+            return model.Hbuy_market[t] + model.Hhp[t] + model.Hsh_excess[t] == \
                    model.Hcha_shallow[t] + model.Hsh[t] \
                    + model.Hhw[t] + model.heat_dump[t]
 

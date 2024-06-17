@@ -21,7 +21,7 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, n_agents: int,
                 BITES_Edeep0: List[float], borehole: List[bool],
                 elec_consumption: pd.DataFrame, hot_water_heatdem: pd.DataFrame, space_heating_heatdem: pd.DataFrame,
                 cold_consumption: pd.DataFrame, pv_production: pd.DataFrame,
-                excess_heat: pd.DataFrame,
+                excess_low_temp_heat: pd.DataFrame, excess_high_temp_heat: pd.DataFrame,
                 elec_trans_fee: float, elec_tax_fee: float, incentive_fee: float,
                 hist_top_three_elec_peak_load: list, elec_peak_load_fee: float,
                 hist_monthly_heat_peak_energy: float, heat_peak_load_fee: float,
@@ -41,13 +41,15 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, n_agents: int,
     assert len(space_heating_heatdem.index) == n_agents
     assert len(cold_consumption.index) == n_agents
     assert len(pv_production.index) == n_agents
-    assert len(excess_heat.index) == n_agents
+    assert len(excess_low_temp_heat.index) == n_agents
+    assert len(excess_high_temp_heat.index) == n_agents
     assert len(elec_consumption.columns) >= trading_horizon
     assert len(hot_water_heatdem.columns) >= trading_horizon
     assert len(space_heating_heatdem.columns) >= trading_horizon
     assert len(cold_consumption.columns) >= trading_horizon
     assert len(pv_production.columns) >= trading_horizon
-    assert len(excess_heat.columns) >= trading_horizon
+    assert len(excess_low_temp_heat.columns) >= trading_horizon
+    assert len(excess_high_temp_heat.columns) >= trading_horizon
     assert len(nordpool_price) >= trading_horizon
     assert battery_efficiency > 0  # Otherwise we'll get division by zero
     assert thermalstorage_efficiency > 0  # Otherwise we'll get division by zero
@@ -117,7 +119,9 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, n_agents: int,
     model.Cld = pyo.Param(model.I, model.T, initialize=lambda m, i, t: cold_consumption.iloc[i, t])
     # Supply data of agents
     model.Ppv = pyo.Param(model.I, model.T, initialize=lambda m, i, t: pv_production.iloc[i, t])
-    model.Hsh_excess = pyo.Param(model.I, model.T, initialize=lambda m, i, t: excess_heat.iloc[i, t])
+    model.Hsh_excess_low_temp = pyo.Param(model.I, model.T, initialize=lambda m, i, t: excess_low_temp_heat.iloc[i, t])
+    model.Hsh_excess_high_temp = pyo.Param(model.I, model.T,
+                                           initialize=lambda m, i, t: excess_high_temp_heat.iloc[i, t])
     # BES data
     model.effe = pyo.Param(initialize=battery_efficiency)
     model.SOCBES0 = pyo.Param(model.I, initialize=SOCBES0)
@@ -354,32 +358,33 @@ def heat_peak_load2(model):
 def heat_peak_load3(model):
     return model.monthly_heat_peak_energy >= model.Hist_monthly_heat_peak_energy
 
+
 # (eq. 2 and 3 of the report)
 # Electrical/heat/cool power balance equation for agents
 def agent_Pbalance_winter(model, i, t):
     # Only used in winter mode
     return model.Ppv[i, t] + model.Pdis[i, t] + model.Pbuy_grid[i, t] == \
-           model.Pdem[i, t] + model.Php[i, t] + model.Pcha[i, t] + model.Psell_grid[i, t]
+        model.Pdem[i, t] + model.Php[i, t] + model.Pcha[i, t] + model.Psell_grid[i, t]
 
 
 def agent_Pbalance_summer(model, i, t):
     # Only used in summer mode
     return model.Ppv[i, t] + model.Pdis[i, t] + model.Pbuy_grid[i, t] == \
-           model.Pdem[i, t] + model.Php[i, t] + model.PhpB[i, t] + model.Pcha[i, t] + model.Psell_grid[i, t]
+        model.Pdem[i, t] + model.Php[i, t] + model.PhpB[i, t] + model.Pcha[i, t] + model.Psell_grid[i, t]
 
 
 def agent_Hbalance_winter(model, i, t):
     # Only used in winter mode
     # with TES
     if model.kwh_per_deg[i] != 0:
-        return model.Hbuy_grid[i, t] + model.Hhp[i, t] + model.Hsh_excess[i, t] == \
-               model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] + model.Hsh[i, t] \
-               + model.HTEScha[i, t] + model.heat_dump[i, t]
+        return model.Hbuy_grid[i, t] + model.Hhp[i, t] + model.Hsh_excess_high_temp[i, t] == \
+            model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] + model.Hsh[i, t] \
+            + model.HTEScha[i, t] + model.heat_dump[i, t]
     # without TES
     else:
-        return model.Hbuy_grid[i, t] + model.Hhp[i, t] == \
-               model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] + model.Hsh[i, t] \
-               + model.Hhw[i, t] + model.heat_dump[i, t]
+        return model.Hbuy_grid[i, t] + model.Hhp[i, t] + model.Hsh_excess_high_temp[i, t] == \
+            model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] + model.Hsh[i, t] \
+            + model.Hhw[i, t] + model.heat_dump[i, t]
 
 
 def agent_Hbalance_summer(model, i, t):
@@ -387,13 +392,13 @@ def agent_Hbalance_summer(model, i, t):
     # with TES
     if model.kwh_per_deg[i] != 0:
         return model.Hbuy_grid[i, t] + model.Hhp[i, t] \
-               + model.Hsh_excess[i, t] == model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] \
-               + model.Hsh[i, t] + PERC_OF_HT_COVERABLE_BY_LT * model.HTEScha[i, t] + model.heat_dump[i, t]
+            + model.Hsh_excess_low_temp[i, t] == model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] \
+            + model.Hsh[i, t] + PERC_OF_HT_COVERABLE_BY_LT * model.HTEScha[i, t] + model.heat_dump[i, t]
     # without TES
     else:
         return model.Hbuy_grid[i, t] + model.Hhp[i, t] \
-               + model.Hsh_excess[i, t] == model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] \
-               + model.Hsh[i, t] + PERC_OF_HT_COVERABLE_BY_LT * model.Hhw[i, t] + model.heat_dump[i, t]
+            + model.Hsh_excess_low_temp[i, t] == model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] \
+            + model.Hsh[i, t] + PERC_OF_HT_COVERABLE_BY_LT * model.Hhw[i, t] + model.heat_dump[i, t]
 
 
 def agent_Cbalance_winter(model, i, t):
@@ -432,10 +437,10 @@ def Hhw_supplied_by_HTES(model, i, t):
 def BITES_Eshallow_balance(model, i, t):
     if t == 0:
         return model.Energy_shallow[i, 0] == model.BITES_Eshallow0[i] + model.Hcha_shallow[i, 0] \
-               - model.Flow[i, 0] - model.Loss_shallow[i, 0]
+            - model.Flow[i, 0] - model.Loss_shallow[i, 0]
     else:
         return model.Energy_shallow[i, t] == model.Energy_shallow[i, t - 1] + model.Hcha_shallow[i, t] \
-               - model.Flow[i, t] - model.Loss_shallow[i, t]
+            - model.Flow[i, t] - model.Loss_shallow[i, t]
 
 
 def BITES_shallow_dis(model, i, t):
@@ -495,18 +500,18 @@ def BITES_max_Hcha_shallow(model, i, t):
 # Electrical/heat/cool power balance equation for grid (eqs. 7 to 9 of the report)
 def LEC_Pbalance(model, t):
     return sum(model.Psell_grid[i, t] for i in model.I) + model.Pbuy_market[t] == \
-           sum(model.Pbuy_grid[i, t] for i in model.I) + model.Psell_market[t] + model.Pcc[t]
+        sum(model.Pbuy_grid[i, t] for i in model.I) + model.Psell_market[t] + model.Pcc[t]
 
 
 def LEC_Hbalance(model, t):
     return sum(model.Hsell_grid[i, t] * (1 - model.Heat_trans_loss) for i in model.I) + \
-           model.Hbuy_market[t] * (1 - model.Heat_trans_loss) + model.Hcc[t] * (1 - model.Heat_trans_loss) \
-           == sum(model.Hbuy_grid[i, t] for i in model.I)
+        model.Hbuy_market[t] * (1 - model.Heat_trans_loss) + model.Hcc[t] * (1 - model.Heat_trans_loss) \
+        == sum(model.Hbuy_grid[i, t] for i in model.I)
 
 
 def LEC_Cbalance(model, t):
     return model.Ccc[t] + sum(model.Csell_grid[i, t] * (1 - model.cold_trans_loss) for i in model.I) == \
-           sum(model.Cbuy_grid[i, t] for i in model.I) + model.cool_dump[t]
+        sum(model.Cbuy_grid[i, t] for i in model.I) + model.cool_dump[t]
 
 
 # Battery energy storage model (eqs. 16 to 19 of the report)
