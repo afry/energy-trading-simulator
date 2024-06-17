@@ -76,7 +76,8 @@
     "CompChillerHeatRecovery": {
         "display": "Centralized compressor chiller heat recovery",
         "default": true,
-        "help": "Whether the compressor chiller generates (low-temperature) heat, which is recovered and shared within the LEC. The heat is generated with a COP equal to the cooling COP plus 1."
+        "help": "Whether the compressor chiller generates (low-temperature) heat, which is recovered and shared within the LEC. The heat is generated with a COP equal to the cooling COP plus 1.",
+        "disabled_cond": {"disabled_when": {"LocalMarketEnabled": false}}
     },
     "CoolingTransferLoss": {
         "display": "Cooling transfer loss:",
