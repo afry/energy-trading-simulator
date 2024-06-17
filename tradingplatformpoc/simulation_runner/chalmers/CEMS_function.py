@@ -372,7 +372,7 @@ def agent_Hbalance_winter(model, i, t):
     # Only used in winter mode
     # with TES
     if model.kwh_per_deg[i] != 0:
-        return model.Hbuy_grid[i, t] + model.Hhp[i, t] == \
+        return model.Hbuy_grid[i, t] + model.Hhp[i, t]  + model.Hsh_excess[i, t] == \
                model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] + model.Hsh[i, t] \
                + model.HTEScha[i, t] + model.heat_dump[i, t]
     # without TES
