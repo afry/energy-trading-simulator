@@ -9,8 +9,8 @@ def simulate_residential_total_heating(mock_data_constants: Dict[str, Any], df_i
                                        atemp_m2: float, random_seed: int) -> \
         Tuple[pl.LazyFrame, pl.LazyFrame]:
     """
-    Following along with https://doc.afdrift.se/display/RPJ/Jonstaka+heating+mock-up
-    But as for electricity, we'll just see the whole sub-area as 1 house, shouldn't matter too much.
+    Following along with "docs/Residential heating mock-up.md".
+
     df_inputs needs to contain 'rad_energy' and 'hw_energy' columns, with the Vetelangden data.
     Returns two pl.LazyFrames with datetimes and simulated data: The first representing space heating, the second hot
         tap water.

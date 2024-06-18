@@ -82,8 +82,7 @@ def simulate_space_heating(atemp_m2: float, random_seed: int,
                            lazy_inputs: pl.LazyFrame, space_heating_per_year_m2: float,
                            time_factor_function: Callable, n_rows: int) -> pl.LazyFrame:
     """
-    For more information, see https://doc.afdrift.se/display/RPJ/Commercial+areas and
-    https://doc.afdrift.se/display/RPJ/Coop+heating+energy+use+mock-up
+    For more information, see "docs/Non-residential heating mock-up.md"
     @input input_df: A pl.DataFrame with a 'datetime' column and a 'temperature' column
     @return A pl.DataFrame with datetime and space heating load for the area, scaled to
         space_heating_per_year_m2.
@@ -129,7 +128,7 @@ def simulate_area_electricity(atemp_m2: float, random_seed: int,
     Simulates electricity demand for the given datetimes. Uses random_seed when generating random numbers.
     The total yearly amount is calculated using atemp_m2 and kwh_elec_per_yr_per_m2. Variability over time is
     calculated using hourly_level_function and noise is added, its quantity determined by rel_error_std_dev.
-    For more information, see https://doc.afdrift.se/display/RPJ/Commercial+areas
+    For more information, see "docs/Non-residential electricity mock-up.md".
     @return A pl.DataFrame with datetimes and hourly electricity consumption, in kWh.
     """
     rng = np.random.default_rng(random_seed)
@@ -147,7 +146,9 @@ def simulate_area_electricity(atemp_m2: float, random_seed: int,
 
 
 def get_cooling_month_scaling_factor(month: int) -> float:
-    """Returns a dimensionless scaling factor. Values from BDAB. See https://doc.afdrift.se/x/cgLBAg"""
+    """
+    Returns a dimensionless scaling factor. Values from BDAB (Energislag_Timvärden_Jonstaka_underlag Afry 231115.xlsx)
+    """
     if month == 4:
         return 0.142449331673908
     elif month == 5:
@@ -167,8 +168,7 @@ def simulate_heating(mock_data_constants: Dict[str, Any], atemp_m2: float, space
                      hot_water_constant_name: str, time_factor_function: Callable, random_seed: int,
                      input_df: pl.LazyFrame, n_rows: int) -> Tuple[pl.LazyFrame, pl.LazyFrame]:
     """
-    For more information, see https://doc.afdrift.se/display/RPJ/Commercial+areas and
-    https://doc.afdrift.se/display/RPJ/Coop+heating+energy+use+mock-up
+    For more information, see "docs/Non-residential heating mock-up.md".
     @return Two pl.LazyFrames with datetimes and hourly heating load, in kWh. The first space heating, the second hot
         tap water.
     """

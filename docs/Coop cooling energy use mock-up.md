@@ -1,4 +1,13 @@
-# Share of total energy that goes towards cooling
+## Total energy use
+* Coop size: Full building ~6000 m<sup>2</sup>. This also includes a small coffee shop, betting shop, etc. These will probably have a lower energy usage per m<sup>2</sup>, since they won't need as much cooling.  
+(Store only ~4600 m<sup>2</sup> (https://www.facebook.com/234295273366350/posts/3475854752543703/))
+* Swedish grocery store electricity usage, excluding electricity direct heating: ~309 kWh/m<sup>2</sup> (from "Energianvändning i handelslokaler", Energimyndigheten, 2010, using a small sample of comparable size store data from 2009)
+
+6000 * 309 = 1 854 000 kWh
+
+Assuming some energy efficiency improvements since 2009, and also taking into account the fact that some of the 6000 m<sup>2</sup> are made up of other retail units, with lower freezing and cooling needs, we proceed with a guesstimate for the total yearly energy consumption of 1550 MWh.
+
+## Share of total energy that goes towards cooling
 
 In Energimyndigheten's report (https://energimyndigheten.a-w2m.se/FolderContents.mvc/Download?ResourceId=104215), it is stated that a grocery store on average spends 47% of their energy on cooling. This will obviously vary over time though: For example on warmer days, this will be higher, and during opening hours, energy spent on lighting will be lower, etcetera. We will now attempt to model the hourly energy consumption on cooling, keeping in mind that the total for a full year should sum to roughly 47% of 1550 MWh, i.e. 728.5 MWh.
 
@@ -35,7 +44,7 @@ Modifications to simulate hypothetical Swedish grocery store in 2019:
 
 First, we define cooling as the sum of "refrigerators" and "freezers" in this dataset. The store's energy consumption on cooling can be pretty well explained using the hour of day and the external temperature:
 
-![Cooling patterns](gs_cooling_patterns.png)
+![Cooling patterns](images/gs_cooling_patterns.png)
 
 It appears that the "hour_of_day" pattern is significantly different on weekends, with a lot less power needed in the morning (which is the small cluster around x=9, y=0.03 in the right-hand plot above).
 
@@ -112,7 +121,7 @@ Using this model, the residuals take a decent normal distribution.
 
 The temperature vs consumption relationship is described by a piecewise linear polynomial, and it comes out like this:
 
-![Cooling relationship with outdoor temperature](gs_cooling_temp_relationship.png)
+![Cooling relationship with outdoor temperature](images/gs_cooling_temp_relationship.png)
 
 We note that this Finnish temperature data is slightly lower than the Vetelängden temperatures, and it is possible that the "true" cooling ~ temperature relationship should increase more for higher temperatures. We will overlook this for now.
 
@@ -124,4 +133,4 @@ energy_cooling_mock = max(0, energy_cooling_pred + epsilon)
 
 where epsilon ~ N(0, s2), where s is the standard deviation of the residuals in the linear regression model. Doing "max(0, ...)" is just to safeguard against generating negative data, which obviously wouldn't make sense. The risk of this is very small though. A generated mock data series can look like this: 
 
-![Simulated cooling data](gs_cooling_simulated.png)
+![Simulated cooling data](images/gs_cooling_simulated.png)
