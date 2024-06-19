@@ -12,9 +12,9 @@ BTA_TO_ATEMP = 0.9
 # factor, we transform using a really low COP
 A_LOW_COP = 2.0
 
-# Peak radiation for an hour in Varberg in 2019 was 872.7 W/m2. Assuming 16.5% PV efficiency, we calculate the peak PV
+# Peak radiation for an hour in Varberg in 2019 was 872.7 W/m2. Assuming 18% PV efficiency, we calculate the peak PV
 # production per square meter as:
-MAX_KW_PV_PROD_PER_SQM = 872.7 * 0.165 / 1000.0
+MAX_KW_PV_PROD_PER_SQM = 872.7 * 0.18 / 1000.0
 
 DATA_DIR = '../tradingplatformpoc/data/'
 

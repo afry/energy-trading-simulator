@@ -47,7 +47,7 @@ class TestAppFunctions(TestCase):
         # PVEfficiency, min value: 0.01, max value: 0.99
         self.assertIsNotNone(config_data_param_screening({'AreaInfo': {'PVEfficiency': -0.1}}))
         self.assertIsNotNone(config_data_param_screening({'AreaInfo': {'PVEfficiency': 2.0}}))
-        self.assertIsNone(config_data_param_screening({'AreaInfo': {'PVEfficiency': 0.165}}))
+        self.assertIsNone(config_data_param_screening({'AreaInfo': {'PVEfficiency': 0.18}}))
 
     def test_config_data_agent_screening(self):
         """Test of agent input check."""
