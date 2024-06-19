@@ -65,7 +65,7 @@ This script generates the following, for BlockAgents:
 *Commercial cooling consumption data
 *Office cooling consumption data
 It stores such data in the mock_data table in the database.
-For some more information: https://doc.afdrift.se/display/RPJ/Household+electricity+mock-up
+For some more information, see the "docs" folder.
 """
 
 logger = logging.getLogger(__name__)

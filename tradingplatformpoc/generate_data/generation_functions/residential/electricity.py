@@ -9,7 +9,7 @@ from tradingplatformpoc.generate_data.generation_functions.common import constan
 
 def calculate_adjustment_for_energy_prev(model: RegressionResultsWrapper, energy_prev: float) -> float:
     """
-    As described in https://doc.afdrift.se/display/RPJ/Household+electricity+mock-up, here we calculate an
+    As described in "docs/Residential electricity mock-up.md", here we calculate an
     autoregressive adjustment to a simulation.
     @param model: A statsmodels.regression.linear_model.RegressionResultsWrapper, which must include parameters with the
         following names:
@@ -34,7 +34,7 @@ def simulate_series_with_log_energy_model(input_df: pl.DataFrame, rand_seed: int
     experiment becomes reproducible, and also when simulating several different areas, the simulations don't
     end up identical).
     The fact that autoregressive parts are included in the model, makes it more difficult to predict with, we can't just
-    use the predict-method. As explained in https://doc.afdrift.se/display/RPJ/Household+electricity+mock-up,
+    use the predict-method. As explained in "docs/Residential electricity mock-up.md",
     we use the predict-method first and then add on autoregressive terms afterward. The autoregressive parts are
     calculated in calculate_adjustment_for_energy_prev(...).
     :param input_df: pl.DataFrame
@@ -90,8 +90,7 @@ def simulate_household_electricity_aggregated(df_inputs: pl.LazyFrame, model: Re
 def property_electricity(df_inputs: pl.LazyFrame, atemp_m2: float, n_rows: int,
                          kwh_per_year_m2_atemp: float) -> pl.LazyFrame:
     """
-    Property electricity is assumed to be constant here. See the XLSX file from BDAB, available at
-    https://doc.afdrift.se/x/cgLBAg
+    Property electricity is assumed to be constant here.
     """
     unscaled = constants(df_inputs, 1)
     return scale_energy_consumption(unscaled, atemp_m2, kwh_per_year_m2_atemp, n_rows)
