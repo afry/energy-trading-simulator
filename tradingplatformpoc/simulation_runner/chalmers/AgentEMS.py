@@ -15,7 +15,7 @@ def solve_model(solver: OptSolver, month: int, agent: int, nordpool_price: pd.Se
                 thermalstorage_max_temp: float, thermalstorage_volume: float, BITES_Eshallow0: float,
                 BITES_Edeep0: float, borehole: bool, elec_consumption: pd.Series, hot_water_heatdem: pd.Series,
                 space_heating_heatdem: pd.Series, cold_consumption: pd.Series, pv_production: pd.Series,
-                excess_heat: pd.Series,  # TODO: Allow for high heat supply
+                excess_high_temp_heat: pd.Series,
                 elec_trans_fee: float, elec_tax_fee: float, incentive_fee: float,
                 hist_top_three_elec_peak_load: list, elec_peak_load_fee: float,
                 hist_monthly_heat_peak_energy: float, heat_peak_load_fee: float,
@@ -34,7 +34,7 @@ def solve_model(solver: OptSolver, month: int, agent: int, nordpool_price: pd.Se
     assert len(space_heating_heatdem) >= trading_horizon
     assert len(cold_consumption) >= trading_horizon
     assert len(pv_production) >= trading_horizon
-    assert len(excess_heat) >= trading_horizon
+    assert len(excess_high_temp_heat) >= trading_horizon
     assert len(nordpool_price) >= trading_horizon
     assert battery_efficiency > 0  # Otherwise we'll get division by zero
     assert thermalstorage_efficiency > 0  # Otherwise we'll get division by zero
@@ -82,7 +82,7 @@ def solve_model(solver: OptSolver, month: int, agent: int, nordpool_price: pd.Se
     model.Cld = pyo.Param(model.T, initialize=lambda m, t: cold_consumption.iloc[t])
     # Supply data of agents
     model.Ppv = pyo.Param(model.T, initialize=lambda m, t: pv_production.iloc[t])
-    model.Hsh_excess = pyo.Param(model.T, initialize=lambda m, t: excess_heat.iloc[t])
+    model.Hsh_excess_high_temp = pyo.Param(model.T, initialize=lambda m, t: excess_high_temp_heat.iloc[t])
     # BES data
     model.effe = pyo.Param(initialize=battery_efficiency)
     model.SOCBES0 = pyo.Param(initialize=SOCBES0)
@@ -198,11 +198,11 @@ def solve_model(solver: OptSolver, month: int, agent: int, nordpool_price: pd.Se
     def agent_Hbalance(model, t):
         # with TES
         if model.kwh_per_deg != 0:
-            return model.Hbuy_market[t] + model.Hhp[t] == \
+            return model.Hbuy_market[t] + model.Hhp[t] + model.Hsh_excess_high_temp[t] == \
                    model.Hcha_shallow[t] + model.Hsh[t] + model.HTEScha[t] + model.heat_dump[t]
         # without TES
         else:
-            return model.Hbuy_market[t] + model.Hhp[t] == \
+            return model.Hbuy_market[t] + model.Hhp[t] + model.Hsh_excess_high_temp[t] == \
                    model.Hcha_shallow[t] + model.Hsh[t] \
                    + model.Hhw[t] + model.heat_dump[t]
 
