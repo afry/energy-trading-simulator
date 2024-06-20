@@ -121,6 +121,7 @@ def optimize(solver: OptSolver, block_agents: List[BlockAgent], grid_agents: Dic
                 heatpump_max_heat=heatpump_max_heat,
                 HP_Cproduct_active=hp_produce_cooling,
                 borehole=hp_produce_cooling,
+                Hsell_grid_max=[0 for i in range(n_agents)],  # TODO: it should be calculated
                 booster_heatpump_COP=[area_info['COPBoosterPumps']] * n_agents,
                 booster_heatpump_max_power=booster_max_power,
                 booster_heatpump_max_heat=booster_max_heat,
