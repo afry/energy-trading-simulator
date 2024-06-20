@@ -16,7 +16,7 @@
         "min_value": 0.01,
         "max_value": 0.99,
         "format": "%.3f",
-        "default": 0.165,
+        "default": 0.18,
         "step": 0.005,
         "help": "A number specifying the efficiency of solar panels in the microgrid. Number must be between 0 and 1, and is typically in the 0.15-0.25 range"
     },
@@ -76,7 +76,8 @@
     "CompChillerHeatRecovery": {
         "display": "Centralized compressor chiller heat recovery",
         "default": true,
-        "help": "Whether the compressor chiller generates (low-temperature) heat, which is recovered and shared within the LEC. The heat is generated with a COP equal to the cooling COP plus 1."
+        "help": "Whether the compressor chiller generates (low-temperature) heat, which is recovered and shared within the LEC. The heat is generated with a COP equal to the cooling COP plus 1.",
+        "disabled_cond": {"disabled_when": {"LocalMarketEnabled": false}}
     },
     "CoolingTransferLoss": {
         "display": "Cooling transfer loss:",
