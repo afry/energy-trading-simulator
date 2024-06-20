@@ -11,7 +11,7 @@ class TestAppFunctions(TestCase):
                     "Resource": "ELECTRICITY", "TransferRate": 5.0}
     mock_grid_he = {"Type": "GridAgent", "Name": "HeatingGridAgent",
                     "Resource": "HIGH_TEMP_HEAT", "TransferRate": 5.0}
-    mock_bakery = {"Type": "HeatProducerAgent", "Name": "HPA", "Profile": "Bakery"}
+    mock_server_hall = {"Type": "HeatProducerAgent", "Name": "HPA", "Profile": "Server hall"}
     mock_pv = {"Type": "BlockAgent",
                "Name": "PVParkAgent",
                "Atemp": 0.0,
@@ -149,8 +149,8 @@ class TestAppFunctions(TestCase):
 
     def test_heat_producer_agent_screening(self):
         """Test that we catch when an un-supported profile is specified for a HeatProducerAgent"""
-        agents = [self.mock_grid_el, self.mock_grid_he, self.mock_pv, self.mock_bakery]
-        self.assertEqual("Unrecognized Profile: Bakery, needs to be one of ['Grocery store']",
+        agents = [self.mock_grid_el, self.mock_grid_he, self.mock_pv, self.mock_server_hall]
+        self.assertEqual("Unrecognized Profile: Server hall, needs to be one of ['Grocery store', 'Bakery']",
                          config_data_agent_screening({'Agents': agents}))
 
     def test_config_naming_is_valid(self):

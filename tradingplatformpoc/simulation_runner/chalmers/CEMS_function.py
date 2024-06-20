@@ -314,7 +314,7 @@ def max_Psell_grid(model, i, t):
 def max_Hsell_grid_winter(model, i, t):
     # Only used in winter mode : Due to high temperature of district heating (60 deg. C),
     # it is not possible to export heat from building to the district heating
-    return model.Hsell_grid[i, t] <= 0
+    return model.Hsell_grid[i, t] <= 0  # TODO: Bakery needs to be allowed to sell...
 
 
 def max_Hsell_grid_summer(model, i, t):
@@ -393,12 +393,12 @@ def agent_Hbalance_summer(model, i, t):
     # Only used in summer mode
     # with TES
     if model.kwh_per_deg[i] != 0:
-        return model.Hbuy_grid[i, t] + model.Hhp[i, t] \
+        return model.Hbuy_grid[i, t] + model.Hhp[i, t] + model.Hsh_excess_high_temp[i, t] \
             + model.Hsh_excess_low_temp[i, t] == model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] \
             + model.Hsh[i, t] + PERC_OF_HT_COVERABLE_BY_LT * model.HTEScha[i, t] + model.heat_dump[i, t]
     # without TES
     else:
-        return model.Hbuy_grid[i, t] + model.Hhp[i, t] \
+        return model.Hbuy_grid[i, t] + model.Hhp[i, t] + model.Hsh_excess_high_temp[i, t] \
             + model.Hsh_excess_low_temp[i, t] == model.Hsell_grid[i, t] + model.Hcha_shallow[i, t] \
             + model.Hsh[i, t] + PERC_OF_HT_COVERABLE_BY_LT * model.Hhw[i, t] + model.heat_dump[i, t]
 
