@@ -94,8 +94,8 @@ Change the tag in Azure / App Service / Deployment Center. When you are done tes
 The following guide is for using pgAdmin to access the Azure Database, but this is optional, and you can choose GUI after your liking.
 
 Make sure you have an active subscription on Azure and access to the relevant Resource group: _JonstakaPOC_.
-Make sure pgAdmin is installed and setup with password (personal, will not affect the access of others).
-Make sure your ip address is in JonstakaPOC/database_jonstaka/Networking. 
+Make sure pgAdmin is installed and (optionally) setup with password.
+Make sure your IP address is in JonstakaPOC/database_jonstaka/Networking. 
 
 To access the server:
 
@@ -105,7 +105,7 @@ To access the server:
   - _Host name/adress_: Corresponds to the Server name in the Database Overview.
   - _Username_: Here use the Admin username in the Database Overview. (everything before the @)
   - _Password_: This is found in Key vault -> Secrets. Copy the CURRENT VERSION of the admin password and Save.
-  - Save the password in pdAdmin. 
+  - Save the password in pgAdmin. 
 
 NOTE: Do not use admin user with python.
 
