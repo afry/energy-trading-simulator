@@ -59,7 +59,7 @@ This can be achieved by setting an environment variable named "NOT_FULL_YEAR" to
    * You'll be prompted to enter a tag message (similar to a commit message) in whatever text editor you have set as git's default, or probably Vim if you haven't set anything
 7. Push the tag, and the updated develop and main branches: "git push origin TAG_NAME; git push origin develop; git push origin main"
 
-Steps 8-9 are only relevant if you are running the app in Azure (more on that further down below). If you are not, skip to 10.
+Steps 8-10 are only relevant if you are running the app in Azure (more on that further down below). If you are not, skip to 11.
 
 8. Pushing the tag will trigger 2 "extra" GitHub **Actions**:
    1. release - creates a release in GitHub
@@ -72,8 +72,15 @@ Steps 8-9 are only relevant if you are running the app in Azure (more on that fu
       6. Go to the GitHub repository, click "Settings → Secrets and variables → Actions"
       7. Edit "AZURE_PASSWORD", paste the Value
       8. Re-run the "deploy" stage
-9. To apply the changes to the web app, open the App Service, click "Deployment Center", and choose the appropriate "Tag" from the dropdown. This will restart the App Service with the specified version. 
-10. On develop, you may want to change the version numbers (as you did in step 5) to a ".dev"-name. For example, if you just released version 1.0.2, the version numbers on develop should probably be "1.0.3.dev".
+9. You may want to do some database work before making the web app use your release. If your release includes changes which:
+   * Modify the tables in the database (for example add a new column to one of them)
+     * In this case,  it will be easiest to drop all tables (they will be re-created on startup).
+     Use the [SQL script for dropping tables and types](scripts/drop%20all%20tables.sql), running it in your database editor of choice (such as pgAdmin).
+   * Change the simulation results of the default simulation set-up 
+     * Then you probably need to drop all previous simulation results, so that they can be overwritten.
+     This can be done using an SQL script (you may even use the aforementioned script to drop all tables), but could also be done in the app UI: Navigate to the "Run simulation" page, select all runs, and delete data for them.
+10. To apply the changes to the web app, open the App Service, click "Deployment Center", and choose the appropriate "Tag" from the dropdown. This will restart the App Service with the specified version. 
+11. On develop, you may want to change the version numbers (as you did in step 5) to a ".dev"-name. For example, if you just released version 1.0.2, the version numbers on develop should probably be "1.0.3.dev".
 
 If you would like to tag a temporary branch, just to test how something works in Azure (such as testing runtimes):
 
@@ -87,8 +94,8 @@ Change the tag in Azure / App Service / Deployment Center. When you are done tes
 The following guide is for using pgAdmin to access the Azure Database, but this is optional, and you can choose GUI after your liking.
 
 Make sure you have an active subscription on Azure and access to the relevant Resource group: _JonstakaPOC_.
-Make sure pgAdmin is installed and setup with password (personal, will not affect the access of others).
-Make sure your ip address is in JonstakaPOC/database_jonstaka/Networking. 
+Make sure pgAdmin is installed and (optionally) setup with password.
+Make sure your IP address is in JonstakaPOC/database_jonstaka/Networking. 
 
 To access the server:
 
@@ -98,7 +105,7 @@ To access the server:
   - _Host name/adress_: Corresponds to the Server name in the Database Overview.
   - _Username_: Here use the Admin username in the Database Overview. (everything before the @)
   - _Password_: This is found in Key vault -> Secrets. Copy the CURRENT VERSION of the admin password and Save.
-  - Save the password in pdAdmin. 
+  - Save the password in pgAdmin. 
 
 NOTE: Do not use admin user with python.
 
