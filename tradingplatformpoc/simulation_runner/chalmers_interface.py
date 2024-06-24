@@ -95,6 +95,7 @@ def optimize(solver: OptSolver, block_agents: List[BlockAgent], grid_agents: Dic
                              for agent in agent_guids]
     deep_storage_start = [(deep_storage_start_dict[agent] if agent in shallow_storage_start_dict.keys() else 0.0)
                           for agent in agent_guids]
+    can_sell_high_temp_heat = [agent.digital_twin.can_sell_high_temp_heat() for agent in block_agents]
 
     nordpool_prices: pd.Series = elec_pricing.get_nordpool_price_for_periods(start_datetime, trading_horizon)
     nordpool_prices = nordpool_prices.reset_index(drop=True)
@@ -121,6 +122,7 @@ def optimize(solver: OptSolver, block_agents: List[BlockAgent], grid_agents: Dic
                 heatpump_max_heat=heatpump_max_heat,
                 HP_Cproduct_active=hp_produce_cooling,
                 borehole=hp_produce_cooling,
+                can_sell_high_temp_heat=can_sell_high_temp_heat,
                 booster_heatpump_COP=[area_info['COPBoosterPumps']] * n_agents,
                 booster_heatpump_max_power=booster_max_power,
                 booster_heatpump_max_heat=booster_max_heat,
