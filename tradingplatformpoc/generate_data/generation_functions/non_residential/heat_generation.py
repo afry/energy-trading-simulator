@@ -62,9 +62,9 @@ def _scale_grocery_store_heat_production(unscaled: pd.Series, scale_factor_from_
 
 def _get_bakery_hourly_factor(timestamp: datetime.datetime) -> float:
     """
-    10 hours per day, as specified by BDAB ('docs/Heat production.md')
+    10 hours per day, closed on weekends, as specified by BDAB ('docs/Heat production.md')
     """
-    if 3 <= timestamp.hour < 13:
+    if (3 <= timestamp.hour < 13) and timestamp.weekday() < 5:
         return 1.0
     return 0.0
 

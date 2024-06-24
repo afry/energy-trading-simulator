@@ -208,7 +208,7 @@
     "HeatProducerAgent": {
         "Profile": {
             "help": "The profile of the heat producer. Determines what type (low/high-temp) of heating which is produced, and when it is produced (time of day, weekdays, seasonal effects etc)",
-            "options": ["Grocery store"],
+            "options": ["Grocery store", "Bakery"],
             "default_value": "Grocery store"
         },
         "Scale": {
