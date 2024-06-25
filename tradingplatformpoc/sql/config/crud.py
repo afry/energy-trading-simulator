@@ -187,8 +187,6 @@ def get_job_ids_for_config_id(config_id: str,
 
 
 def delete_config_if_no_jobs_exist(config_id: str) -> bool:
-    if config_id == DEFAULT_CONFIG_NAME:
-        return False
     job_ids = get_job_ids_for_config_id(config_id)
     if len(job_ids) == 0:
         return delete_config(config_id)
