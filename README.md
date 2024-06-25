@@ -54,7 +54,7 @@ This can be achieved by setting an environment variable named "NOT_FULL_YEAR" to
 2. Checkout develop branch
 3. If you haven't done any git flow operations on this project, you will have to run "git flow init" - you will be asked a bunch of questions, and you should just accept the default answers (by pressing enter)
 4. Run "git flow release start TAG_NAME" where TAG_NAME is the tag identifier, for example 1.0.2
-5. Change version in the files where its needed (at time of writing setup.py and footer.py, but it is probably easiest to do a Replace All), commit the change (this ensures that the proper version is shown in the UI)
+5. Change version in the files where it is needed (at time of writing setup.py and footer.py, but it is probably easiest to do a Replace All), commit the change (this ensures that the proper version is shown in the UI)
 6. Run "git flow release finish TAG_NAME"
    * You'll be prompted to enter a tag message (similar to a commit message) in whatever text editor you have set as git's default, or probably Vim if you haven't set anything
 7. Push the tag, and the updated develop and main branches: "git push origin TAG_NAME; git push origin develop; git push origin main"
