@@ -9,7 +9,6 @@ from sqlalchemy import select
 
 from sqlmodel import Session, exists
 
-from tradingplatformpoc.app.app_constants import DEFAULT_CONFIG_NAME
 from tradingplatformpoc.config.screen_config import param_diff
 from tradingplatformpoc.connection import session_scope
 from tradingplatformpoc.sql.agent.crud import create_agent_if_not_in_db
