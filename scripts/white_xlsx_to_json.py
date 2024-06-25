@@ -66,7 +66,7 @@ if __name__ == '__main__':
                                   for i in range(20)]
     areas['BoosterPumpMaxInput'] = hp_sizes['bhp_output'] / A_LOW_COP
     areas['BoosterPumpMaxOutput'] = hp_sizes['bhp_output'].astype(float)
-    areas['HeatPumpForCooling'] = False
+    areas['HeatPumpForCooling'] = should_include_commercial
     areas['BatteryCapacity'] = get_battery_size_kwh(areas['PVArea'])
     areas['AccumulatorTankCapacity'] = hp_sizes['acc_tank_litre'] * 75 / 1000
     areas['FractionUsedForBITES'] = 0.0

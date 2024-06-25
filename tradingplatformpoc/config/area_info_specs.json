@@ -62,7 +62,7 @@
         "min_value": 0.0,
         "step": 50.0,
         "help": "The capacity of a centralized compressor chiller, providing cooling to the LEC. Setting this to 0 corresponds to not having a centralized chiller. The max output will be this number multiplied by the COP. Not used if the local market is disabled.",
-        "default": 100.0,
+        "default": 0.0,
         "disabled_cond": {"disabled_when": {"LocalMarketEnabled": false}, "set_value": 0.0}
     },
     "CompChillerCOP": {

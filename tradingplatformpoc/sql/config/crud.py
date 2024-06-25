@@ -9,7 +9,6 @@ from sqlalchemy import select
 
 from sqlmodel import Session, exists
 
-from tradingplatformpoc.app.app_constants import DEFAULT_CONFIG_NAME
 from tradingplatformpoc.config.screen_config import param_diff
 from tradingplatformpoc.connection import session_scope
 from tradingplatformpoc.sql.agent.crud import create_agent_if_not_in_db
@@ -187,8 +186,6 @@ def get_job_ids_for_config_id(config_id: str,
 
 
 def delete_config_if_no_jobs_exist(config_id: str) -> bool:
-    if config_id == DEFAULT_CONFIG_NAME:
-        return False
     job_ids = get_job_ids_for_config_id(config_id)
     if len(job_ids) == 0:
         return delete_config(config_id)
