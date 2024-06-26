@@ -369,6 +369,8 @@ def agent_Pbalance_summer(model, i, t):
 
 def agent_Hbalance_winter(model, i, t):
     # Only used in winter mode
+    # Note that "Hsh_excess_low_temp" isn't used here, even though it theoretically could be used to fill low-temp
+    # space heating need (Hsh).
     # with TES
     if model.kwh_per_deg[i] != 0:
         return model.Hbuy_grid[i, t] + model.Hhp[i, t] + model.Hsh_excess_high_temp[i, t] == \
