@@ -83,15 +83,3 @@ class StaticDigitalTwin:
         else:
             logger.warning("No usage defined for resource {}".format(resource))
             return 0
-
-    def can_sell_high_temp_heat(self):
-        """
-        Returns True if and only if:
-        * There _is_ high-temp heat production
-        * There _is not_ low-temp heat production
-        """
-        if self.hot_water_production is None or self.hot_water_production.eq(0).all():
-            return False
-        if self.space_heating_production is None or self.space_heating_production.eq(0).all():
-            return True
-        return False

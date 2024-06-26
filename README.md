@@ -54,7 +54,7 @@ This can be achieved by setting an environment variable named "NOT_FULL_YEAR" to
 2. Checkout develop branch
 3. If you haven't done any git flow operations on this project, you will have to run "git flow init" - you will be asked a bunch of questions, and you should just accept the default answers (by pressing enter)
 4. Run "git flow release start TAG_NAME" where TAG_NAME is the tag identifier, for example 1.0.2
-5. Change version in the files where its needed (at time of writing setup.py and footer.py, but it is probably easiest to do a Replace All), commit the change (this ensures that the proper version is shown in the UI)
+5. Change version in the files where it is needed (at time of writing setup.py and footer.py, but it is probably easiest to do a Replace All), commit the change (this ensures that the proper version is shown in the UI)
 6. Run "git flow release finish TAG_NAME"
    * You'll be prompted to enter a tag message (similar to a commit message) in whatever text editor you have set as git's default, or probably Vim if you haven't set anything
 7. Push the tag, and the updated develop and main branches: "git push origin TAG_NAME; git push origin develop; git push origin main"
@@ -189,3 +189,15 @@ You can also view the logs by clicking "Log stream" in the App Service page in A
 The best way (arguably) of viewing logs, though, is in the log analytics workspace. This is accessed through the "Logs" tab in the App Service page. Here, you can search through logs, create alerts, etcetera.
 
 For more information, see https://docs.microsoft.com/en-us/azure/app-service/troubleshoot-diagnostic-logs.
+
+## Generating scenario configurations using script
+Apart from creating scenario configurations using the UI, one can use the [white_xlsx_to_json.py](scripts/white_xlsx_to_json.py) script.
+
+This is written to generate the default configuration, but can easily be modified.
+
+For example, to generate a configuration with PV panels on 50% of BYA instead of the default 25%:
+1. Change the `PERCENT_OF_BYA_TO_COVER_WITH_PV_PANELS` constant from 0.25 to 0.5
+2. Run the script, this generates the list of block agents in JSON format (printed to console)
+3. Download the default configuration JSON in the app (on tab "Setup configuration", select "lec_default", expand "chosen existing configuration lec_default", then click "Export lec_default config to JSON")
+4. Modify the downloaded JSON, replacing all block agents with the output from the script, save this new config
+5. Upload the new config: On tab "Setup configuration", click the dropdown on the bottom left, click "... upload configuration file", and then either drag-and-drop or click "Browse files"
