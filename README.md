@@ -189,3 +189,15 @@ You can also view the logs by clicking "Log stream" in the App Service page in A
 The best way (arguably) of viewing logs, though, is in the log analytics workspace. This is accessed through the "Logs" tab in the App Service page. Here, you can search through logs, create alerts, etcetera.
 
 For more information, see https://docs.microsoft.com/en-us/azure/app-service/troubleshoot-diagnostic-logs.
+
+## Generating scenario configurations using script
+Apart from creating scenario configurations using the UI, one can use the [white_xlsx_to_json.py](scripts/white_xlsx_to_json.py) script.
+
+This is written to generate the default configuration, but can easily be modified.
+
+For example, to generate a configuration with PV panels on 50% of BYA instead of the default 25%:
+1. Change the `PERCENT_OF_BYA_TO_COVER_WITH_PV_PANELS` constant from 0.25 to 0.5
+2. Run the script, this generates the list of block agents in JSON format (printed to console)
+3. Download the default configuration JSON in the app (on tab "Setup configuration", select "lec_default", expand "chosen existing configuration lec_default", then click "Export lec_default config to JSON")
+4. Modify the downloaded JSON, replacing all block agents with the output from the script, save this new config
+5. Upload the new config: On tab "Setup configuration", click the dropdown on the bottom left, click "... upload configuration file", and then either drag-and-drop or click "Browse files"
