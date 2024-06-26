@@ -19,7 +19,6 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, n_agents: int,
                 booster_heatpump_max_heat: List[float], build_area: List[float], SOCTES0: List[float],
                 thermalstorage_max_temp: List[float], thermalstorage_volume: List[float], BITES_Eshallow0: List[float],
                 BITES_Edeep0: List[float], borehole: List[bool],
-                can_sell_high_temp_heat: List[bool],
                 elec_consumption: pd.DataFrame, hot_water_heatdem: pd.DataFrame, space_heating_heatdem: pd.DataFrame,
                 cold_consumption: pd.DataFrame, pv_production: pd.DataFrame,
                 excess_low_temp_heat: pd.DataFrame, excess_high_temp_heat: pd.DataFrame,
@@ -124,7 +123,6 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, n_agents: int,
     model.Hsh_excess_low_temp = pyo.Param(model.I, model.T, initialize=lambda m, i, t: excess_low_temp_heat.iloc[i, t])
     model.Hsh_excess_high_temp = pyo.Param(model.I, model.T,
                                            initialize=lambda m, i, t: excess_high_temp_heat.iloc[i, t])
-    model.can_sell_high_temp_heat = pyo.Param(model.I, initialize=lambda m, i: can_sell_high_temp_heat[i])
     # BES data
     model.effe = pyo.Param(initialize=battery_efficiency)
     model.SOCBES0 = pyo.Param(model.I, initialize=SOCBES0)
@@ -224,13 +222,12 @@ def add_obj_and_constraints(model: pyo.ConcreteModel, summer_mode: bool, month: 
     model.con_max_Psell_grid = pyo.Constraint(model.I, model.T, rule=max_Psell_grid)
     model.con_max_Pbuy_market = pyo.Constraint(model.T, rule=max_Pbuy_market)
     model.con_max_Psell_market = pyo.Constraint(model.T, rule=max_Psell_market)
+    model.con_max_Hsell_grid = pyo.Constraint(model.I, model.T, rule=max_Hsell_grid)
     if summer_mode:
-        model.con_max_Hsell_grid_summer = pyo.Constraint(model.I, model.T, rule=max_Hsell_grid_summer)
         model.con_agent_Pbalance_summer = pyo.Constraint(model.I, model.T, rule=agent_Pbalance_summer)
         model.con_agent_Hbalance_summer = pyo.Constraint(model.I, model.T, rule=agent_Hbalance_summer)
         model.con_HTES_supplied_by_Bhp = pyo.Constraint(model.I, model.T, rule=HTES_supplied_by_Bhp)
     else:
-        model.con_max_Hsell_grid_winter = pyo.Constraint(model.I, model.T, rule=max_Hsell_grid_winter)
         model.con_agent_Pbalance_winter = pyo.Constraint(model.I, model.T, rule=agent_Pbalance_winter)
         model.con_agent_Hbalance_winter = pyo.Constraint(model.I, model.T, rule=agent_Hbalance_winter)
 
@@ -313,13 +310,7 @@ def max_Psell_grid(model, i, t):
     return model.Psell_grid[i, t] <= model.Pmax_grid * (1 - model.U_power_buy_sell_grid[i, t])
 
 
-def max_Hsell_grid_winter(model, i, t):
-    # Only used in winter mode: Due to high temperature of the grid (60 deg. C), not all agents can export heat
-    return model.Hsell_grid[i, t] <= (1 * model.can_sell_high_temp_heat[i]) * model.Hmax_grid
-
-
-def max_Hsell_grid_summer(model, i, t):
-    # Only used in summer mode
+def max_Hsell_grid(model, i, t):
     return model.Hsell_grid[i, t] <= model.Hmax_grid
 
 
@@ -378,6 +369,8 @@ def agent_Pbalance_summer(model, i, t):
 
 def agent_Hbalance_winter(model, i, t):
     # Only used in winter mode
+    # Note that "Hsh_excess_low_temp" isn't used here, even though it theoretically could be used to fill low-temp
+    # space heating need (Hsh).
     # with TES
     if model.kwh_per_deg[i] != 0:
         return model.Hbuy_grid[i, t] + model.Hhp[i, t] + model.Hsh_excess_high_temp[i, t] == \
