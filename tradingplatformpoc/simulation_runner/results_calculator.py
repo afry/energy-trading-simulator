@@ -79,7 +79,7 @@ class AggregatedTrades:
         self.daily_max_net_import = (external_trades_df['net_imported'].
                                      groupby(external_trades_df['period'].dt.date).
                                      sum().
-                                     max())
+                                     max()) if len(external_trades_df) else 0
 
 
 def calculate_results_and_save(job_id: str, agents: List[IAgent], grid_agents: Dict[Resource, GridAgent]):
