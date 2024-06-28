@@ -154,18 +154,23 @@ the containerID (see below for how to do this), and reviewing its logs
 ### Running the app in Azure
 Since May 2022, AFRY are running this web app in Azure. Ownership was transferred to Chalmers in June 2024.
 
-To update the version of the app in Azure, follow the steps below.
+To build a docker image and update the version of the app in Azure **manually**, follow the steps below.
+It should happen automatically when a git tag is created, as specified in [ci.yml](/.github/workflows/ci.yml) and detailed in [Creating a release](#Creating a release) above.
 
 This assumes that the app is owned by a subscription named "subscription_name",
-situated in a resource group named "resource_group_name"
-and that the container registry which holds the Docker images is named "container_reg_name"
+and that you want to build a docker image with the tag name "TAG_NAME" (replace below with your actual tag name).
 
-1. Make sure you have Azure CLI installed
-2. Make sure you have access to the Azure subscription in which the app lives
+1. Make sure you have **Docker** and **Azure CLI** installed
+2. Open powershell / command prompt / bash (your choice)
+3. Run "az login"
+4. Make sure you have access to the Azure subscription in which the app lives
    1. If you aren't already on that subscription, switch to it by running "az account set --subscription "subscription_name"" (replace "subscription_name")
-3. Navigate to the project root folder
-4. Run the following command: "az acr build --registry container_reg_name --resource-group resource_group_name --image tppoc-app ."
-5. When the above command has finished:
+5. Navigate to the project root folder
+6. Run the following commands:
+   1. "docker build -t tppoc-app ."
+   2. "docker tag tppoc-app jonstakacontainerregistry.azurecr.io/tppoc-app:latest"
+   3. "docker tag tppoc-app jonstakacontainerregistry.azurecr.io/tppoc-app:TAG_NAME"
+7. When the above command has finished:
    1. Navigate to the App Service in the Azure portal.
    2. Click "Deployment Center" on the left
    3. Check the "Tag" dropdown. If this is set to "latest", you just need to restart the app, and the latest image will be used. If a specific image name is selected, choose the one you want. The app will restart if you change version, so no need to do so explicitly.
