@@ -182,6 +182,8 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, n_agents: int,
     model.Php = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
     model.Php_Hmod = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
     model.Php_Cmod = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
+    model.Uhp_Hmod = pyo.Var(model.I, model.T, within=pyo.Binary, initialize=0)
+    model.Uhp_Cmod = pyo.Var(model.I, model.T, within=pyo.Binary, initialize=0)
     model.HTEScha = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
     model.HTESdis = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
     model.SOCTES = pyo.Var(model.I, model.T, bounds=(0, 1), within=pyo.NonNegativeReals,
