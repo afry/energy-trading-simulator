@@ -578,7 +578,7 @@ def max_HP_Pconsumption_Hmod(model, i, t):
 
 
 def max_HP_Pconsumption_Cmod(model, i, t):
-    return model.Php[i, t] <= model.Phpmax[i] * model.Uhp_Cmod[i, t]
+    return model.Php_Cmod[i, t] <= model.Phpmax[i] * model.Uhp_Cmod[i, t]
 
 
 def max_HP_Pconsumption_Coordinate(model, i, t):
