@@ -128,6 +128,10 @@ def solve_model(solver: OptSolver, month: int, agent: int, nordpool_price: pd.Se
     model.Hhp = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
     model.Chp = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
     model.Php = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
+    model.Php_Hmod = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
+    model.Php_Cmod = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
+    model.Uhp_Hmod = pyo.Var(model.T, within=pyo.Binary, initialize=0)
+    model.Uhp_Cmod = pyo.Var(model.T, within=pyo.Binary, initialize=0)
     model.HTEScha = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
     model.HTESdis = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
     model.SOCTES = pyo.Var(model.T, bounds=(0, 1), within=pyo.NonNegativeReals,
@@ -355,12 +359,15 @@ def solve_model(solver: OptSolver, month: int, agent: int, nordpool_price: pd.Se
             return model.Pdis[t] / model.Pmax_BES_Dis + model.Pcha[t] / model.Pmax_BES_Cha <= 1
 
     # Heat pump model (eq. 20 of the report)
+    def HP_Pconsump(model, t):
+        return model.Php[t] == model.Php_Hmod[t] + model.Php_Cmod[t]
+
     def HP_Hproduct(model, t):
         return model.Hhp[t] == model.COPhp * model.Php[t]
 
     def HP_Cproduct(model, t):
         if model.HP_Cproduct_active:
-            return model.Chp[t] == (model.COPhp - 1) * model.Php[t]
+            return model.Chp[t] == (model.COPhp - 1) * model.Php_Cmod[t]
         else:
             return model.Chp[t] == 0
 
@@ -369,6 +376,15 @@ def solve_model(solver: OptSolver, month: int, agent: int, nordpool_price: pd.Se
 
     def max_HP_Pconsumption(model, t):
         return model.Php[t] <= model.Phpmax
+
+    def max_HP_Pconsumption_Hmod(model, t):
+        return model.Php_Hmod[t] <= model.Phpmax * model.Uhp_Hmod[t]
+
+    def max_HP_Pconsumption_Cmod(model, t):
+        return model.Php_Cmod[t] <= model.Phpmax * model.Uhp_Cmod[t]
+
+    def max_HP_Pconsumption_Coordinate(model, t):
+        return model.Uhp_Hmod[t] + model.Uhp_Cmod[t] <= 1
 
     # Booster heat pump model (eq. 20 of the report)
     # def booster_HP_Hproduct(model, t):
@@ -450,6 +466,9 @@ def solve_model(solver: OptSolver, month: int, agent: int, nordpool_price: pd.Se
     model.con_HP_Cproduct = pyo.Constraint(model.T, rule=HP_Cproduct)
     model.con_max_HP_Hproduct = pyo.Constraint(model.T, rule=max_HP_Hproduct)
     model.con_max_HP_Pconsumption = pyo.Constraint(model.T, rule=max_HP_Pconsumption)
+    model.con_max_HP_Pconsumption_Hmod = pyo.Constraint(model.T, rule=max_HP_Pconsumption_Hmod)
+    model.con_max_HP_Pconsumption_Cmod = pyo.Constraint(model.T, rule=max_HP_Pconsumption_Cmod)
+    model.con_max_HP_Pconsumption_Coordinator = pyo.Constraint(model.T, rule=max_HP_Pconsumption_Coordinate)
     model.con_max_HTES_dis = pyo.Constraint(model.T, rule=max_HTES_dis)
     model.con_max_HTES_cha = pyo.Constraint(model.T, rule=max_HTES_cha)
     model.con_HTES_Ebalance = pyo.Constraint(model.T, rule=HTES_Ebalance)
