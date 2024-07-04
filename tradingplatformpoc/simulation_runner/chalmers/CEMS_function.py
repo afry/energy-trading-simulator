@@ -180,6 +180,8 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, n_agents: int,
     model.Hhp = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
     model.Chp = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
     model.Php = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
+    model.Php_Hmod = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
+    model.Php_Cmod = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
     model.HTEScha = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
     model.HTESdis = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
     model.SOCTES = pyo.Var(model.I, model.T, bounds=(0, 1), within=pyo.NonNegativeReals,
@@ -256,9 +258,13 @@ def add_obj_and_constraints(model: pyo.ConcreteModel, summer_mode: bool, month: 
     model.con_BES_final_SOC = pyo.Constraint(model.I, rule=BES_final_SOC)
     model.con_BES_remove_binaries = pyo.Constraint(model.I, model.T, rule=BES_remove_binaries)
     model.con_HP_Hproduct = pyo.Constraint(model.I, model.T, rule=HP_Hproduct)
+    model.con_HP_Pconsump = pyo.Constraint(model.I, model.T, rule=HP_Pconsump)
     model.con_HP_Cproduct = pyo.Constraint(model.I, model.T, rule=HP_Cproduct)
     model.con_max_HP_Hproduct = pyo.Constraint(model.I, model.T, rule=max_HP_Hproduct)
-    model.con_max_HP_Pconsumption = pyo.Constraint(model.I, model.T, rule=max_HP_Pconsumption)
+    model.con_max_HP_Pconsumption_Hmod = pyo.Constraint(model.I, model.T, rule=max_HP_Pconsumption_Hmod)
+    model.con_max_HP_Pconsumption_Cmod = pyo.Constraint(model.I, model.T, rule=max_HP_Pconsumption_Cmod)
+    model.con_max_HP_Pconsumption_Coordinate = pyo.Constraint(model.I, model.T,
+                                                              rule=max_HP_Pconsumption_Coordinate)
     if summer_mode:
         model.con_max_booster_HP_Hproduct_summer = pyo.Constraint(model.I, model.T, rule=max_booster_HP_Hproduct_summer)
         model.con_chiller_Hwaste_summer = pyo.Constraint(model.T, rule=chiller_Hwaste_summer)
@@ -548,13 +554,17 @@ def BES_remove_binaries(model, i, t):
 
 
 # Heat pump model (eq. 20 of the report)
+def HP_Pconsump(model, i, t):
+    return model.Php[i, t] == model.Php_Hmod[i, t] + model.Php_Cmod[i, t]
+
+
 def HP_Hproduct(model, i, t):
     return model.Hhp[i, t] == model.COPhp[i] * model.Php[i, t]
 
 
 def HP_Cproduct(model, i, t):
     if model.HP_Cproduct_active[i]:
-        return model.Chp[i, t] == (model.COPhp[i] - 1) * model.Php[i, t]
+        return model.Chp[i, t] == (model.COPhp[i] - 1) * model.Php_Cmod[i, t]
     else:
         return model.Chp[i, t] == 0
 
@@ -563,8 +573,16 @@ def max_HP_Hproduct(model, i, t):
     return model.Hhp[i, t] <= model.Hhpmax[i]
 
 
-def max_HP_Pconsumption(model, i, t):
-    return model.Php[i, t] <= model.Phpmax[i]
+def max_HP_Pconsumption_Hmod(model, i, t):
+    return model.Php_Hmod[i, t] <= model.Phpmax[i] * model.Uhp_Hmod[i, t]
+
+
+def max_HP_Pconsumption_Cmod(model, i, t):
+    return model.Php[i, t] <= model.Phpmax[i] * model.Uhp_Cmod[i, t]
+
+
+def max_HP_Pconsumption_Coordinate(model, i, t):
+    return model.Uhp_Hmod[i, t] + model.Uhp_Cmod[i, t] <= 1
 
 
 # Booster heat pump model (eq. 20 of the report)
