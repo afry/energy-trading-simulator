@@ -73,11 +73,11 @@ jobs:
       with:
         username: ${{ secrets.AZURE_APP_ID }}
         password: ${{ secrets.AZURE_PASSWORD }}
-        registry: jonstakapoccontainerregistry.azurecr.io
+        registry: jonstakacontainerregistry.azurecr.io
     - name: Build and push Docker image
       run: |
         docker build -t tppoc-app .
-        docker tag tppoc-app jonstakapoccontainerregistry.azurecr.io/tppoc-app:latest
-        docker tag tppoc-app jonstakapoccontainerregistry.azurecr.io/tppoc-app:${{ github.ref_name }}
-        docker push jonstakapoccontainerregistry.azurecr.io/tppoc-app:latest
-        docker push jonstakapoccontainerregistry.azurecr.io/tppoc-app:${{ github.ref_name }}
+        docker tag tppoc-app jonstakacontainerregistry.azurecr.io/tppoc-app:latest
+        docker tag tppoc-app jonstakacontainerregistry.azurecr.io/tppoc-app:${{ github.ref_name }}
+        docker push jonstakacontainerregistry.azurecr.io/tppoc-app:latest
+        docker push jonstakacontainerregistry.azurecr.io/tppoc-app:${{ github.ref_name }}
