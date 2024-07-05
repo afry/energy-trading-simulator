@@ -465,6 +465,7 @@ def solve_model(solver: OptSolver, month: int, agent: int, nordpool_price: pd.Se
     model.con_HP_Hproduct = pyo.Constraint(model.T, rule=HP_Hproduct)
     model.con_HP_Cproduct = pyo.Constraint(model.T, rule=HP_Cproduct)
     model.con_max_HP_Hproduct = pyo.Constraint(model.T, rule=max_HP_Hproduct)
+    model.con_HP_Pconsump = pyo.Constraint(model.T, rule=HP_Pconsump)
     model.con_max_HP_Pconsumption = pyo.Constraint(model.T, rule=max_HP_Pconsumption)
     model.con_max_HP_Pconsumption_Hmod = pyo.Constraint(model.T, rule=max_HP_Pconsumption_Hmod)
     model.con_max_HP_Pconsumption_Cmod = pyo.Constraint(model.T, rule=max_HP_Pconsumption_Cmod)
