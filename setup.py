@@ -4,7 +4,7 @@ with open('README.md', 'r') as f:
     readme = f.read()
 
 setup(name='tradingplatformpoc',
-      version='3.14.0.dev',
+      version='3.14.1.dev',
       description='A trading platform which enables physical entities to buy and sell energy using bids and agents.',
       long_description=readme,
       url='https://gitlab01.afdrift.se/futuretechnologies/tornet-jonstaka/trading-platform-poc',
