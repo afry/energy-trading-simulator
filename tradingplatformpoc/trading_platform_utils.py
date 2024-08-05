@@ -138,10 +138,13 @@ def add_all_to_twice_nested_dict(first_dict: Dict[Any, Dict[Any, dict]], second_
 def get_glpk_solver() -> OptSolver:
     if platform.system() == 'Linux':
         logger.info('Linux system')
+        # return pyo.SolverFactory('gurobi', solver_io="python")
         return pyo.SolverFactory('glpk')
     else:
         logger.info('Not a linux system, using GLPK_PATH')
         return pyo.SolverFactory('glpk', executable=settings.GLPK_PATH)
+        # return pyo.SolverFactory('gurobi', solver_io="python", options={'TimeLimit': 600},
+        # executable=settings.GLPK_PATH)
 
 
 def get_external_prices(pricing: IPrice, job_id: str,

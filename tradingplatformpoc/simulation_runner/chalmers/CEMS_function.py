@@ -205,12 +205,15 @@ def solve_model(solver: OptSolver, summer_mode: bool, month: int, n_agents: int,
     # This variable will keep track of the unused excess cooling for us. No penalty associated with it - this cooling
     # can be used, or not, it's fine either way
     model.cool_dump = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
+    model.cool_dump_agent = pyo.Var(model.I, model.T, within=pyo.NonNegativeReals, initialize=0)
     # Electrical and heat load peaks
     model.daily_elec_peak_load = pyo.Var(within=pyo.NonNegativeReals, initialize=0)
     model.avg_elec_peak_load = pyo.Var(within=pyo.NonNegativeReals, initialize=sum(hist_top_three_elec_peak_load) / 3.0)
     model.daily_heat_peak_energy = pyo.Var(within=pyo.NonNegativeReals, initialize=0)
     model.monthly_heat_peak_energy = pyo.Var(within=pyo.NonNegativeReals, initialize=0)
 
+    model.UCbuy_grid = pyo.Var(model.I, model.T, within=pyo.Binary, initialize=0)
+    model.UCsell_grid = pyo.Var(model.I, model.T, within=pyo.Binary, initialize=0)
     add_obj_and_constraints(model, summer_mode, month)
 
     # Solve!
@@ -254,6 +257,10 @@ def add_obj_and_constraints(model: pyo.ConcreteModel, summer_mode: bool, month: 
     model.con_LEC_Pbalance = pyo.Constraint(model.T, rule=LEC_Pbalance)
     model.con_LEC_Hbalance = pyo.Constraint(model.T, rule=LEC_Hbalance)
     model.con_LEC_Cbalance = pyo.Constraint(model.T, rule=LEC_Cbalance)
+    model.con_LEC_Cbalance1 = pyo.Constraint(model.I, model.T, rule=LEC_Cbalance1)
+    model.con_LEC_Cbalance2 = pyo.Constraint(model.I, model.T, rule=LEC_Cbalance2)
+    model.con_LEC_Cbalance3 = pyo.Constraint(model.I, model.T, rule=LEC_Cbalance3)
+    model.con_LEC_cool_dump = pyo.Constraint(model.T, rule=LEC_cool_dump)
     model.con_BES_max_dis = pyo.Constraint(model.I, model.T, rule=BES_max_dis)
     model.con_BES_max_cha = pyo.Constraint(model.I, model.T, rule=BES_max_cha)
     model.con_BES_Ebalance = pyo.Constraint(model.I, model.T, rule=BES_Ebalance)
@@ -267,6 +274,7 @@ def add_obj_and_constraints(model: pyo.ConcreteModel, summer_mode: bool, month: 
     model.con_max_HP_Pconsumption_Cmod = pyo.Constraint(model.I, model.T, rule=max_HP_Pconsumption_Cmod)
     model.con_max_HP_Pconsumption_Coordinate = pyo.Constraint(model.I, model.T,
                                                               rule=max_HP_Pconsumption_Coordinate)
+    model.con_active_Cmod = pyo.Constraint(model.I, model.T, rule=active_Cmod)
     if summer_mode:
         model.con_max_booster_HP_Hproduct_summer = pyo.Constraint(model.I, model.T, rule=max_booster_HP_Hproduct_summer)
         model.con_chiller_Hwaste_summer = pyo.Constraint(model.T, rule=chiller_Hwaste_summer)
@@ -300,6 +308,7 @@ def obj_rul(model):
 
         # Penalty terms
         + sum(model.heat_dump[i, t] for i in model.I) * model.penalty  # Extra heating power generation dumping
+        + sum(model.cool_dump_agent[i, t] for i in model.I) * model.penalty  # Extra cooling power generation dumping
         for t in model.T)
 
 
@@ -409,12 +418,14 @@ def agent_Cbalance_winter(model, i, t):
     # Only used in months [1 to 5, 9 to 12]
     # with free cooling from borehole (model.borehole[i] == 1)
     # without free cooling from borehole (model.borehole[i] == 0)
-    return model.Cbuy_grid[i, t] + model.Chp[i, t] == model.Csell_grid[i, t] + model.Cld[i, t] * (1 - model.borehole[i])
+    return (model.Cbuy_grid[i, t] + model.Chp[i, t] == model.Csell_grid[i, t] + model.Cld[i, t] * (1 - model.borehole[i])
+            + model.cool_dump_agent[i, t])
 
 
 def agent_Cbalance_summer(model, i, t):
     # Only used in months [6, 7, 8]
-    return model.Cbuy_grid[i, t] + model.Chp[i, t] == model.Csell_grid[i, t] + model.Cld[i, t]
+    return (model.Cbuy_grid[i, t] + model.Chp[i, t] == model.Csell_grid[i, t] + model.Cld[i, t]
+            + model.cool_dump_agent[i, t])
 
 
 # (eq. 5 and 6 of the report)
@@ -514,8 +525,25 @@ def LEC_Hbalance(model, t):
 
 
 def LEC_Cbalance(model, t):
-    return model.Ccc[t] + sum(model.Csell_grid[i, t] * (1 - model.cold_trans_loss) for i in model.I) == \
-        sum(model.Cbuy_grid[i, t] for i in model.I) + model.cool_dump[t]
+    return (model.Ccc[t] * (1 - model.cold_trans_loss) +
+            sum(model.Csell_grid[i, t] * (1 - model.cold_trans_loss) for i in model.I) ==
+            sum(model.Cbuy_grid[i, t] for i in model.I))
+
+
+def LEC_Cbalance1(model, i, t):
+    return model.Csell_grid[i, t] <= 100000 * model.UCsell_grid[i, t]
+
+
+def LEC_Cbalance2(model, i, t):
+    return model.Cbuy_grid[i, t] <= 100000 * model.UCbuy_grid[i, t]
+
+
+def LEC_Cbalance3(model, i, t):
+    return model.UCbuy_grid[i, t] + model.UCsell_grid[i, t] <= 1
+
+
+def LEC_cool_dump(model, t):
+    return model.cool_dump[t] == sum(model.cool_dump_agent[i, t] for i in model.I)
 
 
 # Battery energy storage model (eqs. 16 to 19 of the report)
@@ -585,6 +613,13 @@ def max_HP_Pconsumption_Cmod(model, i, t):
 
 def max_HP_Pconsumption_Coordinate(model, i, t):
     return model.Uhp_Hmod[i, t] + model.Uhp_Cmod[i, t] <= 1
+
+
+def active_Cmod(model, i, t):
+    if model.Cld[i, t] > 0:
+        return model.Uhp_Cmod[i, t] >= 0
+    else:
+        return model.Uhp_Cmod[i, t] == 0
 
 
 # Booster heat pump model (eq. 20 of the report)
