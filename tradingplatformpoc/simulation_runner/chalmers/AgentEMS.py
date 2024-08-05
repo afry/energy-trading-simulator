@@ -149,8 +149,6 @@ def solve_model(solver: OptSolver, month: int, agent: int, nordpool_price: pd.Se
     # heat/cool_dump is used to consume extera heating/cooling power production
     model.heat_dump = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
     model.cool_dump = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
-    # Cool_curtail is used to determine cooling power curtailment
-    model.cool_curtail = pyo.Var(model.T, within=pyo.NonNegativeReals, initialize=0)
     # Electrical and heat load peaks
     model.daily_elec_peak_load = pyo.Var(within=pyo.NonNegativeReals, initialize=0)
     model.avg_elec_peak_load = pyo.Var(within=pyo.NonNegativeReals, initialize=sum(hist_top_three_elec_peak_load) / 3.0)
@@ -169,7 +167,7 @@ def solve_model(solver: OptSolver, month: int, agent: int, nordpool_price: pd.Se
             + model.Hbuy_market[t] * model.Hprice_energy  # Purchasing cost
             + (model.monthly_heat_peak_energy / 24) * model.heat_peak_load_fee  # Peak load cost
             + model.heat_dump[t] * model.penalty  # Extra heating power generation dumping
-            + model.cool_curtail[t] * model.penalty  # shortage cooling generation curtailment
+            + model.cool_dump[t] * model.penalty  # Extra heating power generation dumping
             for t in model.T)
 
     # Constraints:
@@ -227,11 +225,11 @@ def solve_model(solver: OptSolver, month: int, agent: int, nordpool_price: pd.Se
         # Only used in months [1 to 5, 9 to 12]
         # with free cooling from borehole (model.borehole[i] == 1)
         # without free cooling from borehole (model.borehole[i] == 0)
-        return model.Chp[t] == model.Cld[t] * (1 - model.borehole) + model.cool_dump[t] - model.cool_curtail[t]
+        return model.Chp[t] == model.Cld[t] * (1 - model.borehole) + model.cool_dump[t]
 
     def agent_Cbalance_summer(model, t):
         # Only used in months [6, 7, 8]
-        return model.Chp[t] == model.Cld[t] + model.cool_dump[t] - model.cool_curtail[t]
+        return model.Chp[t] == model.Cld[t] + model.cool_dump[t]
 
     # (eq. 5 and 6 of the report)
     # def HTES_supplied_by_Bhp(model, t):
